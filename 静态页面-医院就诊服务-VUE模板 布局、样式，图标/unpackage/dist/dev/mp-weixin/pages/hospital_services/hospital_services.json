@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "医院就诊服务",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {}
+}

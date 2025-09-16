@@ -1,0 +1,21 @@
+{
+	"pages": [
+		{
+			"path": "pages/hospital_services/hospital_services",
+			"style": {
+				"navigationBarTitleText": "医院就诊服务",
+				"enablePullDownRefresh": true,
+				"backgroundTextStyle": "dark",
+				"app-plus": {
+					"titleView": false
+				}
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "uni-app",
+		"navigationBarBackgroundColor": "#F8F8F8",
+		"backgroundColor": "#F8F8F8"
+	}
+}
