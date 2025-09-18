@@ -1,0 +1,50 @@
+# 1. 依赖包目录（npm/yarn 安装的依赖，无需提交）
+node_modules/
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# 2. UniApp 编译产物目录（各端打包生成的文件，无需提交）
+unpackage/
+
+# 3. 编辑器/IDE 配置文件（不同开发工具的本地配置，无需共享）
+# HBuilderX 配置
+.project
+.clang-format
+.jsconfig.json
+.stylelintrc.js
+.eslintrc.js
+.prettierrc
+.hbuilderx/
+# VS Code 配置
+.vscode/
+*.code-workspace
+# 其他编辑器
+.idea/
+.DS_Store  # macOS 系统自动生成的隐藏文件
+Thumbs.db  # Windows 系统自动生成的缩略图缓存
+
+# 4. 日志/缓存文件（本地运行日志、临时缓存，无需提交）
+logs/
+cache/
+temp/
+*.log
+*.swp  # Vim 编辑器临时文件
+
+# 5. 环境配置文件（本地环境变量、密钥等敏感信息，需自行创建模板）
+.env.local
+.env.development.local
+.env.production.local
+.env.test.local
+# 若有自定义环境配置文件，可按此格式添加
+
+# 6. 自定义资源/临时文件（本地测试用的资源、未整理的文件）
+custom-icons/  # 若有本地测试图标目录
+test-resources/  # 测试用资源目录
+*.tmp
+*.bak  # 备份文件
+
+# 7. 小程序相关临时文件（微信/支付宝等小程序IDE生成的临时文件）
+miniprogram_npm/  # 小程序 npm 依赖（UniApp 编译时会自动生成，无需提交）
+wechatdevtools/  # 微信开发者工具配置
+alipaydev/  # 支付宝开发者工具配置
