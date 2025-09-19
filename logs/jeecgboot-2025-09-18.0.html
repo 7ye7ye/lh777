@@ -19998,4 +19998,1440 @@ TD.Exception { background: #A2AEE8; font-family: courier, monospace;}
 <td class="LineOfCaller">215</td>
 </tr>
 </table>
+</body></html><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+  <head>
+    <title>Logback Log Messages</title>
+<style  type="text/css">
+table { margin-left: 2em; margin-right: 2em; border-left: 2px solid #AAA; }
+TR.even { background: #FFFFFF; }
+TR.odd { background: #EAEAEA; }
+TR.warn TD.Level, TR.error TD.Level, TR.fatal TD.Level {font-weight: bold; color: #FF4040 }
+TD { padding-right: 1ex; padding-left: 1ex; border-right: 2px solid #AAA; }
+TD.Time, TD.Date { text-align: right; font-family: courier, monospace; font-size: smaller; }
+TD.Thread { text-align: left; }
+TD.Level { text-align: right; }
+TD.Logger { text-align: left; }
+TR.header { background: #596ED5; color: #FFF; font-weight: bold; font-size: larger; }
+TD.Exception { background: #A2AEE8; font-family: courier, monospace;}
+</style>
+
+  </head>
+<body>
+<hr/>
+<p>Log session start time Thu Sep 18 23:53:12 CST 2025</p><p></p>
+
+<table cellspacing="0">
+<tr class="header">
+<td class="Level">Level</td>
+<td class="Date">Date</td>
+<td class="Message">Message</td>
+<td class="MethodOfCaller">MethodOfCaller</td>
+<td class="FileOfCaller">FileOfCaller</td>
+<td class="LineOfCaller">LineOfCaller</td>
+</tr>
+
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:12,454</td>
+<td class="Message">HV000001: Hibernate Validator 8.0.2.Final</td>
+<td class="MethodOfCaller">&lt;clinit&gt;</td>
+<td class="FileOfCaller">Version.java</td>
+<td class="LineOfCaller">21</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:12,572</td>
+<td class="Message">Starting SilosSystemApplication using Java 24.0.1 with PID 26776 (D:\yeyeye\课程\专业实训Ⅲ\项目代码\lh777\back-end\silos-module-system\silos-system-start\target\classes started by Administrator in D:\yeyeye\课程\专业实训Ⅲ\项目代码\lh777\back-end)</td>
+<td class="MethodOfCaller">logStarting</td>
+<td class="FileOfCaller">StartupInfoLogger.java</td>
+<td class="LineOfCaller">53</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:12,573</td>
+<td class="Message">The following 1 profile is active: &quot;dev&quot;</td>
+<td class="MethodOfCaller">logStartupProfileInfo</td>
+<td class="FileOfCaller">SpringApplication.java</td>
+<td class="LineOfCaller">658</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:15,912</td>
+<td class="Message">Multiple Spring Data modules found, entering strict repository configuration mode</td>
+<td class="MethodOfCaller">multipleStoresDetected</td>
+<td class="FileOfCaller">RepositoryConfigurationDelegate.java</td>
+<td class="LineOfCaller">295</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:15,918</td>
+<td class="Message">Bootstrapping Spring Data Redis repositories in DEFAULT mode.</td>
+<td class="MethodOfCaller">registerRepositoriesIn</td>
+<td class="FileOfCaller">RepositoryConfigurationDelegate.java</td>
+<td class="LineOfCaller">143</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:16,137</td>
+<td class="Message">Finished Spring Data repository scanning in 197 ms. Found 0 Redis repository interfaces.</td>
+<td class="MethodOfCaller">registerRepositoriesIn</td>
+<td class="FileOfCaller">RepositoryConfigurationDelegate.java</td>
+<td class="LineOfCaller">211</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:16,259</td>
+<td class="Message"> ******************* init miniDao config [ begin ] *********************** </td>
+<td class="MethodOfCaller">miniDaoBeanScannerConfigurer</td>
+<td class="FileOfCaller">MinidaoAutoConfiguration.java</td>
+<td class="LineOfCaller">23</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:16,259</td>
+<td class="Message"> ------ minidao.base-package ------- org.jeecg.modules.jmreport.*,org.jeecg.modules.drag.*</td>
+<td class="MethodOfCaller">miniDaoBeanScannerConfigurer</td>
+<td class="FileOfCaller">MinidaoAutoConfiguration.java</td>
+<td class="LineOfCaller">25</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:16,260</td>
+<td class="Message"> *******************  init miniDao config  [ end ] *********************** </td>
+<td class="MethodOfCaller">miniDaoBeanScannerConfigurer</td>
+<td class="FileOfCaller">MinidaoAutoConfiguration.java</td>
+<td class="LineOfCaller">42</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:16,629</td>
+<td class="Message">Overriding bean definition for bean &#39;classifier&#39; with a different definition: replacing [Generic bean: class=org.jeecg.modules.airag.flow.component.a; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null; defined in URL [jar:file:/C:/Users/Administrator/.m2/repository/org/jeecgframework/boot3/jeecg-aiflow/1.0.5/jeecg-aiflow-1.0.5.jar!/org/jeecg/modules/airag/flow/component/a.class]] with [Generic bean: class=com.yomahub.liteflow.core.proxy.DeclWarpBean; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null]</td>
+<td class="MethodOfCaller">logBeanDefinitionOverriding</td>
+<td class="FileOfCaller">DefaultListableBeanFactory.java</td>
+<td class="LineOfCaller">1333</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:16,630</td>
+<td class="Message">Overriding bean definition for bean &#39;end&#39; with a different definition: replacing [Generic bean: class=org.jeecg.modules.airag.flow.component.b; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null; defined in URL [jar:file:/C:/Users/Administrator/.m2/repository/org/jeecgframework/boot3/jeecg-aiflow/1.0.5/jeecg-aiflow-1.0.5.jar!/org/jeecg/modules/airag/flow/component/b.class]] with [Generic bean: class=com.yomahub.liteflow.core.proxy.DeclWarpBean; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null]</td>
+<td class="MethodOfCaller">logBeanDefinitionOverriding</td>
+<td class="FileOfCaller">DefaultListableBeanFactory.java</td>
+<td class="LineOfCaller">1333</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:16,631</td>
+<td class="Message">Overriding bean definition for bean &#39;http&#39; with a different definition: replacing [Generic bean: class=org.jeecg.modules.airag.flow.component.c; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null; defined in URL [jar:file:/C:/Users/Administrator/.m2/repository/org/jeecgframework/boot3/jeecg-aiflow/1.0.5/jeecg-aiflow-1.0.5.jar!/org/jeecg/modules/airag/flow/component/c.class]] with [Generic bean: class=com.yomahub.liteflow.core.proxy.DeclWarpBean; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null]</td>
+<td class="MethodOfCaller">logBeanDefinitionOverriding</td>
+<td class="FileOfCaller">DefaultListableBeanFactory.java</td>
+<td class="LineOfCaller">1333</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:16,632</td>
+<td class="Message">Overriding bean definition for bean &#39;knowledge&#39; with a different definition: replacing [Generic bean: class=org.jeecg.modules.airag.flow.component.d; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null; defined in URL [jar:file:/C:/Users/Administrator/.m2/repository/org/jeecgframework/boot3/jeecg-aiflow/1.0.5/jeecg-aiflow-1.0.5.jar!/org/jeecg/modules/airag/flow/component/d.class]] with [Generic bean: class=com.yomahub.liteflow.core.proxy.DeclWarpBean; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null]</td>
+<td class="MethodOfCaller">logBeanDefinitionOverriding</td>
+<td class="FileOfCaller">DefaultListableBeanFactory.java</td>
+<td class="LineOfCaller">1333</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:16,632</td>
+<td class="Message">Overriding bean definition for bean &#39;llm&#39; with a different definition: replacing [Generic bean: class=org.jeecg.modules.airag.flow.component.e; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null; defined in URL [jar:file:/C:/Users/Administrator/.m2/repository/org/jeecgframework/boot3/jeecg-aiflow/1.0.5/jeecg-aiflow-1.0.5.jar!/org/jeecg/modules/airag/flow/component/e.class]] with [Generic bean: class=com.yomahub.liteflow.core.proxy.DeclWarpBean; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null]</td>
+<td class="MethodOfCaller">logBeanDefinitionOverriding</td>
+<td class="FileOfCaller">DefaultListableBeanFactory.java</td>
+<td class="LineOfCaller">1333</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:16,633</td>
+<td class="Message">Overriding bean definition for bean &#39;enhanceJava&#39; with a different definition: replacing [Generic bean: class=org.jeecg.modules.airag.flow.component.enhance.a; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null; defined in URL [jar:file:/C:/Users/Administrator/.m2/repository/org/jeecgframework/boot3/jeecg-aiflow/1.0.5/jeecg-aiflow-1.0.5.jar!/org/jeecg/modules/airag/flow/component/enhance/a.class]] with [Generic bean: class=com.yomahub.liteflow.core.proxy.DeclWarpBean; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null]</td>
+<td class="MethodOfCaller">logBeanDefinitionOverriding</td>
+<td class="FileOfCaller">DefaultListableBeanFactory.java</td>
+<td class="LineOfCaller">1333</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:16,633</td>
+<td class="Message">Overriding bean definition for bean &#39;reply&#39; with a different definition: replacing [Generic bean: class=org.jeecg.modules.airag.flow.component.f; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null; defined in URL [jar:file:/C:/Users/Administrator/.m2/repository/org/jeecgframework/boot3/jeecg-aiflow/1.0.5/jeecg-aiflow-1.0.5.jar!/org/jeecg/modules/airag/flow/component/f.class]] with [Generic bean: class=com.yomahub.liteflow.core.proxy.DeclWarpBean; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null]</td>
+<td class="MethodOfCaller">logBeanDefinitionOverriding</td>
+<td class="FileOfCaller">DefaultListableBeanFactory.java</td>
+<td class="LineOfCaller">1333</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:16,633</td>
+<td class="Message">Overriding bean definition for bean &#39;start&#39; with a different definition: replacing [Generic bean: class=org.jeecg.modules.airag.flow.component.g; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null; defined in URL [jar:file:/C:/Users/Administrator/.m2/repository/org/jeecgframework/boot3/jeecg-aiflow/1.0.5/jeecg-aiflow-1.0.5.jar!/org/jeecg/modules/airag/flow/component/g.class]] with [Generic bean: class=com.yomahub.liteflow.core.proxy.DeclWarpBean; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null]</td>
+<td class="MethodOfCaller">logBeanDefinitionOverriding</td>
+<td class="FileOfCaller">DefaultListableBeanFactory.java</td>
+<td class="LineOfCaller">1333</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:16,634</td>
+<td class="Message">Overriding bean definition for bean &#39;subflow&#39; with a different definition: replacing [Generic bean: class=org.jeecg.modules.airag.flow.component.h; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null; defined in URL [jar:file:/C:/Users/Administrator/.m2/repository/org/jeecgframework/boot3/jeecg-aiflow/1.0.5/jeecg-aiflow-1.0.5.jar!/org/jeecg/modules/airag/flow/component/h.class]] with [Generic bean: class=com.yomahub.liteflow.core.proxy.DeclWarpBean; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null]</td>
+<td class="MethodOfCaller">logBeanDefinitionOverriding</td>
+<td class="FileOfCaller">DefaultListableBeanFactory.java</td>
+<td class="LineOfCaller">1333</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:16,635</td>
+<td class="Message">Overriding bean definition for bean &#39;switch&#39; with a different definition: replacing [Generic bean: class=org.jeecg.modules.airag.flow.component.i; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null; defined in URL [jar:file:/C:/Users/Administrator/.m2/repository/org/jeecgframework/boot3/jeecg-aiflow/1.0.5/jeecg-aiflow-1.0.5.jar!/org/jeecg/modules/airag/flow/component/i.class]] with [Generic bean: class=com.yomahub.liteflow.core.proxy.DeclWarpBean; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null]</td>
+<td class="MethodOfCaller">logBeanDefinitionOverriding</td>
+<td class="FileOfCaller">DefaultListableBeanFactory.java</td>
+<td class="LineOfCaller">1333</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,058</td>
+<td class="Message">register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportCategoryDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,058</td>
+<td class="Message">register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,058</td>
+<td class="Message">register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportDataSourceDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,059</td>
+<td class="Message">register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportDbDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,059</td>
+<td class="Message">register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportDbFieldDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,059</td>
+<td class="Message">register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportDbParamDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,059</td>
+<td class="Message">register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportDictDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,059</td>
+<td class="Message">register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportDictItemDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,059</td>
+<td class="Message">register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportExportJobDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,059</td>
+<td class="Message">register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportExportLogDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,059</td>
+<td class="Message">register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportLinkDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,059</td>
+<td class="Message">register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportMapDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,059</td>
+<td class="Message">register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportShareDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,059</td>
+<td class="Message">register minidao name is { org.jeecg.modules.drag.dao.JimuDragCategoryDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,059</td>
+<td class="Message">register minidao name is { org.jeecg.modules.drag.dao.JimuDragMapDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,059</td>
+<td class="Message">register minidao name is { org.jeecg.modules.drag.dao.JimuReportIconLibDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,059</td>
+<td class="Message">register minidao name is { org.jeecg.modules.drag.dao.OnlDragCompDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,060</td>
+<td class="Message">register minidao name is { org.jeecg.modules.drag.dao.OnlDragDataSourceDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,060</td>
+<td class="Message">register minidao name is { org.jeecg.modules.drag.dao.OnlDragDatasetHeadDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,060</td>
+<td class="Message">register minidao name is { org.jeecg.modules.drag.dao.OnlDragDatasetItemDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,060</td>
+<td class="Message">register minidao name is { org.jeecg.modules.drag.dao.OnlDragDatasetParamDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,060</td>
+<td class="Message">register minidao name is { org.jeecg.modules.drag.dao.OnlDragPageCompDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,060</td>
+<td class="Message">register minidao name is { org.jeecg.modules.drag.dao.OnlDragPageDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,061</td>
+<td class="Message">register minidao name is { org.jeecg.modules.drag.dao.OnlDragShareDao }</td>
+<td class="MethodOfCaller">doScan</td>
+<td class="FileOfCaller">MiniDaoClassPathMapperScanner.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="warn odd">
+<td class="Level">WARN</td>
+<td class="Date">2025-09-18 23:53:17,063</td>
+<td class="Message">Cannot enhance @Configuration bean definition &#39;com.yomahub.liteflow.springboot.config.LiteflowMainAutoConfiguration&#39; since its singleton instance has been created too early. The typical cause is a non-static @Bean method with a BeanDefinitionRegistryPostProcessor return type: Consider declaring such methods as &#39;static&#39; and/or marking the containing configuration class as &#39;proxyBeanMethods=false&#39;.</td>
+<td class="MethodOfCaller">enhanceConfigurationClasses</td>
+<td class="FileOfCaller">ConfigurationClassPostProcessor.java</td>
+<td class="LineOfCaller">514</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,978</td>
+<td class="Message">===============(1)创建缓存管理器RedisCacheManager</td>
+<td class="MethodOfCaller">redisCacheManager</td>
+<td class="FileOfCaller">ShiroConfig.java</td>
+<td class="LineOfCaller">288</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:17,981</td>
+<td class="Message">===============(2)创建RedisManager,连接Redis..</td>
+<td class="MethodOfCaller">redisManager</td>
+<td class="FileOfCaller">ShiroConfig.java</td>
+<td class="LineOfCaller">309</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:18,960</td>
+<td class="Message">Initializing Spring embedded WebApplicationContext</td>
+<td class="MethodOfCaller">log</td>
+<td class="FileOfCaller">ServletContextImpl.java</td>
+<td class="LineOfCaller">372</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:18,960</td>
+<td class="Message">Root WebApplicationContext: initialization completed in 5928 ms</td>
+<td class="MethodOfCaller">prepareWebApplicationContext</td>
+<td class="FileOfCaller">ServletWebServerApplicationContext.java</td>
+<td class="LineOfCaller">301</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:19,147</td>
+<td class="Message"> Init JimuReport Config [ Token Interceptor &amp; Resource Locations ] </td>
+<td class="MethodOfCaller">afterPropertiesSet</td>
+<td class="FileOfCaller">JimuReportConfiguration.java</td>
+<td class="LineOfCaller">130</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:19,155</td>
+<td class="Message">
+================================================================================================
+            _ _ __  __       ____                       _   
+           | (_)  \/  |_   _|  _ \ ___ _ __   ___  _ __| |_ 
+        _  | | | |\/| | | | | |_) / _ \ &#39;_ \ / _ \| &#39;__| __|
+       | |_| | | |  | | |_| |  _ &lt;  __/ |_) | (_) | |  | |_ 
+        \___/|_|_|  |_|\__,_|_| \_\___| .__/ \___/|_|   \__|
+                                      |_|                   
+		Version: 2.0.0
+		打造 “简单|智能|专业 ” 的数据可视化报表。
+		官网：https://jimureport.com
+================================================================================================
+</td>
+<td class="MethodOfCaller">print</td>
+<td class="FileOfCaller">LogoPrinter.java</td>
+<td class="LineOfCaller">34</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:21,579</td>
+<td class="Message">{dataSource-1,master} inited</td>
+<td class="MethodOfCaller">init</td>
+<td class="FileOfCaller">DruidDataSource.java</td>
+<td class="LineOfCaller">673</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:21,580</td>
+<td class="Message">dynamic-datasource - add a datasource named [master] success</td>
+<td class="MethodOfCaller">addDataSource</td>
+<td class="FileOfCaller">DynamicRoutingDataSource.java</td>
+<td class="LineOfCaller">154</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:21,580</td>
+<td class="Message">dynamic-datasource initial loaded [1] datasource,primary datasource named [master]</td>
+<td class="MethodOfCaller">afterPropertiesSet</td>
+<td class="FileOfCaller">DynamicRoutingDataSource.java</td>
+<td class="LineOfCaller">237</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:23,150</td>
+<td class="Message"> --- redis config init --- </td>
+<td class="MethodOfCaller">redisTemplate</td>
+<td class="FileOfCaller">RedisConfig.java</td>
+<td class="LineOfCaller">53</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:25,158</td>
+<td class="Message">Using default implementation for ThreadExecutor</td>
+<td class="MethodOfCaller">instantiate</td>
+<td class="FileOfCaller">StdSchedulerFactory.java</td>
+<td class="LineOfCaller">1220</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:25,162</td>
+<td class="Message">Job execution threads will use class loader of thread: main</td>
+<td class="MethodOfCaller">initialize</td>
+<td class="FileOfCaller">SimpleThreadPool.java</td>
+<td class="LineOfCaller">268</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:25,178</td>
+<td class="Message">Initialized Scheduler Signaller of type: class org.quartz.core.SchedulerSignalerImpl</td>
+<td class="MethodOfCaller">&lt;init&gt;</td>
+<td class="FileOfCaller">SchedulerSignalerImpl.java</td>
+<td class="LineOfCaller">61</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:25,178</td>
+<td class="Message">Quartz Scheduler v.2.3.2 created.</td>
+<td class="MethodOfCaller">&lt;init&gt;</td>
+<td class="FileOfCaller">QuartzScheduler.java</td>
+<td class="LineOfCaller">229</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:25,182</td>
+<td class="Message">Using db table-based data access locking (synchronization).</td>
+<td class="MethodOfCaller">initialize</td>
+<td class="FileOfCaller">JobStoreSupport.java</td>
+<td class="LineOfCaller">672</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:25,185</td>
+<td class="Message">JobStoreCMT initialized.</td>
+<td class="MethodOfCaller">initialize</td>
+<td class="FileOfCaller">JobStoreCMT.java</td>
+<td class="LineOfCaller">145</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:25,186</td>
+<td class="Message">Scheduler meta-data: Quartz Scheduler (v2.3.2) &#39;MyScheduler&#39; with instanceId &#39;little-tiger1758210805162&#39;
+  Scheduler class: &#39;org.quartz.core.QuartzScheduler&#39; - running locally.
+  NOT STARTED.
+  Currently in standby mode.
+  Number of jobs executed: 0
+  Using thread pool &#39;org.quartz.simpl.SimpleThreadPool&#39; - with 10 threads.
+  Using job-store &#39;org.springframework.scheduling.quartz.LocalDataSourceJobStore&#39; - which supports persistence. and is clustered.
+</td>
+<td class="MethodOfCaller">initialize</td>
+<td class="FileOfCaller">QuartzScheduler.java</td>
+<td class="LineOfCaller">294</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:25,186</td>
+<td class="Message">Quartz scheduler &#39;MyScheduler&#39; initialized from an externally provided properties instance.</td>
+<td class="MethodOfCaller">instantiate</td>
+<td class="FileOfCaller">StdSchedulerFactory.java</td>
+<td class="LineOfCaller">1374</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:25,186</td>
+<td class="Message">Quartz scheduler version: 2.3.2</td>
+<td class="MethodOfCaller">instantiate</td>
+<td class="FileOfCaller">StdSchedulerFactory.java</td>
+<td class="LineOfCaller">1378</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:25,187</td>
+<td class="Message">JobFactory set to: org.springframework.scheduling.quartz.SpringBeanJobFactory@3e26080c</td>
+<td class="MethodOfCaller">setJobFactory</td>
+<td class="FileOfCaller">QuartzScheduler.java</td>
+<td class="LineOfCaller">2293</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:28,106</td>
+<td class="Message"> Init JimuReport Config [ 线程池 ] </td>
+<td class="MethodOfCaller">afterPropertiesSet</td>
+<td class="FileOfCaller">JmReportExecutorConfig.java</td>
+<td class="LineOfCaller">42</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:28,229</td>
+<td class="Message"> --- redis config init --- </td>
+<td class="MethodOfCaller">a</td>
+<td class="FileOfCaller">JmDragRedisConfig.java</td>
+<td class="LineOfCaller">31</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:28,692</td>
+<td class="Message">component aspect implement[nodeProcessAspect] has been found</td>
+<td class="MethodOfCaller">postProcessAfterInitialization</td>
+<td class="FileOfCaller">CmpAroundAspectBeanProcess.java</td>
+<td class="LineOfCaller">32</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:29,041</td>
+<td class="Message">proxy component[classifier] has been found</td>
+<td class="MethodOfCaller">postProcessAfterInitialization</td>
+<td class="FileOfCaller">DeclWarpBeanProcess.java</td>
+<td class="LineOfCaller">37</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:29,049</td>
+<td class="Message">proxy component[end] has been found</td>
+<td class="MethodOfCaller">postProcessAfterInitialization</td>
+<td class="FileOfCaller">DeclWarpBeanProcess.java</td>
+<td class="LineOfCaller">37</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:29,057</td>
+<td class="Message">proxy component[http] has been found</td>
+<td class="MethodOfCaller">postProcessAfterInitialization</td>
+<td class="FileOfCaller">DeclWarpBeanProcess.java</td>
+<td class="LineOfCaller">37</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:29,062</td>
+<td class="Message">proxy component[knowledge] has been found</td>
+<td class="MethodOfCaller">postProcessAfterInitialization</td>
+<td class="FileOfCaller">DeclWarpBeanProcess.java</td>
+<td class="LineOfCaller">37</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:29,069</td>
+<td class="Message">proxy component[llm] has been found</td>
+<td class="MethodOfCaller">postProcessAfterInitialization</td>
+<td class="FileOfCaller">DeclWarpBeanProcess.java</td>
+<td class="LineOfCaller">37</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:29,076</td>
+<td class="Message">proxy component[enhanceJava] has been found</td>
+<td class="MethodOfCaller">postProcessAfterInitialization</td>
+<td class="FileOfCaller">DeclWarpBeanProcess.java</td>
+<td class="LineOfCaller">37</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:29,081</td>
+<td class="Message">proxy component[reply] has been found</td>
+<td class="MethodOfCaller">postProcessAfterInitialization</td>
+<td class="FileOfCaller">DeclWarpBeanProcess.java</td>
+<td class="LineOfCaller">37</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:29,086</td>
+<td class="Message">proxy component[start] has been found</td>
+<td class="MethodOfCaller">postProcessAfterInitialization</td>
+<td class="FileOfCaller">DeclWarpBeanProcess.java</td>
+<td class="LineOfCaller">37</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:29,091</td>
+<td class="Message">proxy component[subflow] has been found</td>
+<td class="MethodOfCaller">postProcessAfterInitialization</td>
+<td class="FileOfCaller">DeclWarpBeanProcess.java</td>
+<td class="LineOfCaller">37</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:29,097</td>
+<td class="Message">proxy component[switch] has been found</td>
+<td class="MethodOfCaller">postProcessAfterInitialization</td>
+<td class="FileOfCaller">DeclWarpBeanProcess.java</td>
+<td class="LineOfCaller">37</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:29,788</td>
+<td class="Message">Init Token ignoreAuthUrls Config [ 集合 ]  ：[/airag/chat/stop/*, /airag/chat/send, /airag/chat/conversation/update/title, /airag/chat/messages/clear/*, /airag/chat/messages, /airag/chat/conversation/*, /airag/chat/conversations, /test/jeecgDemo/html, /airag/flow/run, /airag/flow/run/*, /airag/app/queryById, /openapi/demo/index]</td>
+<td class="MethodOfCaller">afterPropertiesSet</td>
+<td class="FileOfCaller">IgnoreAuthPostProcessor.java</td>
+<td class="LineOfCaller">41</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:29,789</td>
+<td class="Message">Init Token ignoreAuthUrls Config [ 耗时 ] ：3毫秒</td>
+<td class="MethodOfCaller">afterPropertiesSet</td>
+<td class="FileOfCaller">IgnoreAuthPostProcessor.java</td>
+<td class="LineOfCaller">49</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:29,818</td>
+<td class="Message"> Init CodeGenerate Config [ Get Db Config From application.yml ] </td>
+<td class="MethodOfCaller">initCodeGenerateDbConfig</td>
+<td class="FileOfCaller">CodeGenerateDbConfig.java</td>
+<td class="LineOfCaller">50</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:30,792</td>
+<td class="Message">Register ApplicationContext instances org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext@5922ae77</td>
+<td class="MethodOfCaller">setApplicationContext</td>
+<td class="FileOfCaller">MybatisPlusApplicationContextAware.java</td>
+<td class="LineOfCaller">40</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:32,066</td>
+<td class="Message">Exposing 3 endpoints beneath base path &#39;/actuator&#39;</td>
+<td class="MethodOfCaller">&lt;init&gt;</td>
+<td class="FileOfCaller">EndpointLinksResolver.java</td>
+<td class="LineOfCaller">60</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:32,219</td>
+<td class="Message">UT026003: Adding annotated server endpoint class org.jeecg.modules.message.websocket.WebSocket for path /websocket/{userId}</td>
+<td class="MethodOfCaller">addEndpointInternal</td>
+<td class="FileOfCaller">ServerWebSocketContainer.java</td>
+<td class="LineOfCaller">647</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:32,230</td>
+<td class="Message">UT026003: Adding annotated server endpoint class org.jeecg.modules.drag.config.websocket.DragChannelWebSocket for path /dragChannelSocket/{token}</td>
+<td class="MethodOfCaller">addEndpointInternal</td>
+<td class="FileOfCaller">ServerWebSocketContainer.java</td>
+<td class="LineOfCaller">647</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:32,230</td>
+<td class="Message">UT026003: Adding annotated server endpoint class org.jeecg.modules.drag.config.websocket.DragWebSocket for path /websocket/drag/{chartId}</td>
+<td class="MethodOfCaller">addEndpointInternal</td>
+<td class="FileOfCaller">ServerWebSocketContainer.java</td>
+<td class="LineOfCaller">647</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:32,230</td>
+<td class="Message">UT026003: Adding annotated server endpoint class org.jeecg.modules.demo.mock.vxe.websocket.VxeSocket for path /vxeSocket/{userId}/{pageId}</td>
+<td class="MethodOfCaller">addEndpointInternal</td>
+<td class="FileOfCaller">ServerWebSocketContainer.java</td>
+<td class="LineOfCaller">647</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:32,264</td>
+<td class="Message">flow info loaded from class config with el,class=com.yomahub.liteflow.parser.sql.SQLXmlELParser</td>
+<td class="MethodOfCaller">info</td>
+<td class="FileOfCaller">LFLog.java</td>
+<td class="LineOfCaller">193</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:32,300</td>
+<td class="Message">query sql: select id, application_name, chain from airag_flow where status = &#39;enable&#39; and chain is not null</td>
+<td class="MethodOfCaller">info</td>
+<td class="FileOfCaller">LFLog.java</td>
+<td class="LineOfCaller">186</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:32,573</td>
+<td class="Message">use dataSourceName[dataSource],has found liteflow config</td>
+<td class="MethodOfCaller">getConn</td>
+<td class="FileOfCaller">LiteFlowJdbcUtil.java</td>
+<td class="LineOfCaller">43</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:33,027</td>
+<td class="Message">starting server: Undertow - 2.3.18.Final</td>
+<td class="MethodOfCaller">start</td>
+<td class="FileOfCaller">Undertow.java</td>
+<td class="LineOfCaller">120</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:33,048</td>
+<td class="Message">XNIO version 3.8.16.Final</td>
+<td class="MethodOfCaller">&lt;clinit&gt;</td>
+<td class="FileOfCaller">Xnio.java</td>
+<td class="LineOfCaller">95</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:33,066</td>
+<td class="Message">XNIO NIO Implementation Version 3.8.16.Final</td>
+<td class="MethodOfCaller">&lt;clinit&gt;</td>
+<td class="FileOfCaller">NioXnio.java</td>
+<td class="LineOfCaller">58</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:33,142</td>
+<td class="Message">JBoss Threads version 3.5.0.Final</td>
+<td class="MethodOfCaller">&lt;clinit&gt;</td>
+<td class="FileOfCaller">Version.java</td>
+<td class="LineOfCaller">55</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:33,266</td>
+<td class="Message">Undertow started on port 8095 (http) with context path &#39;/jeecg-boot&#39;</td>
+<td class="MethodOfCaller">start</td>
+<td class="FileOfCaller">UndertowWebServer.java</td>
+<td class="LineOfCaller">121</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:33,858</td>
+<td class="Message">Will start Quartz Scheduler [MyScheduler] in 1 seconds</td>
+<td class="MethodOfCaller">startScheduler</td>
+<td class="FileOfCaller">SchedulerFactoryBean.java</td>
+<td class="LineOfCaller">735</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:33,876</td>
+<td class="Message">Started SilosSystemApplication in 22.436 seconds (process running for 24.819)</td>
+<td class="MethodOfCaller">logStarted</td>
+<td class="FileOfCaller">StartupInfoLogger.java</td>
+<td class="LineOfCaller">59</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:33,882</td>
+<td class="Message"> Init Code Generate Template [ 检测如果是JAR启动，Copy模板到config目录 ] </td>
+<td class="MethodOfCaller">onApplicationEvent</td>
+<td class="FileOfCaller">CodeTemplateInitListener.java</td>
+<td class="LineOfCaller">30</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:34,038</td>
+<td class="Message"> Init Code Generate Template completed in 156 ms</td>
+<td class="MethodOfCaller">onApplicationEvent</td>
+<td class="FileOfCaller">CodeTemplateInitListener.java</td>
+<td class="LineOfCaller">33</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:34,040</td>
+<td class="Message">
+----------------------------------------------------------
+	Application Jeecg-Boot is running! Access URLs:
+	Local: 		http://localhost:8095/jeecg-boot/doc.html
+	External: 	http://10.61.106.238:8095/jeecg-boot/doc.html
+	Swagger文档: 	http://10.61.106.238:8095/jeecg-boot/doc.html
+----------------------------------------------------------</td>
+<td class="MethodOfCaller">main</td>
+<td class="FileOfCaller">SilosSystemApplication.java</td>
+<td class="LineOfCaller">54</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:34,131</td>
+<td class="Message">Initializing Spring DispatcherServlet &#39;dispatcherServlet&#39;</td>
+<td class="MethodOfCaller">log</td>
+<td class="FileOfCaller">ServletContextImpl.java</td>
+<td class="LineOfCaller">372</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:34,132</td>
+<td class="Message">Initializing Servlet &#39;dispatcherServlet&#39;</td>
+<td class="MethodOfCaller">initServletBean</td>
+<td class="FileOfCaller">FrameworkServlet.java</td>
+<td class="LineOfCaller">532</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:34,137</td>
+<td class="Message">Completed initialization in 5 ms</td>
+<td class="MethodOfCaller">initServletBean</td>
+<td class="FileOfCaller">FrameworkServlet.java</td>
+<td class="LineOfCaller">554</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:34,860</td>
+<td class="Message">Starting Quartz Scheduler now, after delay of 1 seconds</td>
+<td class="MethodOfCaller">lambda$startScheduler$0</td>
+<td class="FileOfCaller">SchedulerFactoryBean.java</td>
+<td class="LineOfCaller">749</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:53:35,067</td>
+<td class="Message">Scheduler MyScheduler_$_little-tiger1758210805162 started.</td>
+<td class="MethodOfCaller">start</td>
+<td class="FileOfCaller">QuartzScheduler.java</td>
+<td class="LineOfCaller">547</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:01,961</td>
+<td class="Message">suffix:jpg</td>
+<td class="MethodOfCaller">checkDownloadFileType</td>
+<td class="FileOfCaller">SsrfFileTypeFilter.java</td>
+<td class="LineOfCaller">151</td>
+</tr>
+
+<tr class="error odd">
+<td class="Level">ERROR</td>
+<td class="Date">2025-09-18 23:55:01,962</td>
+<td class="Message">文件[b_3d8445456f6edf6c1b77ef4f1354e654_1749325857897.jpg]不存在..</td>
+<td class="MethodOfCaller">view</td>
+<td class="FileOfCaller">CommonController.java</td>
+<td class="LineOfCaller">232</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:02,187</td>
+<td class="Message">-----查询近两个月收到的未读通知-----，近2月的第一天：2025-08-01 00:00:00</td>
+<td class="MethodOfCaller">listByUser</td>
+<td class="FileOfCaller">SysAnnouncementController.java</td>
+<td class="LineOfCaller">348</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:02,262</td>
+<td class="Message">begin 获取用户近2个月的系统公告 (通知)85毫秒</td>
+<td class="MethodOfCaller">listByUser</td>
+<td class="FileOfCaller">SysAnnouncementController.java</td>
+<td class="LineOfCaller">363</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:02,325</td>
+<td class="Message">end 获取用户2个月的系统公告 (系统消息)148毫秒</td>
+<td class="MethodOfCaller">listByUser</td>
+<td class="FileOfCaller">SysAnnouncementController.java</td>
+<td class="LineOfCaller">371</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:10,308</td>
+<td class="Message"> 用户名:  管理员,退出成功！ </td>
+<td class="MethodOfCaller">logout</td>
+<td class="FileOfCaller">LoginController.java</td>
+<td class="LineOfCaller">198</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:13,046</td>
+<td class="Message">获取验证码，Redis key = d1f72628eada80c11cfb184073844377mb9j，checkCode = Mb9J</td>
+<td class="MethodOfCaller">randomImage</td>
+<td class="FileOfCaller">LoginController.java</td>
+<td class="LineOfCaller">545</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:19,088</td>
+<td class="Message">获取验证码，Redis key = 3ff649dc9f663937fc4a5f346cbdfb695jyq，checkCode = 5JyQ</td>
+<td class="MethodOfCaller">randomImage</td>
+<td class="FileOfCaller">LoginController.java</td>
+<td class="LineOfCaller">545</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:19,561</td>
+<td class="Message">获取验证码，Redis key = 9a7d0d6a4b5600d52f7e9a721d2c444fkmxi，checkCode = kMXi</td>
+<td class="MethodOfCaller">randomImage</td>
+<td class="FileOfCaller">LoginController.java</td>
+<td class="LineOfCaller">545</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:27,198</td>
+<td class="Message">第三方登录进入render：wechat_open</td>
+<td class="MethodOfCaller">render</td>
+<td class="FileOfCaller">ThirdLoginController.java</td>
+<td class="LineOfCaller">83</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:27,304</td>
+<td class="Message">第三方登录认证地址：https://open.weixin.qq.com/connect/qrconnect?response_type=code&amp;appid=??&amp;redirect_uri=http://sso.test.com:8080/jeecg-boot/sys/thirdLogin/wechat_open/callback&amp;scope=snsapi_login&amp;state=41254a2da5966f664f6861d06e5ebb74</td>
+<td class="MethodOfCaller">render</td>
+<td class="FileOfCaller">ThirdLoginController.java</td>
+<td class="LineOfCaller">86</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:52,600</td>
+<td class="Message"> 登录接口用户的租户ID = 0</td>
+<td class="MethodOfCaller">setLoginTenant</td>
+<td class="FileOfCaller">SysUserServiceImpl.java</td>
+<td class="LineOfCaller">951</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:52,872</td>
+<td class="Message">加密操作，Aspect程序耗时：1ms</td>
+<td class="MethodOfCaller">around</td>
+<td class="FileOfCaller">SensitiveDataAspect.java</td>
+<td class="LineOfCaller">76</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:52,950</td>
+<td class="Message">1 获取用户信息耗时（用户基础信息）70毫秒</td>
+<td class="MethodOfCaller">getUserInfo</td>
+<td class="FileOfCaller">LoginController.java</td>
+<td class="LineOfCaller">150</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:53,022</td>
+<td class="Message">2 获取用户信息耗时 (首页面配置)142毫秒</td>
+<td class="MethodOfCaller">getUserInfo</td>
+<td class="FileOfCaller">LoginController.java</td>
+<td class="LineOfCaller">165</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:53,023</td>
+<td class="Message">&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;</td>
+<td class="MethodOfCaller">queryAllDictItems</td>
+<td class="FileOfCaller">SysDictServiceImpl.java</td>
+<td class="LineOfCaller">165</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:53,067</td>
+<td class="Message">      &gt;&gt;&gt; 1 获取系统字典项耗时（SQL）：43毫秒</td>
+<td class="MethodOfCaller">queryAllDictItems</td>
+<td class="FileOfCaller">SysDictServiceImpl.java</td>
+<td class="LineOfCaller">184</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:53,206</td>
+<td class="Message">      &gt;&gt;&gt; 2 获取系统字典项耗时（Enum）：183毫秒</td>
+<td class="MethodOfCaller">queryAllDictItems</td>
+<td class="FileOfCaller">SysDictServiceImpl.java</td>
+<td class="LineOfCaller">188</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:53,207</td>
+<td class="Message">      &gt;&gt;&gt; end 获取系统字典库总耗时：184毫秒</td>
+<td class="MethodOfCaller">queryAllDictItems</td>
+<td class="FileOfCaller">SysDictServiceImpl.java</td>
+<td class="LineOfCaller">190</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:53,207</td>
+<td class="Message">&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;</td>
+<td class="MethodOfCaller">queryAllDictItems</td>
+<td class="FileOfCaller">SysDictServiceImpl.java</td>
+<td class="LineOfCaller">191</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:53,207</td>
+<td class="Message">3 获取用户信息耗时 (字典数据)327毫秒</td>
+<td class="MethodOfCaller">getUserInfo</td>
+<td class="FileOfCaller">LoginController.java</td>
+<td class="LineOfCaller">169</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:53,207</td>
+<td class="Message">end 获取用户信息耗时 327毫秒</td>
+<td class="MethodOfCaller">getUserInfo</td>
+<td class="FileOfCaller">LoginController.java</td>
+<td class="LineOfCaller">174</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:54,590</td>
+<td class="Message">suffix:jpg</td>
+<td class="MethodOfCaller">checkDownloadFileType</td>
+<td class="FileOfCaller">SsrfFileTypeFilter.java</td>
+<td class="LineOfCaller">151</td>
+</tr>
+
+<tr class="error odd">
+<td class="Level">ERROR</td>
+<td class="Date">2025-09-18 23:55:54,591</td>
+<td class="Message">文件[b_3d8445456f6edf6c1b77ef4f1354e654_1749325857897.jpg]不存在..</td>
+<td class="MethodOfCaller">view</td>
+<td class="FileOfCaller">CommonController.java</td>
+<td class="LineOfCaller">232</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:54,625</td>
+<td class="Message">-----查询近两个月收到的未读通知-----，近2月的第一天：2025-08-01 00:00:00</td>
+<td class="MethodOfCaller">listByUser</td>
+<td class="FileOfCaller">SysAnnouncementController.java</td>
+<td class="LineOfCaller">348</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:54,664</td>
+<td class="Message">begin 获取用户近2个月的系统公告 (通知)39毫秒</td>
+<td class="MethodOfCaller">listByUser</td>
+<td class="FileOfCaller">SysAnnouncementController.java</td>
+<td class="LineOfCaller">363</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:54,700</td>
+<td class="Message">end 获取用户2个月的系统公告 (系统消息)75毫秒</td>
+<td class="MethodOfCaller">listByUser</td>
+<td class="FileOfCaller">SysAnnouncementController.java</td>
+<td class="LineOfCaller">371</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:59,868</td>
+<td class="Message">-------通过数据库读取用户拥有的角色Rules------useId： e9ca23d68d884d4ebb19d07889727dae,Roles size: 2</td>
+<td class="MethodOfCaller">getUserRoleSetById</td>
+<td class="FileOfCaller">SysBaseApiImpl.java</td>
+<td class="LineOfCaller">1131</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:59,912</td>
+<td class="Message">-------通过数据库读取用户拥有的权限Perms------userId： e9ca23d68d884d4ebb19d07889727dae,Perms size: 88</td>
+<td class="MethodOfCaller">getUserPermissionSet</td>
+<td class="FileOfCaller">SysBaseApiImpl.java</td>
+<td class="LineOfCaller">1162</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:55:59,912</td>
+<td class="Message">===============Shiro权限认证成功==============</td>
+<td class="MethodOfCaller">doGetAuthorizationInfo</td>
+<td class="FileOfCaller">ShiroRealm.java</td>
+<td class="LineOfCaller">86</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:56:00,257</td>
+<td class="Message">suffix:jpg</td>
+<td class="MethodOfCaller">checkDownloadFileType</td>
+<td class="FileOfCaller">SsrfFileTypeFilter.java</td>
+<td class="LineOfCaller">151</td>
+</tr>
+
+<tr class="error odd">
+<td class="Level">ERROR</td>
+<td class="Date">2025-09-18 23:56:00,257</td>
+<td class="Message">文件[b_3d8445456f6edf6c1b77ef4f1354e654_1749325857897.jpg]不存在..</td>
+<td class="MethodOfCaller">view</td>
+<td class="FileOfCaller">CommonController.java</td>
+<td class="LineOfCaller">232</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:56:00,309</td>
+<td class="Message">suffix:jpg</td>
+<td class="MethodOfCaller">checkDownloadFileType</td>
+<td class="FileOfCaller">SsrfFileTypeFilter.java</td>
+<td class="LineOfCaller">151</td>
+</tr>
+
+<tr class="error odd">
+<td class="Level">ERROR</td>
+<td class="Date">2025-09-18 23:56:00,309</td>
+<td class="Message">文件[b_3d8445456f6edf6c1b77ef4f1354e654_1749325857897.jpg]不存在..</td>
+<td class="MethodOfCaller">view</td>
+<td class="FileOfCaller">CommonController.java</td>
+<td class="LineOfCaller">232</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:56:01,005</td>
+<td class="Message">======获取全部菜单数据=====耗时:46毫秒</td>
+<td class="MethodOfCaller">list</td>
+<td class="FileOfCaller">SysPermissionController.java</td>
+<td class="LineOfCaller">114</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:56:10,596</td>
+<td class="Message">————————身份认证失败——————————IP地址:  0:0:0:0:0:0:0:1，URL:/jeecg-boot/test</td>
+<td class="MethodOfCaller">doGetAuthenticationInfo</td>
+<td class="FileOfCaller">ShiroRealm.java</td>
+<td class="LineOfCaller">104</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:56:47,780</td>
+<td class="Message">Scheduler MyScheduler_$_little-tiger1758210805162 paused.</td>
+<td class="MethodOfCaller">standby</td>
+<td class="FileOfCaller">QuartzScheduler.java</td>
+<td class="LineOfCaller">585</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:56:47,783</td>
+<td class="Message">Commencing graceful shutdown. Waiting for active requests to complete</td>
+<td class="MethodOfCaller">shutDownGracefully</td>
+<td class="FileOfCaller">UndertowWebServer.java</td>
+<td class="LineOfCaller">325</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:56:47,785</td>
+<td class="Message">Graceful shutdown complete</td>
+<td class="MethodOfCaller">notifyGracefulCallback</td>
+<td class="FileOfCaller">UndertowWebServer.java</td>
+<td class="LineOfCaller">335</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:56:47,785</td>
+<td class="Message">stopping server: Undertow - 2.3.18.Final</td>
+<td class="MethodOfCaller">stop</td>
+<td class="FileOfCaller">Undertow.java</td>
+<td class="LineOfCaller">259</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:56:47,789</td>
+<td class="Message">Destroying Spring FrameworkServlet &#39;dispatcherServlet&#39;</td>
+<td class="MethodOfCaller">log</td>
+<td class="FileOfCaller">ServletContextImpl.java</td>
+<td class="LineOfCaller">372</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:56:47,806</td>
+<td class="Message">Shutting down Quartz Scheduler</td>
+<td class="MethodOfCaller">destroy</td>
+<td class="FileOfCaller">SchedulerFactoryBean.java</td>
+<td class="LineOfCaller">845</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:56:47,806</td>
+<td class="Message">Scheduler MyScheduler_$_little-tiger1758210805162 shutting down.</td>
+<td class="MethodOfCaller">shutdown</td>
+<td class="FileOfCaller">QuartzScheduler.java</td>
+<td class="LineOfCaller">666</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:56:47,806</td>
+<td class="Message">Scheduler MyScheduler_$_little-tiger1758210805162 paused.</td>
+<td class="MethodOfCaller">standby</td>
+<td class="FileOfCaller">QuartzScheduler.java</td>
+<td class="LineOfCaller">585</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:56:47,807</td>
+<td class="Message">Scheduler MyScheduler_$_little-tiger1758210805162 shutdown complete.</td>
+<td class="MethodOfCaller">shutdown</td>
+<td class="FileOfCaller">QuartzScheduler.java</td>
+<td class="LineOfCaller">740</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:56:47,817</td>
+<td class="Message">dynamic-datasource start closing ....</td>
+<td class="MethodOfCaller">destroy</td>
+<td class="FileOfCaller">DynamicRoutingDataSource.java</td>
+<td class="LineOfCaller">211</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:56:47,818</td>
+<td class="Message">{dataSource-1} closing ...</td>
+<td class="MethodOfCaller">close</td>
+<td class="FileOfCaller">DruidDataSource.java</td>
+<td class="LineOfCaller">1880</td>
+</tr>
+
+<tr class="info odd">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:56:47,823</td>
+<td class="Message">{dataSource-1} closed</td>
+<td class="MethodOfCaller">close</td>
+<td class="FileOfCaller">DruidDataSource.java</td>
+<td class="LineOfCaller">1953</td>
+</tr>
+
+<tr class="info even">
+<td class="Level">INFO</td>
+<td class="Date">2025-09-18 23:56:47,823</td>
+<td class="Message">dynamic-datasource all closed success,bye</td>
+<td class="MethodOfCaller">destroy</td>
+<td class="FileOfCaller">DynamicRoutingDataSource.java</td>
+<td class="LineOfCaller">215</td>
+</tr>
+</table>
 </body></html>

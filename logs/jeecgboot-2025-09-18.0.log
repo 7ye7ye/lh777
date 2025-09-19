@@ -2750,3 +2750,181 @@ Caused by: org.springframework.context.annotation.ConflictingBeanDefinitionExcep
 2025-09-18 22:54:51.409 [SpringApplicationShutdownHook] INFO  com.alibaba.druid.pool.DruidDataSource:1880 - {dataSource-1} closing ...
 2025-09-18 22:54:51.413 [SpringApplicationShutdownHook] INFO  com.alibaba.druid.pool.DruidDataSource:1953 - {dataSource-1} closed
 2025-09-18 22:54:51.413 [SpringApplicationShutdownHook] INFO  c.b.dynamic.datasource.DynamicRoutingDataSource:215 - dynamic-datasource all closed success,bye
+2025-09-18 23:53:12.454 [background-preinit] INFO  org.hibernate.validator.internal.util.Version:21 - HV000001: Hibernate Validator 8.0.2.Final
+2025-09-18 23:53:12.572 [main] INFO  org.jeecg.SilosSystemApplication:53 - Starting SilosSystemApplication using Java 24.0.1 with PID 26776 (D:\yeyeye\课程\专业实训Ⅲ\项目代码\lh777\back-end\silos-module-system\silos-system-start\target\classes started by Administrator in D:\yeyeye\课程\专业实训Ⅲ\项目代码\lh777\back-end)
+2025-09-18 23:53:12.573 [main] INFO  org.jeecg.SilosSystemApplication:658 - The following 1 profile is active: "dev"
+2025-09-18 23:53:15.912 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate:295 - Multiple Spring Data modules found, entering strict repository configuration mode
+2025-09-18 23:53:15.918 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate:143 - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2025-09-18 23:53:16.137 [main] INFO  o.s.d.r.config.RepositoryConfigurationDelegate:211 - Finished Spring Data repository scanning in 197 ms. Found 0 Redis repository interfaces.
+2025-09-18 23:53:16.259 [main] INFO  o.j.minidao.auto.MinidaoAutoConfiguration:23 -  ******************* init miniDao config [ begin ] *********************** 
+2025-09-18 23:53:16.259 [main] INFO  o.j.minidao.auto.MinidaoAutoConfiguration:25 -  ------ minidao.base-package ------- org.jeecg.modules.jmreport.*,org.jeecg.modules.drag.*
+2025-09-18 23:53:16.260 [main] INFO  o.j.minidao.auto.MinidaoAutoConfiguration:42 -  *******************  init miniDao config  [ end ] *********************** 
+2025-09-18 23:53:16.629 [main] INFO  o.s.b.factory.support.DefaultListableBeanFactory:1333 - Overriding bean definition for bean 'classifier' with a different definition: replacing [Generic bean: class=org.jeecg.modules.airag.flow.component.a; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null; defined in URL [jar:file:/C:/Users/Administrator/.m2/repository/org/jeecgframework/boot3/jeecg-aiflow/1.0.5/jeecg-aiflow-1.0.5.jar!/org/jeecg/modules/airag/flow/component/a.class]] with [Generic bean: class=com.yomahub.liteflow.core.proxy.DeclWarpBean; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null]
+2025-09-18 23:53:16.630 [main] INFO  o.s.b.factory.support.DefaultListableBeanFactory:1333 - Overriding bean definition for bean 'end' with a different definition: replacing [Generic bean: class=org.jeecg.modules.airag.flow.component.b; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null; defined in URL [jar:file:/C:/Users/Administrator/.m2/repository/org/jeecgframework/boot3/jeecg-aiflow/1.0.5/jeecg-aiflow-1.0.5.jar!/org/jeecg/modules/airag/flow/component/b.class]] with [Generic bean: class=com.yomahub.liteflow.core.proxy.DeclWarpBean; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null]
+2025-09-18 23:53:16.631 [main] INFO  o.s.b.factory.support.DefaultListableBeanFactory:1333 - Overriding bean definition for bean 'http' with a different definition: replacing [Generic bean: class=org.jeecg.modules.airag.flow.component.c; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null; defined in URL [jar:file:/C:/Users/Administrator/.m2/repository/org/jeecgframework/boot3/jeecg-aiflow/1.0.5/jeecg-aiflow-1.0.5.jar!/org/jeecg/modules/airag/flow/component/c.class]] with [Generic bean: class=com.yomahub.liteflow.core.proxy.DeclWarpBean; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null]
+2025-09-18 23:53:16.632 [main] INFO  o.s.b.factory.support.DefaultListableBeanFactory:1333 - Overriding bean definition for bean 'knowledge' with a different definition: replacing [Generic bean: class=org.jeecg.modules.airag.flow.component.d; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null; defined in URL [jar:file:/C:/Users/Administrator/.m2/repository/org/jeecgframework/boot3/jeecg-aiflow/1.0.5/jeecg-aiflow-1.0.5.jar!/org/jeecg/modules/airag/flow/component/d.class]] with [Generic bean: class=com.yomahub.liteflow.core.proxy.DeclWarpBean; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null]
+2025-09-18 23:53:16.632 [main] INFO  o.s.b.factory.support.DefaultListableBeanFactory:1333 - Overriding bean definition for bean 'llm' with a different definition: replacing [Generic bean: class=org.jeecg.modules.airag.flow.component.e; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null; defined in URL [jar:file:/C:/Users/Administrator/.m2/repository/org/jeecgframework/boot3/jeecg-aiflow/1.0.5/jeecg-aiflow-1.0.5.jar!/org/jeecg/modules/airag/flow/component/e.class]] with [Generic bean: class=com.yomahub.liteflow.core.proxy.DeclWarpBean; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null]
+2025-09-18 23:53:16.633 [main] INFO  o.s.b.factory.support.DefaultListableBeanFactory:1333 - Overriding bean definition for bean 'enhanceJava' with a different definition: replacing [Generic bean: class=org.jeecg.modules.airag.flow.component.enhance.a; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null; defined in URL [jar:file:/C:/Users/Administrator/.m2/repository/org/jeecgframework/boot3/jeecg-aiflow/1.0.5/jeecg-aiflow-1.0.5.jar!/org/jeecg/modules/airag/flow/component/enhance/a.class]] with [Generic bean: class=com.yomahub.liteflow.core.proxy.DeclWarpBean; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null]
+2025-09-18 23:53:16.633 [main] INFO  o.s.b.factory.support.DefaultListableBeanFactory:1333 - Overriding bean definition for bean 'reply' with a different definition: replacing [Generic bean: class=org.jeecg.modules.airag.flow.component.f; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null; defined in URL [jar:file:/C:/Users/Administrator/.m2/repository/org/jeecgframework/boot3/jeecg-aiflow/1.0.5/jeecg-aiflow-1.0.5.jar!/org/jeecg/modules/airag/flow/component/f.class]] with [Generic bean: class=com.yomahub.liteflow.core.proxy.DeclWarpBean; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null]
+2025-09-18 23:53:16.633 [main] INFO  o.s.b.factory.support.DefaultListableBeanFactory:1333 - Overriding bean definition for bean 'start' with a different definition: replacing [Generic bean: class=org.jeecg.modules.airag.flow.component.g; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null; defined in URL [jar:file:/C:/Users/Administrator/.m2/repository/org/jeecgframework/boot3/jeecg-aiflow/1.0.5/jeecg-aiflow-1.0.5.jar!/org/jeecg/modules/airag/flow/component/g.class]] with [Generic bean: class=com.yomahub.liteflow.core.proxy.DeclWarpBean; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null]
+2025-09-18 23:53:16.634 [main] INFO  o.s.b.factory.support.DefaultListableBeanFactory:1333 - Overriding bean definition for bean 'subflow' with a different definition: replacing [Generic bean: class=org.jeecg.modules.airag.flow.component.h; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null; defined in URL [jar:file:/C:/Users/Administrator/.m2/repository/org/jeecgframework/boot3/jeecg-aiflow/1.0.5/jeecg-aiflow-1.0.5.jar!/org/jeecg/modules/airag/flow/component/h.class]] with [Generic bean: class=com.yomahub.liteflow.core.proxy.DeclWarpBean; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null]
+2025-09-18 23:53:16.635 [main] INFO  o.s.b.factory.support.DefaultListableBeanFactory:1333 - Overriding bean definition for bean 'switch' with a different definition: replacing [Generic bean: class=org.jeecg.modules.airag.flow.component.i; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null; defined in URL [jar:file:/C:/Users/Administrator/.m2/repository/org/jeecgframework/boot3/jeecg-aiflow/1.0.5/jeecg-aiflow-1.0.5.jar!/org/jeecg/modules/airag/flow/component/i.class]] with [Generic bean: class=com.yomahub.liteflow.core.proxy.DeclWarpBean; scope=singleton; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null]
+2025-09-18 23:53:17.058 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportCategoryDao }
+2025-09-18 23:53:17.058 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportDao }
+2025-09-18 23:53:17.058 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportDataSourceDao }
+2025-09-18 23:53:17.059 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportDbDao }
+2025-09-18 23:53:17.059 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportDbFieldDao }
+2025-09-18 23:53:17.059 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportDbParamDao }
+2025-09-18 23:53:17.059 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportDictDao }
+2025-09-18 23:53:17.059 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportDictItemDao }
+2025-09-18 23:53:17.059 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportExportJobDao }
+2025-09-18 23:53:17.059 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportExportLogDao }
+2025-09-18 23:53:17.059 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportLinkDao }
+2025-09-18 23:53:17.059 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportMapDao }
+2025-09-18 23:53:17.059 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.jmreport.desreport.dao.JimuReportShareDao }
+2025-09-18 23:53:17.059 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.drag.dao.JimuDragCategoryDao }
+2025-09-18 23:53:17.059 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.drag.dao.JimuDragMapDao }
+2025-09-18 23:53:17.059 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.drag.dao.JimuReportIconLibDao }
+2025-09-18 23:53:17.059 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.drag.dao.OnlDragCompDao }
+2025-09-18 23:53:17.060 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.drag.dao.OnlDragDataSourceDao }
+2025-09-18 23:53:17.060 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.drag.dao.OnlDragDatasetHeadDao }
+2025-09-18 23:53:17.060 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.drag.dao.OnlDragDatasetItemDao }
+2025-09-18 23:53:17.060 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.drag.dao.OnlDragDatasetParamDao }
+2025-09-18 23:53:17.060 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.drag.dao.OnlDragPageCompDao }
+2025-09-18 23:53:17.060 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.drag.dao.OnlDragPageDao }
+2025-09-18 23:53:17.061 [main] INFO  o.j.minidao.factory.MiniDaoClassPathMapperScanner:55 - register minidao name is { org.jeecg.modules.drag.dao.OnlDragShareDao }
+2025-09-18 23:53:17.063 [main] WARN  o.s.c.annotation.ConfigurationClassPostProcessor:514 - Cannot enhance @Configuration bean definition 'com.yomahub.liteflow.springboot.config.LiteflowMainAutoConfiguration' since its singleton instance has been created too early. The typical cause is a non-static @Bean method with a BeanDefinitionRegistryPostProcessor return type: Consider declaring such methods as 'static' and/or marking the containing configuration class as 'proxyBeanMethods=false'.
+2025-09-18 23:53:17.978 [main] INFO  org.jeecg.config.shiro.ShiroConfig:288 - ===============(1)创建缓存管理器RedisCacheManager
+2025-09-18 23:53:17.981 [main] INFO  org.jeecg.config.shiro.ShiroConfig:309 - ===============(2)创建RedisManager,连接Redis..
+2025-09-18 23:53:18.960 [main] INFO  io.undertow.servlet:372 - Initializing Spring embedded WebApplicationContext
+2025-09-18 23:53:18.960 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext:301 - Root WebApplicationContext: initialization completed in 5928 ms
+2025-09-18 23:53:19.147 [main] INFO  o.j.m.jmreport.config.init.JimuReportConfiguration:130 -  Init JimuReport Config [ Token Interceptor & Resource Locations ] 
+2025-09-18 23:53:19.155 [main] INFO  o.jeecg.modules.jmreport.config.init.LogoPrinter:34 - 
+================================================================================================
+            _ _ __  __       ____                       _   
+           | (_)  \/  |_   _|  _ \ ___ _ __   ___  _ __| |_ 
+        _  | | | |\/| | | | | |_) / _ \ '_ \ / _ \| '__| __|
+       | |_| | | |  | | |_| |  _ <  __/ |_) | (_) | |  | |_ 
+        \___/|_|_|  |_|\__,_|_| \_\___| .__/ \___/|_|   \__|
+                                      |_|                   
+		Version: 2.0.0
+		打造 “简单|智能|专业 ” 的数据可视化报表。
+		官网：https://jimureport.com
+================================================================================================
+
+2025-09-18 23:53:21.579 [main] INFO  com.alibaba.druid.pool.DruidDataSource:673 - {dataSource-1,master} inited
+2025-09-18 23:53:21.580 [main] INFO  c.b.dynamic.datasource.DynamicRoutingDataSource:154 - dynamic-datasource - add a datasource named [master] success
+2025-09-18 23:53:21.580 [main] INFO  c.b.dynamic.datasource.DynamicRoutingDataSource:237 - dynamic-datasource initial loaded [1] datasource,primary datasource named [master]
+2025-09-18 23:53:23.150 [main] INFO  org.jeecg.common.modules.redis.config.RedisConfig:53 -  --- redis config init --- 
+2025-09-18 23:53:25.158 [main] INFO  org.quartz.impl.StdSchedulerFactory:1220 - Using default implementation for ThreadExecutor
+2025-09-18 23:53:25.162 [main] INFO  org.quartz.simpl.SimpleThreadPool:268 - Job execution threads will use class loader of thread: main
+2025-09-18 23:53:25.178 [main] INFO  org.quartz.core.SchedulerSignalerImpl:61 - Initialized Scheduler Signaller of type: class org.quartz.core.SchedulerSignalerImpl
+2025-09-18 23:53:25.178 [main] INFO  org.quartz.core.QuartzScheduler:229 - Quartz Scheduler v.2.3.2 created.
+2025-09-18 23:53:25.182 [main] INFO  o.s.scheduling.quartz.LocalDataSourceJobStore:672 - Using db table-based data access locking (synchronization).
+2025-09-18 23:53:25.185 [main] INFO  o.s.scheduling.quartz.LocalDataSourceJobStore:145 - JobStoreCMT initialized.
+2025-09-18 23:53:25.186 [main] INFO  org.quartz.core.QuartzScheduler:294 - Scheduler meta-data: Quartz Scheduler (v2.3.2) 'MyScheduler' with instanceId 'little-tiger1758210805162'
+  Scheduler class: 'org.quartz.core.QuartzScheduler' - running locally.
+  NOT STARTED.
+  Currently in standby mode.
+  Number of jobs executed: 0
+  Using thread pool 'org.quartz.simpl.SimpleThreadPool' - with 10 threads.
+  Using job-store 'org.springframework.scheduling.quartz.LocalDataSourceJobStore' - which supports persistence. and is clustered.
+
+2025-09-18 23:53:25.186 [main] INFO  org.quartz.impl.StdSchedulerFactory:1374 - Quartz scheduler 'MyScheduler' initialized from an externally provided properties instance.
+2025-09-18 23:53:25.186 [main] INFO  org.quartz.impl.StdSchedulerFactory:1378 - Quartz scheduler version: 2.3.2
+2025-09-18 23:53:25.187 [main] INFO  org.quartz.core.QuartzScheduler:2293 - JobFactory set to: org.springframework.scheduling.quartz.SpringBeanJobFactory@3e26080c
+2025-09-18 23:53:28.106 [main] INFO  o.j.modules.jmreport.config.JmReportExecutorConfig:42 -  Init JimuReport Config [ 线程池 ] 
+2025-09-18 23:53:28.229 [main] INFO  org.jeecg.modules.drag.config.a.b.a:31 -  --- redis config init --- 
+2025-09-18 23:53:28.692 [main] INFO  c.y.l.process.impl.CmpAroundAspectBeanProcess:32 - component aspect implement[nodeProcessAspect] has been found
+2025-09-18 23:53:29.041 [main] INFO  c.y.liteflow.process.impl.DeclWarpBeanProcess:37 - proxy component[classifier] has been found
+2025-09-18 23:53:29.049 [main] INFO  c.y.liteflow.process.impl.DeclWarpBeanProcess:37 - proxy component[end] has been found
+2025-09-18 23:53:29.057 [main] INFO  c.y.liteflow.process.impl.DeclWarpBeanProcess:37 - proxy component[http] has been found
+2025-09-18 23:53:29.062 [main] INFO  c.y.liteflow.process.impl.DeclWarpBeanProcess:37 - proxy component[knowledge] has been found
+2025-09-18 23:53:29.069 [main] INFO  c.y.liteflow.process.impl.DeclWarpBeanProcess:37 - proxy component[llm] has been found
+2025-09-18 23:53:29.076 [main] INFO  c.y.liteflow.process.impl.DeclWarpBeanProcess:37 - proxy component[enhanceJava] has been found
+2025-09-18 23:53:29.081 [main] INFO  c.y.liteflow.process.impl.DeclWarpBeanProcess:37 - proxy component[reply] has been found
+2025-09-18 23:53:29.086 [main] INFO  c.y.liteflow.process.impl.DeclWarpBeanProcess:37 - proxy component[start] has been found
+2025-09-18 23:53:29.091 [main] INFO  c.y.liteflow.process.impl.DeclWarpBeanProcess:37 - proxy component[subflow] has been found
+2025-09-18 23:53:29.097 [main] INFO  c.y.liteflow.process.impl.DeclWarpBeanProcess:37 - proxy component[switch] has been found
+2025-09-18 23:53:29.788 [main] INFO  o.j.config.shiro.ignore.IgnoreAuthPostProcessor:41 - Init Token ignoreAuthUrls Config [ 集合 ]  ：[/airag/chat/stop/*, /airag/chat/send, /airag/chat/conversation/update/title, /airag/chat/messages/clear/*, /airag/chat/messages, /airag/chat/conversation/*, /airag/chat/conversations, /test/jeecgDemo/html, /airag/flow/run, /airag/flow/run/*, /airag/app/queryById, /openapi/demo/index]
+2025-09-18 23:53:29.789 [main] INFO  o.j.config.shiro.ignore.IgnoreAuthPostProcessor:49 - Init Token ignoreAuthUrls Config [ 耗时 ] ：3毫秒
+2025-09-18 23:53:29.818 [main] INFO  org.jeecg.config.init.CodeGenerateDbConfig:50 -  Init CodeGenerate Config [ Get Db Config From application.yml ] 
+2025-09-18 23:53:30.792 [main] INFO  c.b.m.e.spring.MybatisPlusApplicationContextAware:40 - Register ApplicationContext instances org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext@5922ae77
+2025-09-18 23:53:32.066 [main] INFO  o.s.b.actuate.endpoint.web.EndpointLinksResolver:60 - Exposing 3 endpoints beneath base path '/actuator'
+2025-09-18 23:53:32.219 [main] INFO  io.undertow.websockets.jsr:647 - UT026003: Adding annotated server endpoint class org.jeecg.modules.message.websocket.WebSocket for path /websocket/{userId}
+2025-09-18 23:53:32.230 [main] INFO  io.undertow.websockets.jsr:647 - UT026003: Adding annotated server endpoint class org.jeecg.modules.drag.config.websocket.DragChannelWebSocket for path /dragChannelSocket/{token}
+2025-09-18 23:53:32.230 [main] INFO  io.undertow.websockets.jsr:647 - UT026003: Adding annotated server endpoint class org.jeecg.modules.drag.config.websocket.DragWebSocket for path /websocket/drag/{chartId}
+2025-09-18 23:53:32.230 [main] INFO  io.undertow.websockets.jsr:647 - UT026003: Adding annotated server endpoint class org.jeecg.modules.demo.mock.vxe.websocket.VxeSocket for path /vxeSocket/{userId}/{pageId}
+2025-09-18 23:53:32.264 [main] INFO  c.y.liteflow.parser.factory.FlowParserProvider:193 - flow info loaded from class config with el,class=com.yomahub.liteflow.parser.sql.SQLXmlELParser
+2025-09-18 23:53:32.300 [main] INFO  c.yomahub.liteflow.parser.sql.read.AbstractSqlRead:186 - query sql: select id, application_name, chain from airag_flow where status = 'enable' and chain is not null
+2025-09-18 23:53:32.573 [main] INFO  c.y.liteflow.parser.sql.util.LiteFlowJdbcUtil:43 - use dataSourceName[dataSource],has found liteflow config
+2025-09-18 23:53:33.027 [main] INFO  io.undertow:120 - starting server: Undertow - 2.3.18.Final
+2025-09-18 23:53:33.048 [main] INFO  org.xnio:95 - XNIO version 3.8.16.Final
+2025-09-18 23:53:33.066 [main] INFO  org.xnio.nio:58 - XNIO NIO Implementation Version 3.8.16.Final
+2025-09-18 23:53:33.142 [main] INFO  org.jboss.threads:55 - JBoss Threads version 3.5.0.Final
+2025-09-18 23:53:33.266 [main] INFO  o.s.boot.web.embedded.undertow.UndertowWebServer:121 - Undertow started on port 8095 (http) with context path '/jeecg-boot'
+2025-09-18 23:53:33.858 [main] INFO  o.s.scheduling.quartz.SchedulerFactoryBean:735 - Will start Quartz Scheduler [MyScheduler] in 1 seconds
+2025-09-18 23:53:33.876 [main] INFO  org.jeecg.SilosSystemApplication:59 - Started SilosSystemApplication in 22.436 seconds (process running for 24.819)
+2025-09-18 23:53:33.882 [main] INFO  org.jeecg.config.init.CodeTemplateInitListener:30 -  Init Code Generate Template [ 检测如果是JAR启动，Copy模板到config目录 ] 
+2025-09-18 23:53:34.038 [main] INFO  org.jeecg.config.init.CodeTemplateInitListener:33 -  Init Code Generate Template completed in 156 ms
+2025-09-18 23:53:34.040 [main] INFO  org.jeecg.SilosSystemApplication:54 - 
+----------------------------------------------------------
+	Application Jeecg-Boot is running! Access URLs:
+	Local: 		http://localhost:8095/jeecg-boot/doc.html
+	External: 	http://10.61.106.238:8095/jeecg-boot/doc.html
+	Swagger文档: 	http://10.61.106.238:8095/jeecg-boot/doc.html
+----------------------------------------------------------
+2025-09-18 23:53:34.131 [RMI TCP Connection(3)-10.61.106.238] INFO  io.undertow.servlet:372 - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-09-18 23:53:34.132 [RMI TCP Connection(3)-10.61.106.238] INFO  org.springframework.web.servlet.DispatcherServlet:532 - Initializing Servlet 'dispatcherServlet'
+2025-09-18 23:53:34.137 [RMI TCP Connection(3)-10.61.106.238] INFO  org.springframework.web.servlet.DispatcherServlet:554 - Completed initialization in 5 ms
+2025-09-18 23:53:34.860 [Quartz Scheduler [MyScheduler]] INFO  o.s.scheduling.quartz.SchedulerFactoryBean:749 - Starting Quartz Scheduler now, after delay of 1 seconds
+2025-09-18 23:53:35.067 [Quartz Scheduler [MyScheduler]] INFO  org.quartz.core.QuartzScheduler:547 - Scheduler MyScheduler_$_little-tiger1758210805162 started.
+2025-09-18 23:55:01.961 [XNIO-1 task-2] INFO  org.jeecg.common.util.filter.SsrfFileTypeFilter:151 - suffix:jpg
+2025-09-18 23:55:01.962 [XNIO-1 task-2] ERROR o.jeecg.modules.system.controller.CommonController:232 - 文件[b_3d8445456f6edf6c1b77ef4f1354e654_1749325857897.jpg]不存在..
+2025-09-18 23:55:02.187 [XNIO-1 task-3] INFO  o.j.m.system.controller.SysAnnouncementController:348 - -----查询近两个月收到的未读通知-----，近2月的第一天：2025-08-01 00:00:00
+2025-09-18 23:55:02.262 [XNIO-1 task-3] INFO  o.j.m.system.controller.SysAnnouncementController:363 - begin 获取用户近2个月的系统公告 (通知)85毫秒
+2025-09-18 23:55:02.325 [XNIO-1 task-3] INFO  o.j.m.system.controller.SysAnnouncementController:371 - end 获取用户2个月的系统公告 (系统消息)148毫秒
+2025-09-18 23:55:10.308 [XNIO-1 task-3] INFO  o.jeecg.modules.system.controller.LoginController:198 -  用户名:  管理员,退出成功！ 
+2025-09-18 23:55:13.046 [XNIO-1 task-3] INFO  o.jeecg.modules.system.controller.LoginController:545 - 获取验证码，Redis key = d1f72628eada80c11cfb184073844377mb9j，checkCode = Mb9J
+2025-09-18 23:55:19.088 [XNIO-1 task-3] INFO  o.jeecg.modules.system.controller.LoginController:545 - 获取验证码，Redis key = 3ff649dc9f663937fc4a5f346cbdfb695jyq，checkCode = 5JyQ
+2025-09-18 23:55:19.561 [XNIO-1 task-3] INFO  o.jeecg.modules.system.controller.LoginController:545 - 获取验证码，Redis key = 9a7d0d6a4b5600d52f7e9a721d2c444fkmxi，checkCode = kMXi
+2025-09-18 23:55:27.198 [XNIO-1 task-3] INFO  o.j.modules.system.controller.ThirdLoginController:83 - 第三方登录进入render：wechat_open
+2025-09-18 23:55:27.304 [XNIO-1 task-3] INFO  o.j.modules.system.controller.ThirdLoginController:86 - 第三方登录认证地址：https://open.weixin.qq.com/connect/qrconnect?response_type=code&appid=??&redirect_uri=http://sso.test.com:8080/jeecg-boot/sys/thirdLogin/wechat_open/callback&scope=snsapi_login&state=41254a2da5966f664f6861d06e5ebb74
+2025-09-18 23:55:52.600 [XNIO-1 task-3] INFO  o.j.modules.system.service.impl.SysUserServiceImpl:951 -  登录接口用户的租户ID = 0
+2025-09-18 23:55:52.872 [XNIO-1 task-3] INFO  o.j.c.desensitization.aspect.SensitiveDataAspect:76 - 加密操作，Aspect程序耗时：1ms
+2025-09-18 23:55:52.950 [XNIO-1 task-3] INFO  o.jeecg.modules.system.controller.LoginController:150 - 1 获取用户信息耗时（用户基础信息）70毫秒
+2025-09-18 23:55:53.022 [XNIO-1 task-3] INFO  o.jeecg.modules.system.controller.LoginController:165 - 2 获取用户信息耗时 (首页面配置)142毫秒
+2025-09-18 23:55:53.023 [XNIO-1 task-3] INFO  o.j.modules.system.service.impl.SysDictServiceImpl:165 - >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+2025-09-18 23:55:53.067 [XNIO-1 task-3] INFO  o.j.modules.system.service.impl.SysDictServiceImpl:184 -       >>> 1 获取系统字典项耗时（SQL）：43毫秒
+2025-09-18 23:55:53.206 [XNIO-1 task-3] INFO  o.j.modules.system.service.impl.SysDictServiceImpl:188 -       >>> 2 获取系统字典项耗时（Enum）：183毫秒
+2025-09-18 23:55:53.207 [XNIO-1 task-3] INFO  o.j.modules.system.service.impl.SysDictServiceImpl:190 -       >>> end 获取系统字典库总耗时：184毫秒
+2025-09-18 23:55:53.207 [XNIO-1 task-3] INFO  o.j.modules.system.service.impl.SysDictServiceImpl:191 - >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+2025-09-18 23:55:53.207 [XNIO-1 task-3] INFO  o.jeecg.modules.system.controller.LoginController:169 - 3 获取用户信息耗时 (字典数据)327毫秒
+2025-09-18 23:55:53.207 [XNIO-1 task-3] INFO  o.jeecg.modules.system.controller.LoginController:174 - end 获取用户信息耗时 327毫秒
+2025-09-18 23:55:54.590 [XNIO-1 task-3] INFO  org.jeecg.common.util.filter.SsrfFileTypeFilter:151 - suffix:jpg
+2025-09-18 23:55:54.591 [XNIO-1 task-3] ERROR o.jeecg.modules.system.controller.CommonController:232 - 文件[b_3d8445456f6edf6c1b77ef4f1354e654_1749325857897.jpg]不存在..
+2025-09-18 23:55:54.625 [XNIO-1 task-2] INFO  o.j.m.system.controller.SysAnnouncementController:348 - -----查询近两个月收到的未读通知-----，近2月的第一天：2025-08-01 00:00:00
+2025-09-18 23:55:54.664 [XNIO-1 task-2] INFO  o.j.m.system.controller.SysAnnouncementController:363 - begin 获取用户近2个月的系统公告 (通知)39毫秒
+2025-09-18 23:55:54.700 [XNIO-1 task-2] INFO  o.j.m.system.controller.SysAnnouncementController:371 - end 获取用户2个月的系统公告 (系统消息)75毫秒
+2025-09-18 23:55:59.868 [XNIO-1 task-2] INFO  o.jeecg.modules.system.service.impl.SysBaseApiImpl:1131 - -------通过数据库读取用户拥有的角色Rules------useId： e9ca23d68d884d4ebb19d07889727dae,Roles size: 2
+2025-09-18 23:55:59.912 [XNIO-1 task-2] INFO  o.jeecg.modules.system.service.impl.SysBaseApiImpl:1162 - -------通过数据库读取用户拥有的权限Perms------userId： e9ca23d68d884d4ebb19d07889727dae,Perms size: 88
+2025-09-18 23:55:59.912 [XNIO-1 task-2] INFO  org.jeecg.config.shiro.ShiroRealm:86 - ===============Shiro权限认证成功==============
+2025-09-18 23:56:00.257 [XNIO-1 task-2] INFO  org.jeecg.common.util.filter.SsrfFileTypeFilter:151 - suffix:jpg
+2025-09-18 23:56:00.257 [XNIO-1 task-2] ERROR o.jeecg.modules.system.controller.CommonController:232 - 文件[b_3d8445456f6edf6c1b77ef4f1354e654_1749325857897.jpg]不存在..
+2025-09-18 23:56:00.309 [XNIO-1 task-2] INFO  org.jeecg.common.util.filter.SsrfFileTypeFilter:151 - suffix:jpg
+2025-09-18 23:56:00.309 [XNIO-1 task-2] ERROR o.jeecg.modules.system.controller.CommonController:232 - 文件[b_3d8445456f6edf6c1b77ef4f1354e654_1749325857897.jpg]不存在..
+2025-09-18 23:56:01.005 [XNIO-1 task-2] INFO  o.j.m.system.controller.SysPermissionController:114 - ======获取全部菜单数据=====耗时:46毫秒
+2025-09-18 23:56:10.596 [XNIO-1 task-2] INFO  org.jeecg.config.shiro.ShiroRealm:104 - ————————身份认证失败——————————IP地址:  0:0:0:0:0:0:0:1，URL:/jeecg-boot/test
+2025-09-18 23:56:47.780 [SpringApplicationShutdownHook] INFO  org.quartz.core.QuartzScheduler:585 - Scheduler MyScheduler_$_little-tiger1758210805162 paused.
+2025-09-18 23:56:47.783 [SpringApplicationShutdownHook] INFO  o.s.boot.web.embedded.undertow.UndertowWebServer:325 - Commencing graceful shutdown. Waiting for active requests to complete
+2025-09-18 23:56:47.785 [SpringApplicationShutdownHook] INFO  o.s.boot.web.embedded.undertow.UndertowWebServer:335 - Graceful shutdown complete
+2025-09-18 23:56:47.785 [SpringApplicationShutdownHook] INFO  io.undertow:259 - stopping server: Undertow - 2.3.18.Final
+2025-09-18 23:56:47.789 [SpringApplicationShutdownHook] INFO  io.undertow.servlet:372 - Destroying Spring FrameworkServlet 'dispatcherServlet'
+2025-09-18 23:56:47.806 [SpringApplicationShutdownHook] INFO  o.s.scheduling.quartz.SchedulerFactoryBean:845 - Shutting down Quartz Scheduler
+2025-09-18 23:56:47.806 [SpringApplicationShutdownHook] INFO  org.quartz.core.QuartzScheduler:666 - Scheduler MyScheduler_$_little-tiger1758210805162 shutting down.
+2025-09-18 23:56:47.806 [SpringApplicationShutdownHook] INFO  org.quartz.core.QuartzScheduler:585 - Scheduler MyScheduler_$_little-tiger1758210805162 paused.
+2025-09-18 23:56:47.807 [SpringApplicationShutdownHook] INFO  org.quartz.core.QuartzScheduler:740 - Scheduler MyScheduler_$_little-tiger1758210805162 shutdown complete.
+2025-09-18 23:56:47.817 [SpringApplicationShutdownHook] INFO  c.b.dynamic.datasource.DynamicRoutingDataSource:211 - dynamic-datasource start closing ....
+2025-09-18 23:56:47.818 [SpringApplicationShutdownHook] INFO  com.alibaba.druid.pool.DruidDataSource:1880 - {dataSource-1} closing ...
+2025-09-18 23:56:47.823 [SpringApplicationShutdownHook] INFO  com.alibaba.druid.pool.DruidDataSource:1953 - {dataSource-1} closed
+2025-09-18 23:56:47.823 [SpringApplicationShutdownHook] INFO  c.b.dynamic.datasource.DynamicRoutingDataSource:215 - dynamic-datasource all closed success,bye

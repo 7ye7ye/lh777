@@ -24,7 +24,7 @@ interface ApiResponse<T = any> {
 // 用户相关 API
 export const userApi = {
   // 测试：与后端 @PostMapping("/test") 保持一致
-  test: () => http.post<any>('/jeecg-boot/test'),
+  test: () => http.get<any>('/jeecg-boot/test'),
 
   // 登录
   login: (data: LoginData) => http.post<UserInfo>('/user/login', data),
