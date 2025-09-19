@@ -16,10 +16,6 @@ const userStore = useUserStore()
 const handleTest = () => {
 	userApi.test().then(res => {
 		console.log(res)
-		uni.showToast({
-			title: res.data.message,
-			icon: 'success'
-		})
 	})
 }
 
