@@ -1,9 +1,9 @@
 <template>
   <view class="hospital-bg">
     <view class="hospital-header">
-      <image class="hospital-banner" src="/static/hospital-banner.png" />
+      <view class="hospital-banner">🏥</view>
       <view class="hospital-info">
-        <image class="hospital-logo" src="/static/hospital-logo.png" />
+        <view class="hospital-logo">🏥</view>
         <view class="hospital-title">
           <text class="name">北京交通大学校医院</text>
           <view class="tags">
@@ -67,7 +67,12 @@
 .hospital-banner {
   width: 100%;
   height: 180rpx;
-  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 100rpx;
+  background: #f0f0f0;
+  border-radius: 12rpx;
 }
 .hospital-info {
   display: flex;
@@ -82,6 +87,10 @@
   background: #fff;
   border: 4rpx solid #fff;
   margin-right: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 60rpx;
 }
 .hospital-title {
   display: flex;

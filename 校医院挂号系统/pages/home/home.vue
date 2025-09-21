@@ -3,33 +3,33 @@
     <view class="home-header">
       <text class="title">北京交通大学校医院</text>
       <view class="header-icons">
-        <image src="/static/top-right.png" class="header-icon" />
+        <view class="header-icon">⚙️</view>
       </view>
     </view>
-    <image class="banner" src="/static/hospital-banner.png" />
+    <view class="banner">🏥</view>
     <view class="bind-tip card">
       <text class="plus">+</text>
       <text>首次使用，请绑定就诊人</text>
     </view>
-    <image class="special-banner" src="/static/special-banner.png" />
+    <view class="special-banner">⭐</view>
     <view class="home-section card">
       <view class="home-row">
         <view class="home-item">
-          <image src="/static/register-disease.png" class="icon" />
+          <view class="icon">🩺</view>
           <text>按疾病挂号</text>
         </view>
         <view class="home-item">
-          <image src="/static/register-dept.png" class="icon" />
+          <view class="icon">🏥</view>
           <text>按科室挂号</text>
         </view>
       </view>
       <view class="home-row">
         <view class="home-item">
-          <image src="/static/report.png" class="icon" />
+          <view class="icon">📊</view>
           <text>报告查询</text>
         </view>
         <view class="home-item">
-          <image src="/static/online.png" class="icon" />
+          <view class="icon">💻</view>
           <text>互联网诊疗</text>
         </view>
       </view>
@@ -42,37 +42,37 @@
     </view>
     <view class="home-row">
       <view class="home-item">
-        <image src="/static/night.png" class="icon" />
+        <view class="icon">🌙</view>
         <text>晚间门诊</text>
       </view>
       <view class="home-item">
-        <image src="/static/weekend.png" class="icon" />
+        <view class="icon">📅</view>
         <text>周末门诊</text>
       </view>
       <view class="home-item">
-        <image src="/static/sign.png" class="icon" />
+        <view class="icon">✅</view>
         <text>门诊签到</text>
       </view>
       <view class="home-item">
-        <image src="/static/psychology.png" class="icon" />
+        <view class="icon">🧠</view>
         <text>心理筛查门诊</text>
       </view>
     </view>
     <view class="home-row">
       <view class="home-item">
-        <image src="/static/appoint.png" class="icon" />
+        <view class="icon">📅</view>
         <text>预约门诊</text>
       </view>
       <view class="home-item">
-        <image src="/static/add-patient.png" class="icon" />
+        <view class="icon">👥</view>
         <text>添加就诊人</text>
       </view>
       <view class="home-item">
-        <image src="/static/pay.png" class="icon" />
+        <view class="icon">💰</view>
         <text>缴费</text>
       </view>
       <view class="home-item">
-        <image src="/static/clock.png" class="icon" />
+        <view class="icon">⏰</view>
         <text>预约提醒</text>
       </view>
     </view>
@@ -110,12 +110,21 @@
 .header-icon {
   width: 48rpx;
   height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
 }
 .banner {
   width: 100%;
   height: 180rpx;
-  object-fit: cover;
   margin-bottom: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 80rpx;
+  background: #f0f0f0;
+  border-radius: 12rpx;
 }
 .bind-tip {
   display: flex;
@@ -137,6 +146,12 @@
   width: 92%;
   margin: 24rpx 4% 0 4%;
   border-radius: 16rpx;
+  height: 120rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 60rpx;
+  background: #f0f0f0;
 }
 .card {
   background: #fff;
@@ -166,6 +181,10 @@
   width: 56rpx;
   height: 56rpx;
   margin-bottom: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
 }
 .home-tabs {
   display: flex;

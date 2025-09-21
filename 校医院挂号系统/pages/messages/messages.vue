@@ -3,11 +3,11 @@
     <view class="messages-header">
       <text class="title">消息中心</text>
       <view class="header-icons">
-        <image src="/static/top-right.png" class="header-icon" />
+        <view class="header-icon">⚙️</view>
       </view>
     </view>
     <view class="content">
-      <image src="/static/empty-message.png" class="empty-img" />
+      <view class="empty-img">📭</view>
       <view class="empty-tip">
         请
         <text class="login-link" @click="goLogin">登录</text>
@@ -50,6 +50,10 @@ const goLogin = () => {
 .header-icon {
   width: 48rpx;
   height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
 }
 .content {
   display: flex;
@@ -61,6 +65,12 @@ const goLogin = () => {
   width: 200rpx;
   height: 200rpx;
   margin-bottom: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 120rpx;
+  background: #f0f0f0;
+  border-radius: 50%;
 }
 .empty-tip {
   color: #666;
