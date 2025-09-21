@@ -134,7 +134,7 @@ const goToIssueDetail = (issueId) => {
 }
 
 const goToFeedback = () => {
-  uni.navigateTo({ url: '/pages/profile/complain' })
+  uni.navigateTo({ url: '/pages/profile/settings/complain' })
 }
 
 onMounted(() => {

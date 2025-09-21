@@ -104,59 +104,59 @@ const getUserInfo = () => {
 
 // 导航函数
 const goToMyCard = () => {
-  uni.navigateTo({ url: '/pages/profile/mycard' })
+  uni.navigateTo({ url: '/pages/profile/personal/mycard' })
 }
 
 const goToMyPatient = () => {
-  uni.navigateTo({ url: '/pages/profile/mypatient' })
+  uni.navigateTo({ url: '/pages/profile/personal/mypatient' })
 }
 
 const goToMyDoctor = () => {
-  uni.navigateTo({ url: '/pages/profile/mydoctor' })
+  uni.navigateTo({ url: '/pages/profile/personal/mydoctor' })
 }
 
 const goToRegisterRecord = () => {
-  uni.navigateTo({ url: '/pages/profile/register-record' })
+  uni.navigateTo({ url: '/pages/profile/records/register-record' })
 }
 
 const goToOutpatientRecord = () => {
-  uni.navigateTo({ url: '/pages/profile/outpatient-record' })
+  uni.navigateTo({ url: '/pages/profile/records/outpatient-record' })
 }
 
 const goToHospitalRecord = () => {
-  uni.navigateTo({ url: '/pages/profile/hospital-record' })
+  uni.navigateTo({ url: '/pages/profile/records/hospital-record' })
 }
 
 const goToConsultRecord = () => {
-  uni.navigateTo({ url: '/pages/profile/consult-record' })
+  uni.navigateTo({ url: '/pages/profile/records/consult-record' })
 }
 
 const goToRevisitRecord = () => {
-  uni.navigateTo({ url: '/pages/profile/revisit-record' })
+  uni.navigateTo({ url: '/pages/profile/records/revisit-record' })
 }
 
 const goToCheckRecord = () => {
-  uni.navigateTo({ url: '/pages/profile/check-record' })
+  uni.navigateTo({ url: '/pages/profile/records/check-record' })
 }
 
 const goToPrivacy = () => {
-  uni.navigateTo({ url: '/pages/profile/privacy' })
+  uni.navigateTo({ url: '/pages/profile/settings/privacy' })
 }
 
 const goToHelp = () => {
-  uni.navigateTo({ url: '/pages/profile/help' })
+  uni.navigateTo({ url: '/pages/profile/help/help' })
 }
 
 const goToComplain = () => {
-  uni.navigateTo({ url: '/pages/profile/complain' })
+  uni.navigateTo({ url: '/pages/profile/settings/complain' })
 }
 
 const goToEvaluate = () => {
-  uni.navigateTo({ url: '/pages/profile/evaluate' })
+  uni.navigateTo({ url: '/pages/profile/settings/evaluate' })
 }
 
 const goToUnbind = () => {
-  uni.navigateTo({ url: '/pages/profile/unbind' })
+  uni.navigateTo({ url: '/pages/profile/settings/unbind' })
 }
 
 onMounted(() => {
