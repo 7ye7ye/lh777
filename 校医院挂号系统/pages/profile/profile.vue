@@ -14,15 +14,15 @@
     <view class="profile-section card">
       <view class="profile-row">
         <view class="profile-item" @click="goToMyCard">
-          <image class="icon" src="/static/card.png" />
+          <image class="icon icon-lg" src="/static/card.png" />
           <text>我的就诊卡</text>
         </view>
         <view class="profile-item" @click="goToMyPatient">
-          <image class="icon" src="/static/patient.png" />
+          <image class="icon icon-lg" src="/static/patient.png" />
           <text>我的就诊人</text>
         </view>
         <view class="profile-item" @click="goToMyDoctor">
-          <image class="icon" src="/static/doctor.png" />
+          <image class="icon icon-lg" src="/static/doctor.png" />
           <text>我的医生</text>
         </view>
       </view>
@@ -249,12 +249,23 @@ onMounted(() => {
   background-color: rgba(58, 156, 255, 0.1);
 }
 .icon {
-  width: 56rpx;
-  height: 56rpx;
-  margin-bottom: 8rpx;
+  width: 72rpx;
+  height: 72rpx;
+  margin-bottom: 12rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.icon-lg {
+  width: 88rpx;
+  height: 88rpx;
+  margin-bottom: 12rpx;
+}
+.profile-item text {
+  display: block;
+  text-align: center;
+  line-height: 32rpx;
+  min-height: 64rpx; /* 固定两行高度，保证同一行标题对齐 */
 }
 .tabbar-placeholder {
   height: 120rpx;
