@@ -5,13 +5,13 @@
         <view class="avatar">👤</view>
         <view class="user-info">
           <text class="user-name">{{ userInfo.name || '微信用户' }}</text>
-          <text class="user-phone">{{ userInfo.phone || '15******068' }}</text>
+          <text class="user-phone">{{ userInfo.phone || '*************' }}</text>
         </view>
       </view>
       <button class="unbind-btn" size="mini" @click="goToUnbind">账户解绑</button>
     </view>
 
-    <view class="profile-section card">
+    <view class="profile-section card centered centered-down">
       <view class="profile-row">
         <view class="profile-item" @click="goToMyCard">
           <image class="icon icon-lg" src="/static/card.png" />
@@ -28,7 +28,7 @@
       </view>
     </view>
 
-    <view class="profile-section card">
+    <view class="profile-section card centered centered-down-small">
       <view class="section-title">就诊记录</view>
       <view class="profile-row">
         <view class="profile-item" @click="goToRegisterRecord">
@@ -168,13 +168,14 @@ onMounted(() => {
 .profile-bg {
   background: #3a9cff;
   min-height: 100vh;
-  padding-bottom: 120rpx;
+  padding-bottom: 72rpx;
 }
 .profile-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 48rpx 32rpx 32rpx 32rpx;
+  padding: 24rpx 24rpx;
+  min-height: 180rpx; /* 个人信息模块在区域内垂直居中 */
   background: #3a9cff;
 }
 .profile-info {
@@ -216,14 +217,31 @@ onMounted(() => {
 .card {
   background: #fff;
   border-radius: 16rpx;
-  margin: 24rpx 24rpx 0 24rpx;
-  padding: 24rpx 0;
+  margin: 14rpx 14rpx 0 14rpx; /* 略放松，避免过紧 */
+  padding: 14rpx 0;
   box-shadow: 0 4rpx 16rpx rgba(58,156,255,0.08);
+}
+.profile-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* 区块内容靠上且整体居中感 */
+}
+.profile-section.centered {
+  min-height: 180rpx;
+  justify-content: center; /* 该块内竖直居中 */
+}
+.profile-section.centered-down {
+  padding-top: 18rpx; /* 让第一块稍微下移 */
+}
+.profile-section.centered-down-small {
+  min-height: 200rpx;
+  justify-content: center;
+  padding-top: 10rpx; /* 就诊记录整体略向下 */
 }
 .section-title {
   font-size: 28rpx;
   font-weight: bold;
-  margin: 0 0 16rpx 32rpx;
+  margin: 0 0 6rpx 32rpx;
   color: #333;
 }
 .profile-row {
@@ -231,7 +249,7 @@ onMounted(() => {
   flex-direction: row;
   justify-content: flex-start;
   align-items: center;
-  margin: 0 0 16rpx 0;
+  margin: 0 0 6rpx 0; /* 适当放松行距 */
 }
 .profile-item {
   flex: 1;
@@ -239,8 +257,8 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   text-align: center; /* 新增这一行 */
-  margin: 16rpx 0;
-  padding: 16rpx;
+  margin: 8rpx 0;
+  padding: 12rpx;
   border-radius: 12rpx;
   transition: background-color 0.3s;
 }
@@ -251,7 +269,7 @@ onMounted(() => {
 .icon {
   width: 72rpx;
   height: 72rpx;
-  margin-bottom: 12rpx;
+  margin-bottom: 6rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -268,7 +286,7 @@ onMounted(() => {
   min-height: 64rpx; /* 固定两行高度，保证同一行标题对齐 */
 }
 .tabbar-placeholder {
-  height: 120rpx;
+  height: 72rpx;
 }
 </style>
 

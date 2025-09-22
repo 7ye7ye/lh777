@@ -25,6 +25,18 @@
 			}
 		},
 		{
+			"path": "pages/hospital/departments",
+			"style": {
+				"navigationBarTitleText": "科室信息"
+			}
+		},
+		{
+			"path": "pages/hospital/department-detail",
+			"style": {
+				"navigationBarTitleText": "科室详情"
+			}
+		},
+		{
 			"path": "pages/profile/profile",
 			"style": {
 				"navigationBarTitleText": "个人中心"
