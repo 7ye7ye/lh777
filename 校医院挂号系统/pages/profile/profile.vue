@@ -57,6 +57,8 @@
           <image class="icon" src="/static/check.png" />
           <text>检查预约记录</text>
         </view>
+        <view class="profile-item"></view>
+        <view class="profile-item"></view>
       </view>
     </view>
 
@@ -98,7 +100,7 @@ const getUserInfo = () => {
     userInfo.value = res.data
   }).catch(() => {
     // 如果获取失败，使用默认信息
-    userInfo.value = { name: '微信用户', phone: '15******068' }
+    userInfo.value = { name: '微信用户', phone: '***********' }
   })
 }
 
