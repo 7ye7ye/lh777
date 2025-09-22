@@ -1,8 +1,21 @@
 // src/utils/request.ts
 // @ts-nocheck
 
-// 配置基础地址
-const baseURL = 'http://localhost:8095'; // 替换为你的后端地址
+// 配置基础地址：支持运行时覆盖
+const detectBaseURL = (): string => {
+  // 1) 运行时存储覆盖（在微信开发者工具控制台可设置：uni.setStorageSync('BASE_URL', 'http://ip:port')）
+  const stored = typeof uni !== 'undefined' ? uni.getStorageSync('BASE_URL') : '';
+  if (stored) return stored;
+
+  // 2) 全局变量覆盖（在页面注入 window.__API_BASE_URL / globalThis.__API_BASE_URL）
+  const g: any = (typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : {}));
+  if (g && g.__API_BASE_URL) return g.__API_BASE_URL as string;
+
+  // 3) 默认值（本地开发）
+  return 'http://localhost:8095';
+};
+
+const baseURL = detectBaseURL();
 
 // 请求拦截器：添加 token、统一配置等
 const requestInterceptor = (options) => {
