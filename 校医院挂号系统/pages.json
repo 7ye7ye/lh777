@@ -25,6 +25,18 @@
 			}
 		},
 		{
+			"path": "pages/hospital/departments",
+			"style": {
+				"navigationBarTitleText": "科室信息"
+			}
+		},
+		{
+			"path": "pages/hospital/department-detail",
+			"style": {
+				"navigationBarTitleText": "科室详情"
+			}
+		},
+		{
 			"path": "pages/profile/profile",
 			"style": {
 				"navigationBarTitleText": "个人中心"
@@ -35,8 +47,139 @@
 			"style": {
 				"navigationBarTitleText": "登录"
 			}
+		},
+		{
+			"path": "pages/profile/personal/mycard",
+			"style": {
+				"navigationBarTitleText": "我的就诊卡"
+			}
+		},
+		{
+			"path": "pages/profile/personal/mypatient",
+			"style": {
+				"navigationBarTitleText": "我的就诊人"
+			}
+		},
+		{
+			"path": "pages/profile/personal/mydoctor",
+			"style": {
+				"navigationBarTitleText": "我的医生"
+			}
+		},
+		{
+			"path": "pages/profile/records/register-record",
+			"style": {
+				"navigationBarTitleText": "挂号记录"
+			}
+		},
+		{
+			"path": "pages/profile/records/outpatient-record",
+			"style": {
+				"navigationBarTitleText": "门诊缴费记录"
+			}
+		},
+		{
+			"path": "pages/profile/records/hospital-record",
+			"style": {
+				"navigationBarTitleText": "住院预交记录"
+			}
+		},
+		{
+			"path": "pages/profile/records/consult-record",
+			"style": {
+				"navigationBarTitleText": "咨询记录"
+			}
+		},
+		{
+			"path": "pages/profile/records/revisit-record",
+			"style": {
+				"navigationBarTitleText": "在线复诊记录"
+			}
+		},
+		{
+			"path": "pages/profile/records/check-record",
+			"style": {
+				"navigationBarTitleText": "检查预约记录"
+			}
+		},
+		{
+			"path": "pages/profile/settings/privacy",
+			"style": {
+				"navigationBarTitleText": "隐私协议"
+			}
+		},
+		{
+			"path": "pages/profile/help/help",
+			"style": {
+				"navigationBarTitleText": "帮助反馈"
+			}
+		},
+		{
+			"path": "pages/profile/settings/complain",
+			"style": {
+				"navigationBarTitleText": "投诉建议"
+			}
+		},
+		{
+			"path": "pages/profile/settings/evaluate",
+			"style": {
+				"navigationBarTitleText": "就诊评价"
+			}
+		},
+		{
+			"path": "pages/profile/settings/unbind",
+			"style": {
+				"navigationBarTitleText": "账户解绑"
+			}
+		},
+		{
+			"path": "pages/profile/help/login",
+			"style": {
+				"navigationBarTitleText": "登录注册"
+			}
+		},
+		{
+			"path": "pages/profile/help/bindcard",
+			"style": {
+				"navigationBarTitleText": "绑卡"
+			}
+		},
+		{
+			"path": "pages/profile/help/register",
+			"style": {
+				"navigationBarTitleText": "挂号问题"
+			}
+		},
+		{
+			"path": "pages/profile/help/payment",
+			"style": {
+				"navigationBarTitleText": "门诊缴费"
+			}
+		},
+		{
+			"path": "pages/profile/help/hospitalization",
+			"style": {
+				"navigationBarTitleText": "住院"
+			}
+		},
+		{
+			"path": "pages/profile/help/report",
+			"style": {
+				"navigationBarTitleText": "报告查询"
+			}
+		},
+		{
+			"path": "pages/profile/help/other",
+			"style": {
+				"navigationBarTitleText": "其他"
+			}
+		},
+		{
+			"path": "pages/profile/help/appointment",
+			"style": {
+				"navigationBarTitleText": "预约挂号"
+			}
 		}
-		
 	],
 	"tabBar": {
 		"color": "#7A7E83",
