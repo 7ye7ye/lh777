@@ -49,6 +49,12 @@
 			}
 		},
 		{
+			"path": "pages/register/register",
+			"style": {
+				"navigationBarTitleText": "注册"
+			}
+		},
+		{
 			"path": "pages/profile/personal/mycard",
 			"style": {
 				"navigationBarTitleText": "我的就诊卡"

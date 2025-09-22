@@ -3,10 +3,15 @@ import { http } from '@/utils/request';
 
 // 定义类型（保持 TypeScript 类型安全）
 interface LoginData {
-  username: string;
-  password: string;
+  userAccount: string;
+  userPassword: string;
 }
 
+interface RegisterData {
+  userAccount: string;
+  userPassword: string;
+  checkPassword: string;
+}
 interface UserInfo {
   id: number;
   username: string;
@@ -81,11 +86,11 @@ export const userApi = {
   test: () => http.get<any>('/jeecg-boot/test'),
 
   // 登录
-  login: (data: LoginData) => http.post<UserInfo>('/user/login', data),
+  login: (data: LoginData) => http.post<UserInfo>('/jeecg-boot/user/login2', data),
   
   // 注册
-  register: (data: { username: string; password: string; name: string }) => 
-    http.post<{ id: number }>('/user/register', data),
+  register: (data: RegisterData ) => 
+    http.post<{ id: number }>('/jeecg-boot/user/register2', data),
   
   // 获取当前用户信息
   getCurrentUser: () => http.get<UserInfo>('/user/current'),

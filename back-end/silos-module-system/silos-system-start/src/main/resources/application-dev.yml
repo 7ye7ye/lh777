@@ -129,6 +129,7 @@ spring:
       web-stat-filter:
         enabled: true
     dynamic:
+      primary: jeecg-boot  # 主数据源名称
       druid: # 全局druid参数，绝大部分值和默认保持一致。(现已支持的参数如下,不清楚含义不要乱设置)
         # 连接池的配置信息
         # 初始化大小，最小，最大
@@ -158,17 +159,24 @@ spring:
           merge-sql: true
           slow-sql-millis: 5000
       datasource:
-        master:
+        jeecg-boot:
           url: jdbc:mysql://127.0.0.1:3306/jeecg-boot?characterEncoding=UTF-8&useUnicode=true&useSSL=false&tinyInt1isBit=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
           username: hospital
           password: 123456
           driver-class-name: com.mysql.cj.jdbc.Driver
-          # 多数据源配置
-          #multi-datasource1:
-          #url: jdbc:mysql://localhost:3306/jeecg-boot2?useUnicode=true&characterEncoding=utf8&autoReconnect=true&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
-          #username: root
-          #password: root
-          #driver-class-name: com.mysql.cj.jdbc.Driver
+#           多数据源配置
+        hospital:
+          url: jdbc:mysql://localhost:3306/hospital?useUnicode=true&characterEncoding=utf8&autoReconnect=true&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+          username: hospital
+          password: 123456
+          driver-class-name: com.mysql.cj.jdbc.Driver
+      # 包路径与数据源的映射
+      # 正确的包路径映射格式（键值对）
+      package:
+        - key: org.jeecg.modules.system.mapper
+          value: jeecg-boot
+        - key: org.jeecg.modules.hospital.mapper
+          value: hospital
   #redis 配置
   data:
     redis:

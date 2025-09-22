@@ -31,8 +31,8 @@ public class SysUserPositionServiceImpl extends ServiceImpl<SysUserPositionMappe
     @Autowired
     private SysUserPositionMapper sysUserPositionMapper;
 
-    @Autowired
-    private SysUserMapper userMapper;
+    @Autowired  
+    private SysUserMapper sysUserMapper;
 
     @Override
     public IPage<SysUser> getPositionUserList(Page<SysUser> page, String positionId) {
@@ -61,7 +61,7 @@ public class SysUserPositionServiceImpl extends ServiceImpl<SysUserPositionMappe
         String uIds = userBuilder.toString();
         if (oConvertUtils.isNotEmpty(uIds)) {
             //查询用户列表
-            List<SysUser> sysUsers = userMapper.selectBatchIds(Arrays.asList(uIds.split(SymbolConstant.COMMA)));
+            List<SysUser> sysUsers = sysUserMapper.selectBatchIds(Arrays.asList(uIds.split(SymbolConstant.COMMA)));
             String realnames = sysUsers.stream().map(SysUser::getRealname).collect(Collectors.joining(SymbolConstant.COMMA));
             throw new JeecgBootException(realnames + "已存在该职位中");
         }

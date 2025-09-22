@@ -84,7 +84,7 @@ import java.util.stream.Collectors;
 public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> implements ISysUserService {
 	
 	@Autowired
-	private SysUserMapper userMapper;
+	private SysUserMapper sysUserMapper;
 	@Autowired
 	private SysPermissionMapper sysPermissionMapper;
 	@Autowired
@@ -234,7 +234,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Override
     @CacheEvict(value = {CacheConstant.SYS_USERS_CACHE}, allEntries = true)
     public Result<?> resetPassword(String username, String oldpassword, String newpassword, String confirmpassword) {
-        SysUser user = userMapper.getUserByName(username);
+        SysUser user = sysUserMapper.getUserByName(username);
         String passwordEncode = PasswordUtil.encrypt(username, oldpassword, user.getSalt());
         if (!user.getPassword().equals(passwordEncode)) {
             return Result.error("旧密码输入错误!");
@@ -246,7 +246,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             return Result.error("两次输入密码不一致!");
         }
         String password = PasswordUtil.encrypt(username, newpassword, user.getSalt());
-        this.userMapper.update(new SysUser().setPassword(password), new LambdaQueryWrapper<SysUser>().eq(SysUser::getId, user.getId()));
+        this.sysUserMapper.update(new SysUser().setPassword(password), new LambdaQueryWrapper<SysUser>().eq(SysUser::getId, user.getId()));
         return Result.ok("密码重置成功!");
     }
 
@@ -258,7 +258,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         String password = sysUser.getPassword();
         String passwordEncode = PasswordUtil.encrypt(sysUser.getUsername(), password, salt);
         sysUser.setPassword(passwordEncode);
-        this.userMapper.updateById(sysUser);
+        this.sysUserMapper.updateById(sysUser);
         return Result.ok("密码修改成功!");
     }
 
@@ -290,7 +290,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
 	@Override
 	public SysUser getUserByName(String username) {
-		SysUser sysUser = userMapper.getUserByName(username);
+		SysUser sysUser = sysUserMapper.getUserByName(username);
 		//查询用户的租户ids
 		if(sysUser!=null){
 			List<Integer> list = userTenantMapper.getTenantIdsByUserId(sysUser.getId());
@@ -453,7 +453,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 		}
 
 		//查询用户信息
-		SysUser sysUser = userMapper.getUserByName(username);
+		SysUser sysUser = sysUserMapper.getUserByName(username);
 		if(sysUser!=null) {
 			info.setSysUserCode(sysUser.getUsername());
 			info.setSysUserName(sysUser.getRealname());
@@ -488,12 +488,12 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
      */
 	@Override
 	public IPage<SysUser> getUserByDepId(Page<SysUser> page, String departId,String username) {
-		return userMapper.getUserByDepId(page, departId,username);
+		return sysUserMapper.getUserByDepId(page, departId,username);
 	}
 
 	@Override
 	public IPage<SysUser> getUserByDepIds(Page<SysUser> page, List<String> departIds, String username) {
-		return userMapper.getUserByDepIds(page, departIds,username);
+		return sysUserMapper.getUserByDepIds(page, departIds,username);
 	}
 
 	@Override
@@ -550,7 +550,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 	@Override
 	public IPage<SysUser> getUserByRoleId(Page<SysUser> page, String roleId, String username) {
 		//update-begin---author:wangshuai ---date:20230220  for：[QQYUN-3980]组织管理中 职位功能 职位表加租户id 加职位-用户关联表------------
-		IPage<SysUser> userRoleList = userMapper.getUserByRoleId(page, roleId, username);
+		IPage<SysUser> userRoleList = sysUserMapper.getUserByRoleId(page, roleId, username);
 		List<SysUser> records = userRoleList.getRecords();
 		if (null != records && records.size() > 0) {
 			List<String> userIds = records.stream().map(SysUser::getId).collect(Collectors.toList());
@@ -576,13 +576,13 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
 	@Override
 	public SysUser getUserByPhone(String phone) {
-		return userMapper.getUserByPhone(phone);
+		return sysUserMapper.getUserByPhone(phone);
 	}
 
 
 	@Override
 	public SysUser getUserByEmail(String email) {
-		return userMapper.getUserByEmail(email);
+		return sysUserMapper.getUserByEmail(email);
 	}
 
 	@Override
@@ -682,20 +682,20 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 			wrapper = new LambdaQueryWrapper<>();
 		}
 		wrapper.eq(SysUser::getDelFlag, CommonConstant.DEL_FLAG_1);
-		return userMapper.selectLogicDeleted(wrapper);
+		return sysUserMapper.selectLogicDeleted(wrapper);
 	}
 
 	@Override
 	@CacheEvict(value={CacheConstant.SYS_USERS_CACHE}, allEntries=true)
 	public boolean revertLogicDeleted(List<String> userIds, SysUser updateEntity) {
-		return userMapper.revertLogicDeleted(userIds, updateEntity) > 0;
+		return sysUserMapper.revertLogicDeleted(userIds, updateEntity) > 0;
 	}
 
 	@Override
 	@Transactional(rollbackFor = Exception.class)
 	public boolean removeLogicDeleted(List<String> userIds) {
 		// 1. 删除用户
-		int line = userMapper.deleteLogicDeleted(userIds);
+		int line = sysUserMapper.deleteLogicDeleted(userIds);
 		// 2. 删除用户部门关系
 		line += sysUserDepartMapper.delete(new LambdaQueryWrapper<SysUserDepart>().in(SysUserDepart::getUserId, userIds));
 		//3. 删除用户角色关系
@@ -719,8 +719,8 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateNullPhoneEmail() {
-        userMapper.updateNullByEmptyString("email");
-        userMapper.updateNullByEmptyString("phone");
+        sysUserMapper.updateNullByEmptyString("email");
+        sysUserMapper.updateNullByEmptyString("phone");
         return true;
     }
 
@@ -741,7 +741,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
 	@Override
 	public List<SysUser> queryByDepIds(List<String> departIds, String username) {
-		return userMapper.queryByDepIds(departIds,username);
+		return sysUserMapper.queryByDepIds(departIds,username);
 	}
 
 	@Override
@@ -825,8 +825,8 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 		}
 		//step.4 修改手机号和邮箱
 		// 更新手机号、邮箱空字符串为 null
-		userMapper.updateNullByEmptyString("email");
-		userMapper.updateNullByEmptyString("phone");
+		sysUserMapper.updateNullByEmptyString("email");
+		sysUserMapper.updateNullByEmptyString("phone");
 
 		//step.5 修改职位
 		this.editUserPosition(user.getId(),user.getPost());
@@ -848,7 +848,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 			return null;
 		}
 		LoginUser loginUser = new LoginUser();
-		SysUser sysUser = userMapper.getUserByName(username);
+		SysUser sysUser = sysUserMapper.getUserByName(username);
 		//查询用户的租户ids
 		this.setUserTenantIds(sysUser);
 		//设置职位id
@@ -868,7 +868,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @CacheEvict(value={CacheConstant.SYS_USERS_CACHE}, allEntries=true)
     @Transactional(rollbackFor = Exception.class)
     public void userQuit(String username) {
-        SysUser sysUser = userMapper.getUserByName(username);
+        SysUser sysUser = sysUserMapper.getUserByName(username);
         if(null == sysUser){
             throw new JeecgBootException("离职失败，该用户已不存在");
         }
@@ -888,12 +888,12 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
     @Override
     public List<SysUser> getQuitList(Integer tenantId) {
-        return userMapper.getTenantQuitList(tenantId);
+        return sysUserMapper.getTenantQuitList(tenantId);
     }
 
     @Override
     public void updateStatusAndFlag(List<String> userIds, SysUser sysUser) {
-        userMapper.updateStatusAndFlag(userIds,sysUser);
+        sysUserMapper.updateStatusAndFlag(userIds,sysUser);
     }
 
 	/**
@@ -1254,7 +1254,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 		//update-begin---author:wangshuai ---date:20230303  for：部门负责人不能被删除------------
 		LambdaQueryWrapper<SysUser> userQuery = new LambdaQueryWrapper<>();
 		userQuery.like(SysUser::getDepartIds,departId);
-		List<SysUser> userList = userMapper.selectList(userQuery);
+		List<SysUser> userList = sysUserMapper.selectList(userQuery);
 		if(userList!=null && userList.size()>0){
 			for(SysUser user: userList){
 				Integer identity = user.getUserIdentity();
@@ -1381,7 +1381,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 	@Override
 	@CacheEvict(value={CacheConstant.SYS_USERS_CACHE}, allEntries=true)
 	public void updateStatus(String id, String status) {
-		userMapper.update(new SysUser().setStatus(Integer.parseInt(status)),
+		sysUserMapper.update(new SysUser().setStatus(Integer.parseInt(status)),
 				new UpdateWrapper<SysUser>().lambda().eq(SysUser::getId,id));
 	}
 
@@ -1549,7 +1549,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 			list = Arrays.asList(departIds.split(SymbolConstant.COMMA));
 		}
 		//查询用户数据
-		List<SysUser> userList = userMapper.getUserByDepartsTenantId(list, tenantId);
+		List<SysUser> userList = sysUserMapper.getUserByDepartsTenantId(list, tenantId);
 		//获取部门名称
 		List<SysUserDepVo> userDepVos = sysDepartMapper.getUserDepartByTenantUserId(userList, tenantId);
 		//获取职位
@@ -1622,7 +1622,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 					SysUser sysUser = new SysUser();
 					//判断id是否存在，如果存在的话就是更新
 					if (oConvertUtils.isNotEmpty(id)) {
-						SysUser user = userMapper.selectById(id);
+						SysUser user = sysUserMapper.selectById(id);
 						if (null == user) {
 							errorLines++;
 							errorMessage.add("第 " + lineNumber + " 行：用户不存在，请查看编号是否已修改，忽略导入。");
@@ -1639,14 +1639,14 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 					}
 					try {
 						if (isEdit) {
-							userMapper.updateById(sysUser);
+							sysUserMapper.updateById(sysUser);
 						} else {
 							if (oConvertUtils.isEmpty(phone)) {
 								errorMessage.add("第 " + lineNumber + " 行：手机号为空，忽略导入。");
 								errorLines++;
 								continue;
 							}
-							SysUser userByPhone = userMapper.getUserByPhone(phone);
+							SysUser userByPhone = sysUserMapper.getUserByPhone(phone);
 							if (null != userByPhone) {
 								//查看看是否已经存在此租户中，存在禁止导入，否则直接更新即可
 								Integer tenantCount = userTenantMapper.userTenantIzExist(userByPhone.getId(), tenantId);
@@ -1656,7 +1656,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 									continue;
 								}
 								sysUser.setId(userByPhone.getId());
-								userMapper.updateById(sysUser);
+								sysUserMapper.updateById(sysUser);
 								this.addUserTenant(sysUser.getId(), tenantId, userByPhone.getUsername(),sysTenant.getName());
 							} else {
 								// 密码默认为 “租户门牌号+手机号”
@@ -1673,7 +1673,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 								sysUser.setStatus(CommonConstant.DEL_FLAG_1);
 								sysUser.setDelFlag(CommonConstant.DEL_FLAG_0);
 								sysUser.setCreateTime(new Date());
-								userMapper.insert(sysUser);
+								sysUserMapper.insert(sysUser);
 								this.addUserTenant(sysUser.getId(), tenantId, sysUser.getUsername(),sysTenant.getName());
 							}
 						}
@@ -1921,7 +1921,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 			throw new JeecgBootException("请填写验证码！");
 		}
 		//step1 验证原手机号是否和当前用户匹配
-		SysUser sysUser = userMapper.getUserByNameAndPhone(phone,username);
+		SysUser sysUser = sysUserMapper.getUserByNameAndPhone(phone,username);
 		if (null == sysUser){
 			throw new JeecgBootException("原手机号不匹配，无法修改密码！");
 		}
@@ -1939,7 +1939,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 			this.verifyPhone(newPhone, smscode);
 			//step3 新手机号验证码验证成功之后即可修改手机号
 			sysUser.setPhone(newPhone);
-			userMapper.updateById(sysUser);
+			sysUserMapper.updateById(sysUser);
 		}
 	}
 	
@@ -1973,13 +1973,13 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 		//step1 根据类型判断是发送旧手机号验证码还是新的手机号验证码
 		if(CommonConstant.VERIFY_ORIGINAL_PHONE.equals(type)){
 			//step2 旧手机号验证码需要验证手机号是否匹配
-			SysUser sysUser = userMapper.getUserByNameAndPhone(phone, username);
+			SysUser sysUser = sysUserMapper.getUserByNameAndPhone(phone, username);
 			if(null == sysUser){
 				throw new JeecgBootException("旧手机号不匹配，无法修改手机号！");
 			}
 		}else if(CommonConstant.UPDATE_PHONE.equals(type)){
 			//step3 新手机号需要验证手机号码是否已注册过
-			SysUser userByPhone = userMapper.getUserByPhone(phone);
+			SysUser userByPhone = sysUserMapper.getUserByPhone(phone);
 			if(null != userByPhone){
 				throw new JeecgBootException("手机号已被注册，请尝试其他手机号！");
 			}
@@ -1993,7 +1993,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 	public void sendLogOffPhoneSms(JSONObject jsonObject, String username, String ipAddress) {
 		String phone = jsonObject.getString("phone");
 		//通过用户名查询数据库中的手机号
-		SysUser userByNameAndPhone = userMapper.getUserByNameAndPhone(phone, username);
+		SysUser userByNameAndPhone = sysUserMapper.getUserByNameAndPhone(phone, username);
 		if (null == userByNameAndPhone) {
 			throw new JeecgBootException("当前用户手机号不匹配，无法修改！");
 		}
@@ -2007,7 +2007,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 		String phone = jsonObject.getString("phone");
 		String smsCode = jsonObject.getString("smscode");
 		//通过用户名查询数据库中的手机号
-		SysUser userByNameAndPhone = userMapper.getUserByNameAndPhone(phone, username);
+		SysUser userByNameAndPhone = sysUserMapper.getUserByNameAndPhone(phone, username);
 		if (null == userByNameAndPhone) {
 			throw new JeecgBootException("当前用户手机号不匹配，无法注销！");
 		}
