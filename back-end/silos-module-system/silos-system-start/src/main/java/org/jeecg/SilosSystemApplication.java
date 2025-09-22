@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.spring.boot.autoconfigure.ShiroAutoConfiguration;
 import org.jeecg.common.util.oConvertUtils;
 //import org.jeecg.modules.hospital.controller.websocket.WebsocketSessionController;
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -29,6 +30,7 @@ import java.util.Map;
 //// 新增这行：扫描 org.jeecg.modules 下的所有子包（包括 hospital）
 //@ComponentScan(basePackages = "org.jeecg.modules")
 @ImportAutoConfiguration(JustAuthAutoConfiguration.class)  // spring boot 3.x justauth 兼容性处理
+@MapperScan("org.jeecg.modules.hospital.mapper")
 //@EnableAutoConfiguration(exclude={MongoAutoConfiguration.class})
 public class SilosSystemApplication extends SpringBootServletInitializer {
 

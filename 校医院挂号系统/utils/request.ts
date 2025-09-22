@@ -1,14 +1,18 @@
 // src/utils/request.ts
-import type { RequestOptions, RequestSuccessCallbackResult } from 'uni-app';
+// @ts-nocheck
 
 // 配置基础地址
 const baseURL = 'http://localhost:8095'; // 替换为你的后端地址
 
 // 请求拦截器：添加 token、统一配置等
-const requestInterceptor = (options: RequestOptions): RequestOptions => {
-  // 1. 添加 baseURL
-  if (options.url?.startsWith('/')) {
-    options.url = baseURL + options.url;
+const requestInterceptor = (options) => {
+  // 1. 添加 baseURL（仅当传入相对路径时）
+  if (options.url && !/^https?:\/\//i.test(options.url)) {
+    if (options.url.startsWith('/')) {
+      options.url = baseURL + options.url;
+    } else {
+      options.url = `${baseURL}/${options.url}`;
+    }
   }
   // 2. 添加请求头（如 token）
   const token = uni.getStorageSync('token'); // 从缓存获取 token
@@ -27,9 +31,7 @@ const requestInterceptor = (options: RequestOptions): RequestOptions => {
 };
 
 // 响应拦截器：统一处理错误、格式化数据
-const responseInterceptor = (
-  response: UniApp.RequestSuccessCallbackResult
-): Promise<any> => {
+const responseInterceptor = (response) => {
   const { data, statusCode } = response;
   
   // 1. 处理 HTTP 错误（如 404、500）
@@ -55,7 +57,7 @@ const responseInterceptor = (
 };
 
 // 封装统一请求方法
-export const request = <T = any>(options: RequestOptions): Promise<T> => {
+export const request = (options) => {
   // 应用请求拦截器
   const finalOptions = requestInterceptor(options);
   
@@ -78,17 +80,17 @@ export const request = <T = any>(options: RequestOptions): Promise<T> => {
 
 // 封装 GET/POST 等快捷方法（简化调用）
 export const http = {
-  get: <T = any>(url: string, params?: any, options?: RequestOptions) => 
-    request<T>({ ...options, url, method: 'GET', data: params }),
+  get: (url, params, options) => 
+    request({ ...options, url, method: 'GET', data: params }),
   
-  post: <T = any>(url: string, data?: any, options?: RequestOptions) => 
-    request<T>({ ...options, url, method: 'POST', data }),
+  post: (url, data, options) => 
+    request({ ...options, url, method: 'POST', data }),
   
-  put: <T = any>(url: string, data?: any, options?: RequestOptions) => 
-    request<T>({ ...options, url, method: 'PUT', data }),
+  put: (url, data, options) => 
+    request({ ...options, url, method: 'PUT', data }),
   
-  delete: <T = any>(url: string, params?: any, options?: RequestOptions) => 
-    request<T>({ ...options, url, method: 'DELETE', data: params }),
+  delete: (url, params, options) => 
+    request({ ...options, url, method: 'DELETE', data: params }),
 };
 
 export default http;

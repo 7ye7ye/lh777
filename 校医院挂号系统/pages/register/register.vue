@@ -1,12 +1,12 @@
 <template>
-  <view class="login-page">
+  <view class="register-page">
     <view class="header">
-      <view class="title">个人中心</view>
+      <view class="title">注册账号</view>
       <view class="subtitle">校医院挂号系统</view>
     </view>
 
     <view class="card">
-      <view class="card-title">账号登录</view>
+      <view class="card-title">信息填写</view>
 
       <view class="input-group">
         <view class="input-label">账号</view>
@@ -15,8 +15,7 @@
           v-model.trim="form.userAccount"
           placeholder="请输入学号/工号/手机号"
           type="text"
-          confirm-type="done"
-          @confirm="onSubmit"
+          confirm-type="next"
         />
       </view>
 
@@ -28,8 +27,19 @@
           placeholder="请输入密码"
           password
           type="text"
-          confirm-type="go"
-          @confirm="onSubmit"
+          confirm-type="next"
+        />
+      </view>
+
+      <view class="input-group">
+        <view class="input-label">确认密码</view>
+        <input
+          class="input"
+          v-model.trim="form.checkPassword"
+          placeholder="请确认密码"
+          password
+          type="text"
+          confirm-type="done"
         />
       </view>
 
@@ -40,75 +50,54 @@
         :disabled="disabled"
         @click="onSubmit"
       >
-        登录
+        注册
       </button>
 
-      <view class="tips link" @click="goRegister">没有账号？去注册</view>
-
-      <view class="tips">
-        忘记密码请联系管理员重置
-      </view>
+      <view class="tips alt" @click="goLogin">已有账号？去登录</view>
     </view>
   </view>
-  
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useUserStore } from '@/store/user'
 import { userApi } from '@/api/user'
-import { uniShowToast, uniSwitchTab } from '@/utils/uniHelper'
+ import { uniShowToast, uniNavigateTo } from '@/utils/uniHelper'
 
 const form = ref({
   userAccount: '',
-  userPassword: ''
+  userPassword: '',
+  checkPassword: ''
 })
 
 const loading = ref(false)
-const disabled = computed(() => !form.value.userAccount || !form.value.userPassword || loading.value)
-
-const userStore = useUserStore()
-
-const persistAuth = (token, patientId) => {
-  if (token) {
-    uni.setStorageSync('token', token)
-  }
-  if (patientId) {
-    uni.setStorageSync('patientId', String(patientId))
-  }
-}
+const disabled = computed(() => !form.value.userAccount || !form.value.userPassword || !form.value.checkPassword || loading.value)
 
 const onSubmit = async () => {
   if (disabled.value) return
   loading.value = true
   try {
-    const res = await userApi.login({ userAccount: form.value.userAccount, userPassword: form.value.userPassword })
-    // 兼容不同后端返回: 可能包含 token/id/name
-    const token = res?.token || res?.accessToken || ''
-    const patientId = res?.id || res?.userId || ''
-    userStore.setToken(token || 'login-ok')
-    if (patientId) userStore.setPatientId(patientId)
-    persistAuth(token || 'login-ok', patientId)
-    await uniShowToast({ title: '登录成功' })
-    // 跳首页 Tab
-    await uniSwitchTab({ url: '/pages/home/home' })
+    if (form.value.userPassword !== form.value.checkPassword) {
+      await uniShowToast({ title: '两次密码不一致', icon: 'none' })
+      return
+    }
+    // 后端期望字段：{ username, password, name }
+    await userApi.register({ userAccount: form.value.userAccount, userPassword: form.value.userPassword, checkPassword: form.value.checkPassword })
+    await uniShowToast({ title: '注册成功' })
+    await uniNavigateTo({ url: '/pages/login/login' })
   } catch (e) {
-    await uniShowToast({ title: (e && e.message) || '登录失败', icon: 'none' })
+    await uniShowToast({ title: (e && e.message) || '注册失败', icon: 'none' })
   } finally {
     loading.value = false
   }
 }
 
-import { uniNavigateTo } from '@/utils/uniHelper'
-
-const goRegister = () => {
-  uniNavigateTo({ url: '/pages/register/register' })
+const goLogin = () => {
+  uniNavigateTo({ url: '/pages/login/login' })
 }
-
 </script>
 
 <style scoped>
-.login-page {
+.register-page {
   min-height: 100vh;
   background: linear-gradient(180deg, #4da3ff 0%, #5db7ff 40%, #f6f7fb 40%, #f6f7fb 100%);
 }
@@ -173,5 +162,7 @@ const goRegister = () => {
   font-size: 24rpx;
   margin-top: 24rpx;
 }
-.tips.link { color: #1677ff; }
+.tips.alt { color: #1677ff; }
 </style>
+
+

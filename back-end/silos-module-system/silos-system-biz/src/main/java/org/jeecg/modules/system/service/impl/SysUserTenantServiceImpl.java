@@ -49,7 +49,7 @@ public class SysUserTenantServiceImpl extends ServiceImpl<SysUserTenantMapper, S
     private SysUserTenantMapper userTenantMapper;
     
     @Autowired
-    private SysUserMapper userMapper;
+    private SysUserMapper sysUserMapper;
 
     @Autowired
     private SysUserPositionMapper userPositionMapper;
@@ -141,7 +141,7 @@ public class SysUserTenantServiceImpl extends ServiceImpl<SysUserTenantMapper, S
      * @return
      */
     public Map<String, String> getDepNamesByUserIds(List<String> userIds) {
-        List<SysUserDepVo> list = userMapper.getDepNamesByUserIds(userIds);
+        List<SysUserDepVo> list = sysUserMapper.getDepNamesByUserIds(userIds);
         Map<String, String> res = new HashMap(5);
         list.forEach(item -> {
                     if (res.get(item.getUserId()) == null) {
