@@ -16,30 +16,62 @@ const detectBaseURL = (): string => {
 };
 
 const baseURL = detectBaseURL();
+const API_PREFIX = '/jeecg-boot';
 
 // 请求拦截器：添加 token、统一配置等
+// 扩展可用字段：
+// - params: GET/DELETE 查询参数对象
+// - contentType: 'json' | 'form' | 'multipart'
+// - baseURL: 覆盖默认 baseURL
+// - skipAuth: 不携带 Authorization 头
+// - silent: 失败不自动 toast
 const requestInterceptor = (options) => {
   // 1. 添加 baseURL（仅当传入相对路径时）
   if (options.url && !/^https?:\/\//i.test(options.url)) {
-    if (options.url.startsWith('/')) {
-      options.url = baseURL + options.url;
-    } else {
-      options.url = `${baseURL}/${options.url}`;
+    let path = options.url;
+    // 确保以 / 开头
+    if (!path.startsWith('/')) path = `/${path}`;
+    // 统一加 jeecg-boot 前缀（避免重复）
+    if (!path.startsWith(API_PREFIX + '/')) {
+      path = API_PREFIX + path;
     }
+    options.url = baseURL + path;
   }
-  // 2. 添加请求头（如 token）
+  // 2. params 合并到 URL（GET/DELETE）
+  const method = (options.method || 'GET').toUpperCase();
+  if (options.params && (method === 'GET' || method === 'DELETE')) {
+    const toUrlEncoded = (obj = {}) => Object.keys(obj)
+      .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(obj[k] ?? '')}`)
+      .join('&');
+    const query = toUrlEncoded(options.params);
+    if (query) {
+      options.url += (options.url.includes('?') ? '&' : '?') + query;
+    }
+    delete options.params;
+  }
+
+  // 3. Content-Type 与数据体
+  const header = { ...options.header };
+  const contentType = options.contentType || 'json';
+  if (contentType === 'json') {
+    header['Content-Type'] = 'application/json';
+  } else if (contentType === 'form') {
+    header['Content-Type'] = 'application/x-www-form-urlencoded';
+    if (options.data && typeof options.data === 'object') {
+      const toUrlEncoded = (obj = {}) => Object.keys(obj)
+        .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(obj[k] ?? '')}`)
+        .join('&');
+      options.data = toUrlEncoded(options.data);
+    }
+  } // multipart 由 uni 处理 boundary
+
+  // 4. 添加请求头（如 token）
+  const skipAuth = !!options.skipAuth;
   const token = uni.getStorageSync('token'); // 从缓存获取 token
-  if (token) {
-    options.header = {
-      ...options.header,
-      'Authorization': `Bearer ${token}`, // 根据后端要求调整格式
-    };
+  if (!skipAuth && token) {
+    header['Authorization'] = `Bearer ${token}`; // 如需改为 token 直传，请在此调整
   }
-  // 3. 统一设置 Content-Type
-  options.header = {
-    'Content-Type': 'application/json',
-    ...options.header,
-  };
+  options.header = header;
   return options;
 };
 
@@ -55,14 +87,17 @@ const responseInterceptor = (response) => {
   
   // 2. 处理后端自定义错误（兼容多种返回结构）
   // 常见结构 A: { code, message, data }
-  // 常见结构 B: 直接返回对象/数组/字符串/数字
-  if (data && typeof data === 'object' && 'code' in data) {
-    // 按结构 A 处理
-    if ((data as any).code !== 200) {
-      uni.showToast({ title: (data as any).message || '操作失败', icon: 'none' });
-      return Promise.reject(new Error((data as any).message || 'Backend Error'));
+  // 常见结构 B: { success, message, data }
+  // 常见结构 C: 直接返回对象/数组/字符串/数字
+  if (data && typeof data === 'object' && ('code' in data || 'success' in data)) {
+    const code = data.code;
+    const success = data.success;
+    const ok = success === true || code === 200 || code === 0;
+    if (!ok) {
+      uni.showToast({ title: data.message || '操作失败', icon: 'none' });
+      return Promise.reject(new Error(data.message || 'Backend Error'));
     }
-    return Promise.resolve((data as any).data);
+    return Promise.resolve(data.data !== undefined ? data.data : data);
   }
 
   // 3. 其他结构：直接返回原始 data
@@ -84,7 +119,9 @@ export const request = (options) => {
       },
       // 处理网络错误（如断网）
       fail: (err) => {
-        uni.showToast({ title: '网络连接失败', icon: 'none' });
+        if (!finalOptions.silent) {
+          uni.showToast({ title: '网络连接失败', icon: 'none' });
+        }
         reject(err);
       },
     });
@@ -94,16 +131,19 @@ export const request = (options) => {
 // 封装 GET/POST 等快捷方法（简化调用）
 export const http = {
   get: (url, params, options) => 
-    request({ ...options, url, method: 'GET', data: params }),
+    request({ ...options, url, method: 'GET', params }),
   
   post: (url, data, options) => 
-    request({ ...options, url, method: 'POST', data }),
+    request({ contentType: 'json', ...options, url, method: 'POST', data }),
   
   put: (url, data, options) => 
-    request({ ...options, url, method: 'PUT', data }),
+    request({ contentType: 'json', ...options, url, method: 'PUT', data }),
   
   delete: (url, params, options) => 
-    request({ ...options, url, method: 'DELETE', data: params }),
+    request({ ...options, url, method: 'DELETE', params }),
+
+  postForm: (url, data, options) =>
+    request({ contentType: 'form', ...options, url, method: 'POST', data }),
 };
 
 export default http;
