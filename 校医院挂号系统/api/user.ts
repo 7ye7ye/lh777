@@ -1,5 +1,14 @@
 // src/api/userApi.ts
-import { http } from '@/utils/request';
+import { http } from '../utils/request';
+const PREFIX = '/user';
+
+// 统一带 /user 前缀的便捷方法，避免每个接口手写 PREFIX
+const u = {
+  get: (path: string, params?: any, options?: any) => http.get(`${PREFIX}${path}`, params, options),
+  post: (path: string, data?: any, options?: any) => http.post(`${PREFIX}${path}`, data, options),
+  put: (path: string, data?: any, options?: any) => http.put(`${PREFIX}${path}`, data, options),
+  delete: (path: string, params?: any, options?: any) => http.delete(`${PREFIX}${path}`, params, options),
+};
 
 // 定义类型（保持 TypeScript 类型安全）
 interface LoginData {
@@ -83,52 +92,52 @@ interface ApiResponse<T = any> {
 // 用户相关 API
 export const userApi = {
   // 测试：与后端 @PostMapping("/test") 保持一致
-  test: () => http.get<any>('/jeecg-boot/test'),
+  test: () => u.get('/test'),
 
   // 登录
-  login: (data: LoginData) => http.post<UserInfo>('/jeecg-boot/user/login2', data),
+  login: (data: LoginData) => u.post('/login2', data, { skipAuth: true }),
   
   // 注册
   register: (data: RegisterData ) => 
-    http.post<{ id: number }>('/jeecg-boot/user/register2', data),
+    u.post('/register2', data, { skipAuth: true }),
   
   // 获取当前用户信息
-  getCurrentUser: () => http.get<UserInfo>('/user/current'),
+  getCurrentUser: () => u.get('/current'),
   
   // 退出登录
-  logout: () => http.post<{ success: boolean }>('/user/logout'),
+  logout: () => u.post('/logout'),
 
   // 就诊卡相关
-  getCard: () => http.get<CardInfo>('/user/card'),
-  rechargeCard: (data: { amount: number }) => http.post<{ success: boolean }>('/user/card/recharge', data),
-  getCardHistory: () => http.get<RecordInfo[]>('/user/card/history'),
+  getCard: () => u.get('/card'),
+  rechargeCard: (data: { amount: number }) => u.post('/card/recharge', data),
+  getCardHistory: () => u.get('/card/history'),
 
   // 就诊人相关
-  getPatientList: () => http.get<PatientInfo[]>('/user/patients'),
-  addPatient: (data: PatientInfo) => http.post<{ id: number }>('/user/patients', data),
-  updatePatient: (id: number, data: Partial<PatientInfo>) => http.put<{ success: boolean }>(`/user/patients/${id}`, data),
-  deletePatient: (id: number) => http.delete<{ success: boolean }>(`/user/patients/${id}`),
+  getPatientList: () => u.get('/patients'),
+  addPatient: (data: PatientInfo) => u.post('/patients', data),
+  updatePatient: (id: number, data: Partial<PatientInfo>) => u.put(`/patients/${id}`, data),
+  deletePatient: (id: number) => u.delete(`/patients/${id}`),
 
   // 医生相关
-  getDoctorList: () => http.get<DoctorInfo[]>('/user/doctors'),
-  getDoctorDetail: (id: number) => http.get<DoctorInfo>(`/user/doctors/${id}`),
+  getDoctorList: () => u.get('/doctors'),
+  getDoctorDetail: (id: number) => u.get(`/doctors/${id}`),
 
   // 记录相关
-  getRegisterRecord: () => http.get<RecordInfo[]>('/user/records/register'),
-  getOutpatientRecord: () => http.get<RecordInfo[]>('/user/records/outpatient'),
-  getHospitalRecord: () => http.get<RecordInfo[]>('/user/records/hospital'),
-  getConsultRecord: () => http.get<RecordInfo[]>('/user/records/consult'),
-  getRevisitRecord: () => http.get<RecordInfo[]>('/user/records/revisit'),
-  getCheckRecord: () => http.get<RecordInfo[]>('/user/records/check'),
+  getRegisterRecord: () => u.get('/records/register'),
+  getOutpatientRecord: () => u.get('/records/outpatient'),
+  getHospitalRecord: () => u.get('/records/hospital'),
+  getConsultRecord: () => u.get('/records/consult'),
+  getRevisitRecord: () => u.get('/records/revisit'),
+  getCheckRecord: () => u.get('/records/check'),
 
   // 评价相关
-  submitEvaluate: (data: EvaluateData) => http.post<{ success: boolean }>('/user/evaluate', data),
-  getEvaluateList: () => http.get<any[]>('/user/evaluates'),
+  submitEvaluate: (data: EvaluateData) => u.post('/evaluate', data),
+  getEvaluateList: () => u.get('/evaluates'),
 
   // 反馈相关
-  submitHelp: (data: { content: string }) => http.post<{ success: boolean }>('/user/help', data),
-  submitComplain: (data: { content: string }) => http.post<{ success: boolean }>('/user/complain', data),
+  submitHelp: (data: { content: string }) => u.post('/help', data),
+  submitComplain: (data: { content: string }) => u.post('/complain', data),
 
   // 账户解绑
-  unbindAccount: (data?: { reason: string }) => http.post<{ success: boolean }>('/user/unbind', data),
+  unbindAccount: (data?: { reason: string }) => u.post('/unbind', data),
 };
