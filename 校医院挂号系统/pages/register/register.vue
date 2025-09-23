@@ -80,9 +80,10 @@ const onSubmit = async () => {
       await uniShowToast({ title: '两次密码不一致', icon: 'none' })
       return
     }
-    // 后端期望字段：{ username, password, name }
-    await userApi.register({ userAccount: form.value.userAccount, userPassword: form.value.userPassword, checkPassword: form.value.checkPassword })
-    await uniShowToast({ title: '注册成功' })
+    // 后端期望字段：{ userAccount, userPassword, checkPassword }
+    const res=await userApi.register({ userAccount: form.value.userAccount, userPassword: form.value.userPassword, checkPassword: form.value.checkPassword })
+    console.log(res)
+	await uniShowToast({ title: '注册成功' })
     await uniNavigateTo({ url: '/pages/login/login' })
   } catch (e) {
     await uniShowToast({ title: (e && e.message) || '注册失败', icon: 'none' })

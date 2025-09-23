@@ -95,11 +95,11 @@ export const userApi = {
   test: () => u.get('/test'),
 
   // 登录
-  login: (data: LoginData) => u.post('/login2', data, { skipAuth: true }),
+  login: (data: LoginData) => u.post('/login', data, { skipAuth: true }),
   
   // 注册
   register: (data: RegisterData ) => 
-    u.post('/register2', data, { skipAuth: true }),
+    u.post('/register', data, { skipAuth: true }),
   
   // 获取当前用户信息
   getCurrentUser: () => u.get('/current'),
