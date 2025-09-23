@@ -11,6 +11,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
+import java.time.LocalDateTime;
+
+import static org.jeecg.modules.hospital.contant.UserContant.ACTIVE;
+import static org.jeecg.modules.hospital.contant.UserContant.PATIENT;
+
 /**
 * @author Administrator
 * @description 针对表【hos_user(用户表)】的数据库操作Service实现
@@ -67,6 +72,13 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
         HosUser user=new HosUser();
         user.setUserAccount(userAccount);
         user.setUserPassword(newPassword);
+        user.setUserType(PATIENT);
+        user.setStatus(ACTIVE);
+        // 设置创建时间为当前时间
+        user.setCreateTime(LocalDateTime.now());
+        // 设置更新时间为当前时间
+        user.setUpdateTime(LocalDateTime.now());
+
         boolean saveResult=this.save(user);//service的方法，userMapper.insert(user)返回Int类型
         if(!saveResult){
             return -1;

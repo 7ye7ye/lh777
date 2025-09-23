@@ -25,7 +25,7 @@ public class UserController {
     private HosUserService userService;
 
     @IgnoreAuth
-    @PostMapping("/register2")
+    @PostMapping("/register")
     public long userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
         System.out.println("已收到请求");
         if(userRegisterRequest==null){
@@ -38,11 +38,13 @@ public class UserController {
         if(StringUtils.isAnyBlank(userAccount,userPassword,checkPassword)){
             return 0;
         }
+        System.out.println("接收到用户注册："+userAccount+"<UNK>");
+
         return userService.userRegister(userAccount,userPassword,checkPassword);
     }
 
     @IgnoreAuth
-    @PostMapping("/login2")
+    @PostMapping("/login")
     public ResponseEntity<?> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
         System.out.println("已收到请求");
         if (userLoginRequest == null) {

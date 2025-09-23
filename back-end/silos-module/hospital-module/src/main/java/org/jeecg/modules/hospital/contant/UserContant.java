@@ -12,10 +12,13 @@ public interface UserContant {
     String USER_LOGIN_STATE = "user_login_state";
 
     //------------权限
-    //默认权限
-    int DEFAULT_ROLE=0;
-    //管理员权限
-    int ADMIN_ROLE=1;
+    //用户身份
+    int PATIENT = 1;
+    int DOCTOR = 2;
+    int ADMIN = 3;
 
-
+    //用户状态
+    int INACTIVE = 0;
+    int ACTIVE = 1;
+    int DISABLED = 2;
 }
