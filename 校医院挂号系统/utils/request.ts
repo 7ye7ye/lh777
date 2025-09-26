@@ -86,7 +86,7 @@ const responseInterceptor = (response) => {
   }
   
   // 2. 处理后端自定义错误（兼容多种返回结构）
-  // 常见结构 A: { code, message, data }
+  // 常见结构 A: { code, message, data, description? }
   // 常见结构 B: { success, message, data }
   // 常见结构 C: 直接返回对象/数组/字符串/数字
   if (data && typeof data === 'object' && ('code' in data || 'success' in data)) {
@@ -94,8 +94,10 @@ const responseInterceptor = (response) => {
     const success = data.success;
     const ok = success === true || code === 200 || code === 0;
     if (!ok) {
-      uni.showToast({ title: data.message || '操作失败', icon: 'none' });
-      return Promise.reject(new Error(data.message || 'Backend Error'));
+      // 优先显示 description，没有则显示 message
+      const errorMsg = data.description || data.message || '操作失败';
+      uni.showToast({ title: errorMsg, icon: 'none' });
+      return Promise.reject(new Error(errorMsg));
     }
     return Promise.resolve(data.data !== undefined ? data.data : data);
   }
