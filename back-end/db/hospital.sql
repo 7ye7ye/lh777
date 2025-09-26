@@ -11,7 +11,7 @@
  Target Server Version : 90001 (9.0.1)
  File Encoding         : 65001
 
- Date: 26/09/2025 10:37:45
+ Date: 26/09/2025 11:10:03
 */
 
 SET NAMES utf8mb4;
@@ -113,7 +113,7 @@ CREATE TABLE `hos_user`  (
 -- ----------------------------
 -- Records of hos_user
 -- ----------------------------
-INSERT INTO `hos_user` VALUES (2, '23301030', 'b090a8e2dd67f03005adeff82c6b80e7', 1, NULL, NULL, NULL, 1, '2025-09-23 19:53:32', '2025-09-23 19:53:32');
+INSERT INTO `hos_user` VALUES (2, '11111111', 'b090a8e2dd67f03005adeff82c6b80e7', 1, NULL, NULL, NULL, 1, '2025-09-23 19:53:32', '2025-09-23 19:53:32');
 
 -- ----------------------------
 -- Table structure for patient
