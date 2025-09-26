@@ -4,7 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
+import org.jeecg.modules.hospital.common.ErrorCode;
 import org.jeecg.modules.hospital.entity.HosUser;
+import org.jeecg.modules.hospital.exception.BusinessException;
 import org.jeecg.modules.hospital.service.HosUserService;
 import org.jeecg.modules.hospital.mapper.HosUserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,29 +42,30 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
         //一，校验
         //1.非空
         if(StringUtils.isAnyBlank(userAccount,userPassword,checkPassword)){
-            //todo:修改为自定义异常
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
-        //2.用户名不小于2和密码不小于4
-        if(userAccount.length()<2||userPassword.length()<4||checkPassword.length()<4){
-            return -1;
+        if (userAccount.length() < 4) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户账号过短");
+        }
+        if (userPassword.length() < 8 || checkPassword.length() < 8) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户密码过短");
         }
         //4.用户名不能包含特殊字符
         String regex = "^[\\u4e00-\\u9fa5a-zA-Z0-9]+$"; // 只允许中文、英文字母、数字
         if (!userAccount.matches(regex)) {
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户名不能包含特殊字符");
         }
 
         //两次输入密码相同
         if(!userPassword.equals(checkPassword)){
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "两次输入密码不同");
         }
         //3.用户名不能重复：查询数据库(放最后节约型性能)
         QueryWrapper<HosUser> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("user_account", userAccount);
         long count = hosUserMapper.selectCount(queryWrapper);
         if(count>0){
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "该账号已注册");
         }
 
         //二.加密
@@ -94,17 +97,17 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
         //一，校验
         //1.非空
         if(StringUtils.isAnyBlank(userAccount,password)){
-            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户名或密码为空");
         }
         //2.用户名不小于2和密码不小于4
         if(userAccount.length()<2||password.length()<4){
-            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户名或密码过短");
         }
         //4.用户名不能包含特殊字符
         // 校验用户名，只允许中文、英文字母、数字
         String regex = "^[\\u4e00-\\u9fa5a-zA-Z0-9]+$"; // 只允许中文、英文字母、数字
         if (!userAccount.matches(regex)) {
-            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户名不能包含特殊字符");
         }
 
         //二，加密
@@ -117,7 +120,7 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
         HosUser user=hosUserMapper.selectOne(queryWrapper);
         //用户不存在
         if(user==null){
-            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在，请注册");
         }
 
         //四，用户脱敏:只返回需要显示的数据，防止数据库的数据暴露给前端
