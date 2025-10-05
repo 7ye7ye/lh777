@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.apache.commons.lang3.StringUtils;
 import org.jeecg.config.shiro.IgnoreAuth;
+import org.jeecg.modules.hospital.dto.HosUserLoginResult;
 import org.jeecg.modules.hospital.entity.HosUser;
 import org.jeecg.modules.hospital.service.HosUserService;
 import org.springframework.http.HttpStatus;
@@ -58,14 +59,14 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("用户名和用户密码不能为空");
         }
         // 调用服务层进行登录验证
-        HosUser user = userService.userLogin(userAccount, userPassword, request);
+        HosUserLoginResult userLoginResult = userService.userLogin(userAccount, userPassword, request);
 
-        if (user == null) {
+        if (userLoginResult == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("用户名或密码错误");
         }
-        System.out.println(user);
+        System.out.println(userLoginResult);
         // 登录成功，返回用户信息（可以根据需要去掉敏感信息）
-        return ResponseEntity.ok(user);
+        return ResponseEntity.ok(userLoginResult);
     }
 
 

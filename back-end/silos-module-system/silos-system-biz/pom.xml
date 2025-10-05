@@ -61,6 +61,12 @@
 			<artifactId>silos-module-airag</artifactId>
 			<version>${jeecgboot.version}</version>
 		</dependency>
-	</dependencies>
-	
+        <dependency>
+            <groupId>org.jeecgframework.boot</groupId>
+            <artifactId>hospital-module</artifactId>
+            <version>3.8.1</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
+
 </project>

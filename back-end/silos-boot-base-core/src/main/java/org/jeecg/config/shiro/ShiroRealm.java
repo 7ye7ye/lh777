@@ -20,6 +20,7 @@ import org.jeecg.common.util.SpringContextUtils;
 import org.jeecg.common.util.TokenUtils;
 import org.jeecg.common.util.oConvertUtils;
 import org.jeecg.config.mybatis.MybatisPlusSaasConfig;
+import org.jeecg.common.system.vo.HosUser;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Role;
@@ -104,86 +105,50 @@ public class ShiroRealm extends AuthorizingRealm {
             log.info("————————身份认证失败——————————IP地址:  "+ oConvertUtils.getIpAddrByRequest(req) +"，URL:"+req.getRequestURI());
             throw new AuthenticationException("token为空!");
         }
-        // 校验token有效性
-        LoginUser loginUser = null;
+        // 校验token有效性（修改：返回值从LoginUser改为HosUser）
+        HosUser hosUser = null;
         try {
-            loginUser = this.checkUserTokenIsEffect(token);
+            hosUser = this.checkUserTokenIsEffect(token);
         } catch (AuthenticationException e) {
             JwtUtil.responseError(SpringContextUtils.getHttpServletResponse(),401,e.getMessage());
             e.printStackTrace();
             return null;
         }
-        return new SimpleAuthenticationInfo(loginUser, token, getName());
+        // 修改：将HosUser作为身份信息传入
+        return new SimpleAuthenticationInfo(hosUser, token, getName());
     }
 
     /**
-     * 校验token的有效性
+     * 校验token的有效性（适配HosUser表结构）
      *
      * @param token
      */
-    public LoginUser checkUserTokenIsEffect(String token) throws AuthenticationException {
-        // 解密获得username，用于和数据库进行对比
+    public HosUser checkUserTokenIsEffect(String token) throws AuthenticationException {
+        // 解密获得用户名（HosUser中对应userAccount字段）
         String username = JwtUtil.getUsername(token);
         if (username == null) {
             throw new AuthenticationException("token非法无效!");
         }
 
-        // 查询用户信息
+        // 查询用户信息（修改：从HosUser表查询，方法名调整为getHosUserByAccount）
         log.debug("———校验token是否有效————checkUserTokenIsEffect——————— "+ token);
-        LoginUser loginUser = TokenUtils.getLoginUser(username, commonApi, redisUtil);
-        //LoginUser loginUser = commonApi.getUserByName(username);
-        if (loginUser == null) {
+        HosUser hosUser = TokenUtils.getHosUserByAccount(username, commonApi, redisUtil);
+        if (hosUser == null) {
             throw new AuthenticationException("用户不存在!");
         }
-        // 判断用户状态
-        if (loginUser.getStatus() != 1) {
-            throw new AuthenticationException("账号已被锁定,请联系管理员!");
+        System.out.println("从token中取到的hosuser"+hosUser);
+        // 判断用户状态（修改：HosUser中状态字段为status，1=正常）
+        if (hosUser.getStatus() != 1) {
+            throw new AuthenticationException("账号已被锁定或未激活,请联系管理员!");
         }
-        // 校验token是否超时失效 & 或者账号密码是否错误
-        if (!jwtTokenRefresh(token, username, loginUser.getPassword())) {
+
+        // 校验token是否超时失效 & 账号密码是否匹配（修改：密码字段为userPassword）
+        if (!jwtTokenRefresh(token, username, hosUser.getUserPassword())) {
             throw new AuthenticationException(CommonConstant.TOKEN_IS_INVALID_MSG);
         }
-        //update-begin-author:taoyan date:20210609 for:校验用户的tenant_id和前端传过来的是否一致
-        String userTenantIds = loginUser.getRelTenantIds();
-        if(MybatisPlusSaasConfig.OPEN_SYSTEM_TENANT_CONTROL && oConvertUtils.isNotEmpty(userTenantIds)){
-            String contextTenantId = TenantContext.getTenant();
-            log.debug("登录租户：" + contextTenantId);
-            log.debug("用户拥有那些租户：" + userTenantIds);
-             //登录用户无租户，前端header中租户ID值为 0
-            String str ="0";
-            if(oConvertUtils.isNotEmpty(contextTenantId) && !str.equals(contextTenantId)){
-                //update-begin-author:taoyan date:20211227 for: /issues/I4O14W 用户租户信息变更判断漏洞
-                String[] arr = userTenantIds.split(",");
-                if(!oConvertUtils.isIn(contextTenantId, arr)){
-                    boolean isAuthorization = false;
-                    //========================================================================
-                    // 查询用户信息（如果租户不匹配从数据库中重新查询一次用户信息）
-                    String loginUserKey = CacheConstant.SYS_USERS_CACHE + "::" + username;
-                    redisUtil.del(loginUserKey);
-                    LoginUser loginUserFromDb = commonApi.getUserByName(username);
-                    if (oConvertUtils.isNotEmpty(loginUserFromDb.getRelTenantIds())) {
-                        String[] newArray = loginUserFromDb.getRelTenantIds().split(",");
-                        if (oConvertUtils.isIn(contextTenantId, newArray)) { 
-                            isAuthorization = true;
-                        }
-                    }
-                    //========================================================================
 
-                    //*********************************************
-                    if(!isAuthorization){
-                        log.info("租户异常——登录租户：" + contextTenantId);
-                        log.info("租户异常——用户拥有租户组：" + userTenantIds);
-                        throw new AuthenticationException("登录租户授权变更，请重新登陆!");
-                    }
-                    //*********************************************
-                }
-                //update-end-author:taoyan date:20211227 for: /issues/I4O14W 用户租户信息变更判断漏洞
-            }
-        }
-        //update-end-author:taoyan date:20210609 for:校验用户的tenant_id和前端传过来的是否一致
-        return loginUser;
+        return hosUser;
     }
-
     /**
      * JWTToken刷新生命周期 （实现： 用户在线操作不掉线功能）
      * 1、登录成功后将用户的JWT生成的Token作为k、v存储到cache缓存里面(这时候k、v值一样)，缓存有效期设置为Jwt有效时间的2倍

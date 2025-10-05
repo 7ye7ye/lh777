@@ -38,7 +38,7 @@
 			</snapshots>
 		</repository>
 	</repositories>
-	
+
 	<dependencies>
 		<!--jeecg-tools-->
 		<dependency>
@@ -264,7 +264,7 @@
 			</exclusions>
 		</dependency>
 
-	
+
 	<!--	<dependency>
 			<groupId>com.github.xiaoymin</groupId>
 			<artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
@@ -444,6 +444,5 @@
 			<artifactId>langchain4j-open-ai-spring-boot-starter</artifactId>
 			<version>1.0.0-beta3</version>
 		</dependency>
-
-	</dependencies>
+    </dependencies>
 </project>

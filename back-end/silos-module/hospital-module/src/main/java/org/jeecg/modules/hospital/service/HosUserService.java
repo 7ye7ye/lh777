@@ -1,6 +1,7 @@
 package org.jeecg.modules.hospital.service;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.jeecg.modules.hospital.dto.HosUserLoginResult;
 import org.jeecg.modules.hospital.entity.HosUser;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -26,7 +27,7 @@ public interface HosUserService extends IService<HosUser> {
      * @param password
      * @return 脱敏后的用户信息
      */
-    HosUser userLogin(String username, String password, HttpServletRequest request);
+    HosUserLoginResult userLogin(String username, String password, HttpServletRequest request);
 
     /**
      * 用户脱敏
@@ -35,4 +36,6 @@ public interface HosUserService extends IService<HosUser> {
      * @return 安全用户信息
      */
     public HosUser getSaftyUser(HosUser originUser);
+
+    public org.jeecg.common.system.vo.HosUser getHosUserByAccount(String account);
 }

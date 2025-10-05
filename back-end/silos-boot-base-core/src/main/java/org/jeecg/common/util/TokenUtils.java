@@ -9,7 +9,7 @@ import org.jeecg.common.constant.TenantConstant;
 import org.jeecg.common.desensitization.util.SensitiveInfoUtil;
 import org.jeecg.common.exception.JeecgBoot401Exception;
 import org.jeecg.common.system.util.JwtUtil;
-import org.jeecg.common.system.vo.LoginUser;
+import org.jeecg.common.system.vo.HosUser;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -31,14 +31,14 @@ public class TokenUtils {
         if (request == null) {
             return null;
         }
-        
+
         String token = request.getParameter("token");
         if (token == null) {
             token = request.getHeader("X-Access-Token");
         }
         return token;
     }
-    
+
     /**
      * 获取 request 里传递的 token
      * @return
@@ -106,7 +106,7 @@ public class TokenUtils {
         }
 
         // 查询用户信息
-        LoginUser user = TokenUtils.getLoginUser(username, commonApi, redisUtil);
+        HosUser user = TokenUtils.getLoginUser(username, commonApi, redisUtil);
         //LoginUser user = commonApi.getUserByName(username);
         if (user == null) {
             throw new JeecgBoot401Exception("用户不存在!");
@@ -116,7 +116,7 @@ public class TokenUtils {
             throw new JeecgBoot401Exception("账号已被锁定,请联系管理员!");
         }
         // 校验token是否超时失效 & 或者账号密码是否错误
-        if (!jwtTokenRefresh(token, username, user.getPassword(), redisUtil)) {
+        if (!jwtTokenRefresh(token, username, user.getUserPassword(), redisUtil)) {
             throw new JeecgBoot401Exception(CommonConstant.TOKEN_IS_INVALID_MSG);
         }
         return true;
@@ -152,13 +152,13 @@ public class TokenUtils {
      * @param username
      * @return
      */
-    public static LoginUser getLoginUser(String username, CommonAPI commonApi, RedisUtil redisUtil) {
-        LoginUser loginUser = null;
+    public static HosUser getLoginUser(String username, CommonAPI commonApi, RedisUtil redisUtil) {
+        HosUser loginUser = null;
         String loginUserKey = CacheConstant.SYS_USERS_CACHE + "::" + username;
         //【重要】此处通过redis原生获取缓存用户，是为了解决微服务下system服务挂了，其他服务互调不通问题---
         if (redisUtil.hasKey(loginUserKey)) {
             try {
-                loginUser = (LoginUser) redisUtil.get(loginUserKey);
+                loginUser = (HosUser) redisUtil.get(loginUserKey);
                 //解密用户
                 SensitiveInfoUtil.handlerObject(loginUser, false);
             } catch (IllegalAccessException e) {
@@ -166,8 +166,23 @@ public class TokenUtils {
             }
         } else {
             // 查询用户信息
-            loginUser = commonApi.getUserByName(username);
+            loginUser = commonApi.getHosUserByAccount(username);
         }
         return loginUser;
+    }
+
+    // 根据账号查询HosUser
+    public static HosUser getHosUserByAccount(String account, CommonAPI commonApi, RedisUtil redisUtil) {
+        // 逻辑同原getLoginUser，从缓存或数据库查询hos_user表
+        String cacheKey = CacheConstant.SYS_USERS_CACHE + "::" + account;
+        if (redisUtil.hasKey(cacheKey)) {
+            return (HosUser) redisUtil.get(cacheKey);
+        }
+        HosUser user = commonApi.getHosUserByAccount(account);
+        if (user != null) {
+            redisUtil.set(cacheKey, user);
+            redisUtil.expire(cacheKey, 3600); // 缓存1小时
+        }
+        return user;
     }
 }

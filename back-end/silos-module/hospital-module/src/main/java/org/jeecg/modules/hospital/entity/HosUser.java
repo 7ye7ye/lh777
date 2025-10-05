@@ -204,4 +204,15 @@ public class HosUser {
     public void setUpdateTime(LocalDateTime updateTime) {
         this.updateTime = updateTime;
     }
+
+    public org.jeecg.common.system.vo.HosUser convertToVO() {
+        org.jeecg.common.system.vo.HosUser hosUser = new org.jeecg.common.system.vo.HosUser();
+        hosUser.setUserId(this.getUserId());
+        hosUser.setUserAccount(this.getUserAccount());
+        hosUser.setUserType(this.getUserType());
+        hosUser.setStatus( this.getStatus());
+        System.out.println("根据账号从数据库中取出的用户: " + this.toString());
+        System.out.println("转换类型后的用户: " + hosUser.toString());
+        return hosUser;
+    }
 }
