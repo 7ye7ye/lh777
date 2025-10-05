@@ -39,6 +39,7 @@ import org.jeecg.common.util.dynamic.db.FreemarkerParseFactory;
 import org.jeecg.common.util.oConvertUtils;
 import org.jeecg.config.firewall.SqlInjection.IDictTableWhiteListHandler;
 import org.jeecg.config.mybatis.MybatisPlusSaasConfig;
+import org.jeecg.modules.hospital.service.HosUserService;
 import org.jeecg.modules.message.entity.SysMessageTemplate;
 import org.jeecg.modules.message.handle.impl.DdSendMsgHandle;
 import org.jeecg.modules.message.handle.impl.EmailSendMsgHandle;
@@ -74,7 +75,7 @@ import java.util.stream.Collectors;
 /**
  * @Description: 底层共通业务API，提供其他独立模块调用
  * @Author: scott
- * @Date:2019-4-20 
+ * @Date:2019-4-20
  * @Version:V1.0
  */
 @Slf4j
@@ -82,6 +83,9 @@ import java.util.stream.Collectors;
 public class SysBaseApiImpl implements ISysBaseAPI {
 	/** 当前系统数据库类型 */
 	private static String DB_TYPE = "";
+
+	@Resource
+	HosUserService hosUserService;
 
 	@Autowired
 	private ISysMessageTemplateService sysMessageTemplateService;
@@ -167,7 +171,7 @@ public class SysBaseApiImpl implements ISysBaseAPI {
 		String userId = userMapper.getUserIdByName(username);
 		return userId;
 	}
-	
+
 
 	@Override
 	public String translateDictFromTable(String table, String text, String code, String key) {
@@ -193,17 +197,17 @@ public class SysBaseApiImpl implements ISysBaseAPI {
 			LambdaQueryWrapper<SysPermission> query = new LambdaQueryWrapper<SysPermission>();
 			query.eq(SysPermission::getMenuType,2);
 			query.eq(SysPermission::getDelFlag,0);
-			
+
 			//update-begin-author:taoyan date:2023-2-21 for: 解决参数顺序问题
 			List<String> allPossiblePaths = this.getOnlinePossiblePaths(requestPath);
 			log.info("获取的菜单地址= {}", allPossiblePaths.toString());
 			if(allPossiblePaths.size()==1){
 				query.eq(SysPermission::getUrl, requestPath);
 			}else{
-				query.in(SysPermission::getUrl, allPossiblePaths);	
+				query.in(SysPermission::getUrl, allPossiblePaths);
 			}
 			//update-end-author:taoyan date:2023-2-21 for: 解决参数顺序问题
-			
+
 			currentSyspermission = sysPermissionMapper.selectList(query);
 			//2.未找到 再通过自定义匹配URL 获取菜单
 			if(currentSyspermission==null || currentSyspermission.size()==0) {
@@ -326,7 +330,7 @@ public class SysBaseApiImpl implements ISysBaseAPI {
 	public List<String> getRolesByUsername(String username) {
 		return sysUserRoleMapper.getRoleByUserName(username);
 	}
-	
+
 	@Override
 	public List<String> getRolesByUserId(String userId) {
 		return sysUserRoleMapper.getRoleCodeByUserId(userId);
@@ -341,7 +345,7 @@ public class SysBaseApiImpl implements ISysBaseAPI {
 		}
 		return result;
 	}
-	
+
 	@Override
 	public List<String> getDepartIdsByUserId(String userId) {
 		return sysDepartService.queryDepartsByUserId(userId);
@@ -558,7 +562,7 @@ public class SysBaseApiImpl implements ISysBaseAPI {
 		announcement.setMsgType(CommonConstant.MSG_TYPE_UESR);
 		announcement.setSendStatus(CommonConstant.HAS_SEND);
 		announcement.setSendTime(new Date());
-		
+
 		if(tmplateParam!=null && oConvertUtils.isNotEmpty(tmplateParam.get(CommonSendStatus.MSG_ABSTRACT_JSON))){
 			announcement.setMsgAbstract(tmplateParam.get(CommonSendStatus.MSG_ABSTRACT_JSON));
 		}
@@ -566,7 +570,7 @@ public class SysBaseApiImpl implements ISysBaseAPI {
 		if(tmplateParam!=null && oConvertUtils.isNotEmpty(tmplateParam.get(CommonConstant.MSG_HREF_URL))){
 			mobileOpenUrl = tmplateParam.get(CommonConstant.MSG_HREF_URL);
 		}
-	
+
 		announcement.setMsgCategory(CommonConstant.MSG_CATEGORY_2);
 		announcement.setDelFlag(String.valueOf(CommonConstant.DEL_FLAG_0));
 		announcement.setBusId(busId);
@@ -848,7 +852,7 @@ public class SysBaseApiImpl implements ISysBaseAPI {
 		} else {
 			queryWrapper.like("depart_ids", deptId);
 		}
-		
+
 		List<SysUser> userList = userMapper.selectList(queryWrapper);
 		List<String> list = new ArrayList<>();
 		for(SysUser user : userList){
@@ -915,7 +919,7 @@ public class SysBaseApiImpl implements ISysBaseAPI {
 		QueryWrapper<SysUser> queryWrapper = QueryGenerator.initQueryWrapper(sysUser, parameterMap);
 		List<SysUser> list= sysUserService.list(queryWrapper);
 		if(ObjectUtils.isNotEmpty(list)){
-		
+
 			//update-begin-author:taoyan date:2023-5-19 for: QQYUN-5326【简流】获取组织人员 单/多 筛选条件 没有部门筛选
 			String departKey = "depart";
 			QueryCondition departCondition = null;
@@ -931,7 +935,7 @@ public class SysBaseApiImpl implements ISysBaseAPI {
 			} catch (UnsupportedEncodingException e) {
 				log.error("查询用户信息，查询条件json转化失败", e);
 			}
-			
+
 			for (SysUser user : list) {
 				JSONObject userJson = JSONObject.parseObject(JSONObject.toJSONString(user));
 				List<SysDepart> departList = sysDepartService.queryDepartsByUsername(user.getUsername());
@@ -947,7 +951,7 @@ public class SysBaseApiImpl implements ISysBaseAPI {
 					result.add(userJson);
 				}
 				//update-end-author:taoyan date:2023-5-19 for: QQYUN-5326【简流】获取组织人员 单/多 筛选条件 没有部门筛选
-				
+
 			}
 		}
 		return result;
@@ -1117,8 +1121,8 @@ public class SysBaseApiImpl implements ISysBaseAPI {
 		log.info("-------通过数据库读取用户拥有的角色Rules------username： " + username + ",Roles size: " + (roles == null ? 0 : roles.size()));
 		return new HashSet<>(roles);
 	}
-	
-	
+
+
 	/**
 	 * 查询用户拥有的角色集合
 	 * @param useId
@@ -1375,7 +1379,7 @@ public class SysBaseApiImpl implements ISysBaseAPI {
 			EmailSendMsgHandle emailHandle=new EmailSendMsgHandle();
 			emailHandle.sendMsg(email, title, content);
 	}
-	
+
 	/**
 	 * 发送html模版邮件消息
 	 * @param email
@@ -1708,7 +1712,7 @@ public class SysBaseApiImpl implements ISysBaseAPI {
 		queryWrapper.lambda().select(SysUserDepart::getUserId).in(true,SysUserDepart::getDepId,deptIds);
 		return sysUserDepartService.listObjs(queryWrapper,e->e.toString());
 	}
-	
+
 	@Override
 	public List<String> queryUserAccountsByDeptIds(List<String> deptIds) {
 		return departMapper.queryUserAccountByDepartIds(deptIds);
@@ -1825,4 +1829,7 @@ public class SysBaseApiImpl implements ISysBaseAPI {
 		}
 	}
 
+	public HosUser getHosUserByAccount(String account){
+		return hosUserService.getHosUserByAccount(account);
+	}
 }

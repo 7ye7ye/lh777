@@ -14,7 +14,10 @@ import org.springframework.stereotype.Service;
 @Service
 public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient>
     implements PatientService{
-
+    @Override
+    public void cardInfo(Patient patient) {
+        this.baseMapper.selectById(patient.getUserId());
+    }
 }
 
 

@@ -13,7 +13,7 @@ import org.jeecg.common.api.vo.Result;
 import org.jeecg.common.constant.CommonConstant;
 import org.jeecg.common.constant.enums.ClientTerminalTypeEnum;
 import org.jeecg.common.enums.SentinelErrorInfoEnum;
-import org.jeecg.common.system.vo.LoginUser;
+import org.jeecg.common.system.vo.HosUser;
 import org.jeecg.common.util.BrowserUtils;
 import org.jeecg.common.util.IpUtils;
 import org.jeecg.common.util.SpringContextUtils;
@@ -94,7 +94,7 @@ public class JeecgBootExceptionHandler {
 	public Result<?> handleJeecgBoot401Exception(JeecgBoot401Exception e){
 		log.error(e.getMessage(), e);
 		addSysLog(e);
-		return new Result(401,e.getMessage());
+		return new Result<>(401,e.getMessage());
 	}
 
 	@ExceptionHandler(NoHandlerFoundException.class)
@@ -240,11 +240,11 @@ public class JeecgBootExceptionHandler {
 
        
 		//获取登录用户信息
-		LoginUser sysUser = (LoginUser) SecurityUtils.getSubject().getPrincipal();
-		if(sysUser!=null){
-			log.setUserid(sysUser.getUsername());
-			log.setUsername(sysUser.getRealname());
-
+		Object principal = SecurityUtils.getSubject().getPrincipal();
+		if(principal instanceof HosUser){
+			HosUser sysUser = (HosUser) principal;
+			log.setUserid(sysUser.getUserAccount());
+			log.setUsername(sysUser.getUserAccount()); // HosUser没有realname字段，使用userAccount
 		}
 
         baseCommonService.addLog(log);

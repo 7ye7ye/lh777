@@ -1,6 +1,7 @@
 package org.jeecg.common.api;
 
 import org.jeecg.common.system.vo.*;
+import org.jeecg.common.system.vo.HosUser;
 
 import java.util.List;
 import java.util.Map;
@@ -18,7 +19,7 @@ public interface CommonAPI {
      * @return
      */
     Set<String> queryUserRoles(String username);
-    
+
     /**
      * 1查询用户角色信息
      * @param userId
@@ -56,7 +57,7 @@ public interface CommonAPI {
      * @return
      */
     public LoginUser getUserByName(String username);
-    
+
     /**
      * 5根据用户账号查询用户Id
      * @param username
@@ -142,6 +143,8 @@ public interface CommonAPI {
      * @return
      */
     List<DictModel> translateDictFromTableByKeys(String table, String text, String code, String keys, String dataSource);
+
+    HosUser getHosUserByAccount(String account);
     //update-end---author:chenrui ---date:20231221  for：[issues/#5643]解决分布式下表字典跨库无法查询问题------------
 
 }

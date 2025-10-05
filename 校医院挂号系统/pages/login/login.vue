@@ -69,29 +69,27 @@ const disabled = computed(() => !form.value.userAccount || !form.value.userPassw
 
 const userStore = useUserStore()
 
-const persistAuth = (token, patientId) => {
-  if (token) {
-    uni.setStorageSync('token', token)
-  }
-  if (patientId) {
-    uni.setStorageSync('patientId', String(patientId))
-  }
-}
-
 const onSubmit = async () => {
   if (disabled.value) return
   loading.value = true
   try {
     const res = await userApi.login({ userAccount: form.value.userAccount, userPassword: form.value.userPassword })
-    // 兼容不同后端返回: 可能包含 token/id/name
-    const token = res?.token || res?.accessToken || ''
-    const patientId = res?.id || res?.userId || ''
-    userStore.setToken(token || 'login-ok')
-    if (patientId) userStore.setPatientId(patientId)
-    persistAuth(token || 'login-ok', patientId)
-    await uniShowToast({ title: '登录成功' })
-    // 跳首页 Tab
-    await uniSwitchTab({ url: '/pages/home/home' })
+    // 根据后端返回结构提取数据
+    const token = res?.token || ''
+    const userInfo = res?.user || null
+    
+    if (token) {
+      // 保存 token 和用户信息到状态管理
+      userStore.setToken(token)
+      if (userInfo) {
+        userStore.setUserInfo(userInfo)
+      }
+      await uniShowToast({ title: '登录成功' })
+      // 跳首页 Tab
+      await uniSwitchTab({ url: '/pages/home/home' })
+    } else {
+      await uniShowToast({ title: '登录失败：未获取到token', icon: 'none' })
+    }
   } catch (e) {
     await uniShowToast({ title: (e && e.message) || '登录失败', icon: 'none' })
   } finally {

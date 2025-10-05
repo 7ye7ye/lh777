@@ -84,6 +84,11 @@
       </view>
     </view>
 
+    <!-- 退出登录按钮 -->
+    <view class="logout-section">
+      <button class="logout-btn" @click="handleLogout">退出登录</button>
+    </view>
+
     <view class="tabbar-placeholder"></view>
   </view>
 </template>
@@ -91,17 +96,26 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { userApi } from '@/api/user'
+import { useUserStore } from '@/store/user'
+import { uniShowToast, uniSwitchTab } from '@/utils/uniHelper'
 
 const userInfo = ref({})
+const userStore = useUserStore()
 
 // 获取用户信息
 const getUserInfo = () => {
-  userApi.getCurrentUser().then(res => {
-    userInfo.value = res.data
-  }).catch(() => {
-    // 如果获取失败，使用默认信息
-    userInfo.value = { name: '微信用户', phone: '***********' }
-  })
+  // 优先从状态管理获取用户信息
+  if (userStore.userInfo) {
+    userInfo.value = userStore.userInfo
+  } else {
+    // 如果状态管理中没有，则从API获取
+    userApi.getCurrentUser().then(res => {
+      userInfo.value = res.data
+    }).catch(() => {
+      // 如果获取失败，使用默认信息
+      userInfo.value = { name: '微信用户', phone: '***********' }
+    })
+  }
 }
 
 // 导航函数
@@ -159,6 +173,41 @@ const goToEvaluate = () => {
 
 const goToUnbind = () => {
   uni.navigateTo({ url: '/pages/profile/settings/unbind' })
+}
+
+// 退出登录
+const handleLogout = async () => {
+  try {
+    // 显示确认对话框
+    const res = await new Promise((resolve) => {
+      uni.showModal({
+        title: '确认退出',
+        content: '确定要退出登录吗？',
+        success: (result) => resolve(result.confirm)
+      })
+    })
+    
+    if (res) {
+      // 调用后端退出接口（可选）
+      try {
+        await userApi.logout()
+      } catch (e) {
+        // 即使后端退出失败，也要清除本地状态
+        console.log('后端退出失败，但继续清除本地状态')
+      }
+      
+      // 清除本地状态
+      userStore.logout()
+      
+      // 显示退出成功提示
+      await uniShowToast({ title: '已退出登录' })
+      
+      // 跳转到登录页
+      await uniSwitchTab({ url: '/pages/login/login' })
+    }
+  } catch (e) {
+    await uniShowToast({ title: '退出失败', icon: 'none' })
+  }
 }
 
 onMounted(() => {
@@ -289,6 +338,30 @@ onMounted(() => {
 }
 .tabbar-placeholder {
   height: 72rpx;
+}
+
+/* 退出登录按钮样式 */
+.logout-section {
+  margin: 20rpx 14rpx 0 14rpx;
+}
+
+.logout-btn {
+  width: 100%;
+  height: 88rpx;
+  background: #ff4757;
+  color: #fff;
+  border: none;
+  border-radius: 12rpx;
+  font-size: 32rpx;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s;
+}
+
+.logout-btn:active {
+  background: #ff3742;
 }
 </style>
 

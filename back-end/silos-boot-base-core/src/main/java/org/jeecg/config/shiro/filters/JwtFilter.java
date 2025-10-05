@@ -52,7 +52,7 @@ public class JwtFilter extends BasicHttpAuthenticationFilter {
             if (InMemoryIgnoreAuth.contains(((HttpServletRequest) request).getServletPath())) {
                 return true;
             }
-            
+
             executeLogin(request, response);
             return true;
         } catch (Exception e) {
@@ -63,18 +63,39 @@ public class JwtFilter extends BasicHttpAuthenticationFilter {
     }
 
     /**
-     *
+     * 【核心修改】补充Bearer Token提取逻辑，兼容原有X-ACCESS-TOKEN和token参数方式
      */
     @Override
     protected boolean executeLogin(ServletRequest request, ServletResponse response) throws Exception {
         HttpServletRequest httpServletRequest = (HttpServletRequest) request;
-        String token = httpServletRequest.getHeader(CommonConstant.X_ACCESS_TOKEN);
-        // update-begin--Author:lvdandan Date:20210105 for：JT-355 OA聊天添加token验证，获取token参数
+        String token = null;
+
+        // 1. 优先从原有X-ACCESS-TOKEN头获取Token（保留原有逻辑）
+        token = httpServletRequest.getHeader(CommonConstant.X_ACCESS_TOKEN);
+
+        // 2. 原有逻辑：若X-ACCESS-TOKEN为空，从token参数获取（保留原有逻辑）
         if (oConvertUtils.isEmpty(token)) {
             token = httpServletRequest.getParameter("token");
         }
-        // update-end--Author:lvdandan Date:20210105 for：JT-355 OA聊天添加token验证，获取token参数
 
+        // 【新增逻辑1】3. 若上述两种方式都为空，从Authorization头提取Bearer Token
+        if (oConvertUtils.isEmpty(token)) {
+            String authHeader = httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION);
+            // 判断是否为Bearer Token格式（前缀为"Bearer "）
+            if (oConvertUtils.isNotEmpty(authHeader) && authHeader.startsWith("Bearer ")) {
+                // 提取"Bearer "后面的纯Token字符串
+                token = authHeader.substring("Bearer ".length()).trim();
+                log.debug("从Authorization头提取Bearer Token：{}", token);
+            }
+        }
+
+        // 【新增逻辑2】Token仍为空时，明确抛出Token为空异常（便于排查）
+        if (oConvertUtils.isEmpty(token)) {
+            log.info("————————身份认证失败——————————IP地址:  "+ oConvertUtils.getIpAddrByRequest(httpServletRequest) +"，URL:"+httpServletRequest.getRequestURI());
+            throw new Exception("token为空!");
+        }
+
+        // 原有逻辑：封装为JwtToken并提交认证（不修改）
         JwtToken jwtToken = new JwtToken(token);
         // 提交给realm进行登入，如果错误他会抛出异常并被捕获
         getSubject(request, response).login(jwtToken);
@@ -83,7 +104,7 @@ public class JwtFilter extends BasicHttpAuthenticationFilter {
     }
 
     /**
-     * 对跨域提供支持
+     * 对跨域提供支持（原有逻辑不修改）
      */
     @Override
     protected boolean preHandle(ServletRequest request, ServletResponse response) throws Exception {
@@ -115,7 +136,7 @@ public class JwtFilter extends BasicHttpAuthenticationFilter {
     }
 
     /**
-     * JwtFilter中ThreadLocal需要及时清除 #3634
+     * JwtFilter中ThreadLocal需要及时清除 #3634（原有逻辑不修改）
      *
      * @param request
      * @param response

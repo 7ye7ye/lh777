@@ -9,5 +9,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
 * @createDate 2025-09-22 20:15:21
 */
 public interface PatientService extends IService<Patient> {
-
+    void cardInfo(Patient patient);
 }
