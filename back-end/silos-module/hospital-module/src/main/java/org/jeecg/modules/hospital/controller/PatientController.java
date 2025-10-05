@@ -16,8 +16,13 @@ public class PatientController {
 
     @PostMapping("/add")
     public String add(@RequestBody Patient patient) {
-         patirntService.save(patient);
+        patirntService.save(patient);
         return "success";
     }
 
+    @PostMapping("/cardInfo")
+    public String cardInfo(@RequestBody Patient patient) {
+        patirntService.cardInfo(patient);
+        return "success";
+    }
 }

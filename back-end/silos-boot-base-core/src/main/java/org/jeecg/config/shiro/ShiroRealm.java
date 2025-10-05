@@ -10,17 +10,13 @@ import org.apache.shiro.authz.SimpleAuthorizationInfo;
 import org.apache.shiro.realm.AuthorizingRealm;
 import org.apache.shiro.subject.PrincipalCollection;
 import org.jeecg.common.api.CommonAPI;
-import org.jeecg.common.config.TenantContext;
-import org.jeecg.common.constant.CacheConstant;
 import org.jeecg.common.constant.CommonConstant;
 import org.jeecg.common.system.util.JwtUtil;
-import org.jeecg.common.system.vo.LoginUser;
+import org.jeecg.common.system.vo.HosUser;
 import org.jeecg.common.util.RedisUtil;
 import org.jeecg.common.util.SpringContextUtils;
 import org.jeecg.common.util.TokenUtils;
 import org.jeecg.common.util.oConvertUtils;
-import org.jeecg.config.mybatis.MybatisPlusSaasConfig;
-import org.jeecg.common.system.vo.HosUser;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Role;
@@ -66,12 +62,10 @@ public class ShiroRealm extends AuthorizingRealm {
     @Override
     protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principals) {
         log.debug("===============Shiro权限认证开始============ [ roles、permissions]==========");
-        String username = null;
         String userId = null;
         if (principals != null) {
-            LoginUser sysUser = (LoginUser) principals.getPrimaryPrincipal();
-            username = sysUser.getUsername();
-            userId = sysUser.getId();
+            HosUser sysUser = (HosUser) principals.getPrimaryPrincipal();
+            userId = sysUser.getUserId().toString();
         }
         SimpleAuthorizationInfo info = new SimpleAuthorizationInfo();
 
@@ -142,8 +136,8 @@ public class ShiroRealm extends AuthorizingRealm {
             throw new AuthenticationException("账号已被锁定或未激活,请联系管理员!");
         }
 
-        // 校验token是否超时失效 & 账号密码是否匹配（修改：密码字段为userPassword）
-        if (!jwtTokenRefresh(token, username, hosUser.getUserPassword())) {
+        // 校验token是否超时失效（修改：使用固定密钥验证，不依赖用户密码）
+        if (!jwtTokenRefresh(token, username)) {
             throw new AuthenticationException(CommonConstant.TOKEN_IS_INVALID_MSG);
         }
 
@@ -162,12 +156,12 @@ public class ShiroRealm extends AuthorizingRealm {
      * @param passWord
      * @return
      */
-    public boolean jwtTokenRefresh(String token, String userName, String passWord) {
+    public boolean jwtTokenRefresh(String token, String userName) {
         String cacheToken = String.valueOf(redisUtil.get(CommonConstant.PREFIX_USER_TOKEN + token));
         if (oConvertUtils.isNotEmpty(cacheToken)) {
-            // 校验token有效性
-            if (!JwtUtil.verify(cacheToken, userName, passWord)) {
-                String newAuthorization = JwtUtil.sign(userName, passWord);
+            // 校验token有效性（使用固定密钥）
+            if (!JwtUtil.verify(cacheToken, userName, getFixedSecret())) {
+                String newAuthorization = JwtUtil.sign(userName, getFixedSecret());
                 // 设置超时时间
                 redisUtil.set(CommonConstant.PREFIX_USER_TOKEN + token, newAuthorization);
                 redisUtil.expire(CommonConstant.PREFIX_USER_TOKEN + token, JwtUtil.EXPIRE_TIME *2 / 1000);
@@ -185,6 +179,15 @@ public class ShiroRealm extends AuthorizingRealm {
 
         //redis中不存在此TOEKN，说明token非法返回false
         return false;
+    }
+
+    /**
+     * 获取固定的JWT密钥（与登录时使用的密钥保持一致）
+     * 这里使用一个固定的密钥，确保JWT验证的一致性
+     */
+    private String getFixedSecret() {
+        // 使用与HosUserServiceImpl中相同的盐值作为固定密钥
+        return "caoyue";
     }
 
     /**

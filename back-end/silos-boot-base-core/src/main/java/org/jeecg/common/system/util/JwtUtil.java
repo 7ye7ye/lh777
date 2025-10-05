@@ -6,7 +6,6 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Joiner;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -27,7 +26,7 @@ import org.jeecg.common.constant.DataBaseConstant;
 import org.jeecg.common.constant.SymbolConstant;
 import org.jeecg.common.constant.TenantConstant;
 import org.jeecg.common.exception.JeecgBootException;
-import org.jeecg.common.system.vo.LoginUser;
+import org.jeecg.common.system.vo.HosUser;
 import org.jeecg.common.system.vo.SysUserCacheInfo;
 import org.jeecg.common.util.DateUtils;
 import org.jeecg.common.util.SpringContextUtils;
@@ -55,7 +54,7 @@ public class JwtUtil {
 		HttpServletResponse httpServletResponse = (HttpServletResponse) response;
 		// issues/I4YH95浏览器显示乱码问题
 		httpServletResponse.setHeader("Content-type", "text/html;charset=UTF-8");
-        Result jsonResult = new Result(code, errorMsg);
+        Result<Object> jsonResult = new Result<>(code, errorMsg);
 		jsonResult.setSuccess(false);
         OutputStream os = null;
         try {
@@ -83,7 +82,7 @@ public class JwtUtil {
 			Algorithm algorithm = Algorithm.HMAC256(secret);
 			JWTVerifier verifier = JWT.require(algorithm).withClaim("username", username).build();
 			// 效验TOKEN
-			DecodedJWT jwt = verifier.verify(token);
+			verifier.verify(token);
 			return true;
 		} catch (Exception e) {
 			log.error(e.getMessage(), e);
@@ -180,9 +179,9 @@ public class JwtUtil {
 			}
 		}
 		//2.通过shiro获取登录用户信息
-		LoginUser sysUser = null;
+		HosUser sysUser = null;
 		try {
-			sysUser = (LoginUser) SecurityUtils.getSubject().getPrincipal();
+			sysUser = (HosUser) SecurityUtils.getSubject().getPrincipal();
 		} catch (Exception e) {
 			log.warn("SecurityUtils.getSubject() 获取用户信息异常：" + e.getMessage());
 		}
@@ -197,8 +196,6 @@ public class JwtUtil {
 		//针对特殊标示处理#{sysOrgCode}，判断替换
 		if (key.contains(wellNumber)) {
 			key = key.substring(2,key.indexOf("}"));
-		} else {
-			key = key;
 		}
 		//update-begin---author:chenrui ---date:20250107  for：[QQYUN-10785]数据权限，查看自己拥有部门的权限中存在问题 #7288------------
 		// 是否存在字符串标志
@@ -231,7 +228,7 @@ public class JwtUtil {
 		//替换为系统登录用户帐号
 		if (key.equals(DataBaseConstant.SYS_USER_CODE)|| key.toLowerCase().equals(DataBaseConstant.SYS_USER_CODE_TABLE)) {
 			if(user==null) {
-				returnValue = sysUser.getUsername();
+				returnValue = sysUser.getUserAccount();
 			}else {
 				returnValue = user.getSysUserCode();
 			}
@@ -240,91 +237,12 @@ public class JwtUtil {
 		// 替换为系统登录用户ID
 		else if (key.equals(DataBaseConstant.SYS_USER_ID) || key.equalsIgnoreCase(DataBaseConstant.SYS_USER_ID_TABLE)) {
 			if(user==null) {
-				returnValue = sysUser.getId();
+				returnValue = sysUser.getUserId().toString();
 			}else {
 				returnValue = user.getSysUserId();
 			}
 		}
 
-		//替换为系统登录用户真实名字
-		else if (key.equals(DataBaseConstant.SYS_USER_NAME)|| key.toLowerCase().equals(DataBaseConstant.SYS_USER_NAME_TABLE)) {
-			if(user==null) {
-				returnValue = sysUser.getRealname();
-			}else {
-				returnValue = user.getSysUserName();
-			}
-		}
-		
-		//替换为系统用户登录所使用的机构编码
-		else if (key.equals(DataBaseConstant.SYS_ORG_CODE)|| key.toLowerCase().equals(DataBaseConstant.SYS_ORG_CODE_TABLE)) {
-			if(user==null) {
-				returnValue = sysUser.getOrgCode();
-			}else {
-				returnValue = user.getSysOrgCode();
-			}
-		}
-
-		// 替换为系统用户登录所使用的机构ID
-		else if (key.equals(DataBaseConstant.SYS_ORG_ID) || key.equalsIgnoreCase(DataBaseConstant.SYS_ORG_ID_TABLE)) {
-			if (user == null) {
-				returnValue = sysUser.getOrgId();
-			} else {
-				returnValue = user.getSysOrgId();
-			}
-		}
-
-		//替换为系统用户所拥有的所有机构编码
-		else if (key.equals(DataBaseConstant.SYS_MULTI_ORG_CODE)|| key.toLowerCase().equals(DataBaseConstant.SYS_MULTI_ORG_CODE_TABLE)) {
-			if(user==null){
-				//TODO 暂时使用用户登录部门，存在逻辑缺陷，不是用户所拥有的部门
-				returnValue = sysUser.getOrgCode();
-				//update-begin---author:chenrui ---date:20250107  for：[QQYUN-10785]数据权限，查看自己拥有部门的权限中存在问题 #7288------------
-				returnValue = multiStr ? "'" + returnValue + "'" : returnValue;
-				//update-end---author:chenrui ---date:20250107  for：[QQYUN-10785]数据权限，查看自己拥有部门的权限中存在问题 #7288------------
-			}else{
-				if(user.isOneDepart()) {
-					returnValue = user.getSysMultiOrgCode().get(0);
-					//update-begin---author:chenrui ---date:20250107  for：[QQYUN-10785]数据权限，查看自己拥有部门的权限中存在问题 #7288------------
-					returnValue = multiStr ? "'" + returnValue + "'" : returnValue;
-					//update-end---author:chenrui ---date:20250107  for：[QQYUN-10785]数据权限，查看自己拥有部门的权限中存在问题 #7288------------
-				}else {
-					//update-begin---author:chenrui ---date:20250107  for：[QQYUN-10785]数据权限，查看自己拥有部门的权限中存在问题 #7288------------
-					returnValue = user.getSysMultiOrgCode().stream()
-							.filter(Objects::nonNull)
-							//update-begin---author:chenrui ---date:20250224  for：[issues/7288]数据权限，查看自己拥有部门的权限中存在问题 #7288------------
-							.map(orgCode -> {
-								if (multiStr) {
-									return "'" + orgCode + "'";
-								} else {
-									return orgCode;
-								}
-							})
-							//update-end---author:chenrui ---date:20250224  for：[issues/7288]数据权限，查看自己拥有部门的权限中存在问题 #7288------------
-							.collect(Collectors.joining(", "));
-					//update-end---author:chenrui ---date:20250107  for：[QQYUN-10785]数据权限，查看自己拥有部门的权限中存在问题 #7288------------
-				}
-			}
-		}
-
-		// 替换为当前登录用户的角色code（多个逗号分割）
-		else if (key.equals(DataBaseConstant.SYS_ROLE_CODE) || key.equalsIgnoreCase(DataBaseConstant.SYS_ROLE_CODE_TABLE)) {
-			if (user == null) {
-				returnValue = sysUser.getRoleCode();
-			} else {
-				returnValue = user.getSysRoleCode();
-			}
-		}
-
-		//update-begin-author:taoyan date:20210330 for:多租户ID作为系统变量
-		else if (key.equals(TenantConstant.TENANT_ID) || key.toLowerCase().equals(TenantConstant.TENANT_ID_TABLE)){
-			try {
-				returnValue = SpringContextUtils.getHttpServletRequest().getHeader(CommonConstant.TENANT_ID);
-			} catch (Exception e) {
-				log.warn("获取系统租户异常：" + e.getMessage());
-			}
-		}
-		//update-end-author:taoyan date:20210330 for:多租户ID作为系统变量
-		if(returnValue!=null){returnValue = returnValue + moshi;}
 		return returnValue;
 	}
 	

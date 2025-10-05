@@ -152,8 +152,15 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
      * 生成与原有系统兼容的JWT Token
      */
     private String generateToken(String username, String password) {
-        // 复用原有逻辑：使用JwtUtil生成Token
-        return JwtUtil.sign(username, password);
+        // 使用固定密钥生成Token，确保验证时的一致性
+        return JwtUtil.sign(username, getFixedSecret());
+    }
+
+    /**
+     * 获取固定的JWT密钥（与ShiroRealm中的密钥保持一致）
+     */
+    private String getFixedSecret() {
+        return SALT; // 使用盐值作为固定密钥
     }
 
     /**

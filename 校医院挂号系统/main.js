@@ -21,6 +21,12 @@ export function createApp() {
   const app = createSSRApp(App)
   const pinia = createPinia()
   app.use(pinia)
+  
+  // 初始化用户状态（从本地存储恢复）
+  const { useUserStore } = require('./store/user.js')
+  const userStore = useUserStore()
+  userStore.initFromStorage()
+  
   return {
     app
   }
