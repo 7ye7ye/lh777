@@ -47,7 +47,7 @@ const transform: AxiosTransform = {
     const { data } = res;
     if (!data) {
       // return '[HTTP] Request has no return value';
-      throw new Error(t('sys.api.apiRequestFailed'));
+      // throw new Error(t('sys.api.apiRequestFailed'));
     }
     //  这里 code，result，message为 后台统一的字段，需要在 types.ts内修改为项目自己的接口返回格式
     const { code, result, message, success } = data;
@@ -85,7 +85,7 @@ const transform: AxiosTransform = {
       createMessage.error(timeoutMsg);
     }
 
-    throw new Error(timeoutMsg || t('sys.api.apiRequestFailed'));
+    // throw new Error(timeoutMsg || t('sys.api.apiRequestFailed'));
   },
 
   // 请求之前处理config

@@ -27,27 +27,26 @@ public class UserController {
 
     @IgnoreAuth
     @PostMapping("/register")
-    public long userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
-        System.out.println("已收到请求");
+    public ResponseEntity<?> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
         if(userRegisterRequest==null){
-            return 0;
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("请求体不能为空");
         }
         String userAccount=userRegisterRequest.getUserAccount();
         String userPassword=userRegisterRequest.getUserPassword();
         String checkPassword=userRegisterRequest.getCheckPassword();
+        String userType=userRegisterRequest.getUserType();
 
         if(StringUtils.isAnyBlank(userAccount,userPassword,checkPassword)){
-            return 0;
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("用户名和用户密码不能为空");
         }
         System.out.println("接收到用户注册："+userAccount+"<UNK>");
 
-        return userService.userRegister(userAccount,userPassword,checkPassword);
+        return ResponseEntity.ok(userService.userRegister(userAccount,userPassword,checkPassword,userType));
     }
 
     @IgnoreAuth
     @PostMapping("/login")
     public ResponseEntity<?> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
-        System.out.println("已收到请求");
         if (userLoginRequest == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("请求体不能为空");
         }

@@ -80,15 +80,15 @@
         toRaw({
           username: data.account,
           password: data.password,
-          phone: data.mobile,
-          smscode: data.sms,
+          // phone: data.mobile,
+          // smscode: data.sms,
         })
       );
       if (resultInfo && resultInfo.data.success) {
-        notification.success({
-          description: resultInfo.data.message || t('sys.api.registerMsg'),
-          duration: 3,
-        });
+        // notification.success({
+        //   description: resultInfo.data.message || t('sys.api.registerMsg'),
+        //   duration: 3,
+        // });
         handleBackLogin();
       } else {
         notification.warning({

@@ -272,8 +272,8 @@
       loginLoading.value = true;
       const { userInfo } = await userStore.login(
         toRaw({
-          password: formData.password,
-          username: formData.username,
+          userPassword: formData.password,
+          userAccount: formData.username,
           captcha: formData.inputCode,
           checkKey: randCodeData.checkKey,
           mode: 'none', //不要默认的错误提示

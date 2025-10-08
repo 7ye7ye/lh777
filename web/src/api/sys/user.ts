@@ -12,10 +12,10 @@ import { ExceptionEnum } from "@/enums/exceptionEnum";
 
 const { createErrorModal } = useMessage();
 enum Api {
-  Login = '/sys/login',
+  Login = '/user/login',
   phoneLogin = '/sys/phoneLogin',
   Logout = '/sys/logout',
-  GetUserInfo = '/sys/user/getUserInfo',
+  GetUserInfo = '/user/getUserInfo',
   // 获取系统权限
   // 1、查询用户拥有的按钮/表单访问权限
   // 2、所有权限
@@ -26,7 +26,7 @@ enum Api {
   //获取短信验证码的接口
   getCaptcha = '/sys/sms',
   //注册接口
-  registerApi = '/sys/user/register',
+  registerApi = '/user/register',
   //校验用户接口
   checkOnlyUser = '/sys/user/checkOnlyUser',
   //SSO登录校验

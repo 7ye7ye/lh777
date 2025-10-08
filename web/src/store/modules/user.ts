@@ -151,16 +151,41 @@ export const useUserStore = defineStore({
     ): Promise<GetUserInfoModel | null> {
       try {
         const { goHome = true, mode, ...loginParams } = params;
-        const data = await loginApi(loginParams, mode);
-        const { token, userInfo } = data;
-        // save token
+        
+        // 1. 调用登录接口并打印调试信息
+        console.log('登录请求参数:', loginParams);
+        const response = await loginApi(loginParams, mode);
+        
+        // 2. 检查接口是否返回了有效响应
+        if (!response) {
+          throw new Error('登录接口未返回任何数据，请检查接口是否正常');
+        }
+        console.log('登录接口返回数据:', response);
+        
+        // 3. 解构token和user信息（适配后端结构）
+        const { token, user: userInfo } = response;
+        
+        // 4. 验证关键数据是否存在
+        if (!token) {
+          throw new Error('登录失败：后端未返回token');
+        }
+        if (!userInfo) {
+          throw new Error('登录失败：后端未返回用户信息');
+        }
+        
+        // 5. 保存token和租户信息（注意租户字段是否存在）
         this.setToken(token);
-        this.setTenant(userInfo.loginTenantId);
-        return this.afterLoginAction(goHome, data);
+        
+        // 6. 执行登录后的后续操作
+        return this.afterLoginAction(goHome, response);
       } catch (error) {
+        // 打印完整错误信息，方便排查
+        console.error('登录过程出错:', error);
         return Promise.reject(error);
       }
     },
+
+
     /**
      * 扫码登录事件
      */

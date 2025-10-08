@@ -18,7 +18,7 @@
                   <a-form-item>
                     <div class="aui-input-line">
                       <Icon class="aui-icon" icon="ant-design:user-outlined"/>
-                      <a-input class="fix-auto-fill" type="text" :placeholder="t('sys.login.userName')" v-model:value="formData.username" />
+                      <a-input class="fix-auto-fill" type="text" :placeholder="t('sys.login.userName')" v-model:value="formData.userAccount" />
                     </div>
                   </a-form-item>
                   <a-form-item>
@@ -38,7 +38,7 @@
                   <a-form-item>
                     <div class="aui-input-line">
                       <Icon class="aui-icon" icon="ant-design:lock-outlined"/>
-                      <a-input class="fix-auto-fill" :type="pwdIndex==='close'?'password':'text'" :placeholder="t('sys.login.password')" v-model:value="formData.password" />
+                      <a-input class="fix-auto-fill" :type="pwdIndex==='close'?'password':'text'" :placeholder="t('sys.login.password')" v-model:value="formData.userPassword" />
                       <div class="aui-eye">
                         <img :src="eyeKImg" alt="开启" v-if="pwdIndex==='open'"  @click="pwdClick('close')" />
                         <img :src="eyeGImg" alt="关闭"  v-else-if="pwdIndex==='close'"  @click="pwdClick('open')" />
@@ -48,7 +48,7 @@
                   <a-form-item>
                     <div class="aui-input-line">
                       <Icon class="aui-icon" icon="ant-design:lock-outlined"/>
-                      <a-input class="fix-auto-fill" :type="confirmPwdIndex==='close'?'password':'text'" :placeholder="t('sys.login.confirmPassword')" v-model:value="formData.confirmPassword" />
+                      <a-input class="fix-auto-fill" :type="confirmPwdIndex==='close'?'password':'text'" :placeholder="t('sys.login.confirmPassword')" v-model:value="formData.checkPassword" />
                       <div class="aui-eye">
                         <img :src="eyeKImg" alt="开启" v-if="confirmPwdIndex==='open'" @click="confirmPwdClick('close')" />
                         <img :src="eyeGImg" alt="关闭" v-else-if="confirmPwdIndex==='close'" @click="confirmPwdClick('open')" />
@@ -104,11 +104,11 @@
   const emit = defineEmits(['go-back', 'success', 'register']);
   const formRef = ref();
   const formData = reactive<any>({
-    username: '',
+    userAccount: '',
     mobile: '',
     smscode: '',
-    password: '',
-    confirmPassword: '',
+    userPassword: '',
+    checkPassword: '',
     policy: false,
   });
   //是否显示获取验证码
@@ -165,34 +165,35 @@
   }
 
   function registerHandleClick() {
-    if (!formData.username) {
+    if (!formData.userAccount) {
+      console.log('formData.userAccount', formData.userAccount);
       createMessage.warn(t('sys.login.accountPlaceholder'));
       return;
     }
-    if (!formData.mobile) {
-      createMessage.warn(t('sys.login.mobilePlaceholder'));
-      return;
-    }
-    if (!formData.smscode) {
-      createMessage.warn(t('sys.login.smsPlaceholder'));
-      return;
-    }
-    if (!formData.password) {
+    // if (!formData.mobile) {
+    //   createMessage.warn(t('sys.login.mobilePlaceholder'));
+    //   return;
+    // }
+    // if (!formData.smscode) {
+    //   createMessage.warn(t('sys.login.smsPlaceholder'));
+    //   return;
+    // }
+    if (!formData.userPassword) {
       createMessage.warn(t('sys.login.passwordPlaceholder'));
       return;
     }
-    if (!formData.confirmPassword) {
+    if (!formData.checkPassword) {
       createMessage.warn(t('sys.login.confirmPassword'));
-      return;
+      return; 
     }
-    if (formData.password !== formData.confirmPassword) {
+    if (formData.userPassword !== formData.checkPassword) {
       createMessage.warn(t('sys.login.diffPwd'));
       return;
     }
-    if(!formData.policy){
-      createMessage.warn(t('sys.login.policyPlaceholder'));
-      return;
-    }
+    // if(!formData.policy){
+    //   createMessage.warn(t('sys.login.policyPlaceholder'));
+    //   return;
+    // }
     registerAccount();
   }
 
@@ -203,10 +204,12 @@
     try {
       const resultInfo = await register(
         toRaw({
-          username: formData.username,
-          password: formData.password,
+          userAccount: formData.userAccount,
+          userPassword: formData.userPassword,
           phone: formData.mobile,
           smscode: formData.smscode,
+          checkPassword: formData.checkPassword,
+          userType:'admin',
         })
       );
       if (resultInfo && resultInfo.data.success) {
@@ -214,7 +217,7 @@
           description: resultInfo.data.message || t('sys.api.registerMsg'),
           duration: 3,
         });
-        emit('success', { username: formData.username, password: formData.password });
+        emit('success', { username: formData.userAccount, password: formData.userPassword });
         initForm();
       } else {
         notification.warning({
