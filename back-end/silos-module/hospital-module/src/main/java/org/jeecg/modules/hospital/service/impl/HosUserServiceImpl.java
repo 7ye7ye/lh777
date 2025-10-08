@@ -198,7 +198,11 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
      * @return
      */
     public org.jeecg.common.system.vo.HosUser getHosUserByAccount(String account){
-        return hosUserMapper.selectOne(new QueryWrapper<HosUser>().eq("user_account", account)).convertToVO();
+        HosUser hosUser = hosUserMapper.selectOne(new QueryWrapper<HosUser>().eq("user_account", account));
+        if (hosUser == null) {
+            return null;
+        }
+        return hosUser.convertToVO();
     }
 }
 
