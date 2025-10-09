@@ -2,8 +2,10 @@
  * @description: Login interface parameters
  */
 export interface LoginParams {
-  username: string;
-  password: string;
+  userAccount: string;
+  userPassword: string;
+  captcha?: string;
+  checkKey?: string;
 }
 
 export interface ThirdLoginParams {
@@ -17,32 +19,47 @@ export interface RoleInfo {
 }
 
 /**
- * @description: Login interface return value
+ * @description: Login interface return value - 适配 HosUser 类型
  */
 export interface LoginResultModel {
-  userId: string | number;
+  user: HosUser;
   token: string;
-  role: RoleInfo;
-  userInfo?: any
+  tokenExpireTime?: string | null;
 }
 
 /**
- * @description: Get user information return value
+ * @description: HosUser 类型定义 - 适配后端 HosUser 类型
+ */
+export interface HosUser {
+  userId: string | number;
+  userAccount: string;
+  userPassword?: string | null;
+  userType?: number;
+  idCard?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  status?: number | null;
+  createTime?: string | null;
+  updateTime?: string | null;
+  // 添加其他可能需要的字段
+  realname?: string;
+  avatar?: string;
+  homePath?: string;
+  roles?: RoleInfo[];
+  id?: string | number;
+  username?: string;
+  desc?: string;
+  orgCode?: string;
+  workNo?: string;
+  orgCodeTxt?: string;
+  postText?: string;
+}
+
+/**
+ * @description: Get user information return value - 适配 HosUser 类型
  */
 export interface GetUserInfoModel {
-  roles: RoleInfo[];
-  // 用户id
-  userId: string | number;
-  // 用户名
-  username: string;
-  // 真实名字
-  realname: string;
-  // 头像
-  avatar: string;
-  // 介绍
-  desc?: string;
-  // 用户信息
-  userInfo?: any;
+  userInfo: HosUser;
   // 缓存字典项
   sysAllDictItems?: any;
 }
