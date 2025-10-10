@@ -9,7 +9,7 @@ const { createErrorModal } = useMessage();
 enum Api {
   Login = '/user/login',
   phoneLogin = '/sys/phoneLogin',
-  Logout = '/sys/logout',
+  Logout = '/user/logout', // 使用hospital模块的退出接口
   // GetUserInfo = '/user/getUserInfo', // 已弃用，避免后端类型转换错误
   // 获取系统权限
   // 1、查询用户拥有的按钮/表单访问权限
@@ -86,7 +86,8 @@ export function getPermCode() {
 }
 
 export function doLogout() {
-  return defHttp.get({ url: Api.Logout });
+  // 使用hospital模块的退出登录接口，避免系统接口的类型转换问题
+  return defHttp.post({ url: '/user/logout' });
 }
 
 export function getCodeInfo(currdatetime) {

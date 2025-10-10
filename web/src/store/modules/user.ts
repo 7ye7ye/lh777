@@ -203,7 +203,7 @@ export const useUserStore = defineStore({
       }
     },
     /**
-     * 登录完成处理 - 简化版本
+     * 登录完成处理 - 简化版本，避免路由构建问题
      * @param goHome
      */
     async afterLoginAction(goHome?: boolean, data?: any): Promise<any | null> {
@@ -218,6 +218,12 @@ export const useUserStore = defineStore({
         
         // 缓存拖拽模块的接口前缀
         localStorage.setItem(JDragConfigEnum.DRAG_BASE_URL, useGlobSetting().domainUrl);
+
+        // 设置 session timeout 标志
+        const sessionTimeout = this.sessionTimeout;
+        if (sessionTimeout) {
+          this.setSessionTimeout(false);
+        }
 
         // 处理重定向逻辑
         let redirect = router.currentRoute.value?.query?.redirect as string;
@@ -320,16 +326,17 @@ export const useUserStore = defineStore({
       return basicUserInfo;
     },
     /**
-     * 退出登录 - 简化版本
+     * 退出登录 - 使用hospital模块的退出接口
      */
     async logout(goLogin = false) {
       try {
-        // 尝试调用退出登录接口（如果失败也不影响流程）
+        // 调用hospital模块的退出登录接口
         if (this.getToken) {
           await doLogout();
+          console.log('退出登录成功');
         }
-      } catch {
-        console.log('注销Token失败，继续执行退出流程');
+      } catch (error) {
+        console.log('退出登录接口调用失败，继续执行本地清理:', error);
       }
 
       // 清除所有用户相关数据

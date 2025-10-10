@@ -19,47 +19,42 @@ export interface RoleInfo {
 }
 
 /**
- * @description: Login interface return value - 适配 HosUser 类型
+ * @description: Login interface return value
  */
 export interface LoginResultModel {
-  user: HosUser;
+  user: {
+    userId: string | number;
+    userAccount: string;
+    userPassword?: string;
+    userType?: number;
+    idCard?: string;
+    phone?: string;
+    email?: string;
+    status?: number;
+    createTime?: string;
+    updateTime?: string;
+  };
   token: string;
   tokenExpireTime?: string | null;
 }
 
 /**
- * @description: HosUser 类型定义 - 适配后端 HosUser 类型
- */
-export interface HosUser {
-  userId: string | number;
-  userAccount: string;
-  userPassword?: string | null;
-  userType?: number;
-  idCard?: string | null;
-  phone?: string | null;
-  email?: string | null;
-  status?: number | null;
-  createTime?: string | null;
-  updateTime?: string | null;
-  // 添加其他可能需要的字段
-  realname?: string;
-  avatar?: string;
-  homePath?: string;
-  roles?: RoleInfo[];
-  id?: string | number;
-  username?: string;
-  desc?: string;
-  orgCode?: string;
-  workNo?: string;
-  orgCodeTxt?: string;
-  postText?: string;
-}
-
-/**
- * @description: Get user information return value - 适配 HosUser 类型
+ * @description: Get user information return value
  */
 export interface GetUserInfoModel {
-  userInfo: HosUser;
+  roles: RoleInfo[];
+  // 用户id
+  userId: string | number;
+  // 用户名
+  username: string;
+  // 真实名字
+  realname: string;
+  // 头像
+  avatar: string;
+  // 介绍
+  desc?: string;
+  // 用户信息
+  userInfo?: any;
   // 缓存字典项
   sysAllDictItems?: any;
 }

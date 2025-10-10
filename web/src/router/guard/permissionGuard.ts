@@ -200,13 +200,22 @@ export function createPermissionGuard(router: Router) {
     }
 
     // 构建后台菜单路由
-    const routes = await permissionStore.buildRoutesAction();
-    routes.forEach((route) => {
-      router.addRoute(route as unknown as RouteRecordRaw);
-    });
+    try {
+      const routes = await permissionStore.buildRoutesAction();
+      routes.forEach((route) => {
+        router.addRoute(route as unknown as RouteRecordRaw);
+      });
 
-    router.addRoute(PAGE_NOT_FOUND_ROUTE as unknown as RouteRecordRaw);
-    permissionStore.setDynamicAddedRoute(true);
+      router.addRoute(PAGE_NOT_FOUND_ROUTE as unknown as RouteRecordRaw);
+      permissionStore.setDynamicAddedRoute(true);
+    } catch (error) {
+      console.error('构建路由失败:', error);
+      // 即使构建失败也标记为已添加，避免无限循环
+      permissionStore.setDynamicAddedRoute(true);
+      // 跳转到首页
+      next(PageEnum.BASE_HOME);
+      return;
+    }
     // update-begin--author:liaozhiyang---date:202401127---for：【issues/7500】vue-router4.5.0版本路由name:PageNotFound同名导致登录进不去
     if (to.name === PAGE_NOT_FOUND_NAME_404) {
       // 动态添加路由后，此处应当重定向到fullPath，否则会加载404页面内容

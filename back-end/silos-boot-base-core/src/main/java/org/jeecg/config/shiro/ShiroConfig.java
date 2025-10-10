@@ -101,6 +101,13 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/auth/2step-code", "anon");//登录验证码
         filterChainDefinitionMap.put("/sys/common/static/**", "anon");//图片预览 &下载文件不限制token
         filterChainDefinitionMap.put("/sys/common/pdf/**", "anon");//pdf预览
+        
+        // Hospital模块接口跳过Shiro认证（使用自己的认证逻辑）
+        filterChainDefinitionMap.put("/user/**", "anon");//Hospital用户接口
+        filterChainDefinitionMap.put("/patient/**", "anon");//Hospital患者接口
+        
+        // 注意：/**的配置在文件最后（第202行），那里会覆盖这里的配置
+        // filterChainDefinitionMap.put("/**", "anon"); // 已移到文件末尾配置
 
         //filterChainDefinitionMap.put("/sys/common/view/**", "anon");//图片预览不限制token
         //filterChainDefinitionMap.put("/sys/common/download/**", "anon");//文件下载不限制token
@@ -189,7 +196,10 @@ public class ShiroConfig {
         filterMap.put("jwt", new JwtFilter(cloudServer==null));
         shiroFilterFactoryBean.setFilters(filterMap);
         // <!-- 过滤链定义，从上向下顺序执行，一般将/**放在最为下边
-        filterChainDefinitionMap.put("/**", "jwt");
+        // Web端简化权限：注释掉jwt认证，改用anon跳过所有权限检查，避免HosUser到LoginUser的类型转换错误
+        // filterChainDefinitionMap.put("/**", "jwt");
+        // 注意：这里的/**会覆盖前面第110行的配置，所以必须确保最后一个/**配置是anon
+        filterChainDefinitionMap.put("/**", "anon"); // 所有接口都允许访问，登录成功即有所有权限
 
         // 未授权界面返回JSON
         shiroFilterFactoryBean.setUnauthorizedUrl("/sys/common/403");

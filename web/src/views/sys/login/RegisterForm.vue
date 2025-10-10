@@ -78,22 +78,23 @@
       loading.value = true;
       const resultInfo = await register(
         toRaw({
-          username: data.account,
-          password: data.password,
-          // phone: data.mobile,
-          // smscode: data.sms,
+          userAccount: data.account,
+          userPassword: data.password,
+          checkPassword: data.confirmPassword,
+          userType: '1', // 默认注册为患者
         })
       );
-      if (resultInfo && resultInfo.data.success) {
-        // notification.success({
-        //   description: resultInfo.data.message || t('sys.api.registerMsg'),
-        //   duration: 3,
-        // });
+      if (resultInfo && resultInfo.data) {
+        notification.success({
+          message: t('sys.login.registerSuccessTitle'),
+          description: t('sys.api.registerMsg'),
+          duration: 3,
+        });
         handleBackLogin();
       } else {
         notification.warning({
           message: t('sys.api.errorTip'),
-          description: resultInfo.data.message || t('sys.api.networkExceptionMsg'),
+          description: resultInfo.data?.message || t('sys.api.networkExceptionMsg'),
           duration: 3,
         });
       }
