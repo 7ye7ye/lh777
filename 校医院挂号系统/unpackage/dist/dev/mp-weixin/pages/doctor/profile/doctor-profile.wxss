@@ -1,0 +1,122 @@
+
+.doctor-profile.data-v-a26a4456 {
+  min-height: 100vh;
+  background-color: #f5f7fa;
+  padding-bottom: 40rpx;
+}
+.nav-header.data-v-a26a4456 {
+  position: relative;
+  height: 90rpx;
+  background-color: #1677ff;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  padding: 0 30rpx;
+}
+.back-btn.data-v-a26a4456 {
+  position: absolute;
+  left: 30rpx;
+  display: flex;
+  align-items: center;
+  font-size: 28rpx;
+}
+.back-icon.data-v-a26a4456 {
+  font-family: "iconfont";
+  margin-right: 6rpx;
+}
+.page-title.data-v-a26a4456 {
+  width: 100%;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 500;
+}
+.profile-header.data-v-a26a4456 {
+  background-color: #1677ff;
+  padding: 40rpx;
+  display: flex;
+  align-items: center;
+}
+.avatar.data-v-a26a4456 {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 50%;
+  background-color: #fff;
+  margin-right: 30rpx;
+}
+.doctor-info.data-v-a26a4456 {
+  color: #fff;
+}
+.doctor-name.data-v-a26a4456 {
+  font-size: 36rpx;
+  font-weight: bold;
+  margin-bottom: 10rpx;
+}
+.doctor-title.data-v-a26a4456 {
+  font-size: 28rpx;
+  opacity: 0.9;
+}
+.info-card.data-v-a26a4456 {
+  margin: 30rpx;
+  background-color: #fff;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+.info-item.data-v-a26a4456 {
+  display: flex;
+  padding: 20rpx 0;
+  border-bottom: 2rpx solid #f0f0f0;
+}
+.info-item.data-v-a26a4456:last-child {
+  border-bottom: none;
+}
+.info-label.data-v-a26a4456 {
+  width: 160rpx;
+  font-size: 28rpx;
+  color: #666;
+}
+.info-value.data-v-a26a4456 {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333;
+}
+.stats-card.data-v-a26a4456 {
+  margin: 0 30rpx 30rpx 30rpx;
+  background-color: #fff;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+.stats-title.data-v-a26a4456 {
+  font-size: 32rpx;
+  font-weight: bold;
+  margin-bottom: 30rpx;
+}
+.stats-row.data-v-a26a4456 {
+  display: flex;
+  justify-content: space-around;
+}
+.stats-item.data-v-a26a4456 {
+  text-align: center;
+}
+.stats-value.data-v-a26a4456 {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #1677ff;
+  margin-bottom: 10rpx;
+}
+.stats-label.data-v-a26a4456 {
+  font-size: 26rpx;
+  color: #666;
+}
+.logout-btn.data-v-a26a4456 {
+  width: 90%;
+  margin: 40rpx auto;
+  height: 88rpx;
+  line-height: 88rpx;
+  border-radius: 44rpx;
+  font-size: 30rpx;
+  background-color: #fff;
+  color: #f5222d;
+  border: 2rpx solid #f5222d;
+}

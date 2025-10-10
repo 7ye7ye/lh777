@@ -1,0 +1,18 @@
+
+.detail-bg.data-v-1e238864 {
+  background: #f8faff;
+  min-height: 100vh;
+  padding-bottom: 120rpx;
+}
+.detail-card.data-v-1e238864 {
+  background: #fff;
+  border-radius: 16rpx;
+  margin: 16rpx;
+  padding: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(58,156,255,0.08);
+  font-size: 28rpx;
+  line-height: 44rpx;
+  color: #333;
+}
+.tabbar-placeholder.data-v-1e238864 { height: 120rpx;
+}
