@@ -1,0 +1,53 @@
+
+.page-bg.data-v-105576cf { 
+  min-height: 100vh; 
+  background: #f8faff;
+}
+.privacy-header.data-v-105576cf { 
+  font-size: 36rpx; 
+  font-weight: bold; 
+  padding: 32rpx; 
+  color: #333;
+}
+.privacy-content.data-v-105576cf { 
+  background: #fff; 
+  margin: 0 24rpx 24rpx 24rpx; 
+  border-radius: 16rpx; 
+  padding: 32rpx; 
+  box-shadow: 0 4rpx 16rpx rgba(58,156,255,0.08);
+}
+.privacy-section.data-v-105576cf {
+  margin-bottom: 32rpx;
+}
+.privacy-section.data-v-105576cf:last-child {
+  margin-bottom: 0;
+}
+.section-title.data-v-105576cf {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #3a9cff;
+  text-align: center;
+  margin-bottom: 24rpx;
+  display: block;
+}
+.section-subtitle.data-v-105576cf {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 16rpx;
+  display: block;
+}
+.section-text.data-v-105576cf {
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 12rpx;
+  display: block;
+}
+.section-text.data-v-105576cf:last-child {
+  margin-bottom: 0;
+}
+.bold.data-v-105576cf {
+  font-weight: bold;
+  color: #333;
+}

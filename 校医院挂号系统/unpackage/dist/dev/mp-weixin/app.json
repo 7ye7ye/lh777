@@ -1,0 +1,85 @@
+{
+  "pages": [
+    "pages/home/home",
+    "pages/assistant/assistant",
+    "pages/messages/messages",
+    "pages/hospital/hospital",
+    "pages/hospital/departments",
+    "pages/hospital/department-detail",
+    "pages/profile/profile",
+    "pages/login/login",
+    "pages/register/register",
+    "pages/doctor/schedule/schedule",
+    "pages/doctor/schedule/apply-change",
+    "pages/doctor/patients/patient-list",
+    "pages/doctor/patients/patient-detail",
+    "pages/doctor/profile/doctor-profile",
+    "pages/profile/personal/mycard",
+    "pages/profile/personal/mypatient",
+    "pages/profile/personal/mydoctor",
+    "pages/profile/records/register-record",
+    "pages/profile/records/outpatient-record",
+    "pages/profile/records/hospital-record",
+    "pages/profile/records/consult-record",
+    "pages/profile/records/revisit-record",
+    "pages/profile/records/check-record",
+    "pages/profile/settings/privacy",
+    "pages/profile/help/help",
+    "pages/profile/settings/complain",
+    "pages/profile/settings/evaluate",
+    "pages/profile/settings/unbind",
+    "pages/profile/help/login",
+    "pages/profile/help/bindcard",
+    "pages/profile/help/register",
+    "pages/profile/help/payment",
+    "pages/profile/help/hospitalization",
+    "pages/profile/help/report",
+    "pages/profile/help/other",
+    "pages/profile/help/appointment"
+  ],
+  "window": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "校医院挂号系统",
+    "navigationBarBackgroundColor": "#F8F8F8",
+    "backgroundColor": "#F8F8F8"
+  },
+  "tabBar": {
+    "color": "#7A7E83",
+    "selectedColor": "#3cc51f",
+    "borderStyle": "black",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页",
+        "iconPath": "static/logo.png",
+        "selectedIconPath": "static/logo.png"
+      },
+      {
+        "pagePath": "pages/assistant/assistant",
+        "text": "就医助手",
+        "iconPath": "static/logo.png",
+        "selectedIconPath": "static/logo.png"
+      },
+      {
+        "pagePath": "pages/messages/messages",
+        "text": "消息中心",
+        "iconPath": "static/logo.png",
+        "selectedIconPath": "static/logo.png"
+      },
+      {
+        "pagePath": "pages/hospital/hospital",
+        "text": "医院信息",
+        "iconPath": "static/logo.png",
+        "selectedIconPath": "static/logo.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "个人中心",
+        "iconPath": "static/logo.png",
+        "selectedIconPath": "static/logo.png"
+      }
+    ]
+  },
+  "usingComponents": {}
+}

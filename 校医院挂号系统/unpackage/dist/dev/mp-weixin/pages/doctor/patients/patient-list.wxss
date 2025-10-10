@@ -1,0 +1,142 @@
+
+.patient-list.data-v-e5915b83 {
+  min-height: 100vh;
+  background-color: #f5f7fa;
+}
+.header.data-v-e5915b83 {
+  background-color: #1677ff;
+  padding: 0 0 20rpx 0;
+  color: #fff;
+}
+.nav-bar.data-v-e5915b83 {
+  position: relative;
+  height: 90rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 30rpx;
+}
+.back-btn.data-v-e5915b83 {
+  position: absolute;
+  left: 30rpx;
+  display: flex;
+  align-items: center;
+  font-size: 28rpx;
+}
+.back-icon.data-v-e5915b83 {
+  font-family: "iconfont";
+  margin-right: 6rpx;
+}
+.title.data-v-e5915b83 {
+  font-size: 36rpx;
+  font-weight: bold;
+}
+.date-selector.data-v-e5915b83 {
+  display: flex;
+  overflow-x: auto;
+  padding: 0 30rpx 10rpx 30rpx;
+}
+.date-item.data-v-e5915b83 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 30rpx;
+  padding: 16rpx 24rpx;
+  border-radius: 12rpx;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+.date-item.active.data-v-e5915b83 {
+  background-color: #fff;
+}
+.date-item.active .day.data-v-e5915b83,
+.date-item.active .date.data-v-e5915b83 {
+  color: #1677ff;
+}
+.day.data-v-e5915b83 {
+  font-size: 24rpx;
+  margin-bottom: 6rpx;
+}
+.date.data-v-e5915b83 {
+  font-size: 28rpx;
+  font-weight: 500;
+}
+.time-filter.data-v-e5915b83 {
+  display: flex;
+  padding: 20rpx 30rpx;
+  background-color: #fff;
+  border-bottom: 2rpx solid #eee;
+}
+.time-slot.data-v-e5915b83 {
+  padding: 10rpx 30rpx;
+  margin-right: 20rpx;
+  border-radius: 30rpx;
+  font-size: 26rpx;
+  color: #666;
+  background-color: #f5f7fa;
+}
+.time-slot.active.data-v-e5915b83 {
+  background-color: #1677ff;
+  color: #fff;
+}
+.patient-container.data-v-e5915b83 {
+  padding: 30rpx;
+}
+.empty-tip.data-v-e5915b83 {
+  text-align: center;
+  padding: 100rpx 0;
+  color: #999;
+  font-size: 28rpx;
+}
+.patient-card.data-v-e5915b83 {
+  background-color: #fff;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.patient-info.data-v-e5915b83 {
+  flex: 1;
+}
+.patient-name-time.data-v-e5915b83 {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10rpx;
+}
+.patient-name.data-v-e5915b83 {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-right: 20rpx;
+}
+.appointment-time.data-v-e5915b83 {
+  font-size: 26rpx;
+  color: #666;
+}
+.patient-identity.data-v-e5915b83 {
+  font-size: 26rpx;
+  color: #999;
+}
+.patient-status.data-v-e5915b83 {
+  width: 120rpx;
+  height: 60rpx;
+  border-radius: 30rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+}
+.patient-status.waiting.data-v-e5915b83 {
+  background-color: #e6f7ff;
+  color: #1677ff;
+}
+.patient-status.in-progress.data-v-e5915b83 {
+  background-color: #fff7e6;
+  color: #fa8c16;
+}
+.patient-status.completed.data-v-e5915b83 {
+  background-color: #f6ffed;
+  color: #52c41a;
+}

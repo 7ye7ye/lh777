@@ -1,0 +1,73 @@
+
+.login-page.data-v-e4e4508d {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #4da3ff 0%, #5db7ff 40%, #f6f7fb 40%, #f6f7fb 100%);
+}
+.header.data-v-e4e4508d {
+  padding: 80rpx 40rpx 60rpx 40rpx;
+  color: #fff;
+}
+.title.data-v-e4e4508d {
+  font-size: 40rpx;
+  font-weight: 700;
+}
+.subtitle.data-v-e4e4508d {
+  margin-top: 10rpx;
+  opacity: 0.9;
+  font-size: 26rpx;
+}
+.card.data-v-e4e4508d {
+  margin: -60rpx 32rpx 0 32rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.06);
+  padding: 40rpx 32rpx 50rpx 32rpx;
+}
+.card-title.data-v-e4e4508d {
+  font-size: 34rpx;
+  font-weight: 600;
+  margin-bottom: 30rpx;
+}
+.input-group.data-v-e4e4508d { 
+  margin-bottom: 28rpx;
+}
+.input-label.data-v-e4e4508d {
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 12rpx;
+}
+.input.data-v-e4e4508d {
+  width: 100%;
+  height: 88rpx;
+  padding: 0 24rpx;
+  background: #fafafa;
+  border: 2rpx solid #eee;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+}
+.btn.data-v-e4e4508d {
+  width: 100%;
+  height: 92rpx;
+  line-height: 92rpx;
+  font-size: 32rpx;
+  color: #fff;
+  background: #1677ff;
+  border: none;
+  border-radius: 14rpx;
+}
+.btn.data-v-e4e4508d:disabled {
+  background: #a5c8ff;
+}
+.tips-row.data-v-e4e4508d {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 24rpx;
+}
+.tips.data-v-e4e4508d {
+  text-align: center;
+  color: #999;
+  font-size: 24rpx;
+  margin-top: 24rpx;
+}
+.tips.link.data-v-e4e4508d { color: #1677ff;
+}

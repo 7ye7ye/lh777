@@ -1,0 +1,111 @@
+
+.page-bg.data-v-1d27c906 { 
+  min-height: 100vh; 
+  background: #f8faff;
+}
+.card-header.data-v-1d27c906 { 
+  font-size: 36rpx; 
+  font-weight: bold; 
+  padding: 32rpx 32rpx 0 32rpx;
+}
+.card-info.data-v-1d27c906 { 
+  background: #fff; 
+  margin: 24rpx; 
+  border-radius: 16rpx; 
+  padding: 32rpx; 
+  box-shadow: 0 4rpx 16rpx rgba(58,156,255,0.08);
+}
+.card-item.data-v-1d27c906 { 
+  display: flex;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+.label.data-v-1d27c906 {
+  width: 120rpx;
+  font-size: 28rpx;
+  color: #666;
+}
+.value.data-v-1d27c906 {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333;
+}
+.balance.data-v-1d27c906 {
+  color: #3a9cff;
+  font-weight: bold;
+}
+.status.active.data-v-1d27c906 {
+  color: #52c41a;
+}
+.status.inactive.data-v-1d27c906 {
+  color: #ff4d4f;
+}
+.card-actions.data-v-1d27c906 {
+  display: flex;
+  gap: 16rpx;
+  margin: 0 24rpx 24rpx 24rpx;
+}
+.action-btn.data-v-1d27c906 {
+  flex: 1;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  border: none;
+}
+.action-btn.primary.data-v-1d27c906 {
+  background: #3a9cff;
+  color: #fff;
+}
+.action-btn.secondary.data-v-1d27c906 {
+  background: #fff;
+  color: #3a9cff;
+  border: 1px solid #3a9cff;
+}
+.recent-section.data-v-1d27c906 {
+  margin: 0 24rpx;
+}
+.section-title.data-v-1d27c906 {
+  font-size: 28rpx;
+  font-weight: bold;
+  margin-bottom: 16rpx;
+  color: #333;
+}
+.record-list.data-v-1d27c906 {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(58,156,255,0.08);
+}
+.record-item.data-v-1d27c906 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.record-item.data-v-1d27c906:last-child {
+  border-bottom: none;
+}
+.record-info.data-v-1d27c906 {
+  display: flex;
+  flex-direction: column;
+}
+.record-desc.data-v-1d27c906 {
+  font-size: 28rpx;
+  color: #333;
+  margin-bottom: 4rpx;
+}
+.record-time.data-v-1d27c906 {
+  font-size: 24rpx;
+  color: #999;
+}
+.record-amount.data-v-1d27c906 {
+  font-size: 28rpx;
+  font-weight: bold;
+}
+.record-amount.income.data-v-1d27c906 {
+  color: #52c41a;
+}
+.record-amount.expense.data-v-1d27c906 {
+  color: #ff4d4f;
+}
