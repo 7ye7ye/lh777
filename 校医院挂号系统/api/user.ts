@@ -20,6 +20,7 @@ interface RegisterData {
   userAccount: string;
   userPassword: string;
   checkPassword: string;
+  userType: string;
 }
 interface UserInfo {
   id: number;

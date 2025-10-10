@@ -33,6 +33,7 @@ export interface ErrorLogInfo {
 export interface UserInfo {
   id: string | number;
   userId: string | number;
+  userAccount: string; // HosUser 类型的主要字段
   username: string;
   realname: string;
   avatar: string;
@@ -41,6 +42,18 @@ export interface UserInfo {
   tenantid?: string | number;
   roles: RoleInfo[];
   orgCode?: string;
+  // HosUser 类型的其他字段
+  userPassword?: string | null;
+  userType?: number;
+  idCard?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  status?: number | null;
+  createTime?: string | null;
+  updateTime?: string | null;
+  workNo?: string;
+  orgCodeTxt?: string;
+  postText?: string;
 }
 
 export interface LoginInfo {

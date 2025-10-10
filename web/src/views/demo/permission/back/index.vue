@@ -42,8 +42,8 @@
         const token = 'fakeToken' + userId;
         userStore.setToken(token);
 
-        // 重新获取用户信息和菜单
-        userStore.getUserInfoAction();
+        // 重新获取用户信息和菜单 - 已弃用 getUserInfoAction
+        // userStore.getUserInfoAction(); // 移除有问题的调用
         refreshMenu();
       }
 

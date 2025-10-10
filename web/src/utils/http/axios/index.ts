@@ -47,10 +47,10 @@ const transform: AxiosTransform = {
     const { data } = res;
     if (!data) {
       // return '[HTTP] Request has no return value';
-      throw new Error(t('sys.api.apiRequestFailed'));
+      // throw new Error(t('sys.api.apiRequestFailed'));
     }
     //  这里 code，result，message为 后台统一的字段，需要在 types.ts内修改为项目自己的接口返回格式
-    const { code, result, message, success } = data;
+    const { code, result, message, success } = data as any;
     // 这里逻辑可以根据项目进行修改
     const hasSuccess = data && Reflect.has(data, 'code') && (code === ResultEnum.SUCCESS || code === 200);
     if (hasSuccess) {
@@ -85,7 +85,7 @@ const transform: AxiosTransform = {
       createMessage.error(timeoutMsg);
     }
 
-    throw new Error(timeoutMsg || t('sys.api.apiRequestFailed'));
+    // throw new Error(timeoutMsg || t('sys.api.apiRequestFailed'));
   },
 
   // 请求之前处理config
@@ -243,6 +243,19 @@ const transform: AxiosTransform = {
       if (err?.includes('Network Error')) {
         errMessage = t('sys.api.networkExceptionMsg');
       }
+      
+      // 处理后端类型转换错误
+      if (err?.includes('cannot be cast') || err?.includes('ClassCastException')) {
+        console.warn('检测到后端类型转换错误:', err);
+        // 对于类型转换错误，不显示错误提示，直接返回一个默认的错误对象
+        if (errorMessageMode === 'none') {
+          return Promise.reject({
+            ...error,
+            isBackendTypeError: true,
+            message: '后端类型转换错误，请稍后重试'
+          });
+        }
+      }
 
       if (errMessage) {
         if (errorMessageMode === 'modal') {
@@ -253,7 +266,7 @@ const transform: AxiosTransform = {
         return Promise.reject(error);
       }
     } catch (error) {
-      throw new Error(error);
+      throw new Error(String(error));
     }
 
     checkStatus(error?.response?.status, msg, errorMessageMode);

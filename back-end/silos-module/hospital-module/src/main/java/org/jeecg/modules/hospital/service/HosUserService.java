@@ -19,7 +19,7 @@ public interface HosUserService extends IService<HosUser> {
      * @param checkPassword 确认密码
      * @return 新用户id
      */
-    int userRegister(String username, String password, String checkPassword);
+    int userRegister(String username, String password, String checkPassword,String userType);
 
     /**
      *
