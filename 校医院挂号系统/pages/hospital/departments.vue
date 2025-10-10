@@ -13,37 +13,59 @@
 
     <!-- 科室树形列表 -->
     <view class="department-tree">
-      <view 
-        v-for="(firstLevel, index) in departmentTree" 
-        :key="index" 
-        class="first-level"
-      >
-        <!-- 一级科室标题 -->
-        <view class="first-level-title" @click="toggleFirstLevel(index)">
-          <text class="dept-name">{{ firstLevel.deptName }}</text>
-          <image 
-            src="/static/icons/arrow-down.png" 
-            mode="widthFix" 
-            class="arrow-icon"
-            :class="{ 'rotate': firstLevel.expanded }"
-          ></image>
+      <!-- 搜索结果模式 -->
+      <view v-if="isSearchMode" class="search-results">
+        <view 
+          v-for="(item, index) in departmentTree" 
+          :key="index" 
+          class="search-result-item"
+          @click="navigateToDetail(item)"
+        >
+          <view class="dot"></view>
+          <view class="dept-info">
+            <text class="dept-name">{{ item.deptName }}</text>
+            <text class="dept-desc">{{ item.deptDesc || '暂无介绍' }}</text>
+            <text class="location" v-if="item.location">
+              位置：{{ item.location }}
+            </text>
+          </view>
         </view>
+      </view>
+      
+      <!-- 正常树形结构模式 -->
+      <view v-else>
+        <view 
+          v-for="(firstLevel, index) in departmentTree" 
+          :key="index" 
+          class="first-level"
+        >
+          <!-- 一级科室标题 -->
+          <view class="first-level-title" @click="toggleFirstLevel(index)">
+            <text class="dept-name">{{ firstLevel.deptName }}</text>
+            <image 
+              src="/static/icons/arrow-down.png" 
+              mode="widthFix" 
+              class="arrow-icon"
+              :class="{ 'rotate': firstLevel.expanded }"
+            ></image>
+          </view>
 
-        <!-- 二级科室列表 -->
-        <view class="second-level-list" v-if="firstLevel.expanded">
-          <view 
-            v-for="(secondLevel, sIndex) in firstLevel.children" 
-            :key="sIndex" 
-            class="second-level-item"
-            @click="navigateToDetail(secondLevel)"
-          >
-            <view class="dot"></view>
-            <view class="dept-info">
-              <text class="dept-name">{{ secondLevel.deptName }}</text>
-              <text class="dept-desc">{{ secondLevel.deptDesc || '暂无介绍' }}</text>
-              <text class="location" v-if="secondLevel.location">
-                位置：{{ secondLevel.location }}
-              </text>
+          <!-- 二级科室列表 -->
+          <view class="second-level-list" v-if="firstLevel.expanded">
+            <view 
+              v-for="(secondLevel, sIndex) in firstLevel.children" 
+              :key="sIndex" 
+              class="second-level-item"
+              @click="navigateToDetail(secondLevel)"
+            >
+              <view class="dot"></view>
+              <view class="dept-info">
+                <text class="dept-name">{{ secondLevel.deptName }}</text>
+                <text class="dept-desc">{{ secondLevel.deptDesc || '暂无介绍' }}</text>
+                <text class="location" v-if="secondLevel.location">
+                  位置：{{ secondLevel.location }}
+                </text>
+              </view>
             </view>
           </view>
         </view>
@@ -61,6 +83,7 @@ import { getDepartmentTree, searchDepartments } from '../../api/department'
 const keyword = ref('')
 const departmentTree = ref([])
 const originalTree = ref([]) // 用于搜索备份
+const isSearchMode = ref(false) // 是否为搜索模式
 
 // 加载科室树形结构
 const loadDepartmentTree = async () => {
@@ -106,9 +129,12 @@ const toggleFirstLevel = (index) => {
 // 搜索科室
 const handleSearch = async () => {
   if (!keyword.value.trim()) {
+    // 清空搜索，恢复原始树形结构
     departmentTree.value = [...originalTree.value]
+    isSearchMode.value = false
     return
   }
+  
   try {
     const res = await searchDepartments(keyword.value)
     console.log('搜索结果:', res)
@@ -122,10 +148,13 @@ const handleSearch = async () => {
     }
     
     if (data && Array.isArray(data)) {
-      // 简单处理搜索结果（实际项目需按树形结构重组）
+      // 进入搜索模式，显示扁平化的搜索结果
+      isSearchMode.value = true
       departmentTree.value = data.map(item => ({
         deptId: item.deptId,
         deptName: item.deptName,
+        deptDesc: item.deptDesc,
+        location: item.location,
         expanded: true,
         children: []
       }))
@@ -273,6 +302,27 @@ onMounted(() => {
 
 .tabbar-placeholder { 
   height: 120rpx; 
+}
+
+/* 搜索结果样式 */
+.search-results {
+  padding: 0;
+}
+
+.search-result-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 20rpx 24rpx;
+  border-bottom: 1rpx solid #eee;
+  background: #fff;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-item:active {
+  background-color: #f5f5f5;
 }
 </style>
 
