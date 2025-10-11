@@ -43,6 +43,13 @@
         登录
       </button>
 
+      <button
+        class="btn btn-doctor"
+        @click="goDoctorPortal"
+      >
+        医生端入口
+      </button>
+
       <view class="tips link" @click="goRegister">没有账号？去注册</view>
 
       <view class="tips">
@@ -101,6 +108,10 @@ import { uniNavigateTo } from '@/utils/uniHelper'
 
 const goRegister = () => {
   uniNavigateTo({ url: '/pages/register/register' })
+}
+
+const goDoctorPortal = () => {
+  uniNavigateTo({ url: '/pages/doctor/schedule/schedule' })
 }
 
 </script>
@@ -164,6 +175,12 @@ const goRegister = () => {
 }
 .btn:disabled {
   background: #a5c8ff;
+}
+.btn-doctor {
+  margin-top: 20rpx;
+  background: #fff;
+  color: #1677ff;
+  border: 2rpx solid #1677ff;
 }
 .tips {
   text-align: center;

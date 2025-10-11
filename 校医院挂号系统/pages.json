@@ -191,6 +191,46 @@
 			"style": {
 				"navigationBarTitleText": "预约挂号"
 			}
+		},
+		{
+			"path": "pages/doctor/schedule/schedule",
+			"style": {
+				"navigationBarTitleText": "医生排班",
+				"navigationBarBackgroundColor": "#1677ff",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/doctor/schedule/adjust-schedule",
+			"style": {
+				"navigationBarTitleText": "申请调班",
+				"navigationBarBackgroundColor": "#1677ff",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/doctor/patients/patient-list",
+			"style": {
+				"navigationBarTitleText": "患者列表",
+				"navigationBarBackgroundColor": "#1677ff",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/doctor/patients/patient-detail",
+			"style": {
+				"navigationBarTitleText": "患者详情",
+				"navigationBarBackgroundColor": "#1677ff",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/doctor/profile/profile",
+			"style": {
+				"navigationBarTitleText": "个人信息",
+				"navigationBarBackgroundColor": "#1677ff",
+				"navigationBarTextStyle": "white"
+			}
 		}
 	],
 	"tabBar": {
