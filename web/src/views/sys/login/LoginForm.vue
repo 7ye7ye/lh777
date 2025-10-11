@@ -143,19 +143,19 @@
     if (!data) return;
     try {
       loading.value = true;
-      const { userInfo } = await userStore.login(
+      const result = await userStore.login(
         toRaw({
-          password: data.password,
-          username: data.account,
+          userPassword: data.password,
+          userAccount: data.account,
           captcha: data.inputCode,
           checkKey: randCodeData.checkKey,
           mode: 'none', //不要默认的错误提示
         })
       );
-      if (userInfo) {
+      if (result) {
         notification.success({
           message: t('sys.login.loginSuccessTitle'),
-          description: `${t('sys.login.loginSuccessDesc')}: ${userInfo.realname}`,
+          description: `${t('sys.login.loginSuccessDesc')}: ${result.userInfo?.userAccount || result.userInfo?.username || '用户'}`,
           duration: 3,
         });
       }
