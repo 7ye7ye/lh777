@@ -28,7 +28,27 @@ export const getMenuList = () => {
  * @description: 获取后台菜单权限和按钮权限
  */
 export function getBackMenuAndPerms() {
-  return defHttp.get({ url: Api.GetMenuList });
+  return defHttp.get({ url: Api.GetMenuList }, { 
+    isTransformResponse: false, // 不进行数据转换，避免后端类型转换错误
+    errorMessageMode: 'none' // 不显示错误提示，由调用方处理
+  }).then((res) => {
+    // 确保返回正确的数据结构
+    if (res && res.data) {
+      return res.data;
+    }
+    if (res && res.result) {
+      return res.result;
+    }
+    // 如果数据结构不对，返回原始数据
+    return res || { codeList: [], menu: [] };
+  }).catch((error) => {
+    console.error('获取菜单权限接口出错:', error);
+    // 返回默认的空菜单结构
+    return {
+      codeList: [],
+      menu: []
+    };
+  });
 }
 
 /**

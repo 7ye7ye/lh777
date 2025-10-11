@@ -55,6 +55,12 @@
 			}
 		},
 		{
+			"path": "pages/profile/personal/modify-info",
+			"style": {
+				"navigationBarTitleText": "修改个人信息"
+			}
+		},
+		{
 			"path": "pages/profile/personal/mycard",
 			"style": {
 				"navigationBarTitleText": "我的就诊卡"

@@ -1,21 +1,16 @@
 import { defHttp } from '/@/utils/http/axios';
-import { LoginParams, LoginResultModel, GetUserInfoModel } from './model/userModel';
+import { LoginParams, LoginResultModel } from './model/userModel';
 
 import { ErrorMessageMode } from '/#/axios';
 import { useMessage } from '/@/hooks/web/useMessage';
-import { useUserStoreWithOut } from '/@/store/modules/user';
-import { setAuthCache } from '/@/utils/auth';
-import { TOKEN_KEY } from '/@/enums/cacheEnum';
-import { router } from '/@/router';
-import { PageEnum } from '/@/enums/pageEnum';
 import { ExceptionEnum } from "@/enums/exceptionEnum";
 
 const { createErrorModal } = useMessage();
 enum Api {
-  Login = '/sys/login',
+  Login = '/user/login',
   phoneLogin = '/sys/phoneLogin',
-  Logout = '/sys/logout',
-  GetUserInfo = '/sys/user/getUserInfo',
+  Logout = '/user/logout', // 使用hospital模块的退出接口
+  // GetUserInfo = '/user/getUserInfo', // 已弃用，避免后端类型转换错误
   // 获取系统权限
   // 1、查询用户拥有的按钮/表单访问权限
   // 2、所有权限
@@ -26,7 +21,7 @@ enum Api {
   //获取短信验证码的接口
   getCaptcha = '/sys/sms',
   //注册接口
-  registerApi = '/sys/user/register',
+  registerApi = '/user/register',
   //校验用户接口
   checkOnlyUser = '/sys/user/checkOnlyUser',
   //SSO登录校验
@@ -49,15 +44,18 @@ enum Api {
  * @description: user login api
  */
 export function loginApi(params: LoginParams, mode: ErrorMessageMode = 'modal') {
-  return defHttp.post<LoginResultModel>(
+  const res=defHttp.post<LoginResultModel>(
     {
       url: Api.Login,
       params,
     },
     {
       errorMessageMode: mode,
+      isTransformResponse: false, // 不进行数据转换，直接返回原始数据
     }
   );
+  console.log('登录接口返回数据:', res);
+  return res;
 }
 
 /**
@@ -71,43 +69,25 @@ export function phoneLoginApi(params: LoginParams, mode: ErrorMessageMode = 'mod
     },
     {
       errorMessageMode: mode,
+      isTransformResponse: false, // 不进行数据转换，直接返回原始数据
     }
   );
 }
 
 /**
- * @description: getUserInfo
+ * @description: getUserInfo - 已完全移除，避免后端类型转换错误
+ * 现在直接使用登录时保存的用户信息，不再调用后端接口
  */
-export function getUserInfo() {
-  return defHttp.get<GetUserInfoModel>({ url: Api.GetUserInfo }, {}).catch((e) => {
-    // update-begin--author:zyf---date:20220425---for:【VUEN-76】捕获接口超时异常,跳转到登录界面
-    if (e && (e.message.includes('timeout') || e.message.includes('401'))) {
-      //接口不通时跳转到登录界面
-      const userStore = useUserStoreWithOut();
-      userStore.setToken('');
-      setAuthCache(TOKEN_KEY, null);
-
-      // update-begin-author:sunjianlei date:20230306 for: 修复登录成功后，没有正确重定向的问题
-      router.push({
-        path: PageEnum.BASE_LOGIN,
-        query: {
-          // 传入当前的路由，登录成功后跳转到当前路由
-          redirect: router.currentRoute.value.fullPath,
-        }
-      });
-      // update-end-author:sunjianlei date:20230306 for: 修复登录成功后，没有正确重定向的问题
-
-    }
-    // update-end--author:zyf---date:20220425---for:【VUEN-76】捕获接口超时异常,跳转到登录界面
-  });
-}
 
 export function getPermCode() {
-  return defHttp.get({ url: Api.GetPermCode });
+  console.warn('getPermCode 接口已弃用，使用新的登录逻辑');
+  // 返回空的权限代码列表
+  return Promise.resolve([]);
 }
 
 export function doLogout() {
-  return defHttp.get({ url: Api.Logout });
+  // 使用hospital模块的退出登录接口，避免系统接口的类型转换问题
+  return defHttp.post({ url: '/user/logout' });
 }
 
 export function getCodeInfo(currdatetime) {

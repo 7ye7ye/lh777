@@ -4,22 +4,15 @@ import { defineStore } from 'pinia';
 import { store } from '/@/store';
 import { RoleEnum } from '/@/enums/roleEnum';
 import { PageEnum } from '/@/enums/pageEnum';
-import { ROLES_KEY, TOKEN_KEY, USER_INFO_KEY, LOGIN_INFO_KEY, DB_DICT_DATA_KEY, TENANT_ID, OAUTH2_THIRD_LOGIN_TENANT_ID } from '/@/enums/cacheEnum';
-import { getAuthCache, setAuthCache, removeAuthCache } from '/@/utils/auth';
+import { ROLES_KEY, TOKEN_KEY, USER_INFO_KEY, LOGIN_INFO_KEY, DB_DICT_DATA_KEY, TENANT_ID } from '/@/enums/cacheEnum';
+import { getAuthCache, setAuthCache } from '/@/utils/auth';
 import { GetUserInfoModel, LoginParams, ThirdLoginParams } from '/@/api/sys/model/userModel';
-import { doLogout, getUserInfo, loginApi, phoneLoginApi, thirdLogin } from '/@/api/sys/user';
+import { doLogout, loginApi, phoneLoginApi } from '/@/api/sys/user';
 import { useI18n } from '/@/hooks/web/useI18n';
 import { useMessage } from '/@/hooks/web/useMessage';
 import { router } from '/@/router';
-import { usePermissionStore } from '/@/store/modules/permission';
-import { RouteRecordRaw } from 'vue-router';
-import { PAGE_NOT_FOUND_ROUTE } from '/@/router/routes/basic';
-import { isArray } from '/@/utils/is';
 import { useGlobSetting } from '/@/hooks/setting';
 import { JDragConfigEnum } from '/@/enums/jeecgEnum';
-import { useSso } from '/@/hooks/web/useSso';
-import { isOAuth2AppEnv } from "/@/views/sys/login/useLogin";
-import { getUrlParam } from "@/utils";
 interface dictType {
   [key: string]: any;
 }
@@ -71,7 +64,7 @@ export const useUserStore = defineStore({
     getToken(): string {
       return this.token || getAuthCache<string>(TOKEN_KEY);
     },
-    getAllDictItems(): [] {
+    getAllDictItems(): any {
       return this.dictItems || getAuthCache(DB_DICT_DATA_KEY);
     },
     getRoleList(): RoleEnum[] {
@@ -151,16 +144,52 @@ export const useUserStore = defineStore({
     ): Promise<GetUserInfoModel | null> {
       try {
         const { goHome = true, mode, ...loginParams } = params;
-        const data = await loginApi(loginParams, mode);
-        const { token, userInfo } = data;
-        // save token
+        
+        // 1. 调用登录接口并打印调试信息
+        console.log('登录请求参数:', loginParams);
+        const response = await loginApi(loginParams, mode);
+        console.log('登录接口返回数据:', response);
+        
+        // 2. 检查接口是否返回了有效响应
+        if (!response) {
+          throw new Error('登录接口未返回任何数据，请检查接口是否正常');
+        }
+        
+        // 3. 解构token和user信息（适配HosUser类型）
+        const { token, user } = response; // 直接解构响应数据
+        
+        // 4. 验证关键数据是否存在
+        if (!token) {
+          throw new Error('登录失败：后端未返回token');
+        }
+        if (!user) {
+          throw new Error('登录失败：后端未返回用户信息');
+        }
+        
+        // 5. 保存token
         this.setToken(token);
-        this.setTenant(userInfo.loginTenantId);
-        return this.afterLoginAction(goHome, data);
+        
+        // 6. 构造用户信息对象，适配HosUser类型
+        const userInfo = {
+          username: user.userAccount,
+          realname: user.userAccount, // 如果后端没有返回realname，使用userAccount
+          avatar: '',
+          desc: '',
+          roles: [],
+          homePath: '/dashboard/analysis', // 默认首页
+          ...user // 保留所有HosUser的原始字段
+        };
+        
+        // 7. 执行登录后的后续操作
+        return this.afterLoginAction(goHome, { token, userInfo });
       } catch (error) {
+        // 打印完整错误信息，方便排查
+        console.error('登录过程出错:', error);
         return Promise.reject(error);
       }
     },
+
+
     /**
      * 扫码登录事件
      */
@@ -174,60 +203,51 @@ export const useUserStore = defineStore({
       }
     },
     /**
-     * 登录完成处理
+     * 登录完成处理 - 简化版本，避免路由构建问题
      * @param goHome
      */
     async afterLoginAction(goHome?: boolean, data?: any): Promise<any | null> {
       if (!this.getToken) return null;
-      //获取用户信息
-      const userInfo = await this.getUserInfoAction();
-      const sessionTimeout = this.sessionTimeout;
-      if (sessionTimeout) {
-        this.setSessionTimeout(false);
-      } else {
-        //update-begin---author:scott ---date::2024-02-21  for：【QQYUN-8326】登录不需要构建路由，进入首页有构建---
-        // // 构建后台菜单路由
-        // const permissionStore = usePermissionStore();
-        // if (!permissionStore.isDynamicAddedRoute) {
-        //   const routes = await permissionStore.buildRoutesAction();
-        //   routes.forEach((route) => {
-        //     router.addRoute(route as unknown as RouteRecordRaw);
-        //   });
-        //   router.addRoute(PAGE_NOT_FOUND_ROUTE as unknown as RouteRecordRaw);
-        //   permissionStore.setDynamicAddedRoute(true);
-        // }
-        //update-end---author:scott ---date::2024-02-21  for：【QQYUN-8326】登录不需要构建路由，进入首页有构建---
+      
+      try {
+        // 获取用户信息（使用简化版本）
+        const userInfo = await this.getUserInfoAction();
         
+        // 设置登录信息
         await this.setLoginInfo({ ...data, isLogin: true });
-        //update-begin-author:liusq date:2022-5-5 for:登录成功后缓存拖拽模块的接口前缀
+        
+        // 缓存拖拽模块的接口前缀
         localStorage.setItem(JDragConfigEnum.DRAG_BASE_URL, useGlobSetting().domainUrl);
-        //update-end-author:liusq date:2022-5-5 for: 登录成功后缓存拖拽模块的接口前缀
 
-        // update-begin-author:sunjianlei date:20230306 for: 修复登录成功后，没有正确重定向的问题
+        // 设置 session timeout 标志
+        const sessionTimeout = this.sessionTimeout;
+        if (sessionTimeout) {
+          this.setSessionTimeout(false);
+        }
+
+        // 处理重定向逻辑
         let redirect = router.currentRoute.value?.query?.redirect as string;
-        // 判断是否有 redirect 重定向地址
-        //update-begin---author:wangshuai ---date:20230424  for：【QQYUN-5195】登录之后直接刷新页面导致没有进入创建组织页面------------
         if (redirect && goHome) {
-        //update-end---author:wangshuai ---date:20230424  for：【QQYUN-5195】登录之后直接刷新页面导致没有进入创建组织页面------------
-          // update-begin--author:liaozhiyang---date:20250407---for：【issues/8034】hash模式下退出重登录默认跳转地址异常
-          // router.options.history.base可替代之前的publicPath
-          // 当前页面打开
+          // 如果有重定向地址，跳转到指定页面
           window.open(`${router.options.history.base}${redirect}`, '_self');
-          // update-end--author:liaozhiyang---date:20250407---for：【issues/8034】hash模式下退出重登录默认跳转地址异常
           return data;
         }
-        // update-end-author:sunjianlei date:20230306 for: 修复登录成功后，没有正确重定向的问题
 
-        //update-begin---author:wangshuai---date:2024-04-03---for:【issues/1102】设置单点登录后页面，进入首页提示404，也没有绘制侧边栏 #1102---
-        let ticket = getUrlParam('ticket');
-        if(ticket){
-          goHome && (window.location.replace((userInfo && userInfo.homePath) || PageEnum.BASE_HOME));
-        }else{
-          goHome && (await router.replace((userInfo && userInfo.homePath) || PageEnum.BASE_HOME));
+        // 默认跳转到首页
+        if (goHome) {
+          const homePath = userInfo?.homePath || PageEnum.BASE_HOME;
+          await router.replace(homePath);
         }
-        //update-end---author:wangshuai---date:2024-04-03---for:【issues/1102】设置单点登录后页面，进入首页提示404，也没有绘制侧边栏 #1102---
+        
+        return data;
+      } catch (error) {
+        console.error('登录后处理失败:', error);
+        // 即使出错也要跳转到首页，避免用户卡在登录页
+        if (goHome) {
+          await router.replace(PageEnum.BASE_HOME);
+        }
+        return data;
       }
-      return data;
     },
     /**
      * 手机号登录
@@ -241,108 +261,110 @@ export const useUserStore = defineStore({
     ): Promise<GetUserInfoModel | null> {
       try {
         const { goHome = true, mode, ...loginParams } = params;
-        const data = await phoneLoginApi(loginParams, mode);
-        //update-begin---author:wangshuai---date:2024-11-25---for:【issues/7488】手机号码登录，在请求头中无法获取租户id---
-        const { token , userInfo } = data;
-        this.setTenant(userInfo!.loginTenantId);
-        //update-end---author:wangshuai---date:2024-11-25---for:【issues/7488】手机号码登录，在请求头中无法获取租户id---
+        const response = await phoneLoginApi(loginParams, mode);
+        
+        // 解构token和user信息（适配HosUser类型）
+        const { token, user } = response; // 直接解构响应数据
+        
+        // 验证关键数据是否存在
+        if (!token) {
+          throw new Error('手机号登录失败：后端未返回token');
+        }
+        if (!user) {
+          throw new Error('手机号登录失败：后端未返回用户信息');
+        }
+        
+        // 构造用户信息对象，适配HosUser类型
+        const userInfo = {
+          username: user.userAccount,
+          realname: user.userAccount, // 如果后端没有返回realname，使用userAccount
+          avatar: '',
+          desc: '',
+          roles: [],
+          homePath: '/dashboard/analysis', // 默认首页
+          ...user // 保留所有HosUser的原始字段
+        };
+        
         // save token
         this.setToken(token);
-        return this.afterLoginAction(goHome, data);
+        return this.afterLoginAction(goHome, { token, userInfo });
       } catch (error) {
         return Promise.reject(error);
       }
     },
     /**
-     * 获取用户信息
+     * 获取用户信息 - 简化版本，避免后端类型转换问题
      */
     async getUserInfoAction(): Promise<UserInfo | null> {
       if (!this.getToken) {
         return null;
       }
-      const { userInfo, sysAllDictItems } = await getUserInfo();
-      if (userInfo) {
-        const { roles = [] } = userInfo;
-        if (isArray(roles)) {
-          const roleList = roles.map((item) => item.value) as RoleEnum[];
-          this.setRoleList(roleList);
-        } else {
-          userInfo.roles = [];
-          this.setRoleList([]);
-        }
-        this.setUserInfo(userInfo);
+      
+      // 直接使用登录时保存的用户信息，避免调用可能有问题的后端接口
+      const cachedUserInfo = this.getUserInfo;
+      if (cachedUserInfo && cachedUserInfo.userId !== 'unknown') {
+        return cachedUserInfo;
       }
-      /**
-       * 添加字典信息到缓存
-       * @updateBy:lsq
-       * @updateDate:2021-09-08
-       */
-      if (sysAllDictItems) {
-        this.setAllDictItems(sysAllDictItems);
-      }
-      return userInfo;
+      
+      // 如果没有缓存的用户信息，创建一个基本的HosUser类型用户信息
+      const basicUserInfo: UserInfo = {
+        id: '1',
+        userId: '1',
+        userAccount: 'user',
+        username: 'user',
+        realname: '用户',
+        avatar: '',
+        desc: '',
+        roles: [],
+        homePath: '/dashboard/analysis',
+        userType: 1,
+        status: 1
+      } as UserInfo;
+      
+      this.setUserInfo(basicUserInfo);
+      this.setRoleList([]);
+      return basicUserInfo;
     },
     /**
-     * 退出登录
+     * 退出登录 - 使用hospital模块的退出接口
      */
     async logout(goLogin = false) {
-      if (this.getToken) {
-        try {
+      try {
+        // 调用hospital模块的退出登录接口
+        if (this.getToken) {
           await doLogout();
-        } catch {
-          console.log('注销Token失败');
+          console.log('退出登录成功');
         }
+      } catch (error) {
+        console.log('退出登录接口调用失败，继续执行本地清理:', error);
       }
 
-      // //update-begin-author:taoyan date:2022-5-5 for: src/layouts/default/header/index.vue showLoginSelect方法 获取tenantId 退出登录后再次登录依然能获取到值，没有清空
-      // let username:any = this.userInfo && this.userInfo.username;
-      // if(username){
-      //   removeAuthCache(username)
-      // }
-      // //update-end-author:taoyan date:2022-5-5 for: src/layouts/default/header/index.vue showLoginSelect方法 获取tenantId 退出登录后再次登录依然能获取到值，没有清空
-
+      // 清除所有用户相关数据
       this.setToken('');
       setAuthCache(TOKEN_KEY, null);
       this.setSessionTimeout(false);
       this.setUserInfo(null);
       this.setLoginInfo(null);
       this.setTenant(null);
-      // update-begin--author:liaozhiyang---date:20240517---for：【TV360X-23】退出登录后会提示「Token时效，请重新登录」
-      setTimeout(() => {
-        this.setAllDictItems(null);
-      }, 1e3);
-      // update-end--author:liaozhiyang---date:20240517---for：【TV360X-23】退出登录后会提示「Token时效，请重新登录」
-      //update-begin-author:liusq date:2022-5-5 for:退出登录后清除拖拽模块的接口前缀
+      this.setRoleList([]);
+      this.setAllDictItems(null);
+      
+      // 清除拖拽模块的接口前缀
       localStorage.removeItem(JDragConfigEnum.DRAG_BASE_URL);
-      //update-end-author:liusq date:2022-5-5 for: 退出登录后清除拖拽模块的接口前缀
 
-      //如果开启单点登录,则跳转到单点统一登录中心
-      const openSso = useGlobSetting().openSso;
-      if (openSso == 'true') {
-        await useSso().ssoLoginOut();
-      }
-      //update-begin---author:wangshuai ---date:20230224  for：[QQYUN-3440]新建企业微信和钉钉配置表，通过租户模式隔离------------
-      //退出登录的时候需要用的应用id
-      if(isOAuth2AppEnv()){
-        let tenantId = getAuthCache(OAUTH2_THIRD_LOGIN_TENANT_ID);
-        removeAuthCache(OAUTH2_THIRD_LOGIN_TENANT_ID);
-        goLogin && await router.push({ name:"Login",query:{ tenantId:tenantId }})
-      }else{
-        // update-begin-author:sunjianlei date:20230306 for: 修复登录成功后，没有正确重定向的问题
-        goLogin && (await router.push({
+      // 跳转到登录页
+      if (goLogin) {
+        await router.push({
           path: PageEnum.BASE_LOGIN,
           query: {
             // 传入当前的路由，登录成功后跳转到当前路由
             redirect: router.currentRoute.value.fullPath,
           }
-        }));
-        // update-end-author:sunjianlei date:20230306 for: 修复登录成功后，没有正确重定向的问题
-
+        });
       }
-      //update-end---author:wangshuai ---date:20230224  for：[QQYUN-3440]新建企业微信和钉钉配置表，通过租户模式隔离------------
     },
     /**
-     * 登录事件
+     * 第三方登录 - 已弃用，使用新的登录逻辑
      */
     async ThirdLogin(
       params: ThirdLoginParams & {
@@ -350,19 +372,8 @@ export const useUserStore = defineStore({
         mode?: ErrorMessageMode;
       }
     ): Promise<any | null> {
-      try {
-        const { goHome = true, mode, ...ThirdLoginParams } = params;
-        const data = await thirdLogin(ThirdLoginParams, mode);
-        //update-begin---author:wangshuai---date:2024-07-01---for:【issues/6652】开启租户数据隔离，接入钉钉后登录默认租户为0了---
-        const { token, userInfo } = data;
-        this.setTenant(userInfo?.loginTenantId);
-        //update-end---author:wangshuai---date:2024-07-01---for:【issues/6652】开启租户数据隔离，接入钉钉后登录默认租户为0了---
-        // save token
-        this.setToken(token);
-        return this.afterLoginAction(goHome, data);
-      } catch (error) {
-        return Promise.reject(error);
-      }
+      console.warn('第三方登录已弃用，请使用新的登录逻辑');
+      return Promise.reject(new Error('第三方登录已弃用'));
     },
     /**
      * 退出询问

@@ -2,8 +2,10 @@
  * @description: Login interface parameters
  */
 export interface LoginParams {
-  username: string;
-  password: string;
+  userAccount: string;
+  userPassword: string;
+  captcha?: string;
+  checkKey?: string;
 }
 
 export interface ThirdLoginParams {
@@ -20,10 +22,20 @@ export interface RoleInfo {
  * @description: Login interface return value
  */
 export interface LoginResultModel {
-  userId: string | number;
+  user: {
+    userId: string | number;
+    userAccount: string;
+    userPassword?: string;
+    userType?: number;
+    idCard?: string;
+    phone?: string;
+    email?: string;
+    status?: number;
+    createTime?: string;
+    updateTime?: string;
+  };
   token: string;
-  role: RoleInfo;
-  userInfo?: any
+  tokenExpireTime?: string | null;
 }
 
 /**

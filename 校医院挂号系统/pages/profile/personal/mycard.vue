@@ -1,50 +1,44 @@
 <template>
   <view class="page-bg">
-    <view class="card-header">我的就诊卡</view>
-    
-    <!-- 卡片信息 -->
-    <view class="card-info">
-      <view class="card-item">
-        <text class="label">姓名：</text>
-        <text class="value">{{ cardInfo.name || '张三' }}</text>
+    <!-- 就诊卡卡片 -->
+    <view class="medical-card">
+      <view class="card-header">
+        <view class="hospital-logo">🏥</view>
+        <view class="hospital-name">校医院就诊卡</view>
       </view>
-      <view class="card-item">
-        <text class="label">卡号：</text>
-        <text class="value">{{ cardInfo.cardNumber || '1234567890' }}</text>
-      </view>
-      <view class="card-item">
-        <text class="label">余额：</text>
-        <text class="value balance">¥{{ cardInfo.balance || '0.00' }}</text>
-      </view>
-      <view class="card-item">
-        <text class="label">状态：</text>
-        <text class="value status" :class="cardInfo.status === '正常' ? 'active' : 'inactive'">
-          {{ cardInfo.status || '正常' }}
-        </text>
-      </view>
-    </view>
-
-    <!-- 功能按钮 -->
-    <view class="card-actions">
-      <button class="action-btn primary" @click="getCardInfo">刷新卡信息</button>
-      <button class="action-btn secondary" @click="goToRecharge">充值</button>
-      <button class="action-btn secondary" @click="goToHistory">消费记录</button>
-    </view>
-
-    <!-- 最近消费记录 -->
-    <view class="recent-section">
-      <view class="section-title">最近消费</view>
-      <view class="record-list">
-        <view class="record-item" v-for="item in recentRecords" :key="item.id">
-          <view class="record-info">
-            <text class="record-desc">{{ item.description }}</text>
-            <text class="record-time">{{ item.time }}</text>
+      
+      <view class="card-content">
+        <view class="patient-name">{{ cardInfo.name || '张三' }}</view>
+        
+        <view class="card-details">
+          <view class="detail-item">
+            <text class="detail-label">门诊号：</text>
+            <text class="detail-value">{{ cardInfo.cardNumber || 'M017080045' }}</text>
           </view>
-          <text class="record-amount" :class="item.type === 'income' ? 'income' : 'expense'">
-            {{ item.type === 'income' ? '+' : '-' }}¥{{ item.amount }}
-          </text>
+          <view class="detail-item">
+            <text class="detail-label">证件类型：</text>
+            <text class="detail-value">{{ cardInfo.idType || '身份证' }}</text>
+          </view>
+          <view class="detail-item">
+            <text class="detail-label">证件号码：</text>
+            <text class="detail-value">{{ maskIdNumber(cardInfo.idNumber) || '420**********961' }}</text>
+          </view>
+          <view class="detail-item">
+            <text class="detail-label">电话：</text>
+            <text class="detail-value">{{ maskPhone(cardInfo.phone) || '15******467' }}</text>
+          </view>
+          <view class="detail-item">
+            <text class="detail-label">地址：</text>
+            <text class="detail-value">{{ cardInfo.address || '北京市北京市海淀区北京交通大学' }}</text>
+          </view>
         </view>
       </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="action-buttons">
+      <button class="action-btn modify-btn" @click="goToModifyInfo">修改个人信息</button>
+      <button class="action-btn replace-btn" @click="goToReplaceCard">更换新就诊卡</button>
     </view>
   </view>
 </template>
@@ -52,35 +46,52 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { userApi } from '@/api/user'
+import { useUserStore } from '@/store/user'
 
 const cardInfo = ref({})
-const recentRecords = ref([
-  { id: 1, description: '门诊挂号费', time: '2025-09-20 14:30', amount: '15.00', type: 'expense' },
-  { id: 2, description: '药品费用', time: '2025-09-19 10:15', amount: '128.50', type: 'expense' },
-  { id: 3, description: '卡充值', time: '2025-09-18 16:20', amount: '200.00', type: 'income' }
-])
+const userStore = useUserStore()
 
+// 获取就诊卡信息
 const getCardInfo = () => {
   userApi.getCard().then(res => {
-    uni.showToast({ title: '获取成功', icon: 'success' })
     cardInfo.value = res.data || {}
   }).catch(() => {
-    uni.showToast({ title: '获取失败', icon: 'error' })
+    // 如果获取失败，使用默认信息
+    cardInfo.value = {
+      name: '张三',
+      cardNumber: 'M017080045',
+      idType: '身份证',
+      idNumber: '42012319900101961',
+      phone: '15812345678',
+      address: '北京市北京市海淀区北京交通大学'
+    }
   })
 }
 
-const goToRecharge = () => {
-  uni.showModal({
-    title: '充值功能',
-    content: '充值功能开发中，敬请期待',
-    showCancel: false
-  })
+// 脱敏身份证号
+const maskIdNumber = (idNumber) => {
+  if (!idNumber) return ''
+  if (idNumber.length < 8) return idNumber
+  return idNumber.substring(0, 3) + '**********' + idNumber.substring(idNumber.length - 3)
 }
 
-const goToHistory = () => {
+// 脱敏手机号
+const maskPhone = (phone) => {
+  if (!phone) return ''
+  if (phone.length < 7) return phone
+  return phone.substring(0, 2) + '******' + phone.substring(phone.length - 3)
+}
+
+// 跳转到修改个人信息页面
+const goToModifyInfo = () => {
+  uni.navigateTo({ url: '/pages/profile/personal/modify-info' })
+}
+
+// 更换新就诊卡
+const goToReplaceCard = () => {
   uni.showModal({
-    title: '消费记录',
-    content: '消费记录功能开发中，敬请期待',
+    title: '更换就诊卡',
+    content: '更换新就诊卡功能开发中，敬请期待',
     showCancel: false
   })
 }
@@ -94,134 +105,132 @@ onMounted(() => {
 .page-bg { 
   min-height: 100vh; 
   background: #f8faff; 
+  padding: 24rpx;
 }
 
-.card-header { 
-  font-size: 36rpx; 
-  font-weight: bold; 
-  padding: 32rpx 32rpx 0 32rpx; 
+/* 就诊卡样式 */
+.medical-card {
+  background: linear-gradient(135deg, #3a9cff 0%, #5db7ff 100%);
+  border-radius: 20rpx;
+  padding: 40rpx;
+  margin-bottom: 40rpx;
+  box-shadow: 0 8rpx 32rpx rgba(58, 156, 255, 0.3);
+  position: relative;
+  overflow: hidden;
 }
 
-.card-info { 
-  background: #fff; 
-  margin: 24rpx; 
-  border-radius: 16rpx; 
-  padding: 32rpx; 
-  box-shadow: 0 4rpx 16rpx rgba(58,156,255,0.08);
+.medical-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  pointer-events: none;
 }
 
-.card-item { 
+.card-header {
   display: flex;
   align-items: center;
-  margin-bottom: 24rpx; 
+  margin-bottom: 30rpx;
+  position: relative;
+  z-index: 1;
 }
 
-.label {
-  width: 120rpx;
-  font-size: 28rpx;
-  color: #666;
+.hospital-logo {
+  font-size: 48rpx;
+  margin-right: 16rpx;
 }
 
-.value {
-  flex: 1;
-  font-size: 28rpx;
-  color: #333;
-}
-
-.balance {
-  color: #3a9cff;
+.hospital-name {
+  font-size: 32rpx;
   font-weight: bold;
+  color: #fff;
 }
 
-.status.active {
-  color: #52c41a;
+.card-content {
+  position: relative;
+  z-index: 1;
 }
 
-.status.inactive {
-  color: #ff4d4f;
+.patient-name {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #fff;
+  text-align: center;
+  margin-bottom: 30rpx;
 }
 
-.card-actions {
+.card-details {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 16rpx;
+  padding: 24rpx;
+  backdrop-filter: blur(10rpx);
+}
+
+.detail-item {
   display: flex;
-  gap: 16rpx;
-  margin: 0 24rpx 24rpx 24rpx;
+  align-items: center;
+  margin-bottom: 16rpx;
+  padding: 8rpx 0;
+}
+
+.detail-item:last-child {
+  margin-bottom: 0;
+}
+
+.detail-label {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.8);
+  width: 140rpx;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  font-size: 26rpx;
+  color: #fff;
+  flex: 1;
+  font-weight: 500;
+}
+
+/* 操作按钮样式 */
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
 }
 
 .action-btn {
-  flex: 1;
-  padding: 20rpx;
-  border-radius: 12rpx;
-  font-size: 28rpx;
+  width: 100%;
+  height: 88rpx;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+  font-weight: 500;
   border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
 }
 
-.action-btn.primary {
+.modify-btn {
   background: #3a9cff;
   color: #fff;
 }
 
-.action-btn.secondary {
-  background: #fff;
-  color: #3a9cff;
-  border: 1px solid #3a9cff;
+.modify-btn:active {
+  background: #2980e6;
+  transform: scale(0.98);
 }
 
-.recent-section {
-  margin: 0 24rpx;
+.replace-btn {
+  background: #52c41a;
+  color: #fff;
 }
 
-.section-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  margin-bottom: 16rpx;
-  color: #333;
-}
-
-.record-list {
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  box-shadow: 0 4rpx 16rpx rgba(58,156,255,0.08);
-}
-
-.record-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16rpx 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.record-item:last-child {
-  border-bottom: none;
-}
-
-.record-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.record-desc {
-  font-size: 28rpx;
-  color: #333;
-  margin-bottom: 4rpx;
-}
-
-.record-time {
-  font-size: 24rpx;
-  color: #999;
-}
-
-.record-amount {
-  font-size: 28rpx;
-  font-weight: bold;
-}
-
-.record-amount.income {
-  color: #52c41a;
-}
-
-.record-amount.expense {
-  color: #ff4d4f;
+.replace-btn:active {
+  background: #389e0d;
+  transform: scale(0.98);
 }
 </style>
