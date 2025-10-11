@@ -1,28 +1,6 @@
 <template>
-  <view class="messages-bg">
-    <view class="messages-header">
-      <text class="title">消息中心</text>
-      <view class="header-icons">
-        <view class="header-icon">⚙️</view>
-      </view>
-    </view>
-    <view class="content">
-      <view class="empty-img">📭</view>
-      <view class="empty-tip">
-        请
-        <text class="login-link" @click="goLogin">登录</text>
-        后，查看消息通知
-      </view>
-    </view>
-    <view class="tabbar-placeholder"></view>
-  </view>
-</template>
 
-<script setup>
-const goLogin = () => {
-  uni.navigateTo({ url: '/pages/login/login' })
-}
-</script>
+</template>
 
 <style scoped>
 .messages-bg {

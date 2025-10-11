@@ -208,8 +208,8 @@
 			{
 				"pagePath": "pages/messages/messages",
 				"text": "消息中心",
-				"iconPath": "static/logo.png",
-				"selectedIconPath": "static/logo.png"
+				"iconPath": "static/message.png",
+				"selectedIconPath": "static/message-active.png"
 			},
 			{
 				"pagePath": "pages/hospital/hospital",
