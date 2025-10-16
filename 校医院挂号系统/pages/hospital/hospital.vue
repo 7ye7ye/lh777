@@ -89,7 +89,7 @@ const switchBranch = (idx) => {
 }
 
 const goDepartments = () => {
-  uni.navigateTo({ url: '/pages/hospital/departments' })
+  uni.navigateTo({ url: '/subpkg/hospital/departments' })
 }
 </script>
 

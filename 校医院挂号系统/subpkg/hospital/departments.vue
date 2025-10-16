@@ -34,7 +34,7 @@ const departments = ref([
 ])
 
 const goDetail = (key) => {
-  uni.navigateTo({ url: `/pages/hospital/department-detail?key=${key}` })
+  uni.navigateTo({ url: `/subpkg/hospital/department-detail?key=${key}` })
 }
 </script>
 

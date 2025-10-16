@@ -93,7 +93,7 @@
 			goToReceipt(appointmentId) {
 				// 我们还没有创建回执单页面，先把逻辑写好
 				uni.navigateTo({
-					url: `/pages/messages/receipt?id=${appointmentId}`
+					url: `/subpkg/messages/receipt?id=${appointmentId}`
 				});
 				// uni.showToast({ title: '即将跳转到挂号回执单', icon: 'none' });
 			},
