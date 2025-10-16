@@ -15,7 +15,10 @@
 		{
 			"path": "pages/messages/messages",
 			"style": {
-				"navigationBarTitleText": "消息中心"
+				"navigationBarTitleText": "消息中心",
+		    "navigationBarTextStyle": "white",
+				"enablePullDownRefresh": true,
+				"navigationBarBackgroundColor": "#479fff"
 			}
 		},
 		{
@@ -190,6 +193,26 @@
 			"path": "pages/profile/help/appointment",
 			"style": {
 				"navigationBarTitleText": "预约挂号"
+			}
+		},
+		{
+			"path" : "pages/messages/detail",
+			"style" : 
+			{
+				"navigationBarTitleText" : "消息详情",
+				"navigationBarTextStyle": "white",
+				"enablePullDownRefresh": true,
+				"navigationBarBackgroundColor": "#479fff"
+			}
+		},
+		{
+			"path" : "pages/messages/receipt",
+			"style" : 
+			{
+				"navigationBarTitleText" : "挂号回执单",
+				"navigationBarTextStyle": "white",
+				"enablePullDownRefresh": true,
+				"navigationBarBackgroundColor": "#479fff"
 			}
 		}
 	],
