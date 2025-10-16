@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile default="true" name="Default" enabled="true" />
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="silos-system-local-api" />
+        <module name="silos-system-start" />
+        <module name="silos-module-demo" />
+        <module name="silos-module-airag" />
+        <module name="silos-boot-base-core" />
+        <module name="hospital-module" />
+        <module name="silos-system-cloud-api" />
+        <module name="silos-system-biz" />
+      </profile>
+    </annotationProcessing>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="hospital-module" options="-parameters" />
+      <module name="silos-boot" options="-parameters" />
+      <module name="silos-boot-base-core" options="-parameters" />
+      <module name="silos-module" options="-parameters" />
+      <module name="silos-module-airag" options="-parameters" />
+      <module name="silos-module-demo" options="-parameters" />
+      <module name="silos-module-system" options="-parameters" />
+      <module name="silos-system-api" options="-parameters" />
+      <module name="silos-system-biz" options="-parameters" />
+      <module name="silos-system-cloud-api" options="-parameters" />
+      <module name="silos-system-local-api" options="-parameters" />
+      <module name="silos-system-start" options="-parameters" />
+    </option>
+  </component>
+</project>
