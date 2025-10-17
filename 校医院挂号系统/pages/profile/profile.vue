@@ -1,6 +1,6 @@
 <template>
   <view class="profile-bg">
-    <view class="profile-header">
+  <view class="profile-header">
       <view class="profile-info">
         <view class="avatar">👤</view>
         <view class="user-info">
@@ -8,21 +8,26 @@
           <text class="user-phone">{{ userInfo.phone || '*************' }}</text>
         </view>
       </view>
-      <button class="unbind-btn" size="mini" @click="goToUnbind">账户解绑</button>
+      <template v-if="!isLoggedIn">
+        <button class="unbind-btn" size="mini" @click="goLogin">登录</button>
+      </template>
+      <template v-else>
+        <button class="unbind-btn" size="mini" @click="goToUnbind">账户解绑</button>
+      </template>
     </view>
 
     <view class="profile-section card centered centered-down">
       <view class="profile-row">
         <view class="profile-item" @click="goToMyCard">
-          <image class="icon icon-lg" src="/static/card.png" />
+          <image class="icon icon-lg" src="/static/card.svg" />
           <text>我的就诊卡</text>
         </view>
         <view class="profile-item" @click="goToMyPatient">
-          <image class="icon icon-lg" src="/static/patient.png" />
+          <image class="icon icon-lg" src="/static/patient.svg" />
           <text>我的就诊人</text>
         </view>
         <view class="profile-item" @click="goToMyDoctor">
-          <image class="icon icon-lg" src="/static/doctor.png" />
+          <image class="icon icon-lg" src="/static/doctor.svg" />
           <text>我的医生</text>
         </view>
       </view>
@@ -32,29 +37,29 @@
       <view class="section-title">就诊记录</view>
       <view class="profile-row">
         <view class="profile-item" @click="goToRegisterRecord">
-          <image class="icon" src="/static/register.png" />
+          <image class="icon" src="/static/register.svg" />
           <text>挂号记录</text>
         </view>
         <view class="profile-item" @click="goToOutpatientRecord">
-          <image class="icon" src="/static/outpatient.png" />
+          <image class="icon" src="/static/outpatient.svg" />
           <text>门诊缴费记录</text>
         </view>
         <view class="profile-item" @click="goToHospitalRecord">
-          <image class="icon" src="/static/hospital.png" />
+          <image class="icon" src="/static/hospital.svg" />
           <text>住院预交记录</text>
         </view>
         <view class="profile-item" @click="goToConsultRecord">
-          <image class="icon" src="/static/consult.png" />
+          <image class="icon" src="/static/consult.svg" />
           <text>咨询记录</text>
         </view>
       </view>
       <view class="profile-row">
         <view class="profile-item" @click="goToRevisitRecord">
-          <image class="icon" src="/static/record.png" />
+          <image class="icon" src="/static/record.svg" />
           <text>在线复诊记录</text>
         </view>
         <view class="profile-item" @click="goToCheckRecord">
-          <image class="icon" src="/static/check.png" />
+          <image class="icon" src="/static/check.svg" />
           <text>检查预约记录</text>
         </view>
         <view class="profile-item"></view>
@@ -66,26 +71,26 @@
       <view class="section-title">其他</view>
       <view class="profile-row">
         <view class="profile-item" @click="goToPrivacy">
-          <image class="icon" src="/static/privacy.png" />
+          <image class="icon" src="/static/privacy.svg" />
           <text>隐私协议</text>
         </view>
         <view class="profile-item" @click="goToHelp">
-          <image class="icon" src="/static/help.png" />
+          <image class="icon" src="/static/help.svg" />
           <text>帮助反馈</text>
         </view>
         <view class="profile-item" @click="goToComplain">
-          <image class="icon" src="/static/complain.png" />
+          <image class="icon" src="/static/complain.svg" />
           <text>投诉建议</text>
         </view>
         <view class="profile-item" @click="goToEvaluate">
-          <image class="icon" src="/static/evaluate.png" />
+          <image class="icon" src="/static/evaluate.svg" />
           <text>就诊评价</text>
         </view>
       </view>
     </view>
 
-    <!-- 退出登录按钮 -->
-    <view class="logout-section">
+    <!-- 退出登录按钮（登录状态下显示） -->
+    <view class="logout-section" v-if="isLoggedIn">
       <button class="logout-btn" @click="handleLogout">退出登录</button>
     </view>
 
@@ -94,13 +99,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { userApi } from '@/api/user'
 import { useUserStore } from '@/store/user'
 import { uniShowToast, uniSwitchTab } from '@/utils/uniHelper'
+import LoginPrompt from '@/components/LoginPrompt.vue'
 
 const userInfo = ref({})
 const userStore = useUserStore()
+const isLoggedIn = computed(() => !!userStore.isLoggedIn)
 
 // 获取用户信息
 const getUserInfo = () => {
@@ -120,59 +127,63 @@ const getUserInfo = () => {
 
 // 导航函数
 const goToMyCard = () => {
-  uni.navigateTo({ url: '/pages/profile/personal/mycard' })
+  uni.navigateTo({ url: '/subpkg/profile/personal/mycard' })
 }
 
 const goToMyPatient = () => {
-  uni.navigateTo({ url: '/pages/profile/personal/mypatient' })
+  uni.navigateTo({ url: '/subpkg/profile/personal/mypatient' })
 }
 
 const goToMyDoctor = () => {
-  uni.navigateTo({ url: '/pages/profile/personal/mydoctor' })
+  uni.navigateTo({ url: '/subpkg/profile/personal/mydoctor' })
 }
 
 const goToRegisterRecord = () => {
-  uni.navigateTo({ url: '/pages/profile/records/register-record' })
+  uni.navigateTo({ url: '/subpkg/profile/records/register-record' })
 }
 
 const goToOutpatientRecord = () => {
-  uni.navigateTo({ url: '/pages/profile/records/outpatient-record' })
+  uni.navigateTo({ url: '/subpkg/profile/records/outpatient-record' })
 }
 
 const goToHospitalRecord = () => {
-  uni.navigateTo({ url: '/pages/profile/records/hospital-record' })
+  uni.navigateTo({ url: '/subpkg/profile/records/hospital-record' })
 }
 
 const goToConsultRecord = () => {
-  uni.navigateTo({ url: '/pages/profile/records/consult-record' })
+  uni.navigateTo({ url: '/subpkg/profile/records/consult-record' })
 }
 
 const goToRevisitRecord = () => {
-  uni.navigateTo({ url: '/pages/profile/records/revisit-record' })
+  uni.navigateTo({ url: '/subpkg/profile/records/revisit-record' })
 }
 
 const goToCheckRecord = () => {
-  uni.navigateTo({ url: '/pages/profile/records/check-record' })
+  uni.navigateTo({ url: '/subpkg/profile/records/check-record' })
 }
 
 const goToPrivacy = () => {
-  uni.navigateTo({ url: '/pages/profile/settings/privacy' })
+  uni.navigateTo({ url: '/subpkg/profile/settings/privacy' })
 }
 
 const goToHelp = () => {
-  uni.navigateTo({ url: '/pages/profile/help/help' })
+  uni.navigateTo({ url: '/subpkg/profile/help/help' })
 }
 
 const goToComplain = () => {
-  uni.navigateTo({ url: '/pages/profile/settings/complain' })
+  uni.navigateTo({ url: '/subpkg/profile/settings/complain' })
 }
 
 const goToEvaluate = () => {
-  uni.navigateTo({ url: '/pages/profile/settings/evaluate' })
+  uni.navigateTo({ url: '/subpkg/profile/settings/evaluate' })
 }
 
 const goToUnbind = () => {
-  uni.navigateTo({ url: '/pages/profile/settings/unbind' })
+  uni.navigateTo({ url: '/subpkg/profile/settings/unbind' })
+}
+
+const goLogin = () => {
+  uni.navigateTo({ url: '/subpkg/auth/login' })
 }
 
 // 退出登录
