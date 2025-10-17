@@ -96,7 +96,6 @@
 			
 			// 跳转到消息详情列表页
 			goToDetail(appointmentId) {
-				// 我们还没有创建详情页，但先把跳转逻辑写好
 				uni.navigateTo({
 					url: `/subpkg/messages/detail?appointmentId=${appointmentId}`
 				});
