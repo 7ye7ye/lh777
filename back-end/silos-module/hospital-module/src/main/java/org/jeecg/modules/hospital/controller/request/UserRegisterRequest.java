@@ -14,8 +14,6 @@ public class UserRegisterRequest implements Serializable {
     private String userAccount;
     private String userPassword;
     private String checkPassword;
-    private String userType;
-
 
     public String getUserAccount() {
         return userAccount;
@@ -27,9 +25,5 @@ public class UserRegisterRequest implements Serializable {
 
     public String getCheckPassword() {
         return checkPassword;
-    }
-
-    public String getUserType() {
-        return userType;
     }
 }

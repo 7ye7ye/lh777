@@ -32,18 +32,6 @@
 			"style": {
 				"navigationBarTitleText": "个人中心"
 			}
-		},
-		{
-			"path": "pages/login/login",
-			"style": {
-				"navigationBarTitleText": "登录"
-			}
-		},
-		{
-			"path": "pages/register/register",
-			"style": {
-				"navigationBarTitleText": "注册"
-			}
 		}
 	],
 	"subPackages": [
@@ -222,6 +210,23 @@
 						"navigationBarTextStyle": "white",
 						"enablePullDownRefresh": true,
 						"navigationBarBackgroundColor": "#479fff"
+					}
+				}
+			]
+		},
+		{
+			"root": "subpkg/auth/",
+			"pages": [
+				{
+					"path": "login",
+					"style": {
+						"navigationBarTitleText": "登录"
+					}
+				},
+				{
+					"path": "register",
+					"style": {
+						"navigationBarTitleText": "注册"
 					}
 				}
 			]

@@ -9,7 +9,7 @@
     <view class="banner">
       <image src="/static/hospitalpicture.png" mode="aspectFill" style="width: 100%; height: 100%; border-radius: 12rpx;" />
     </view>
-    <view class="visit-card card">
+    <view class="visit-card card" @click="onVisitCardClick">
       <view class="visit-left">
         <view class="weather">周晴晴  女  20岁</view>
         <view class="ecard">电子就诊卡</view>
@@ -70,15 +70,21 @@
         </view>
       </view>
     </view>
+    <!-- 未登录内联提示 -->
+    <LoginPrompt ref="loginPromptRef" mode="inline" message="登录后可出示电子就诊码" login-text="去登录" />
     <view class="tabbar-placeholder"></view>
   </view>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
+import LoginPrompt from '@/components/LoginPrompt.vue'
+import { useUserStore } from '@/store/user'
 
 const tabs = ['门诊', '住院', '体检', '其他']
 const activeIndex = ref(0)
+const loginPromptRef = ref(null)
+const userStore = useUserStore()
 
 const itemsMap = {
   门诊: [
@@ -135,6 +141,15 @@ const currentItems = computed(() => itemsMap[tabs[activeIndex.value]] || [])
 
 const onItemClick = (item) => {
   uni.showToast({ title: item.text, icon: 'none' })
+}
+
+const onVisitCardClick = () => {
+  if (!userStore.isLoggedIn) {
+    loginPromptRef.value && loginPromptRef.value.open('请先登录后查看电子就诊卡')
+    return
+  }
+  // 已登录时进入就诊码/就诊卡页面
+  uni.navigateTo({ url: '/subpkg/profile/personal/mycard' })
 }
 </script>
 
