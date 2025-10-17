@@ -7,7 +7,7 @@
       </view>
     </view>
     <view class="banner">
-      <image src="/static/hospitalpicture.jpg" mode="aspectFill" style="width: 100%; height: 100%; border-radius: 12rpx;" />
+      <image src="/static/hospitalpicture.png" mode="aspectFill" style="width: 100%; height: 100%; border-radius: 12rpx;" />
     </view>
     <view class="visit-card card">
       <view class="visit-left">
