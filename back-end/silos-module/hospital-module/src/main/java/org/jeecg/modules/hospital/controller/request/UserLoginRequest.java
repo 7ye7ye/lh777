@@ -12,8 +12,6 @@ public class UserLoginRequest implements Serializable {
 
     private String userAccount;
     private String userPassword;
-    private String captcha; // 验证码（可选，web端不验证）
-    private String checkKey; // 验证码key（可选，web端不验证）
 
     public String getUsername() {
         return userAccount;
