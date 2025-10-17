@@ -70,10 +70,9 @@
         </view>
       </view>
     </view>
-    <view class="tabbar-placeholder"></view>
-  </view>
     <!-- 未登录内联提示 -->
     <LoginPrompt ref="loginPromptRef" mode="inline" message="登录后可出示电子就诊码" login-text="去登录" />
+    <view class="tabbar-placeholder"></view>
   </view>
 </template>
 
