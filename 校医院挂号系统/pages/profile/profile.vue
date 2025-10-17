@@ -14,15 +14,15 @@
     <view class="profile-section card centered centered-down">
       <view class="profile-row">
         <view class="profile-item" @click="goToMyCard">
-          <image class="icon icon-lg" src="/static/card.png" />
+          <image class="icon icon-lg" src="/static/card.svg" />
           <text>我的就诊卡</text>
         </view>
         <view class="profile-item" @click="goToMyPatient">
-          <image class="icon icon-lg" src="/static/patient.png" />
+          <image class="icon icon-lg" src="/static/patient.svg" />
           <text>我的就诊人</text>
         </view>
         <view class="profile-item" @click="goToMyDoctor">
-          <image class="icon icon-lg" src="/static/doctor.png" />
+          <image class="icon icon-lg" src="/static/doctor.svg" />
           <text>我的医生</text>
         </view>
       </view>
@@ -32,29 +32,29 @@
       <view class="section-title">就诊记录</view>
       <view class="profile-row">
         <view class="profile-item" @click="goToRegisterRecord">
-          <image class="icon" src="/static/register.png" />
+          <image class="icon" src="/static/register.svg" />
           <text>挂号记录</text>
         </view>
         <view class="profile-item" @click="goToOutpatientRecord">
-          <image class="icon" src="/static/outpatient.png" />
+          <image class="icon" src="/static/outpatient.svg" />
           <text>门诊缴费记录</text>
         </view>
         <view class="profile-item" @click="goToHospitalRecord">
-          <image class="icon" src="/static/hospital.png" />
+          <image class="icon" src="/static/hospital.svg" />
           <text>住院预交记录</text>
         </view>
         <view class="profile-item" @click="goToConsultRecord">
-          <image class="icon" src="/static/consult.png" />
+          <image class="icon" src="/static/consult.svg" />
           <text>咨询记录</text>
         </view>
       </view>
       <view class="profile-row">
         <view class="profile-item" @click="goToRevisitRecord">
-          <image class="icon" src="/static/record.png" />
+          <image class="icon" src="/static/record.svg" />
           <text>在线复诊记录</text>
         </view>
         <view class="profile-item" @click="goToCheckRecord">
-          <image class="icon" src="/static/check.png" />
+          <image class="icon" src="/static/check.svg" />
           <text>检查预约记录</text>
         </view>
         <view class="profile-item"></view>
@@ -66,19 +66,19 @@
       <view class="section-title">其他</view>
       <view class="profile-row">
         <view class="profile-item" @click="goToPrivacy">
-          <image class="icon" src="/static/privacy.png" />
+          <image class="icon" src="/static/privacy.svg" />
           <text>隐私协议</text>
         </view>
         <view class="profile-item" @click="goToHelp">
-          <image class="icon" src="/static/help.png" />
+          <image class="icon" src="/static/help.svg" />
           <text>帮助反馈</text>
         </view>
         <view class="profile-item" @click="goToComplain">
-          <image class="icon" src="/static/complain.png" />
+          <image class="icon" src="/static/complain.svg" />
           <text>投诉建议</text>
         </view>
         <view class="profile-item" @click="goToEvaluate">
-          <image class="icon" src="/static/evaluate.png" />
+          <image class="icon" src="/static/evaluate.svg" />
           <text>就诊评价</text>
         </view>
       </view>
