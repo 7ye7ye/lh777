@@ -120,59 +120,59 @@ const getUserInfo = () => {
 
 // 导航函数
 const goToMyCard = () => {
-  uni.navigateTo({ url: '/pages/profile/personal/mycard' })
+  uni.navigateTo({ url: '/subpkg/profile/personal/mycard' })
 }
 
 const goToMyPatient = () => {
-  uni.navigateTo({ url: '/pages/profile/personal/mypatient' })
+  uni.navigateTo({ url: '/subpkg/profile/personal/mypatient' })
 }
 
 const goToMyDoctor = () => {
-  uni.navigateTo({ url: '/pages/profile/personal/mydoctor' })
+  uni.navigateTo({ url: '/subpkg/profile/personal/mydoctor' })
 }
 
 const goToRegisterRecord = () => {
-  uni.navigateTo({ url: '/pages/profile/records/register-record' })
+  uni.navigateTo({ url: '/subpkg/profile/records/register-record' })
 }
 
 const goToOutpatientRecord = () => {
-  uni.navigateTo({ url: '/pages/profile/records/outpatient-record' })
+  uni.navigateTo({ url: '/subpkg/profile/records/outpatient-record' })
 }
 
 const goToHospitalRecord = () => {
-  uni.navigateTo({ url: '/pages/profile/records/hospital-record' })
+  uni.navigateTo({ url: '/subpkg/profile/records/hospital-record' })
 }
 
 const goToConsultRecord = () => {
-  uni.navigateTo({ url: '/pages/profile/records/consult-record' })
+  uni.navigateTo({ url: '/subpkg/profile/records/consult-record' })
 }
 
 const goToRevisitRecord = () => {
-  uni.navigateTo({ url: '/pages/profile/records/revisit-record' })
+  uni.navigateTo({ url: '/subpkg/profile/records/revisit-record' })
 }
 
 const goToCheckRecord = () => {
-  uni.navigateTo({ url: '/pages/profile/records/check-record' })
+  uni.navigateTo({ url: '/subpkg/profile/records/check-record' })
 }
 
 const goToPrivacy = () => {
-  uni.navigateTo({ url: '/pages/profile/settings/privacy' })
+  uni.navigateTo({ url: '/subpkg/profile/settings/privacy' })
 }
 
 const goToHelp = () => {
-  uni.navigateTo({ url: '/pages/profile/help/help' })
+  uni.navigateTo({ url: '/subpkg/profile/help/help' })
 }
 
 const goToComplain = () => {
-  uni.navigateTo({ url: '/pages/profile/settings/complain' })
+  uni.navigateTo({ url: '/subpkg/profile/settings/complain' })
 }
 
 const goToEvaluate = () => {
-  uni.navigateTo({ url: '/pages/profile/settings/evaluate' })
+  uni.navigateTo({ url: '/subpkg/profile/settings/evaluate' })
 }
 
 const goToUnbind = () => {
-  uni.navigateTo({ url: '/pages/profile/settings/unbind' })
+  uni.navigateTo({ url: '/subpkg/profile/settings/unbind' })
 }
 
 // 退出登录
