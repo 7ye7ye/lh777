@@ -213,6 +213,6 @@ public class HosUser {
         hosUser.setStatus( this.getStatus());
         System.out.println("根据账号从数据库中取出的用户: " + this.toString());
         System.out.println("转换类型后的用户: " + hosUser.toString());
-        return hosUser;
+        return hosUser;                                                     
     }
 }

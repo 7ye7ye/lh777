@@ -62,6 +62,42 @@ CREATE TABLE `department`  (
 -- ----------------------------
 -- Records of department
 -- ----------------------------
+-- 一级科室数据
+INSERT INTO `department` VALUES (1, '疫苗预约', 0, 1, '疫苗接种服务', '预防保健科', '2024-01-01 10:00:00', '2024-01-01 10:00:00');
+INSERT INTO `department` VALUES (2, 'B超室', 0, 1, '超声检查服务', 'B超室', '2024-01-01 10:00:00', '2024-01-01 10:00:00');
+INSERT INTO `department` VALUES (3, '公疗报销', 0, 1, '公费医疗报销服务', '财务科', '2024-01-01 10:00:00', '2024-01-01 10:00:00');
+INSERT INTO `department` VALUES (4, '体检科', 0, 1, '健康体检服务', '体检科', '2024-01-01 10:00:00', '2024-01-01 10:00:00');
+INSERT INTO `department` VALUES (5, '口腔科', 0, 1, '口腔疾病诊疗', '口腔科', '2024-01-01 10:00:00', '2024-01-01 10:00:00');
+INSERT INTO `department` VALUES (6, '护理科', 0, 1, '护理服务', '护理科', '2024-01-01 10:00:00', '2024-01-01 10:00:00');
+
+-- 二级科室数据
+-- 疫苗预约子科室
+INSERT INTO `department` VALUES (11, '老年人免费流感疫苗预约', 1, 2, '65岁以上老年人免费流感疫苗接种', '预防保健科', '2024-01-01 10:00:00', '2024-01-01 10:00:00');
+INSERT INTO `department` VALUES (12, '儿童接种疫苗预约', 1, 2, '儿童常规疫苗接种服务', '预防保健科', '2024-01-01 10:00:00', '2024-01-01 10:00:00');
+INSERT INTO `department` VALUES (13, '自费流感疫苗预约', 1, 2, '自费流感疫苗接种服务', '预防保健科', '2024-01-01 10:00:00', '2024-01-01 10:00:00');
+INSERT INTO `department` VALUES (14, '麻风腮疫苗', 1, 2, '麻疹、风疹、腮腺炎联合疫苗', '预防保健科', '2024-01-01 10:00:00', '2024-01-01 10:00:00');
+INSERT INTO `department` VALUES (15, '甲肝、乙肝疫苗接种', 1, 2, '甲型肝炎、乙型肝炎疫苗接种', '预防保健科', '2024-01-01 10:00:00', '2024-01-01 10:00:00');
+
+-- B超室子科室
+INSERT INTO `department` VALUES (21, '超声心动图', 2, 2, '心脏超声检查', 'B超室', '2024-01-01 10:00:00', '2024-01-01 10:00:00');
+INSERT INTO `department` VALUES (22, '肝胆胰脾彩超', 2, 2, '腹部器官彩色超声检查', 'B超室', '2024-01-01 10:00:00', '2024-01-01 10:00:00');
+INSERT INTO `department` VALUES (23, '其他项目彩超', 2, 2, '其他部位彩色超声检查', 'B超室', '2024-01-01 10:00:00', '2024-01-01 10:00:00');
+
+-- 公疗报销子科室
+INSERT INTO `department` VALUES (31, '毕业生公疗报销预约', 3, 2, '毕业生公费医疗报销服务', '财务科', '2024-01-01 10:00:00', '2024-01-01 10:00:00');
+INSERT INTO `department` VALUES (32, '学生专属预约', 3, 2, '在校学生公费医疗报销', '财务科', '2024-01-01 10:00:00', '2024-01-01 10:00:00');
+INSERT INTO `department` VALUES (33, '教职工专属预约', 3, 2, '教职工公费医疗报销', '财务科', '2024-01-01 10:00:00', '2024-01-01 10:00:00');
+
+-- 体检科子科室
+INSERT INTO `department` VALUES (41, '体检复查预约', 4, 2, '体检结果复查服务', '体检科', '2024-01-01 10:00:00', '2024-01-01 10:00:00');
+
+-- 口腔科子科室
+INSERT INTO `department` VALUES (51, '口腔咨询门诊', 5, 2, '口腔健康咨询和初步检查', '口腔科', '2024-01-01 10:00:00', '2024-01-01 10:00:00');
+INSERT INTO `department` VALUES (52, '口腔科', 5, 2, '口腔疾病诊疗服务', '口腔科', '2024-01-01 10:00:00', '2024-01-01 10:00:00');
+
+-- 护理科子科室
+INSERT INTO `department` VALUES (61, '骨密度检测', 6, 2, '骨密度检查服务', '护理科', '2024-01-01 10:00:00', '2024-01-01 10:00:00');
+INSERT INTO `department` VALUES (62, 'PICC换药', 6, 2, 'PICC导管维护服务', '护理科', '2024-01-01 10:00:00', '2024-01-01 10:00:00');
 
 -- ----------------------------
 -- Table structure for doctor
@@ -165,3 +201,123 @@ CREATE TABLE `patient`  (
 -- ----------------------------
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- ----------------------------
+-- Table structure for message_log
+-- ----------------------------
+DROP TABLE IF EXISTS `message_log`;
+CREATE TABLE `message_log` (
+  `message_id` int(11) NOT NULL AUTO_INCREMENT COMMENT '消息主键ID',
+  `user_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '接收消息的用户ID',
+  `appointment_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '关联的预约ID',
+  `message_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '消息类型 (e.g. APPOINTMENT_SUCCESS)',
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '消息卡片标题',
+  `content` json NULL COMMENT '消息核心内容 (JSON格式)',
+  `created_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '消息创建时间',
+  `is_read` tinyint(1) NULL DEFAULT 0 COMMENT '是否已读 (0-未读, 1-已读)',
+  PRIMARY KEY (`message_id`) USING BTREE,
+  INDEX `idx_user_appointment`(`user_id`, `appointment_id`) USING BTREE COMMENT '用户和预约ID的联合索引，用于快速查询'
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '用户消息记录表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of message_log (测试数据)
+-- ----------------------------
+
+-- 场景一：用户 "武芷竹" (user_id: 'wuzhizhu_001') 的一次完整预约流程 (先成功，后取消)
+-- 这两条消息共享同一个 appointment_id: 'APPOINTMENT_001'
+
+-- 1. 预约成功消息
+INSERT INTO `message_log` (`user_id`, `appointment_id`, `message_type`, `title`, `content`, `created_time`, `is_read`) VALUES (
+'wuzhizhu_001', 
+'APPOINTMENT_001', 
+'APPOINTMENT_SUCCESS', 
+'预约挂号成功提醒', 
+'{
+    "patient_card_no": "M017092997", 
+    "patient_name": "武芷竹", 
+    "doctor_name": "于泳", 
+    "department_name": "眼科门诊(滑翔)", 
+    "appointment_time": "2025-10-15 09:28", 
+    "hospital_remark": "盛京医院南湖院区停车场10月1日凌晨0点开始阶梯式收费"
+}', 
+'2025-10-09 16:31:00', 
+1
+);
+
+-- 2. 预约取消消息 (注意时间在预约成功之后)
+INSERT INTO `message_log` (`user_id`, `appointment_id`, `message_type`, `title`, `content`, `created_time`, `is_read`) VALUES (
+'wuzhizhu_001', 
+'APPOINTMENT_001', 
+'APPOINTMENT_CANCEL', 
+'预约挂号取消通知', 
+'{
+    "doctor_name": "于泳", 
+    "department_name": "眼科门诊(滑翔)", 
+    "appointment_time": "2025-10-15 09:28", 
+    "hospital_remark": "您已成功退号"
+}', 
+'2025-10-09 16:34:00', 
+0
+);
+
+
+-- 场景二：用户 "李明" (user_id: 'li_ming_002') 的一次简单预约
+-- 这条消息使用一个新的 appointment_id: 'APPOINTMENT_002'
+
+-- 1. 预约成功消息
+INSERT INTO `message_log` (`user_id`, `appointment_id`, `message_type`, `title`, `content`, `created_time`, `is_read`) VALUES (
+'li_ming_002', 
+'APPOINTMENT_002', 
+'APPOINTMENT_SUCCESS', 
+'预约挂号成功提醒', 
+'{
+    "patient_card_no": "M018334882", 
+    "patient_name": "李明", 
+    "doctor_name": "刘医生", 
+    "department_name": "内科门诊", 
+    "appointment_time": "2025-10-18 10:00", 
+    "hospital_remark": "请携带有效身份证件就诊"
+}', 
+'2025-10-10 11:20:00', 
+0
+);
+
+-- ----------------------------
+-- Table structure for appointments
+-- ----------------------------
+DROP TABLE IF EXISTS `appointments`;
+CREATE TABLE `appointments` (
+                                `id` varchar(255) NOT NULL COMMENT '预约ID',
+                                `qr_code_data` varchar(255) NULL DEFAULT NULL COMMENT '用于生成二维码的数据',
+                                `serial_number` varchar(255) NULL DEFAULT NULL COMMENT '预约流水',
+                                `patient_name` varchar(255) NULL DEFAULT NULL COMMENT '就诊人',
+                                `hospital_address` varchar(255) NULL DEFAULT NULL COMMENT '医院地址',
+                                `department_name` varchar(255) NULL DEFAULT NULL COMMENT '就诊科室',
+                                `visit_location` varchar(255) NULL DEFAULT NULL COMMENT '就诊地点',
+                                `doctor_name` varchar(255) NULL DEFAULT NULL COMMENT '预约医生',
+                                `appointment_date` date NULL DEFAULT NULL COMMENT '预约日期',
+                                `appointment_time` time NULL DEFAULT NULL COMMENT '预约时间',
+                                `consultation_fee` decimal(10, 2) NULL DEFAULT NULL COMMENT '诊查费',
+                                `status` varchar(50) NULL DEFAULT NULL COMMENT '业务状态',
+                                `order_number` varchar(255) NULL DEFAULT NULL COMMENT '商户订单号',
+                                PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------
+-- Records of appointments
+-- ----------------------------
+INSERT INTO `appointments` VALUES (
+                                      'APPOINTMENT_001',
+                                      'M017092997',
+                                      '流水号20251015001',
+                                      '武芷竹',
+                                      '辽宁省沈阳市铁西区滑翔路39号',
+                                      '眼科门诊(滑翔)',
+                                      '滑翔1号楼4楼 D区眼科2诊室',
+                                      '于泳(副主任医师)',
+                                      '2025-10-15',
+                                      '09:28:00',
+                                      14.40,
+                                      '已取消',
+                                      'SJ1010009251009026955'
+                                  );

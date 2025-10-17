@@ -17,6 +17,7 @@ import org.jeecg.common.constant.enums.ModuleType;
 import org.jeecg.common.constant.enums.OperateTypeEnum;
 import org.jeecg.modules.base.service.BaseCommonService;
 import org.jeecg.common.system.vo.LoginUser;
+import org.jeecg.common.system.vo.HosUser;
 import org.jeecg.common.util.IpUtils;
 import org.jeecg.common.util.SpringContextUtils;
 import org.jeecg.common.util.oConvertUtils;
@@ -99,12 +100,20 @@ public class AutoLogAspect {
         dto.setRequestParam(getReqestParams(request,joinPoint));
         //设置IP地址
         dto.setIp(IpUtils.getIpAddr(request));
-        //获取登录用户信息
-        LoginUser sysUser = (LoginUser) SecurityUtils.getSubject().getPrincipal();
-        if(sysUser!=null){
-            dto.setUserid(sysUser.getUsername());
-            dto.setUsername(sysUser.getRealname());
-
+        //获取登录用户信息（支持HosUser和LoginUser）
+        try {
+            Object principal = SecurityUtils.getSubject().getPrincipal();
+            if (principal instanceof org.jeecg.common.system.vo.HosUser) {
+                org.jeecg.common.system.vo.HosUser hosUser = (org.jeecg.common.system.vo.HosUser) principal;
+                dto.setUserid(hosUser.getUserAccount());
+                dto.setUsername(hosUser.getUserAccount());
+            } else if (principal instanceof LoginUser) {
+                LoginUser sysUser = (LoginUser) principal;
+                dto.setUserid(sysUser.getUsername());
+                dto.setUsername(sysUser.getRealname());
+            }
+        } catch (Exception e) {
+            // 如果获取用户信息失败，不影响主流程（Shiro可能未初始化）
         }
         //耗时
         dto.setCostTime(time);
