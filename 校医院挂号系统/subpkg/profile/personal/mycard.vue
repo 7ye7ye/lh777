@@ -84,7 +84,7 @@ const maskPhone = (phone) => {
 
 // 跳转到修改个人信息页面
 const goToModifyInfo = () => {
-  uni.navigateTo({ url: '/pages/profile/personal/modify-info' })
+  uni.navigateTo({ url: '/subpkg/profile/personal/modify-info' })
 }
 
 // 更换新就诊卡
