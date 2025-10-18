@@ -127,7 +127,7 @@ const executeUnbind = () => {
     
     // 延迟跳转到登录页
     setTimeout(() => {
-      uni.reLaunch({ url: '/pages/login/login' })
+      uni.navigateTo({ url: '/subpkg/auth/login' })
     }, 1500)
   }).catch(() => {
     uni.showToast({ title: '解绑失败，请重试', icon: 'error' })

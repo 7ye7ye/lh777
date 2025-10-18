@@ -12,6 +12,22 @@
       </view>
     </view>
 
+    <!-- 体检套餐快捷入口 (仅常规体检显示) -->
+    <view class="package-banner" v-if="deptId === '43' || deptId === 43" @click="goToPackages">
+      <view class="banner-left">
+        <view class="banner-title">💎 精选体检套餐</view>
+        <view class="banner-desc">三种套餐可选 · 价格透明 · 专业体检</view>
+        <view class="price-tags">
+          <text class="tag">基础 ¥280</text>
+          <text class="tag">标准 ¥480</text>
+          <text class="tag">深度 ¥880</text>
+        </view>
+      </view>
+      <view class="banner-right">
+        <view class="enter-btn">查看套餐 ›</view>
+      </view>
+    </view>
+
     <!-- 医生列表 -->
     <view class="doctor-list">
       <view class="list-title">出诊医生</view>
@@ -118,6 +134,13 @@ const navigateToDoctorDetail = (doctor) => {
   })
 }
 
+// 跳转到体检套餐页面
+const goToPackages = () => {
+  uni.navigateTo({
+    url: '/subpkg/hospital/physical-exam-packages'
+  })
+}
+
 onLoad((query) => {
   deptId.value = query?.deptId || ''
   if (deptId.value) {
@@ -159,6 +182,69 @@ onLoad((query) => {
 .location {
   font-size: 26rpx;
   color: #999;
+}
+
+/* 体检套餐横幅 */
+.package-banner {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16rpx;
+  margin: 16rpx;
+  padding: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.25);
+  transition: all 0.3s;
+}
+
+.package-banner:active {
+  transform: scale(0.98);
+}
+
+.banner-left {
+  flex: 1;
+}
+
+.banner-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 12rpx;
+}
+
+.banner-desc {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 16rpx;
+}
+
+.price-tags {
+  display: flex;
+  gap: 12rpx;
+}
+
+.price-tags .tag {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  font-size: 22rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+  backdrop-filter: blur(10rpx);
+}
+
+.banner-right {
+  display: flex;
+  align-items: center;
+}
+
+.enter-btn {
+  background: #fff;
+  color: #667eea;
+  font-size: 26rpx;
+  font-weight: bold;
+  padding: 16rpx 32rpx;
+  border-radius: 999rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
 }
 
 .doctor-list {

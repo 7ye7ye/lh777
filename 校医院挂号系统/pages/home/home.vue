@@ -30,19 +30,19 @@
     </view>
     <view class="quick card">
       <view class="quick-grid">
-        <view class="quick-item">
+        <view class="quick-item" @click="onQuickItemClick('disease')">
           <view class="quick-icon">📝</view>
           <text>按疾病挂号</text>
         </view>
-        <view class="quick-item">
+        <view class="quick-item" @click="onQuickItemClick('department')">
           <view class="quick-icon">🏥</view>
           <text>按科室挂号</text>
         </view>
-        <view class="quick-item">
+        <view class="quick-item" @click="onQuickItemClick('report')">
           <view class="quick-icon">📊</view>
           <text>报告查询</text>
         </view>
-        <view class="quick-item">
+        <view class="quick-item" @click="onQuickItemClick('internet')">
           <view class="quick-icon">🌐</view>
           <text>互联网诊疗</text>
         </view>
@@ -139,8 +139,98 @@ const itemsMap = {
 
 const currentItems = computed(() => itemsMap[tabs[activeIndex.value]] || [])
 
+// 快捷入口点击处理
+const onQuickItemClick = (type) => {
+  switch (type) {
+    case 'disease':
+      // 按疾病挂号 - 跳转到疾病导航页面
+      uni.navigateTo({ url: '/subpkg/hospital/disease-guide' })
+      break
+    case 'department':
+      // 按科室挂号 - 跳转到科室预约页面
+      uni.navigateTo({ url: '/subpkg/hospital/department-booking' })
+      break
+    case 'report':
+      // 报告查询
+      uni.showToast({ title: '报告查询功能开发中', icon: 'none' })
+      break
+    case 'internet':
+      // 互联网诊疗
+      uni.showToast({ title: '互联网诊疗功能开发中', icon: 'none' })
+      break
+  }
+}
+
+// 咨询问题内容
+const consultContent = {
+  before: {
+    title: '体检前注意事项',
+    content: `1. 体检前一天\n• 晚餐清淡，避免油腻食物\n• 晚上8点后禁食\n• 不要饮酒，保证充足睡眠\n\n2. 体检当天\n• 空腹（禁食8-12小时）\n• 可少量饮水\n• 穿宽松衣服\n• 携带有效证件\n\n3. 女性注意\n• 避开生理期\n• 怀孕或备孕请提前告知\n\n4. 慢性病患者\n• 高血压、糖尿病患者可少量饮水服药\n• 携带近期病历和处方`
+  },
+  report: {
+    title: '体检报告解读',
+    content: `1. 体检报告领取\n• 一般3-5个工作日\n• 可在线查看或现场领取\n\n2. 报告内容\n• 各项检查结果\n• 异常指标标注\n• 医生总结和建议\n\n3. 异常指标处理\n• 轻度异常：注意复查\n• 中度异常：门诊咨询\n• 重度异常：及时就医\n\n4. 免费服务\n• 报告解读咨询\n• 健康管理建议\n• 异常指标复查指导`
+  },
+  package: {
+    title: '如何选择体检套餐',
+    content: `1. 基础套餐（280元）\n适合：学生、青年教职工\n包含：15项常规检查\n\n2. 教职工套餐（480元）★推荐\n适合：在职教职工\n特色：学校报销、职业病筛查\n包含：25项全面检查\n\n3. 全面套餐（880元）\n适合：50岁以上、有基础疾病\n特色：深度筛查、跟踪服务\n包含：35项全面检查\n\n提示：\n• 学生体检免费\n• 教职工基础套餐学校报销\n• 老年人基础套餐免费`
+  },
+  booking: {
+    title: '预约流程',
+    content: `1. 在线预约（推荐）\n• 打开校医院挂号系统小程序\n• 选择体检科→选择体检类型\n• 选择日期和时间段\n• 填写个人信息并确认\n\n2. 电话预约\n• 拨打：010-51682525转体检科\n• 提供身份信息\n• 选择体检日期\n\n3. 现场预约\n• 前往体检中心1楼服务台\n• 出示有效证件\n• 填写预约表\n\n4. 集体预约\n• 新生：随录取通知书说明\n• 学生：学生处统一安排\n• 教职工：人事处统一组织`
+  },
+  time: {
+    title: '体检时间安排',
+    content: `1. 常规体检时间\n• 周一至周五 7:30-11:00\n• 周六 8:00-11:00（预约）\n• 采血时间：7:30-10:00\n\n2. 特殊时间安排\n• 新生入学体检：8月25日-9月5日\n  每日7:00-17:00\n• 学生年度体检：9-11月\n  集体：周一至周五 7:00-11:00\n  补检：周一、三、五 13:00-16:00\n• 教职工体检：3-6月\n  周一至周五 7:30-11:00\n\n3. 建议\n• 尽量选择工作日早晨\n• 避免月初、周一高峰\n• 提前预约可节省时间`
+  },
+  price: {
+    title: '收费政策',
+    content: `1. 免费项目\n• 学生常规体检（学校承担）\n• 新生入学体检（学校承担）\n• 教职工基础套餐（学校报销）\n• 老年人基础套餐（国家项目）\n\n2. 收费项目\n• 基础套餐：280元\n• 教职工套餐：480元（报销后0元）\n• 全面套餐：880元\n• 升级项目：按项目收费\n\n3. 优惠政策\n• 教职工家属：9折优惠\n• 校友：9.5折优惠\n• 团体预约（10人以上）：9折\n\n4. 支付方式\n• 微信/支付宝\n• 校园一卡通\n• 医保卡（部分项目）`
+  }
+}
+
+// 显示咨询内容
+const showConsultDialog = (question) => {
+  const content = consultContent[question]
+  if (content) {
+    uni.showModal({
+      title: content.title,
+      content: content.content,
+      showCancel: true,
+      cancelText: '关闭',
+      confirmText: '电话咨询',
+      success: (res) => {
+        if (res.confirm) {
+          // 点击电话咨询，拨打电话
+          uni.makePhoneCall({
+            phoneNumber: '010-51682525'
+          })
+        }
+      }
+    })
+  }
+}
+
+// 服务项点击处理
 const onItemClick = (item) => {
-  uni.showToast({ title: item.text, icon: 'none' })
+  // 如果是咨询类型，显示咨询对话框
+  if (item.type === 'consult') {
+    showConsultDialog(item.question)
+    return
+  }
+  
+  // 如果有URL，跳转页面
+  if (item.url) {
+    uni.navigateTo({ 
+      url: item.url,
+      fail: (err) => {
+        console.error('页面跳转失败:', err)
+        uni.showToast({ title: '页面跳转失败', icon: 'none' })
+      }
+    })
+  } else {
+    uni.showToast({ title: `${item.text}功能开发中`, icon: 'none' })
+  }
 }
 
 const onVisitCardClick = () => {

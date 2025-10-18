@@ -214,7 +214,7 @@ const handleLogout = async () => {
       await uniShowToast({ title: '已退出登录' })
       
       // 跳转到登录页
-      await uniSwitchTab({ url: '/pages/login/login' })
+      await uniNavigateTo({ url: '/subpkg/auth/login' })
     }
   } catch (e) {
     await uniShowToast({ title: '退出失败', icon: 'none' })

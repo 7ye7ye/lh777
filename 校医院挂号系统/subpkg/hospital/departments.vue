@@ -42,12 +42,10 @@
           <!-- 一级科室标题 -->
           <view class="first-level-title" @click="toggleFirstLevel(index)">
             <text class="dept-name">{{ firstLevel.deptName }}</text>
-            <image 
-              src="/static/icons/arrow-down.png" 
-              mode="widthFix" 
+            <text 
               class="arrow-icon"
               :class="{ 'rotate': firstLevel.expanded }"
-            ></image>
+            >▼</text>
           </view>
 
           <!-- 二级科室列表 -->
@@ -242,9 +240,10 @@ onMounted(() => {
 }
 
 .arrow-icon {
-  width: 36rpx;
-  height: 36rpx;
+  font-size: 24rpx;
+  color: #999;
   transition: transform 0.3s;
+  display: inline-block;
 }
 
 .rotate {

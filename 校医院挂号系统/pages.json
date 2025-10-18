@@ -172,35 +172,59 @@
 				}
 			]
 		},
-		{
-			"root": "subpkg/hospital/",
-			"pages": [
-				{
-					"path": "departments",
-					"style": {
-						"navigationBarTitleText": "科室信息"
-					}
-				},
-				{
-					"path": "department-detail",
-					"style": {
-						"navigationBarTitleText": "科室详情"
-					}
-				},
-				{
-					"path": "doctors",
-					"style": {
-						"navigationBarTitleText": "专家介绍"
-					}
-				},
-				{
-					"path": "doctor-detail",
-					"style": {
-						"navigationBarTitleText": "医生详情"
-					}
+	{
+		"root": "subpkg/hospital/",
+		"pages": [
+			{
+				"path": "departments",
+				"style": {
+					"navigationBarTitleText": "科室信息"
 				}
-			]
-		},
+			},
+			{
+				"path": "department-detail",
+				"style": {
+					"navigationBarTitleText": "科室详情"
+				}
+			},
+			{
+				"path": "doctors",
+				"style": {
+					"navigationBarTitleText": "医生列表"
+				}
+			},
+			{
+				"path": "doctor-detail",
+				"style": {
+					"navigationBarTitleText": "医生详情"
+				}
+			},
+			{
+				"path": "physical-exam-packages",
+				"style": {
+					"navigationBarTitleText": "体检套餐",
+					"navigationBarBackgroundColor": "#667eea",
+					"navigationBarTextStyle": "white"
+				}
+			},
+			{
+				"path": "disease-guide",
+				"style": {
+					"navigationBarTitleText": "按疾病挂号",
+					"navigationBarBackgroundColor": "#667eea",
+					"navigationBarTextStyle": "white"
+				}
+			},
+			{
+				"path": "department-booking",
+				"style": {
+					"navigationBarTitleText": "按科室挂号",
+					"navigationBarBackgroundColor": "#667eea",
+					"navigationBarTextStyle": "white"
+				}
+			}
+		]
+	},
 		{
 			"root": "subpkg/messages/",
 			"pages": [
@@ -268,12 +292,12 @@
 				"iconPath": "static/message.png",
 				"selectedIconPath": "static/message-active.png"
 			},
-			{
-				"pagePath": "pages/hospital/hospital",
-				"text": "医院信息",
-				"iconPath": "static/logo.png",
-				"selectedIconPath": "static/logo.png"
-			},
+		{
+			"pagePath": "pages/hospital/hospital",
+			"text": "医院信息",
+			"iconPath": "static/hospitalmess.png",
+			"selectedIconPath": "static/hospitalmess.png"
+		},
 			{
 				"pagePath": "pages/profile/profile",
 				"text": "个人中心",

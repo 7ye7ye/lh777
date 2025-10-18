@@ -2,7 +2,7 @@
   <view class="hospital-bg">
     <view class="hospital-header">
       <view class="hospital-banner">
-        <image src="/static/hospitalpicture.jpg" mode="aspectFill" style="width: 100%; height: 100%; border-radius: 12rpx;" />
+        <image src="/static/hospitalpicture.png" mode="aspectFill" style="width: 100%; height: 100%; border-radius: 12rpx;" />
       </view>
       <view class="hospital-info">
         <view class="hospital-logo">
@@ -40,9 +40,9 @@
           <image src="/static/logo.png" class="icon" />
           <text>专家介绍</text>
         </view>
-        <view class="hospital-item">
+        <view class="hospital-item" @tap="goPhysicalExam">
           <image src="/static/logo.png" class="icon" />
-          <text>院内导航</text>
+          <text>体检中心</text>
         </view>
         <view class="hospital-item">
           <image src="/static/logo.png" class="icon" />
@@ -94,6 +94,10 @@ const goDepartments = () => {
 
 const goDoctors = () => {
   uni.navigateTo({ url: '/subpkg/hospital/doctors' })
+}
+
+const goPhysicalExam = () => {
+  uni.navigateTo({ url: '/subpkg/hospital/department-detail?deptId=43' })
 }
 </script>
 
