@@ -120,11 +120,11 @@ const itemsMap = {
     { icon: '📊', text: '满意度调查' },
   ],
   体检: [
-    { icon: '👤', text: '个检预约' },
-    { icon: '👥', text: '团检预约' },
-    { icon: '🗂️', text: '体检报告' },
-    { icon: '🧾', text: '体检订单' },
-    { icon: '🏥', text: '体检中心' },
+    { icon: '👤', text: '个检预约', url: '/pages/physical-exam/physical-exam' },
+    { icon: '👥', text: '团检预约', url: '/subpkg/physical-exam/group-booking' },
+    { icon: '🗂️', text: '体检报告', url: '/subpkg/physical-exam/exam-report' },
+    { icon: '🧾', text: '体检订单', url: '/subpkg/physical-exam/exam-orders' },
+    { icon: '🏥', text: '体检中心', url: '/subpkg/physical-exam/exam-center' },
   ],
   其他: [
     { icon: '📚', text: '健康百科' },

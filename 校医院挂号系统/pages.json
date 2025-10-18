@@ -32,6 +32,12 @@
 			"style": {
 				"navigationBarTitleText": "个人中心"
 			}
+		},
+		{
+			"path": "pages/physical-exam/physical-exam",
+			"style": {
+				"navigationBarTitleText": "体检服务"
+			}
 		}
 	],
 	"subPackages": [
@@ -219,6 +225,51 @@
 				"path": "department-booking",
 				"style": {
 					"navigationBarTitleText": "按科室挂号",
+					"navigationBarBackgroundColor": "#667eea",
+					"navigationBarTextStyle": "white"
+				}
+			}
+		]
+	},
+	{
+		"root": "subpkg/physical-exam/",
+		"pages": [
+			{
+				"path": "individual-booking",
+				"style": {
+					"navigationBarTitleText": "个检预约",
+					"navigationBarBackgroundColor": "#667eea",
+					"navigationBarTextStyle": "white"
+				}
+			},
+			{
+				"path": "group-booking",
+				"style": {
+					"navigationBarTitleText": "团检预约",
+					"navigationBarBackgroundColor": "#f5576c",
+					"navigationBarTextStyle": "white"
+				}
+			},
+			{
+				"path": "exam-report",
+				"style": {
+					"navigationBarTitleText": "体检报告",
+					"navigationBarBackgroundColor": "#4facfe",
+					"navigationBarTextStyle": "white"
+				}
+			},
+			{
+				"path": "exam-orders",
+				"style": {
+					"navigationBarTitleText": "体检订单",
+					"navigationBarBackgroundColor": "#fa709a",
+					"navigationBarTextStyle": "white"
+				}
+			},
+			{
+				"path": "exam-center",
+				"style": {
+					"navigationBarTitleText": "体检中心",
 					"navigationBarBackgroundColor": "#667eea",
 					"navigationBarTextStyle": "white"
 				}
