@@ -1,0 +1,152 @@
+
+/* ... 样式部分无需修改 ... */
+.schedule-page.data-v-72f5bcce { 
+  min-height: 100vh; 
+  background: #f7faff; 
+  padding-bottom: 140rpx;
+} 
+
+/* 顶部医生信息 */
+.doctor-header.data-v-72f5bcce { 
+  background: linear-gradient(90deg, #479fff 0%, #2176ff 100%); 
+  padding: 24rpx; 
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between;
+}
+.doctor-info.data-v-72f5bcce { color: #fff;
+}
+.doctor-name.data-v-72f5bcce { font-size: 36rpx; font-weight: 700;
+}
+.doctor-dept.data-v-72f5bcce { font-size: 26rpx; opacity: 0.9; margin-top: 6rpx; display: block;
+}
+.today-date.data-v-72f5bcce { color: #fff; font-size: 26rpx;
+} 
+
+/* 日期选择器 */
+.date-selector.data-v-72f5bcce { margin-top: 12rpx; background: #fff;
+}
+.date-scroll.data-v-72f5bcce { white-space: nowrap; padding: 12rpx;
+}
+.date-item.data-v-72f5bcce { 
+  display: inline-flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center; 
+  width: 120rpx; 
+  height: 120rpx; 
+  margin-right: 12rpx; 
+  background: #f1f5f9; 
+  border-radius: 16rpx; 
+  box-shadow: 0 4rpx 12rpx rgba(33,118,255,0.06); 
+  color: #334155;
+}
+.date-item.active.data-v-72f5bcce { 
+  background: linear-gradient(180deg, #e6f1ff 0%, #ffffff 100%); 
+  border: 2rpx solid #479fff; 
+  color: #2176ff;
+}
+.date-weekday.data-v-72f5bcce { font-size: 24rpx;
+}
+.date-day.data-v-72f5bcce { font-size: 36rpx; font-weight: 700;
+}
+.date-month.data-v-72f5bcce { font-size: 24rpx;
+} 
+
+/* 排班列表 */
+.schedule-container.data-v-72f5bcce { padding: 24rpx;
+}
+.section-title .title-text.data-v-72f5bcce { font-size: 30rpx; color: #1e293b; font-weight: 600;
+}
+.empty-state.data-v-72f5bcce { 
+  background: #fff; 
+  border-radius: 16rpx; 
+  padding: 32rpx; 
+  text-align: center; 
+  color: #64748b; 
+  margin-top: 16rpx;
+}
+.schedule-list.data-v-72f5bcce { margin-top: 16rpx;
+}
+.schedule-item.data-v-72f5bcce { 
+  background: #fff; 
+  border-radius: 16rpx; 
+  padding: 16rpx; 
+  margin-bottom: 12rpx; 
+  box-shadow: 0 6rpx 16rpx rgba(33,118,255,0.08);
+}
+.schedule-header.data-v-72f5bcce { display: flex; justify-content: space-between; align-items: center;
+}
+.time-period.data-v-72f5bcce { display: flex; align-items: center; gap: 8rpx;
+}
+.period-icon.data-v-72f5bcce { font-size: 26rpx;
+}
+.period-text.data-v-72f5bcce { font-size: 28rpx; font-weight: 600; color: #0f172a;
+}
+.status-tag.data-v-72f5bcce { 
+  padding: 6rpx 12rpx; 
+  border-radius: 999rpx; 
+  font-size: 24rpx;
+}
+.status-available.data-v-72f5bcce { background: #e0f2fe; color: #0369a1;
+}
+.status-busy.data-v-72f5bcce { background: #fef3c7; color: #b45309;
+}
+.status-full.data-v-72f5bcce { background: #fee2e2; color: #b91c1c;
+}
+.schedule-info.data-v-72f5bcce { 
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: 8rpx 12rpx; 
+  margin-top: 12rpx;
+}
+.info-item.data-v-72f5bcce { display: flex; align-items: center;
+}
+.info-label.data-v-72f5bcce { color: #64748b; font-size: 26rpx;
+}
+.info-value.data-v-72f5bcce { color: #0f172a; font-size: 26rpx; font-weight: 600;
+}
+.appointment-count.data-v-72f5bcce { color: #0ea5e9;
+}
+.remaining.data-v-72f5bcce { color: #10b981;
+}
+.low-remaining.data-v-72f5bcce { color: #ef4444;
+} 
+
+/* 申请调班按钮 */
+.action-section.data-v-72f5bcce { padding: 0 24rpx 24rpx;
+}
+.action-btn.data-v-72f5bcce { 
+  width: 100%; 
+  background: #2176ff; 
+  color: #fff; 
+  border-radius: 12rpx; 
+  padding: 16rpx; 
+  font-size: 28rpx;
+}
+.adjust-btn.data-v-72f5bcce { box-shadow: 0 6rpx 16rpx rgba(33,118,255,0.18);
+} 
+
+/* 底部导航 */
+.bottom-nav.data-v-72f5bcce { 
+  position: fixed; 
+  left: 0; right: 0; bottom: 0; 
+  background: #fff; 
+  border-top: 1rpx solid #e2e8f0; 
+  display: flex; 
+  padding: 12rpx 24rpx; 
+  gap: 12rpx;
+}
+.nav-item.data-v-72f5bcce { 
+  flex: 1; 
+  background: linear-gradient(90deg, #479fff 0%, #2176ff 100%); 
+  color: #fff; 
+  border-radius: 12rpx; 
+  padding: 16rpx 0; 
+  text-align: center; 
+  box-shadow: 0 6rpx 16rpx rgba(33,118,255,0.18);
+}
+.nav-icon.data-v-72f5bcce { display: block; font-size: 28rpx;
+}
+.nav-text.data-v-72f5bcce { display: block; font-size: 26rpx; font-weight: 600; margin-top: 6rpx;
+} 

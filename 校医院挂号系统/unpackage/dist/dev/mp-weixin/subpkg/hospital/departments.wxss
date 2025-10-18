@@ -1,0 +1,117 @@
+
+.dept-bg.data-v-df434fb1 {
+  background: #f8faff;
+  min-height: 100vh;
+  padding: 16rpx 0 120rpx 0;
+}
+.search-bar.data-v-df434fb1 {
+  background: #fff;
+  padding: 16rpx;
+  border-radius: 8rpx;
+  margin: 16rpx;
+  box-shadow: 0 4rpx 16rpx rgba(58,156,255,0.08);
+}
+.search-input.data-v-df434fb1 {
+  height: 60rpx;
+  background-color: #f0f0f0;
+  padding: 0 20rpx;
+  border-radius: 30rpx;
+  font-size: 28rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+.department-tree.data-v-df434fb1 {
+  background: #fff;
+  border-radius: 16rpx;
+  margin: 16rpx;
+  box-shadow: 0 4rpx 16rpx rgba(58,156,255,0.08);
+  overflow: hidden;
+}
+.first-level.data-v-df434fb1 {
+  border-bottom: 1rpx solid #eee;
+}
+.first-level.data-v-df434fb1:last-child {
+  border-bottom: none;
+}
+.first-level-title.data-v-df434fb1 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 28rpx 24rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+  background: #f8faff;
+}
+.dept-name.data-v-df434fb1 {
+  color: #222;
+}
+.arrow-icon.data-v-df434fb1 {
+  width: 36rpx;
+  height: 36rpx;
+  transition: transform 0.3s;
+}
+.rotate.data-v-df434fb1 {
+  transform: rotate(180deg);
+}
+.second-level-list.data-v-df434fb1 {
+  padding-left: 32rpx;
+  background-color: #fafafa;
+}
+.second-level-item.data-v-df434fb1 {
+  display: flex;
+  align-items: flex-start;
+  padding: 20rpx 16rpx;
+  border-bottom: 1rpx solid #eee;
+}
+.second-level-item.data-v-df434fb1:last-child {
+  border-bottom: none;
+}
+.dot.data-v-df434fb1 {
+  width: 8rpx;
+  height: 8rpx;
+  background: #d0021b;
+  border-radius: 50%;
+  margin-right: 16rpx;
+  margin-top: 12rpx;
+}
+.dept-info.data-v-df434fb1 {
+  flex: 1;
+}
+.dept-info .dept-name.data-v-df434fb1 {
+  display: block;
+  font-size: 30rpx;
+  color: #222;
+  margin-bottom: 8rpx;
+}
+.dept-desc.data-v-df434fb1 {
+  display: block;
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 8rpx;
+  line-height: 1.4;
+}
+.location.data-v-df434fb1 {
+  font-size: 24rpx;
+  color: #999;
+}
+.tabbar-placeholder.data-v-df434fb1 { 
+  height: 120rpx;
+}
+
+/* 搜索结果样式 */
+.search-results.data-v-df434fb1 {
+  padding: 0;
+}
+.search-result-item.data-v-df434fb1 {
+  display: flex;
+  align-items: flex-start;
+  padding: 20rpx 24rpx;
+  border-bottom: 1rpx solid #eee;
+  background: #fff;
+}
+.search-result-item.data-v-df434fb1:last-child {
+  border-bottom: none;
+}
+.search-result-item.data-v-df434fb1:active {
+  background-color: #f5f5f5;
+}

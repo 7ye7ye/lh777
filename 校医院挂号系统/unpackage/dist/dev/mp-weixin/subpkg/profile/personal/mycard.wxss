@@ -1,0 +1,117 @@
+
+.page-bg.data-v-63fdac57 { 
+  min-height: 100vh; 
+  background: #f8faff; 
+  padding: 24rpx;
+}
+
+/* 就诊卡样式 */
+.medical-card.data-v-63fdac57 {
+  background: linear-gradient(135deg, #3a9cff 0%, #5db7ff 100%);
+  border-radius: 20rpx;
+  padding: 40rpx;
+  margin-bottom: 40rpx;
+  box-shadow: 0 8rpx 32rpx rgba(58, 156, 255, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+.medical-card.data-v-63fdac57::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+.card-header.data-v-63fdac57 {
+  display: flex;
+  align-items: center;
+  margin-bottom: 30rpx;
+  position: relative;
+  z-index: 1;
+}
+.hospital-logo.data-v-63fdac57 {
+  font-size: 48rpx;
+  margin-right: 16rpx;
+}
+.hospital-name.data-v-63fdac57 {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #fff;
+}
+.card-content.data-v-63fdac57 {
+  position: relative;
+  z-index: 1;
+}
+.patient-name.data-v-63fdac57 {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #fff;
+  text-align: center;
+  margin-bottom: 30rpx;
+}
+.card-details.data-v-63fdac57 {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 16rpx;
+  padding: 24rpx;
+  -webkit-backdrop-filter: blur(10rpx);
+          backdrop-filter: blur(10rpx);
+}
+.detail-item.data-v-63fdac57 {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+  padding: 8rpx 0;
+}
+.detail-item.data-v-63fdac57:last-child {
+  margin-bottom: 0;
+}
+.detail-label.data-v-63fdac57 {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.8);
+  width: 140rpx;
+  flex-shrink: 0;
+}
+.detail-value.data-v-63fdac57 {
+  font-size: 26rpx;
+  color: #fff;
+  flex: 1;
+  font-weight: 500;
+}
+
+/* 操作按钮样式 */
+.action-buttons.data-v-63fdac57 {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+.action-btn.data-v-63fdac57 {
+  width: 100%;
+  height: 88rpx;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+  font-weight: 500;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+.modify-btn.data-v-63fdac57 {
+  background: #3a9cff;
+  color: #fff;
+}
+.modify-btn.data-v-63fdac57:active {
+  background: #2980e6;
+  transform: scale(0.98);
+}
+.replace-btn.data-v-63fdac57 {
+  background: #52c41a;
+  color: #fff;
+}
+.replace-btn.data-v-63fdac57:active {
+  background: #389e0d;
+  transform: scale(0.98);
+}

@@ -1,0 +1,15 @@
+
+.page-bg.data-v-760d89df { min-height: 100vh; background: #f8faff;
+}
+.list-header.data-v-760d89df { font-size: 36rpx; font-weight: bold; padding: 32rpx;
+}
+.record-list.data-v-760d89df { background: #fff; margin: 24rpx; border-radius: 16rpx; padding: 32rpx;
+}
+.record-item.data-v-760d89df { border-bottom: 1px solid #eee; padding: 16rpx 0;
+}
+.row.data-v-760d89df { display: flex; align-items: center; margin-bottom: 8rpx;
+}
+.label.data-v-760d89df { color: #888; width: 100rpx;
+}
+.main-btn.data-v-760d89df { width: 100%; margin-top: 32rpx; background: #3a9cff; color: #fff;
+}

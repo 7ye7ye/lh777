@@ -1,0 +1,51 @@
+
+.container.data-v-41615fcc {
+		background-color: #f5f5f5;
+		padding: 24rpx;
+		min-height: 100vh;
+}
+.receipt-card.data-v-41615fcc {
+		background-color: #fff;
+		border-radius: 16rpx;
+		overflow: hidden;
+}
+.qr-code-section.data-v-41615fcc {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 48rpx 0;
+		border-bottom: 1rpx solid #f0f0f0;
+}
+.visit-code.data-v-41615fcc {
+		font-size: 32rpx;
+		color: #333;
+		margin-top: 16rpx;
+		font-family: monospace;
+}
+.info-section.data-v-41615fcc {
+		padding: 16rpx 32rpx 32rpx;
+}
+.info-row.data-v-41615fcc {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 16rpx 0;
+		font-size: 28rpx;
+}
+.label.data-v-41615fcc {
+		color: #999;
+}
+.value.data-v-41615fcc {
+		color: #333;
+		text-align: right;
+}
+.location.data-v-41615fcc {
+		color: #409eff;
+}
+.price.data-v-41615fcc {
+		color: #e4393c;
+		font-weight: bold;
+}
+.status-success.data-v-41615fcc {
+		color: #67c23a;
+}
