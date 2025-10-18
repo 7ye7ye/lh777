@@ -1,6 +1,6 @@
 <template>
   <view class="profile-bg">
-    <view class="profile-header">
+  <view class="profile-header">
       <view class="profile-info">
         <view class="avatar">👤</view>
         <view class="user-info">
@@ -8,7 +8,12 @@
           <text class="user-phone">{{ userInfo.phone || '*************' }}</text>
         </view>
       </view>
-      <button class="unbind-btn" size="mini" @click="goToUnbind">账户解绑</button>
+      <template v-if="!isLoggedIn">
+        <button class="unbind-btn" size="mini" @click="goLogin">登录</button>
+      </template>
+      <template v-else>
+        <button class="unbind-btn" size="mini" @click="goToUnbind">账户解绑</button>
+      </template>
     </view>
 
     <view class="profile-section card centered centered-down">
@@ -84,8 +89,8 @@
       </view>
     </view>
 
-    <!-- 退出登录按钮 -->
-    <view class="logout-section">
+    <!-- 退出登录按钮（登录状态下显示） -->
+    <view class="logout-section" v-if="isLoggedIn">
       <button class="logout-btn" @click="handleLogout">退出登录</button>
     </view>
 
@@ -94,13 +99,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { userApi } from '@/api/user'
 import { useUserStore } from '@/store/user'
 import { uniShowToast, uniSwitchTab } from '@/utils/uniHelper'
+import LoginPrompt from '@/components/LoginPrompt.vue'
 
 const userInfo = ref({})
 const userStore = useUserStore()
+const isLoggedIn = computed(() => !!userStore.isLoggedIn)
 
 // 获取用户信息
 const getUserInfo = () => {
@@ -173,6 +180,10 @@ const goToEvaluate = () => {
 
 const goToUnbind = () => {
   uni.navigateTo({ url: '/subpkg/profile/settings/unbind' })
+}
+
+const goLogin = () => {
+  uni.navigateTo({ url: '/subpkg/auth/login' })
 }
 
 // 退出登录

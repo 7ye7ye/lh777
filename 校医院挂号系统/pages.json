@@ -16,11 +16,51 @@
 			"path": "pages/messages/messages",
 			"style": {
 				"navigationBarTitleText": "消息中心",
-				"navigationBarTextStyle": "white",
+		    "navigationBarTextStyle": "white",
 				"enablePullDownRefresh": true,
 				"navigationBarBackgroundColor": "#479fff"
 			}
 		},
+    {
+      "path": "pages/doctor/schedule/main",
+      "style": {
+        "navigationBarTitleText": "医生排班",
+        "navigationBarBackgroundColor": "#479fff",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/doctor/schedule/apply",
+      "style": {
+        "navigationBarTitleText": "申请调班",
+        "navigationBarBackgroundColor": "#479fff",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/doctor/patients/list",
+      "style": {
+        "navigationBarTitleText": "患者列表",
+        "navigationBarBackgroundColor": "#479fff",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/doctor/patients/detail",
+      "style": {
+        "navigationBarTitleText": "患者信息",
+        "navigationBarBackgroundColor": "#479fff",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/doctor/profile/index",
+      "style": {
+        "navigationBarTitleText": "医生个人信息",
+        "navigationBarBackgroundColor": "#479fff",
+        "navigationBarTextStyle": "white"
+      }
+    },
 		{
 			"path": "pages/hospital/hospital",
 			"style": {
@@ -43,46 +83,6 @@
 			"path": "pages/register/register",
 			"style": {
 				"navigationBarTitleText": "注册"
-			}
-		},
-		{
-			"path": "pages/doctor/schedule/main",
-			"style": {
-				"navigationBarTitleText": "医生排班",
-				"navigationBarBackgroundColor": "#479fff",
-				"navigationBarTextStyle": "white"
-			}
-		},
-		{
-			"path": "pages/doctor/schedule/apply",
-			"style": {
-				"navigationBarTitleText": "申请调班",
-				"navigationBarBackgroundColor": "#479fff",
-				"navigationBarTextStyle": "white"
-			}
-		},
-		{
-			"path": "pages/doctor/patients/list",
-			"style": {
-				"navigationBarTitleText": "患者列表",
-				"navigationBarBackgroundColor": "#479fff",
-				"navigationBarTextStyle": "white"
-			}
-		},
-		{
-			"path": "pages/doctor/patients/detail",
-			"style": {
-				"navigationBarTitleText": "患者信息",
-				"navigationBarBackgroundColor": "#479fff",
-				"navigationBarTextStyle": "white"
-			}
-		},
-		{
-			"path": "pages/doctor/profile/index",
-			"style": {
-				"navigationBarTitleText": "医生个人信息",
-				"navigationBarBackgroundColor": "#479fff",
-				"navigationBarTextStyle": "white"
 			}
 		}
 	],
@@ -246,7 +246,7 @@
 			"pages": [
 				{
 					"path" : "detail",
-					"style" :
+					"style" : 
 					{
 						"navigationBarTitleText" : "消息详情",
 						"navigationBarTextStyle": "white",
@@ -256,7 +256,7 @@
 				},
 				{
 					"path" : "receipt",
-					"style" :
+					"style" : 
 					{
 						"navigationBarTitleText" : "挂号回执单",
 						"navigationBarTextStyle": "white",
