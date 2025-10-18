@@ -177,7 +177,7 @@ const handleSearch = async () => {
 // 跳转到科室详情
 const navigateToDetail = (dept) => {
   uni.navigateTo({
-    url: `/pages/hospital/department-detail?deptId=${dept.deptId}`
+    url: `/subpkg/hospital/department-detail?deptId=${dept.deptId}`
   })
 }
 

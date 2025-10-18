@@ -186,6 +186,18 @@
 					"style": {
 						"navigationBarTitleText": "科室详情"
 					}
+				},
+				{
+					"path": "doctors",
+					"style": {
+						"navigationBarTitleText": "专家介绍"
+					}
+				},
+				{
+					"path": "doctor-detail",
+					"style": {
+						"navigationBarTitleText": "医生详情"
+					}
 				}
 			]
 		},

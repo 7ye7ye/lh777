@@ -2,23 +2,50 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="generate.mapper.DoctorMapper">
+<mapper namespace="org.jeecg.modules.hospital.mapper.DoctorMapper">
 
-    <resultMap id="BaseResultMap" type="org.jeecg.modules.hospital.entity.entity.Doctor">
-            <id property="doctorId" column="doctor_id" />
-            <result property="userId" column="user_id" />
-            <result property="deptId" column="dept_id" />
-            <result property="title" column="title" />
-            <result property="specialty" column="specialty" />
-            <result property="doctorDesc" column="doctor_desc" />
-            <result property="avatar" column="avatar" />
-            <result property="isActive" column="is_active" />
-            <result property="updateVerify" column="update_verify" />
-            <result property="doctorName" column="doctor_name" />
+    <resultMap id="BaseResultMap" type="org.jeecg.modules.hospital.entity.Doctor">
+        <id property="doctorId" column="doctor_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="deptId" column="dept_id"/>
+        <result property="title" column="title"/>
+        <result property="specialty" column="specialty"/>
+        <result property="doctorDesc" column="doctor_desc"/>
+        <result property="avatar" column="avatar"/>
+        <result property="isActive" column="is_active"/>
+        <result property="updateVerify" column="update_verify"/>
+        <result property="doctorName" column="doctor_name"/>
     </resultMap>
 
     <sql id="Base_Column_List">
-        doctor_id,user_id,dept_id,title,specialty,doctor_desc,
-        avatar,is_active,update_verify,doctor_name
+        doctor_id, user_id, dept_id, title, specialty, doctor_desc, avatar, is_active, update_verify, doctor_name
     </sql>
+
+    <!-- 根据科室ID查询医生列表 -->
+    <select id="selectByDeptId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM doctor
+        WHERE dept_id = #{deptId} AND is_active = 1
+        ORDER BY doctor_id ASC
+    </select>
+
+    <!-- 查询所有在职医生 -->
+    <select id="selectActiveDoctors" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM doctor
+        WHERE is_active = 1
+        ORDER BY doctor_id ASC
+    </select>
+
+    <!-- 根据医生姓名模糊查询 -->
+    <select id="selectByDoctorName" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM doctor
+        WHERE doctor_name LIKE CONCAT('%', #{doctorName}, '%') AND is_active = 1
+        ORDER BY doctor_id ASC
+    </select>
+
 </mapper>

@@ -1,5 +1,5 @@
 import { http } from '../utils/request';
-import { mockDepartmentTree, mockDepartmentDetail } from './department-mock';
+import { mockDepartmentTree, getMockDepartmentDetail } from './department-mock';
 
 // 是否使用模拟数据（当后端服务器不可用时）
 const USE_MOCK_DATA = true;
@@ -84,13 +84,13 @@ export const searchDepartments = async (keyword: string) => {
 export const getDepartmentDetail = async (deptId: number) => {
   if (USE_MOCK_DATA) {
     await new Promise(resolve => setTimeout(resolve, 300));
-    return mockDepartmentDetail;
+    return getMockDepartmentDetail(deptId);
   }
   
   try {
     return await http.get(`/applet/department/${deptId}`);
   } catch (error) {
     console.warn('后端接口不可用，使用模拟数据:', error);
-    return mockDepartmentDetail;
+    return getMockDepartmentDetail(deptId);
   }
 };

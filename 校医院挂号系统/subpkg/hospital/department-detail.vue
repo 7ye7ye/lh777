@@ -47,6 +47,7 @@
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getDepartmentDetail } from '../../api/department'
+import { getDoctorsByDeptId } from '../../api/doctor'
 
 const deptId = ref('')
 const department = ref({})
@@ -84,31 +85,36 @@ const loadDepartmentDetail = async () => {
   }
 }
 
-// 加载科室医生（这里需要创建医生API，暂时用模拟数据）
+// 加载科室医生
 const loadDoctorsByDeptId = async () => {
-  // 模拟医生数据，实际项目中需要调用医生API
-  doctorList.value = [
-    {
-      doctorId: 1,
-      doctorName: '张医生',
-      title: '主任医师',
-      specialty: '心血管疾病诊疗',
-      avatar: '/static/doctor.png'
-    },
-    {
-      doctorId: 2,
-      doctorName: '李医生',
-      title: '副主任医师',
-      specialty: '呼吸系统疾病',
-      avatar: '/static/doctor.png'
+  try {
+    // 使用医生API获取科室医生列表
+    const res = await getDoctorsByDeptId(deptId.value)
+    
+    // 处理不同的响应格式
+    let data = res
+    if (res && res.data) {
+      data = res.data
+    } else if (res && res.result) {
+      data = res.result
     }
-  ]
+    
+    if (data && Array.isArray(data)) {
+      doctorList.value = data
+    } else if (Array.isArray(res)) {
+      doctorList.value = res
+    } else {
+      console.warn('医生列表数据格式异常:', res)
+    }
+  } catch (error) {
+    console.error('加载科室医生列表失败:', error)
+  }
 }
 
 // 跳转到医生详情
 const navigateToDoctorDetail = (doctor) => {
   uni.navigateTo({
-    url: `/pages/doctor/detail?doctorId=${doctor.doctorId}`
+    url: `/subpkg/hospital/doctor-detail?doctorId=${doctor.doctorId}`
   })
 }
 
