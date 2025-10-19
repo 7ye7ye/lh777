@@ -2,6 +2,9 @@ package org.jeecg.modules.hospital.service;
 
 import org.jeecg.modules.hospital.entity.Patient;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.springframework.http.ResponseEntity;
+
+import java.util.HashMap;
 
 /**
 * @author Administrator
@@ -9,5 +12,4 @@ import com.baomidou.mybatisplus.extension.service.IService;
 * @createDate 2025-09-22 20:15:21
 */
 public interface PatientService extends IService<Patient> {
-    void cardInfo(Patient patient);
 }

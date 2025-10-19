@@ -11,7 +11,7 @@
  Target Server Version : 90001 (9.0.1)
  File Encoding         : 65001
 
- Date: 26/09/2025 11:10:03
+ Date: 19/10/2025 20:37:33
 */
 
 SET NAMES utf8mb4;
@@ -34,7 +34,7 @@ CREATE TABLE `admin`  (
   UNIQUE INDEX `admin_account`(`admin_account` ASC) USING BTREE,
   INDEX `admin_ibfk_1`(`user_id` ASC) USING BTREE,
   CONSTRAINT `admin_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `hos_user` (`user_id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '管理员表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '管理员表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of admin
@@ -83,7 +83,7 @@ CREATE TABLE `doctor`  (
   INDEX `dept_id`(`dept_id` ASC) USING BTREE,
   CONSTRAINT `doctor_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `hos_user` (`user_id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `doctor_ibfk_2` FOREIGN KEY (`dept_id`) REFERENCES `department` (`dept_id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '医生表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '医生表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of doctor
@@ -98,22 +98,20 @@ CREATE TABLE `hos_user`  (
   `user_account` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '登录账号（患者：学号/工号/手机号；医生：管理员分配账号；管理员：固定账号）',
   `user_password` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '加密存储的密码（如MD5+盐值）',
   `user_type` tinyint NOT NULL COMMENT '用户类型（1-患者；2-医生；3-管理员）',
-  `id_card` varchar(18) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '身份证号（敏感信息，加密存储）',
-  `phone` varchar(11) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '手机号（用于接收就诊提醒）',
   `email` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '邮箱（可选通知渠道）',
   `status` tinyint NOT NULL COMMENT '账号状态（0-未激活；1-正常；2-禁用）',
   `create_time` datetime NOT NULL COMMENT '账号创建时间',
   `update_time` datetime NOT NULL COMMENT '账号更新时间',
   PRIMARY KEY (`user_id`) USING BTREE,
-  UNIQUE INDEX `user_account`(`user_account` ASC) USING BTREE,
-  UNIQUE INDEX `id_card`(`id_card` ASC) USING BTREE,
-  UNIQUE INDEX `phone`(`phone` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户表' ROW_FORMAT = Dynamic;
+  UNIQUE INDEX `user_account`(`user_account` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of hos_user
 -- ----------------------------
-INSERT INTO `hos_user` VALUES (2, '11111111', 'b090a8e2dd67f03005adeff82c6b80e7', 1, NULL, NULL, NULL, 1, '2025-09-23 19:53:32', '2025-09-23 19:53:32');
+INSERT INTO `hos_user` VALUES (2, '11111111', 'b090a8e2dd67f03005adeff82c6b80e7', 1, NULL, 1, '2025-09-23 19:53:32', '2025-09-23 19:53:32');
+INSERT INTO `hos_user` VALUES (3, '12345678', 'f5cce500f5ffb83ecfcc4fd19b8b1377', 1, NULL, 1, '2025-10-08 23:24:13', '2025-10-08 23:24:13');
+INSERT INTO `hos_user` VALUES (4, '123456789', 'f5cce500f5ffb83ecfcc4fd19b8b1377', 3, NULL, 1, '2025-10-08 23:50:28', '2025-10-08 23:50:28');
 
 -- ----------------------------
 -- Table structure for patient
@@ -121,6 +119,7 @@ INSERT INTO `hos_user` VALUES (2, '11111111', 'b090a8e2dd67f03005adeff82c6b80e7'
 DROP TABLE IF EXISTS `patient`;
 CREATE TABLE `patient`  (
   `patient_id` bigint NOT NULL AUTO_INCREMENT COMMENT '患者唯一标识',
+  `patient_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '患者姓名（真实姓名，用于就诊记录）',
   `user_id` bigint NOT NULL COMMENT '关联用户表',
   `patient_type` tinyint NOT NULL COMMENT '患者身份（1-学生；2-教师；3-职工）',
   `student_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '学号（学生用户必填）',
@@ -137,31 +136,34 @@ CREATE TABLE `patient`  (
   `family_illness` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '家族史',
   `allergy_history` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '无' COMMENT '过敏史',
   `id_type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '身份证' COMMENT '证件类型',
-  `id_number` varchar(18) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '证件号码',
   `nation` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '汉族' COMMENT '民族',
   `nationality` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '中国' COMMENT '国籍',
   `region` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '所在地区',
   `detailed_address` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '详细住址',
-  `phone_number` varchar(11) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '电话号码',
   `home_address` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '家庭地址',
   `emergency_contact` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '紧急联系人姓名',
   `emergency_phone` varchar(11) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '紧急联系人电话',
   `medical_history` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '既往病史（可修改）',
-  `identity_verify` tinyint NOT NULL COMMENT '身份认证状态（0-未审核；1-已通过；2-未通过）',
+  `identity_verify` tinyint NOT NULL DEFAULT 0 COMMENT '身份认证状态（0-未审核；1-已通过；2-未通过）',
   `verify_time` datetime NULL DEFAULT NULL COMMENT '审核通过时间',
   `outpatient_number` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '门诊号',
   `hospitalization_number` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '住院号',
   `barcode_info` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '条形码信息',
   `qr_code_info` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '二维码信息',
+  `id_card` varchar(18) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '身份证号（敏感信息，加密存储）',
+  `phone` varchar(11) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '手机号（用于接收就诊提醒）',
   PRIMARY KEY (`patient_id`) USING BTREE,
   UNIQUE INDEX `user_id`(`user_id` ASC) USING BTREE,
   UNIQUE INDEX `student_id`(`student_id` ASC) USING BTREE,
   UNIQUE INDEX `staff_id`(`staff_id` ASC) USING BTREE,
+  UNIQUE INDEX `id_card`(`id_card` ASC) USING BTREE,
+  UNIQUE INDEX `phone`(`phone` ASC) USING BTREE,
   CONSTRAINT `patient_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `hos_user` (`user_id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '患者表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '患者表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of patient
 -- ----------------------------
+INSERT INTO `patient` VALUES (1, '林婉清', 2, 2, '', 'T2021008', '2003-10-18', '女', NULL, NULL, NULL, '未婚', NULL, NULL, NULL, NULL, '无', '身份证', '汉族', '中国', '上海市浦东新区', 'XX大学外国语学院教师公寓3号楼502室', NULL, '张伟', '13612345678', NULL, 0, NULL, NULL, NULL, NULL, NULL, '310106199008156789', '13787654321');
 
 SET FOREIGN_KEY_CHECKS = 1;

@@ -79,12 +79,11 @@
 <script setup>
 import { ref, computed } from 'vue'
 import LoginPrompt from '@/components/LoginPrompt.vue'
-import { useUserStore } from '@/store/user'
+import { AUTH_REQUIRED_FEATURES, createAuthHandler } from '@/utils/auth'
 
 const tabs = ['门诊', '住院', '体检', '其他']
 const activeIndex = ref(0)
 const loginPromptRef = ref(null)
-const userStore = useUserStore()
 
 const itemsMap = {
   门诊: [
@@ -143,14 +142,12 @@ const onItemClick = (item) => {
   uni.showToast({ title: item.text, icon: 'none' })
 }
 
-const onVisitCardClick = () => {
-  if (!userStore.isLoggedIn) {
-    loginPromptRef.value && loginPromptRef.value.open('请先登录后查看电子就诊卡')
-    return
-  }
-  // 已登录时进入就诊码/就诊卡页面
-  uni.navigateTo({ url: '/subpkg/profile/personal/mycard' })
-}
+// 使用统一的权限控制（需要就诊卡）
+const onVisitCardClick = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.HOME.VISIT_CARD,
+  '/subpkg/profile/personal/mycard',
+  { requireCard: true }
+)
 </script>
 
 <style scoped>

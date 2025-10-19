@@ -4,7 +4,10 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.jeecg.modules.hospital.entity.Patient;
 import org.jeecg.modules.hospital.service.PatientService;
 import org.jeecg.modules.hospital.mapper.PatientMapper;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
 
 /**
 * @author Administrator
@@ -14,10 +17,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient>
     implements PatientService{
-    @Override
-    public void cardInfo(Patient patient) {
-        this.baseMapper.selectById(patient.getUserId());
-    }
+
 }
 
 
