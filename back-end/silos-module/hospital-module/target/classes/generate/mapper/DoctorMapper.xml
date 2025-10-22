@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="generate.mapper.DoctorMapper">
+
+    <resultMap id="BaseResultMap" type="org.jeecg.modules.hospital.entity.entity.Doctor">
+            <id property="doctorId" column="doctor_id" />
+            <result property="userId" column="user_id" />
+            <result property="deptId" column="dept_id" />
+            <result property="title" column="title" />
+            <result property="specialty" column="specialty" />
+            <result property="doctorDesc" column="doctor_desc" />
+            <result property="avatar" column="avatar" />
+            <result property="isActive" column="is_active" />
+            <result property="updateVerify" column="update_verify" />
+            <result property="doctorName" column="doctor_name" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        doctor_id,user_id,dept_id,title,specialty,doctor_desc,
+        avatar,is_active,update_verify,doctor_name
+    </sql>
+</mapper>

@@ -21,6 +21,46 @@
 				"navigationBarBackgroundColor": "#479fff"
 			}
 		},
+    {
+      "path": "pages/doctor/schedule/main",
+      "style": {
+        "navigationBarTitleText": "医生排班",
+        "navigationBarBackgroundColor": "#479fff",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/doctor/schedule/apply",
+      "style": {
+        "navigationBarTitleText": "申请调班",
+        "navigationBarBackgroundColor": "#479fff",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/doctor/patients/list",
+      "style": {
+        "navigationBarTitleText": "患者列表",
+        "navigationBarBackgroundColor": "#479fff",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/doctor/patients/detail",
+      "style": {
+        "navigationBarTitleText": "患者信息",
+        "navigationBarBackgroundColor": "#479fff",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/doctor/profile/index",
+      "style": {
+        "navigationBarTitleText": "医生个人信息",
+        "navigationBarBackgroundColor": "#479fff",
+        "navigationBarTextStyle": "white"
+      }
+    },
 		{
 			"path": "pages/hospital/hospital",
 			"style": {
@@ -31,6 +71,18 @@
 			"path": "pages/profile/profile",
 			"style": {
 				"navigationBarTitleText": "个人中心"
+			}
+		},
+		{
+			"path": "pages/messages/login",
+			"style": {
+				"navigationBarTitleText": "登录"
+			}
+		},
+		{
+			"path": "pages/messages/register",
+			"style": {
+				"navigationBarTitleText": "注册"
 			}
 		}
 	],
@@ -219,20 +271,26 @@
 					}
 				}
 			]
-		},
+		}
+	],
+	"subPackages": [
 		{
 			"root": "subpkg/auth/",
 			"pages": [
 				{
 					"path": "login",
 					"style": {
-						"navigationBarTitleText": "登录"
+						"navigationBarTitleText": "登录",
+						"navigationBarBackgroundColor": "#479fff",
+						"navigationBarTextStyle": "white"
 					}
 				},
 				{
 					"path": "register",
 					"style": {
-						"navigationBarTitleText": "注册"
+						"navigationBarTitleText": "注册",
+						"navigationBarBackgroundColor": "#479fff",
+						"navigationBarTextStyle": "white"
 					}
 				}
 			]

@@ -1,0 +1,145 @@
+
+.profile-bg.data-v-dd383ca2 {
+  background: #3a9cff;
+  min-height: 100vh;
+  padding-bottom: 72rpx;
+}
+.profile-header.data-v-dd383ca2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx 24rpx;
+  min-height: 180rpx; /* 个人信息模块在区域内垂直居中 */
+  background: #3a9cff;
+}
+.profile-info.data-v-dd383ca2 {
+  display: flex;
+  align-items: center;
+}
+.avatar.data-v-dd383ca2 {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  background: #fff;
+  margin-right: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48rpx;
+}
+.user-info.data-v-dd383ca2 {
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+}
+.user-name.data-v-dd383ca2 {
+  font-size: 36rpx;
+  font-weight: bold;
+}
+.user-phone.data-v-dd383ca2 {
+  font-size: 26rpx;
+  margin-top: 8rpx;
+}
+.unbind-btn.data-v-dd383ca2 {
+  border: 1px solid #fff;
+  color: #fff;
+  background: transparent;
+  font-size: 26rpx;
+  border-radius: 8rpx;
+  padding: 8rpx 24rpx;
+}
+.card.data-v-dd383ca2 {
+  background: #fff;
+  border-radius: 16rpx;
+  margin: 14rpx 14rpx 0 14rpx; /* 略放松，避免过紧 */
+  padding: 14rpx 0;
+  box-shadow: 0 4rpx 16rpx rgba(58,156,255,0.08);
+}
+.profile-section.data-v-dd383ca2 {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* 区块内容靠上且整体居中感 */
+}
+.profile-section.centered.data-v-dd383ca2 {
+  min-height: 180rpx;
+  justify-content: center; /* 该块内竖直居中 */
+}
+.profile-section.centered-down.data-v-dd383ca2 {
+  padding-top: 18rpx; /* 让第一块稍微下移 */
+}
+.profile-section.centered-down-small.data-v-dd383ca2 {
+  min-height: 200rpx;
+  justify-content: center;
+  padding-top: 10rpx; /* 就诊记录整体略向下 */
+}
+.section-title.data-v-dd383ca2 {
+  font-size: 28rpx;
+  font-weight: bold;
+  margin: 0 0 6rpx 32rpx;
+  color: #333;
+}
+.profile-row.data-v-dd383ca2 {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  margin: 0 0 6rpx 0; /* 适当放松行距 */
+}
+.profile-item.data-v-dd383ca2 {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center; /* 新增这一行 */
+  margin: 8rpx 0;
+  padding: 12rpx;
+  border-radius: 12rpx;
+  transition: background-color 0.3s;
+}
+.profile-item.data-v-dd383ca2:active {
+  background-color: rgba(58, 156, 255, 0.1);
+}
+.icon.data-v-dd383ca2 {
+  width: 72rpx;
+  height: 72rpx;
+  margin-bottom: 6rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-lg.data-v-dd383ca2 {
+  width: 88rpx;
+  height: 88rpx;
+  margin-bottom: 12rpx;
+}
+.profile-item text.data-v-dd383ca2 {
+  display: block;
+  text-align: center;
+  line-height: 32rpx;
+  min-height: 64rpx; /* 固定两行高度，保证同一行标题对齐 */
+}
+.tabbar-placeholder.data-v-dd383ca2 {
+  height: 72rpx;
+}
+
+/* 退出登录按钮样式 */
+.logout-section.data-v-dd383ca2 {
+  margin: 20rpx 14rpx 0 14rpx;
+}
+.logout-btn.data-v-dd383ca2 {
+  width: 100%;
+  height: 88rpx;
+  background: #ff4757;
+  color: #fff;
+  border: none;
+  border-radius: 12rpx;
+  font-size: 32rpx;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s;
+}
+.logout-btn.data-v-dd383ca2:active {
+  background: #ff3742;
+}

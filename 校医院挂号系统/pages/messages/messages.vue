@@ -1,196 +1,53 @@
 <template>
-	<view class="container">
-		<view v-if="groupedMessages.length > 0" class="message-list">
-			<view v-for="group in groupedMessages" :key="group.appointmentId" class="message-card" @click="goToDetail(group.appointmentId)">
-				<view class="card-icon">
-					<image src="/static/info_message.png" mode="aspectFit"></image>
-				</view>
-				<view class="card-content">
-					<view class="card-title-line">
-						<text class="card-title">预约挂号</text>
-						<text class="card-time">{{ formatTime(group.latestMessage.createdTime) }}</text>
-					</view>
-					<view class="card-summary">{{ group.latestMessage.title }}</view>
-				</view>
-			</view>
-		</view>
-		
-		<view v-else class="empty-container">
-			<image class="empty-icon" src="/static/empty_message.png" mode="aspectFit"></image>
-			<text class="empty-text">暂无任何消息</text>
-		</view>
-	</view>
-</template>
-<script>
-	export default {
-		data() {
-			return {
-				messageList: [], // 存储从后端获取的原始消息列表
-				loading: false // 加载状态，防止重复请求
-			};
-		},
-		computed: {
-			// 计算属性，将原始列表处理成按 appointmentId 分组的结构
-			groupedMessages() {
-				if (this.messageList.length === 0) {
-					return [];
-				}
-				
-				const groups = {};
-				this.messageList.forEach(msg => {
-					// 如果分组不存在，则创建
-					if (!groups[msg.appointmentId]) {
-						groups[msg.appointmentId] = {
-							appointmentId: msg.appointmentId,
-							latestMessage: msg // 默认第一条就是最新的
-						};
-					}
-					// 因为列表已经是降序，所以第一条就是最新的，无需再比较时间
-				});
-				
-				// 将分组对象转换为数组并返回
-				return Object.values(groups);
-			}
-		},
-		// uni-app生命周期函数，每次进入页面都会触发
-		onShow() {
-			this.fetchMessageList();
-		},
-		// uni-app生命周期函数，监听下拉刷新
-		onPullDownRefresh() {
-			this.fetchMessageList();
-		},
-		methods: {
-			// 从后端接口获取消息列表
-			fetchMessageList() {
-				if (this.loading) return;
-				this.loading = true;
-				
-				// 这里的IP地址和端口需要换成你后端项目运行的实际地址
-				// 不要使用 localhost 或 127.0.0.1，而要使用你电脑的局域网IP
-				const apiUrl = 'http://10.61.62.249:8095/jeecg-boot/api/messages/list';
-				
-				// 这里的userId应该是动态获取的，先用测试ID
-				const testUserId = 'wuzhizhu_001'; 
-				
-				uni.request({
-					url: `${apiUrl}?userId=${testUserId}`,
-					method: 'GET',
-					success: (res) => {
-						if (res.statusCode === 200) {
-							this.messageList = res.data;
-						} else {
-							uni.showToast({ title: '加载失败', icon: 'none' });
-						}
-					},
-					fail: (err) => {
-						console.error('API请求失败:', err);
-						uni.showToast({ title: '网络请求失败', icon: 'none' });
-					},
-					complete: () => {
-						this.loading = false;
-						uni.stopPullDownRefresh(); // 停止下拉刷新的动画
-					}
-				});
-			},
-			
-			// 跳转到消息详情列表页
-			goToDetail(appointmentId) {
-				// 我们还没有创建详情页，但先把跳转逻辑写好
-				uni.navigateTo({
-					url: `/subpkg/messages/detail?appointmentId=${appointmentId}`
-				});
-			},
-			
-			// 格式化时间函数
-			formatTime(dateTimeStr) {
-				if (!dateTimeStr) return '';
-				// 简单处理，只取日期部分
-				return dateTimeStr.split('T')[0];
-			}
-		}
-	}
-</script>
-<style scoped>
-	.container {
-		background-color: #f5f5f5;
-		min-height: 100vh;
-		padding: 16rpx 0;
-	}
+  <view class="page">
+    <view class="header">
+      <text class="title">消息中心</text>
+      <button class="doctor-entry" @click="goDoctorMain">进入医生端</button>
+    </view>
 
-	.message-list {
-		width: 100%;
-	}
-	
-	.message-card {
-		display: flex;
-		align-items: center;
-		background-color: #ffffff;
-		margin: 16rpx 24rpx;
-		padding: 24rpx;
-		border-radius: 16rpx;
-		box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
-	}
-	
-	.card-icon {
-		width: 88rpx;
-		height: 88rpx;
-		margin-right: 24rpx;
-	}
-	
-	.card-icon image {
-		width: 100%;
-		height: 100%;
-	}
-	
-	.card-content {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-	}
-	
-	.card-title-line {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 8rpx;
-	}
-	
-	.card-title {
-		font-size: 32rpx;
-		font-weight: bold;
-		color: #333;
-	}
-	
-	.card-time {
-		font-size: 24rpx;
-		color: #999;
-	}
-	
-	.card-summary {
-		font-size: 28rpx;
-		color: #666;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-	
-	.empty-container {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		padding-top: 200rpx;
-	}
-	
-	.empty-icon {
-		width: 200rpx;
-		height: 200rpx;
-		margin-bottom: 24rpx;
-	}
-	
-	.empty-text {
-		font-size: 28rpx;
-		color: #999;
-	}
+    <view class="list">
+      <view class="msg-card" v-for="item in messages" :key="item.id" @click="openDetail(item)">
+        <view class="msg-title">{{ item.title }}</view>
+        <view class="msg-time">{{ item.time }}</view>
+        <view class="msg-content">{{ item.content }}</view>
+      </view>
+      <view v-if="messages.length === 0" class="empty">暂无消息</view>
+    </view>
+  </view>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+
+const messages = ref([])
+
+onMounted(() => {
+  // 可替换为真实接口：/api/messages/list
+  messages.value = [
+    { id: 1, title: '挂号成功通知', time: '2025-10-17 09:00', content: '请及时前往诊室' },
+    { id: 2, title: '排班变更提醒', time: '2025-10-18 12:00', content: '您有新的排班变更' },
+  ]
+})
+
+const goDoctorMain = () => {
+  uni.navigateTo({ url: '/pages/doctor/schedule/main' })
+}
+
+const openDetail = (item) => {
+  // 示例：跳转到现有消息详情页（subpkg/messages/detail.vue）
+  uni.navigateTo({ url: `/subpkg/messages/detail?id=${item.id}` })
+}
+</script>
+
+<style scoped>
+.page { min-height: 100vh; background: #f7faff; }
+.header { display: flex; align-items: center; justify-content: space-between; padding: 24rpx; background: #479fff; }
+.title { color: #fff; font-size: 34rpx; font-weight: bold; }
+.doctor-entry { background: #fff; color: #2176ff; border-radius: 999rpx; padding: 10rpx 24rpx; font-size: 26rpx; }
+.list { padding: 24rpx; }
+.msg-card { background: #fff; border-radius: 16rpx; padding: 24rpx; margin-bottom: 16rpx; box-shadow: 0 4rpx 16rpx rgba(33,118,255,0.08); }
+.msg-title { font-size: 30rpx; color: #1e293b; font-weight: 600; }
+.msg-time { font-size: 24rpx; color: #64748b; margin-top: 6rpx; }
+.msg-content { font-size: 26rpx; color: #334155; margin-top: 12rpx; }
+.empty { text-align: center; color: #64748b; font-size: 28rpx; margin-top: 48rpx; }
 </style>
