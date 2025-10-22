@@ -1,0 +1,202 @@
+import { defHttp } from '/@/utils/http/axios';
+import { LoginParams, LoginResultModel } from './model/userModel';
+
+import { ErrorMessageMode } from '/#/axios';
+import { useMessage } from '/@/hooks/web/useMessage';
+import { ExceptionEnum } from "@/enums/exceptionEnum";
+
+const { createErrorModal } = useMessage();
+enum Api {
+  Login = '/user/login',
+  phoneLogin = '/sys/phoneLogin',
+  Logout = '/user/logout', // 使用hospital模块的退出接口
+  // GetUserInfo = '/user/getUserInfo', // 已弃用，避免后端类型转换错误
+  // 获取系统权限
+  // 1、查询用户拥有的按钮/表单访问权限
+  // 2、所有权限
+  // 3、系统安全模式
+  GetPermCode = '/sys/permission/getPermCode',
+  //新加的获取图形验证码的接口
+  getInputCode = '/sys/randomImage',
+  //获取短信验证码的接口
+  getCaptcha = '/sys/sms',
+  //注册接口
+  registerApi = '/user/register',
+  //校验用户接口
+  checkOnlyUser = '/sys/user/checkOnlyUser',
+  //SSO登录校验
+  validateCasLogin = '/sys/cas/client/validateLogin',
+  //校验手机号
+  phoneVerify = '/sys/user/phoneVerification',
+  //修改密码
+  passwordChange = '/sys/user/passwordChange',
+  //第三方登录
+  thirdLogin = '/sys/thirdLogin/getLoginUser',
+  //第三方登录
+  getThirdCaptcha = '/sys/thirdSms',
+  //获取二维码信息
+  getLoginQrcode = '/sys/getLoginQrcode',
+  //监控二维码扫描状态
+  getQrcodeToken = '/sys/getQrcodeToken',
+}
+
+/**
+ * @description: user login api
+ */
+export function loginApi(params: LoginParams, mode: ErrorMessageMode = 'modal') {
+  const res=defHttp.post<LoginResultModel>(
+    {
+      url: Api.Login,
+      params,
+    },
+    {
+      errorMessageMode: mode,
+      isTransformResponse: false, // 不进行数据转换，直接返回原始数据
+    }
+  );
+  console.log('登录接口返回数据:', res);
+  return res;
+}
+
+/**
+ * @description: user phoneLogin api
+ */
+export function phoneLoginApi(params: LoginParams, mode: ErrorMessageMode = 'modal') {
+  return defHttp.post<LoginResultModel>(
+    {
+      url: Api.phoneLogin,
+      params,
+    },
+    {
+      errorMessageMode: mode,
+      isTransformResponse: false, // 不进行数据转换，直接返回原始数据
+    }
+  );
+}
+
+/**
+ * @description: getUserInfo - 已完全移除，避免后端类型转换错误
+ * 现在直接使用登录时保存的用户信息，不再调用后端接口
+ */
+
+export function getPermCode() {
+  console.warn('getPermCode 接口已弃用，使用新的登录逻辑');
+  // 返回空的权限代码列表
+  return Promise.resolve([]);
+}
+
+export function doLogout() {
+  // 使用hospital模块的退出登录接口，避免系统接口的类型转换问题
+  return defHttp.post({ url: '/user/logout' });
+}
+
+export function getCodeInfo(currdatetime) {
+  let url = Api.getInputCode + `/${currdatetime}`;
+  return defHttp.get({ url: url });
+}
+/**
+ * @description: 获取短信验证码
+ */
+export function getCaptcha(params) {
+  return new Promise((resolve, reject) => {
+    defHttp.post({ url: Api.getCaptcha, params }, { isTransformResponse: false }).then((res) => {
+      console.log(res);
+      if (res.success) {
+        resolve(true);
+      } else {
+        //update-begin---author:wangshuai---date:2024-04-18---for:【QQYUN-9005】同一个IP，1分钟超过5次短信，则提示需要验证码---
+        if(res.code != ExceptionEnum.PHONE_SMS_FAIL_CODE){
+          createErrorModal({ title: '错误提示', content: res.message || '未知问题' });
+          reject();
+        }
+        reject(res);
+        //update-end---author:wangshuai---date:2024-04-18---for:【QQYUN-9005】同一个IP，1分钟超过5次短信，则提示需要验证码---
+      }
+    }).catch((res)=>{
+      createErrorModal({ title: '错误提示', content: res.message || '未知问题' });
+      reject();
+    });
+  });
+}
+
+/**
+ * @description: 注册接口
+ */
+export function register(params) {
+  return defHttp.post({ url: Api.registerApi, params }, { isReturnNativeResponse: true });
+}
+
+/**
+ *校验用户是否存在
+ * @param params
+ */
+export const checkOnlyUser = (params) => defHttp.get({ url: Api.checkOnlyUser, params }, { isTransformResponse: false });
+/**
+ *校验手机号码
+ * @param params
+ */
+export const phoneVerify = (params) => defHttp.post({ url: Api.phoneVerify, params }, { isTransformResponse: false });
+/**
+ *密码修改
+ * @param params
+ */
+export const passwordChange = (params) => defHttp.get({ url: Api.passwordChange, params }, { isTransformResponse: false });
+/**
+ * @description: 第三方登录
+ */
+export function thirdLogin(params, mode: ErrorMessageMode = 'modal') {
+  //==========begin 第三方登录/auth2登录需要传递租户id===========
+  let tenantId = "0";
+  if(!params.tenantId){
+    tenantId = params.tenantId;
+  }
+  //==========end 第三方登录/auth2登录需要传递租户id===========
+  return defHttp.get<LoginResultModel>(
+    {
+      url: `${Api.thirdLogin}/${params.token}/${params.thirdType}/${tenantId}`,
+    },
+    {
+      errorMessageMode: mode,
+    }
+  );
+}
+/**
+ * @description: 获取第三方短信验证码
+ */
+export function setThirdCaptcha(params) {
+  return new Promise((resolve, reject) => {
+    defHttp.post({ url: Api.getThirdCaptcha, params }, { isTransformResponse: false }).then((res) => {
+      console.log(res);
+      if (res.success) {
+        resolve(true);
+      } else {
+        createErrorModal({ title: '错误提示', content: res.message || '未知问题' });
+        reject();
+      }
+    });
+  });
+}
+
+/**
+ * 获取登录二维码信息
+ */
+export function getLoginQrcode() {
+  let url = Api.getLoginQrcode;
+  return defHttp.get({ url: url });
+}
+
+/**
+ * 监控扫码状态
+ */
+export function getQrcodeToken(params) {
+  let url = Api.getQrcodeToken;
+  return defHttp.get({ url: url, params });
+}
+
+/**
+ * SSO登录校验
+ */
+export async function validateCasLogin(params) {
+  let url = Api.validateCasLogin;
+  return defHttp.get({ url: url, params });
+}
