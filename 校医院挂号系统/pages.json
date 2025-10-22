@@ -57,6 +57,12 @@
 					}
 				},
 				{
+					"path": "personal/create-card",
+					"style": {
+						"navigationBarTitleText": "创建就诊卡"
+					}
+				},
+				{
 					"path": "personal/mypatient",
 					"style": {
 						"navigationBarTitleText": "我的就诊人"

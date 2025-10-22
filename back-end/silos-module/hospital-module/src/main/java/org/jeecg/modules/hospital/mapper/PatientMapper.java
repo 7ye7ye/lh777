@@ -1,5 +1,6 @@
 package org.jeecg.modules.hospital.mapper;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
 import org.jeecg.modules.hospital.entity.Patient;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
@@ -9,6 +10,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 * @createDate 2025-09-22 20:15:21
 * @Entity org.jeecg.modules.hospital.entity.Patient
 */
+@DS("hospital")
 public interface PatientMapper extends BaseMapper<Patient> {
 
 }
