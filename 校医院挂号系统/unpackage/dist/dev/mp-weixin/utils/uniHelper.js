@@ -9,11 +9,6 @@ const uniNavigateTo = (options) => {
     });
   });
 };
-const uniNavigateBack = (delta = 1) => {
-  common_vendor.index.navigateBack({
-    delta
-  });
-};
 const uniShowToast = (options) => {
   return new Promise((resolve) => {
     common_vendor.index.showToast({
@@ -33,7 +28,6 @@ const uniSwitchTab = (options) => {
     });
   });
 };
-exports.uniNavigateBack = uniNavigateBack;
 exports.uniNavigateTo = uniNavigateTo;
 exports.uniShowToast = uniShowToast;
 exports.uniSwitchTab = uniSwitchTab;

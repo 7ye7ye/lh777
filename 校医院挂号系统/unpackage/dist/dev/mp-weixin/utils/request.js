@@ -51,6 +51,8 @@ const requestInterceptor = (options) => {
 };
 const responseInterceptor = (response) => {
   const { data, statusCode } = response;
+  common_vendor.index.__f__("log", "at utils/request.ts:82", "响应拦截器 - 原始响应:", response);
+  common_vendor.index.__f__("log", "at utils/request.ts:83", "响应拦截器 - data:", data);
   if (statusCode < 200 || statusCode >= 300) {
     common_vendor.index.showToast({ title: `请求失败: ${statusCode}`, icon: "none" });
     return Promise.reject(new Error(`HTTP Error: ${statusCode}`));
@@ -64,8 +66,14 @@ const responseInterceptor = (response) => {
       common_vendor.index.showToast({ title: errorMsg, icon: "none" });
       return Promise.reject(new Error(errorMsg));
     }
-    return Promise.resolve(data.data !== void 0 ? data.data : data);
+    const payload = data.result !== void 0 ? data.result : data.data !== void 0 ? data.data : data;
+    return Promise.resolve(payload);
   }
+  if (data && typeof data === "object" && data.body !== void 0) {
+    common_vendor.index.__f__("log", "at utils/request.ts:115", "检测到ResponseEntity格式，提取body:", data.body);
+    return Promise.resolve(data.body);
+  }
+  common_vendor.index.__f__("log", "at utils/request.ts:120", "返回原始data:", data);
   return Promise.resolve(data);
 };
 const request = (options) => {

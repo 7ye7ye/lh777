@@ -3787,6 +3787,12 @@ const Static = Symbol.for("v-stc");
 function isVNode(value) {
   return value ? value.__v_isVNode === true : false;
 }
+const InternalObjectKey = `__vInternal`;
+function guardReactiveProps(props) {
+  if (!props)
+    return null;
+  return isProxy(props) || InternalObjectKey in props ? extend({}, props) : props;
+}
 const emptyAppContext = createAppContext();
 let uid = 0;
 function createComponentInstance(vnode, parent, suspense) {
@@ -5027,6 +5033,11 @@ function initApp(app) {
   }
 }
 const propsCaches = /* @__PURE__ */ Object.create(null);
+function renderProps(props) {
+  const { uid: uid2, __counter } = getCurrentInstance();
+  const propsId = (propsCaches[uid2] || (propsCaches[uid2] = [])).push(guardReactiveProps(props)) - 1;
+  return uid2 + "," + propsId + "," + __counter;
+}
 function pruneComponentPropsCache(uid2) {
   delete propsCaches[uid2];
 }
@@ -5193,6 +5204,10 @@ function vFor(source, renderItem) {
   }
   return ret;
 }
+function setRef(ref2, id, opts = {}) {
+  const { $templateRefs } = getCurrentInstance();
+  $templateRefs.push({ i: id, r: ref2, k: opts.k, f: opts.f });
+}
 function withModelModifiers(fn, { number, trim }, isComponent = false) {
   if (isComponent) {
     return (...args) => {
@@ -5219,6 +5234,8 @@ const f = (source, renderItem) => vFor(source, renderItem);
 const e = (target, ...sources) => extend(target, ...sources);
 const n = (value) => normalizeClass(value);
 const t = (val) => toDisplayString(val);
+const p = (props) => renderProps(props);
+const sr = (ref2, id, opts) => setRef(ref2, id, opts);
 const m = (fn, modifiers, isComponent = false) => withModelModifiers(fn, modifiers, isComponent);
 function createApp$1(rootComponent, rootProps = null) {
   rootComponent && (rootComponent.mpType = "app");
@@ -7041,7 +7058,7 @@ function isConsoleWritable() {
 function initRuntimeSocketService() {
   const hosts = "10.60.205.245,127.0.0.1";
   const port = "8090";
-  const id = "mp-weixin_cNHaLU";
+  const id = "mp-weixin_12DVFN";
   const lazy = typeof swan !== "undefined";
   let restoreError = lazy ? () => {
   } : initOnError();
@@ -8487,8 +8504,8 @@ function createSetupStore($id, setup, options = {}, pinia, hot, isOptionsStore) 
       // avoid warning on devtools trying to display this property
       enumerable: false
     };
-    ["_p", "_hmrPayload", "_getters", "_customProperties"].forEach((p) => {
-      Object.defineProperty(store, p, assign({ value: store[p] }, nonEnumerable));
+    ["_p", "_hmrPayload", "_getters", "_customProperties"].forEach((p2) => {
+      Object.defineProperty(store, p2, assign({ value: store[p2] }, nonEnumerable));
     });
   }
   pinia._p.forEach((extender) => {
@@ -8602,7 +8619,8 @@ exports.n = n;
 exports.o = o;
 exports.onLoad = onLoad;
 exports.onMounted = onMounted;
+exports.p = p;
 exports.ref = ref;
+exports.sr = sr;
 exports.t = t;
-exports.unref = unref;
 //# sourceMappingURL=../../.sourcemap/mp-weixin/common/vendor.js.map

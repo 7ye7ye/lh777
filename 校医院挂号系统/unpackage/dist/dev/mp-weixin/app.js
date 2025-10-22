@@ -5,39 +5,17 @@ if (!Math) {
   "./pages/home/home.js";
   "./pages/assistant/assistant.js";
   "./pages/messages/messages.js";
+  "./pages/doctor/schedule/main.js";
+  "./pages/doctor/schedule/apply.js";
+  "./pages/doctor/patients/list.js";
+  "./pages/doctor/patients/detail.js";
+  "./pages/doctor/profile/index.js";
   "./pages/hospital/hospital.js";
-  "./pages/hospital/departments.js";
-  "./pages/hospital/department-detail.js";
   "./pages/profile/profile.js";
-  "./pages/login/login.js";
-  "./pages/register/register.js";
-  "./pages/doctor/schedule/schedule.js";
-  "./pages/doctor/schedule/apply-change.js";
-  "./pages/doctor/patients/patient-list.js";
-  "./pages/doctor/patients/patient-detail.js";
-  "./pages/doctor/profile/doctor-profile.js";
-  "./pages/profile/personal/mycard.js";
-  "./pages/profile/personal/mypatient.js";
-  "./pages/profile/personal/mydoctor.js";
-  "./pages/profile/records/register-record.js";
-  "./pages/profile/records/outpatient-record.js";
-  "./pages/profile/records/hospital-record.js";
-  "./pages/profile/records/consult-record.js";
-  "./pages/profile/records/revisit-record.js";
-  "./pages/profile/records/check-record.js";
-  "./pages/profile/settings/privacy.js";
-  "./pages/profile/help/help.js";
-  "./pages/profile/settings/complain.js";
-  "./pages/profile/settings/evaluate.js";
-  "./pages/profile/settings/unbind.js";
-  "./pages/profile/help/login.js";
-  "./pages/profile/help/bindcard.js";
-  "./pages/profile/help/register.js";
-  "./pages/profile/help/payment.js";
-  "./pages/profile/help/hospitalization.js";
-  "./pages/profile/help/report.js";
-  "./pages/profile/help/other.js";
-  "./pages/profile/help/appointment.js";
+  "./pages/messages/login.js";
+  "./pages/messages/register.js";
+  "./subpkg/auth/login.js";
+  "./subpkg/auth/register.js";
 }
 const _sfc_main = {
   onLaunch: function() {

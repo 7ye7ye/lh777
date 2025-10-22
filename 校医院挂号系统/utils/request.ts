@@ -79,6 +79,9 @@ const requestInterceptor = (options) => {
 const responseInterceptor = (response) => {
   const { data, statusCode } = response;
   
+  console.log('响应拦截器 - 原始响应:', response);
+  console.log('响应拦截器 - data:', data);
+  
   // 1. 处理 HTTP 错误（如 404、500）
   if (statusCode < 200 || statusCode >= 300) {
     uni.showToast({ title: `请求失败: ${statusCode}`, icon: 'none' });
@@ -99,12 +102,24 @@ const responseInterceptor = (response) => {
       uni.showToast({ title: errorMsg, icon: 'none' });
       return Promise.reject(new Error(errorMsg));
     }
-    return Promise.resolve(data.data !== undefined ? data.data : data);
+    // 统一解包 JEECG 的 result
+    const payload = data.result !== undefined
+      ? data.result
+      : (data.data !== undefined ? data.data : data);
+    return Promise.resolve(payload);
   }
 
-  // 3. 其他结构：直接返回原始 data
+  // 3. 处理Spring Boot ResponseEntity响应格式
+  // ResponseEntity.ok(data) 的响应结构通常是 { body: actualData, statusCode: 200, ... }
+  if (data && typeof data === 'object' && data.body !== undefined) {
+    console.log('检测到ResponseEntity格式，提取body:', data.body);
+    return Promise.resolve(data.body);
+  }
+
+  // 4. 其他结构：直接返回原始 data
+  console.log('返回原始data:', data);
   return Promise.resolve(data);
-};
+}
 
 // 封装统一请求方法
 export const request = (options) => {

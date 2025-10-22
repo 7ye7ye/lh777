@@ -8,7 +8,6 @@ import org.jeecg.common.constant.CommonConstant;
 import org.jeecg.common.system.util.JwtUtil;
 import org.jeecg.common.util.RedisUtil;
 import org.jeecg.modules.hospital.common.ErrorCode;
-import org.jeecg.modules.hospital.contant.UserTypeEnum;
 import org.jeecg.modules.hospital.dto.HosUserLoginResult;
 import org.jeecg.modules.hospital.entity.HosUser;
 import org.jeecg.modules.hospital.exception.BusinessException;
@@ -20,7 +19,8 @@ import org.springframework.util.DigestUtils;
 
 import java.time.LocalDateTime;
 
-import static org.jeecg.modules.hospital.contant.UserContant.*;
+import static org.jeecg.modules.hospital.contant.UserContant.ACTIVE;
+import static org.jeecg.modules.hospital.contant.UserContant.PATIENT;
 
 /**
 * @author Administrator
@@ -46,7 +46,7 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
     private RedisUtil redisUtil;
 
     @Override
-    public int userRegister(String userAccount, String userPassword, String checkPassword,String userType) {
+    public int userRegister(String userAccount, String userPassword, String checkPassword) {
         //一，校验
         //1.非空
         if(StringUtils.isAnyBlank(userAccount,userPassword,checkPassword)){
@@ -85,11 +85,7 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
         HosUser user=new HosUser();
         user.setUserAccount(userAccount);
         user.setUserPassword(newPassword);
-        if(userType==null){
-            user.setUserType(ADMIN);
-        }else{
-            user.setUserType(UserTypeEnum.getByCode(userType).getValue());
-        }
+        user.setUserType(PATIENT);
         user.setStatus(ACTIVE);
         // 设置创建时间为当前时间
         user.setCreateTime(LocalDateTime.now());
@@ -197,7 +193,7 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
 
     /**
      * 根据账户查找用户
-     *
+     * 
      * @param account
      * @return
      */

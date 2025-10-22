@@ -1,0 +1,16 @@
+${AnsiColor.BRIGHT_WHITE}
+   _____  _____  _       ____    _____
+  / ____||_   _|| |     / __ \  / ____|
+ | (___    | |  | |    | |  | || (___
+  \___ \   | |  | |    | |  | | \___ \
+  ____) | _| |_ | |____| |__| | ____) |
+ |_____/ |_____||______|\____/ |_____/
+ ${AnsiStyle.ITALIC}
+ Let me let you go, Dead inside and dead blow
+ Be my holy ghost, The only one who'll never knows
+ Lyrics by STARSET
+ ${AnsiStyle.NORMAL}
+${AnsiColor.WHITE}
+Silos Boot Version: 3.8.1
+Jeecg Boot Version: 3.8.1
+Spring Boot Version: ${spring-boot.version}${spring-boot.formatted-version}

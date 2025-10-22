@@ -27,11 +27,11 @@ const _sfc_main = {
       activeIndex.value = idx;
     };
     const goDepartments = () => {
-      common_vendor.index.navigateTo({ url: "/pages/hospital/departments" });
+      common_vendor.index.navigateTo({ url: "/subpkg/hospital/departments" });
     };
     return (_ctx, _cache) => {
       return {
-        a: common_assets._imports_0,
+        a: common_assets._imports_0$1,
         b: common_assets._imports_1,
         c: common_vendor.t(hospitalName.value),
         d: common_vendor.f(branches, (b, idx, i0) => {

@@ -1,11 +1,18 @@
 "use strict";
 const common_vendor = require("../../common/vendor.js");
 const common_assets = require("../../common/assets.js");
+const store_user = require("../../store/user.js");
+if (!Math) {
+  LoginPrompt();
+}
+const LoginPrompt = () => "../../components/LoginPrompt.js";
 const _sfc_main = {
   __name: "home",
   setup(__props) {
     const tabs = ["门诊", "住院", "体检", "其他"];
     const activeIndex = common_vendor.ref(0);
+    const loginPromptRef = common_vendor.ref(null);
+    const userStore = store_user.useUserStore();
     const itemsMap = {
       门诊: [
         { icon: "🌙", text: "晚间门诊" },
@@ -60,10 +67,18 @@ const _sfc_main = {
     const onItemClick = (item) => {
       common_vendor.index.showToast({ title: item.text, icon: "none" });
     };
+    const onVisitCardClick = () => {
+      if (!userStore.isLoggedIn) {
+        loginPromptRef.value && loginPromptRef.value.open("请先登录后查看电子就诊卡");
+        return;
+      }
+      common_vendor.index.navigateTo({ url: "/subpkg/profile/personal/mycard" });
+    };
     return (_ctx, _cache) => {
       return {
         a: common_assets._imports_0,
-        b: common_vendor.f(tabs, (tab, idx, i0) => {
+        b: common_vendor.o(onVisitCardClick),
+        c: common_vendor.f(tabs, (tab, idx, i0) => {
           return {
             a: common_vendor.t(tab),
             b: tab,
@@ -71,13 +86,21 @@ const _sfc_main = {
             d: common_vendor.o(($event) => activeIndex.value = idx, tab)
           };
         }),
-        c: common_vendor.f(currentItems.value, (item, k0, i0) => {
+        d: common_vendor.f(currentItems.value, (item, k0, i0) => {
           return {
             a: common_vendor.t(item.icon),
             b: common_vendor.t(item.text),
             c: item.text,
             d: common_vendor.o(($event) => onItemClick(item), item.text)
           };
+        }),
+        e: common_vendor.sr(loginPromptRef, "07e72d3c-0", {
+          "k": "loginPromptRef"
+        }),
+        f: common_vendor.p({
+          mode: "inline",
+          message: "登录后可出示电子就诊码",
+          ["login-text"]: "去登录"
         })
       };
     };
