@@ -1,7 +1,0 @@
-{
-  "navigationBarTitleText": "挂号回执单",
-  "navigationBarTextStyle": "white",
-  "enablePullDownRefresh": true,
-  "navigationBarBackgroundColor": "#479fff",
-  "usingComponents": {}
-}

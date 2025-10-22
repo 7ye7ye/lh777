@@ -84,7 +84,7 @@ const _sfc_main = {
               common_vendor.index.clearStorage();
             } catch (e) {
             }
-            common_vendor.index.reLaunch({ url: "/pages/login/login" });
+            common_vendor.index.reLaunch({ url: "/subpkg/auth/login" });
           }
         }
       });

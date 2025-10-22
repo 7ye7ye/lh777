@@ -1,115 +1,106 @@
 "use strict";
 const common_vendor = require("../../../common/vendor.js");
+const utils_uniHelper = require("../../../utils/uniHelper.js");
+const store_user = require("../../../store/user.js");
+const api_doctor = require("../../../api/doctor.js");
 const _sfc_main = {
   __name: "main",
   setup(__props) {
-    const formatDate = (date) => {
-      const yyyy = date.getFullYear();
-      const mm = String(date.getMonth() + 1).padStart(2, "0");
-      const dd = String(date.getDate()).padStart(2, "0");
-      return `${yyyy}-${mm}-${dd}`;
-    };
+    const userStore = store_user.useUserStore();
     const doctorInfo = common_vendor.ref({
       name: "张医生",
       department: "内科"
+    });
+    const doctorId = common_vendor.computed(() => {
+      var _a;
+      return ((_a = userStore.userInfo) == null ? void 0 : _a.id) || 1;
     });
     const todayDate = common_vendor.ref("");
     const dateList = common_vendor.ref([]);
     const selectedDateIndex = common_vendor.ref(0);
     const scheduleList = common_vendor.ref([]);
+    const fmtDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     const initDateList = () => {
       const dates = [];
       const weekdays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
-      const today = /* @__PURE__ */ new Date();
       for (let i = 0; i < 7; i++) {
-        const date = new Date(today);
-        date.setDate(today.getDate() + i);
+        const date = /* @__PURE__ */ new Date();
+        date.setDate(date.getDate() + i);
         dates.push({
           weekday: weekdays[date.getDay()],
           day: date.getDate(),
           month: `${date.getMonth() + 1}月`,
-          fullDate: date,
-          dateStr: formatDate(date)
-          // 添加格式化后的日期字符串
+          fullDate: date
         });
       }
       dateList.value = dates;
+      const today = /* @__PURE__ */ new Date();
       todayDate.value = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
     };
     const selectDate = (index) => {
-      if (selectedDateIndex.value === index)
-        return;
       selectedDateIndex.value = index;
       loadScheduleData();
     };
-    const TIME_SLOT_MAP = {
-      // 假设 1=上午, 2=下午, 3=晚上
-      1: { label: "上午 08:00-12:00", defaultTotalSlots: 20 },
-      2: { label: "下午 14:00-17:00", defaultTotalSlots: 15 },
-      3: { label: "晚上 18:00-20:00", defaultTotalSlots: 10 }
-    };
-    const normalizeSchedule = (raw) => {
-      const cfg = TIME_SLOT_MAP[raw.timeSlot] || { label: raw.timeSlot || "未知时段", defaultTotalSlots: 10 };
-      const total = Number(raw.totalQuota || cfg.defaultTotalSlots);
-      const booked = Number(raw.usedQuota || 0);
-      return {
-        timePeriod: cfg.label,
-        roomNumber: raw.roomNumber || (raw.deptId ? `门诊-${raw.deptId}` : "诊室"),
-        // 假设后端有 roomNumber 字段
-        totalSlots: total,
-        bookedSlots: booked,
-        remainingSlots: Math.max(total - booked, 0)
-      };
+    const labelFromRange = (range) => {
+      if (range === "08:00-12:00")
+        return `上午 ${range}`;
+      if (range === "14:00-17:00")
+        return `下午 ${range}`;
+      if (range === "18:00-20:00")
+        return `晚上 ${range}`;
+      return range;
     };
     const loadScheduleData = async () => {
-      var _a;
-      const dateStr = (_a = dateList.value[selectedDateIndex.value]) == null ? void 0 : _a.dateStr;
-      if (!dateStr)
-        return;
       try {
-        const doctorId = 1;
-        const mockRawData = [
-          { timeSlot: 1, usedQuota: 5, totalQuota: 20, deptId: 20, roomNumber: "101" },
-          { timeSlot: 2, usedQuota: 13, totalQuota: 15, deptId: 20, roomNumber: "101" },
-          { timeSlot: 3, usedQuota: 5, totalQuota: 10, deptId: 25, roomNumber: "102" }
-        ];
-        let list = selectedDateIndex.value === 0 ? mockRawData : mockRawData.map((item) => ({
-          ...item,
-          usedQuota: Math.floor(item.usedQuota * 0.5)
-          // 模拟其他日期号源较少
+        const sel = dateList.value[selectedDateIndex.value];
+        const startDate = fmtDate(sel.fullDate);
+        const resp = await api_doctor.doctorApi.getSchedules(doctorId.value, startDate, 1);
+        scheduleList.value = (resp || []).map((s) => ({
+          timePeriod: labelFromRange(s.timeRange),
+          roomNumber: s.roomNo || "A-101",
+          totalSlots: s.totalSlots || 0,
+          bookedSlots: s.bookedCount || 0,
+          remainingSlots: (s.totalSlots || 0) - (s.bookedCount || 0)
         }));
-        scheduleList.value = Array.isArray(list) ? list.map(normalizeSchedule) : [];
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/doctor/schedule/main.vue:221", `加载 ${dateStr} 排班失败`, e);
-        scheduleList.value = [];
+        const mockData = [
+          { timePeriod: "上午 08:00-12:00", roomNumber: "101", totalSlots: 20, bookedSlots: 15, remainingSlots: 5 },
+          { timePeriod: "下午 14:00-17:00", roomNumber: "101", totalSlots: 15, bookedSlots: 13, remainingSlots: 2 },
+          { timePeriod: "晚上 18:00-20:00", roomNumber: "102", totalSlots: 10, bookedSlots: 5, remainingSlots: 5 }
+        ];
+        scheduleList.value = mockData;
       }
     };
+    const goToAdjustSchedule = () => {
+      utils_uniHelper.uniNavigateTo({ url: "/pages/doctor/schedule/apply" });
+    };
+    const goToPatients = () => {
+      utils_uniHelper.uniNavigateTo({ url: "/pages/doctor/patients/list" });
+    };
+    const goToProfile = () => {
+      utils_uniHelper.uniNavigateTo({ url: "/pages/doctor/profile/index" });
+    };
     const getStatusClass = (item) => {
-      const rate = item.bookedSlots / item.totalSlots;
-      if (rate >= 0.9)
+      const total = (item == null ? void 0 : item.totalSlots) ?? 0;
+      const booked = (item == null ? void 0 : item.bookedSlots) ?? 0;
+      const remaining = (item == null ? void 0 : item.remainingSlots) ?? total - booked;
+      if (remaining <= 0)
         return "status-full";
-      if (rate >= 0.6)
+      const ratio = total > 0 ? booked / total : 0;
+      if (remaining < 3 || ratio >= 0.7)
         return "status-busy";
       return "status-available";
     };
     const getStatusText = (item) => {
-      const rate = item.bookedSlots / item.totalSlots;
-      if (rate >= 0.9)
-        return "号源紧张";
-      if (rate >= 0.6)
-        return "预约较多";
+      const cls = getStatusClass(item);
+      if (cls === "status-full")
+        return "已满";
+      if (cls === "status-busy")
+        return "紧张";
       return "可预约";
     };
-    const goToAdjustSchedule = () => {
-      common_vendor.index.__f__("log", "at pages/doctor/schedule/main.vue:248", "跳转到：/pages/doctor/schedule/apply");
-    };
-    const goToPatients = () => {
-      common_vendor.index.__f__("log", "at pages/doctor/schedule/main.vue:255", "跳转到：/pages/doctor/patients/list");
-    };
-    const goToProfile = () => {
-      common_vendor.index.__f__("log", "at pages/doctor/schedule/main.vue:262", "跳转到：/pages/doctor/profile/index");
-    };
     common_vendor.onMounted(() => {
+      userStore.initFromStorage();
       initDateList();
       loadScheduleData();
     });

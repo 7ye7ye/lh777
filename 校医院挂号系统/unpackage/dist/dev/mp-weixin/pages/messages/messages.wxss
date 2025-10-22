@@ -1,59 +1,21 @@
 
-.messages-bg.data-v-ecc172b4 {
-  background: #f8faff;
-  min-height: 100vh;
-  padding-bottom: 120rpx;
+.page.data-v-ecc172b4 { min-height: 100vh; background: #f7faff;
 }
-.messages-header.data-v-ecc172b4 {
-  background: #3a9cff;
-  height: 120rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 32rpx;
+.header.data-v-ecc172b4 { display: flex; align-items: center; justify-content: space-between; padding: 24rpx; background: #479fff;
 }
-.title.data-v-ecc172b4 {
-  color: #fff;
-  font-size: 36rpx;
-  font-weight: bold;
+.title.data-v-ecc172b4 { color: #fff; font-size: 34rpx; font-weight: bold;
 }
-.header-icons.data-v-ecc172b4 {
-  display: flex;
-  align-items: center;
+.doctor-entry.data-v-ecc172b4 { background: #fff; color: #2176ff; border-radius: 999rpx; padding: 10rpx 24rpx; font-size: 26rpx;
 }
-.header-icon.data-v-ecc172b4 {
-  width: 48rpx;
-  height: 48rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24rpx;
+.list.data-v-ecc172b4 { padding: 24rpx;
 }
-.content.data-v-ecc172b4 {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 120rpx;
+.msg-card.data-v-ecc172b4 { background: #fff; border-radius: 16rpx; padding: 24rpx; margin-bottom: 16rpx; box-shadow: 0 4rpx 16rpx rgba(33,118,255,0.08);
 }
-.empty-img.data-v-ecc172b4 {
-  width: 200rpx;
-  height: 200rpx;
-  margin-bottom: 32rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 120rpx;
-  background: #f0f0f0;
-  border-radius: 50%;
+.msg-title.data-v-ecc172b4 { font-size: 30rpx; color: #1e293b; font-weight: 600;
 }
-.empty-tip.data-v-ecc172b4 {
-  color: #666;
-  font-size: 28rpx;
+.msg-time.data-v-ecc172b4 { font-size: 24rpx; color: #64748b; margin-top: 6rpx;
 }
-.login-link.data-v-ecc172b4 {
-  color: #3a9cff;
-  margin: 0 8rpx;
+.msg-content.data-v-ecc172b4 { font-size: 26rpx; color: #334155; margin-top: 12rpx;
 }
-.tabbar-placeholder.data-v-ecc172b4 {
-  height: 120rpx;
+.empty.data-v-ecc172b4 { text-align: center; color: #64748b; font-size: 28rpx; margin-top: 48rpx;
 }

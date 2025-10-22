@@ -9,6 +9,7 @@ const _sfc_main = {
   setup(__props) {
     const userInfo = common_vendor.ref({});
     const userStore = store_user.useUserStore();
+    const isLoggedIn = common_vendor.computed(() => !!userStore.isLoggedIn);
     const getUserInfo = () => {
       if (userStore.userInfo) {
         userInfo.value = userStore.userInfo;
@@ -21,46 +22,49 @@ const _sfc_main = {
       }
     };
     const goToMyCard = () => {
-      common_vendor.index.navigateTo({ url: "/pages/profile/personal/mycard" });
+      common_vendor.index.navigateTo({ url: "/subpkg/profile/personal/mycard" });
     };
     const goToMyPatient = () => {
-      common_vendor.index.navigateTo({ url: "/pages/profile/personal/mypatient" });
+      common_vendor.index.navigateTo({ url: "/subpkg/profile/personal/mypatient" });
     };
     const goToMyDoctor = () => {
-      common_vendor.index.navigateTo({ url: "/pages/profile/personal/mydoctor" });
+      common_vendor.index.navigateTo({ url: "/subpkg/profile/personal/mydoctor" });
     };
     const goToRegisterRecord = () => {
-      common_vendor.index.navigateTo({ url: "/pages/profile/records/register-record" });
+      common_vendor.index.navigateTo({ url: "/subpkg/profile/records/register-record" });
     };
     const goToOutpatientRecord = () => {
-      common_vendor.index.navigateTo({ url: "/pages/profile/records/outpatient-record" });
+      common_vendor.index.navigateTo({ url: "/subpkg/profile/records/outpatient-record" });
     };
     const goToHospitalRecord = () => {
-      common_vendor.index.navigateTo({ url: "/pages/profile/records/hospital-record" });
+      common_vendor.index.navigateTo({ url: "/subpkg/profile/records/hospital-record" });
     };
     const goToConsultRecord = () => {
-      common_vendor.index.navigateTo({ url: "/pages/profile/records/consult-record" });
+      common_vendor.index.navigateTo({ url: "/subpkg/profile/records/consult-record" });
     };
     const goToRevisitRecord = () => {
-      common_vendor.index.navigateTo({ url: "/pages/profile/records/revisit-record" });
+      common_vendor.index.navigateTo({ url: "/subpkg/profile/records/revisit-record" });
     };
     const goToCheckRecord = () => {
-      common_vendor.index.navigateTo({ url: "/pages/profile/records/check-record" });
+      common_vendor.index.navigateTo({ url: "/subpkg/profile/records/check-record" });
     };
     const goToPrivacy = () => {
-      common_vendor.index.navigateTo({ url: "/pages/profile/settings/privacy" });
+      common_vendor.index.navigateTo({ url: "/subpkg/profile/settings/privacy" });
     };
     const goToHelp = () => {
-      common_vendor.index.navigateTo({ url: "/pages/profile/help/help" });
+      common_vendor.index.navigateTo({ url: "/subpkg/profile/help/help" });
     };
     const goToComplain = () => {
-      common_vendor.index.navigateTo({ url: "/pages/profile/settings/complain" });
+      common_vendor.index.navigateTo({ url: "/subpkg/profile/settings/complain" });
     };
     const goToEvaluate = () => {
-      common_vendor.index.navigateTo({ url: "/pages/profile/settings/evaluate" });
+      common_vendor.index.navigateTo({ url: "/subpkg/profile/settings/evaluate" });
     };
     const goToUnbind = () => {
-      common_vendor.index.navigateTo({ url: "/pages/profile/settings/unbind" });
+      common_vendor.index.navigateTo({ url: "/subpkg/profile/settings/unbind" });
+    };
+    const goLogin = () => {
+      common_vendor.index.navigateTo({ url: "/subpkg/auth/login" });
     };
     const handleLogout = async () => {
       try {
@@ -75,11 +79,11 @@ const _sfc_main = {
           try {
             await api_user.userApi.logout();
           } catch (e) {
-            common_vendor.index.__f__("log", "at pages/profile/profile.vue:196", "后端退出失败，但继续清除本地状态");
+            common_vendor.index.__f__("log", "at pages/profile/profile.vue:207", "后端退出失败，但继续清除本地状态");
           }
           userStore.logout();
           await utils_uniHelper.uniShowToast({ title: "已退出登录" });
-          await utils_uniHelper.uniSwitchTab({ url: "/pages/login/login" });
+          await utils_uniHelper.uniNavigateTo({ url: "/subpkg/auth/login" });
         }
       } catch (e) {
         await utils_uniHelper.uniShowToast({ title: "退出失败", icon: "none" });
@@ -89,38 +93,45 @@ const _sfc_main = {
       getUserInfo();
     });
     return (_ctx, _cache) => {
-      return {
+      return common_vendor.e({
         a: common_vendor.t(userInfo.value.name || "微信用户"),
         b: common_vendor.t(userInfo.value.phone || "*************"),
-        c: common_vendor.o(goToUnbind),
-        d: common_assets._imports_0$1,
-        e: common_vendor.o(goToMyCard),
+        c: !isLoggedIn.value
+      }, !isLoggedIn.value ? {
+        d: common_vendor.o(goLogin)
+      } : {
+        e: common_vendor.o(goToUnbind)
+      }, {
         f: common_assets._imports_0$2,
-        g: common_vendor.o(goToMyPatient),
-        h: common_assets._imports_0$3,
-        i: common_vendor.o(goToMyDoctor),
-        j: common_assets._imports_3,
-        k: common_vendor.o(goToRegisterRecord),
-        l: common_assets._imports_4,
-        m: common_vendor.o(goToOutpatientRecord),
-        n: common_assets._imports_5,
-        o: common_vendor.o(goToHospitalRecord),
-        p: common_assets._imports_6,
-        q: common_vendor.o(goToConsultRecord),
-        r: common_assets._imports_7,
-        s: common_vendor.o(goToRevisitRecord),
-        t: common_assets._imports_8,
-        v: common_vendor.o(goToCheckRecord),
-        w: common_assets._imports_9,
-        x: common_vendor.o(goToPrivacy),
-        y: common_assets._imports_10,
-        z: common_vendor.o(goToHelp),
-        A: common_assets._imports_11,
-        B: common_vendor.o(goToComplain),
-        C: common_assets._imports_12,
-        D: common_vendor.o(goToEvaluate),
-        E: common_vendor.o(handleLogout)
-      };
+        g: common_vendor.o(goToMyCard),
+        h: common_assets._imports_1$1,
+        i: common_vendor.o(goToMyPatient),
+        j: common_assets._imports_2$1,
+        k: common_vendor.o(goToMyDoctor),
+        l: common_assets._imports_3,
+        m: common_vendor.o(goToRegisterRecord),
+        n: common_assets._imports_4,
+        o: common_vendor.o(goToOutpatientRecord),
+        p: common_assets._imports_5,
+        q: common_vendor.o(goToHospitalRecord),
+        r: common_assets._imports_6,
+        s: common_vendor.o(goToConsultRecord),
+        t: common_assets._imports_7,
+        v: common_vendor.o(goToRevisitRecord),
+        w: common_assets._imports_8,
+        x: common_vendor.o(goToCheckRecord),
+        y: common_assets._imports_9,
+        z: common_vendor.o(goToPrivacy),
+        A: common_assets._imports_10,
+        B: common_vendor.o(goToHelp),
+        C: common_assets._imports_11,
+        D: common_vendor.o(goToComplain),
+        E: common_assets._imports_12,
+        F: common_vendor.o(goToEvaluate),
+        G: isLoggedIn.value
+      }, isLoggedIn.value ? {
+        H: common_vendor.o(handleLogout)
+      } : {});
     };
   }
 };
