@@ -297,7 +297,7 @@ function logout() {
           uni.clearStorage()
         } catch (e) {}
         // 项目中登录页为 /pages/login/login.vue
-        uni.reLaunch({ url: '/pages/login/login' })
+        uni.reLaunch({ url: '/subpkg/auth/login' })
       }
     }
   })

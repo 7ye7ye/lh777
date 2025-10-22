@@ -74,13 +74,13 @@
 			}
 		},
 		{
-			"path": "pages/login/login",
+			"path": "pages/messages/login",
 			"style": {
 				"navigationBarTitleText": "登录"
 			}
 		},
 		{
-			"path": "pages/register/register",
+			"path": "pages/messages/register",
 			"style": {
 				"navigationBarTitleText": "注册"
 			}
@@ -262,6 +262,29 @@
 						"navigationBarTextStyle": "white",
 						"enablePullDownRefresh": true,
 						"navigationBarBackgroundColor": "#479fff"
+					}
+				}
+			]
+		}
+	],
+	"subPackages": [
+		{
+			"root": "subpkg/auth/",
+			"pages": [
+				{
+					"path": "login",
+					"style": {
+						"navigationBarTitleText": "登录",
+						"navigationBarBackgroundColor": "#479fff",
+						"navigationBarTextStyle": "white"
+					}
+				},
+				{
+					"path": "register",
+					"style": {
+						"navigationBarTitleText": "注册",
+						"navigationBarBackgroundColor": "#479fff",
+						"navigationBarTextStyle": "white"
 					}
 				}
 			]

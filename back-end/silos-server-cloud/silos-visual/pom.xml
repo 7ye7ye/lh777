@@ -16,7 +16,7 @@
         <!-- 微服务所需要的中间件 -->
         <module>jeecg-cloud-sentinel</module>
         <module>jeecg-cloud-monitor</module>
-        <module>jeecg-cloud-xxljob</module>
+        <modle>jeecg-cloud-xxljob</modle>
         <!-- 微服务测试示例-->
         <module>jeecg-cloud-test</module>
     </modules>

@@ -90,11 +90,34 @@ CREATE TABLE `doctor`  (
 -- ----------------------------
 
 -- ----------------------------
+-- Table structure for doctor_schedule
+-- ----------------------------
+DROP TABLE IF EXISTS `doctor_schedule`;
+CREATE TABLE `doctor_schedule`  (
+  `schedule_id` bigint NOT NULL AUTO_INCREMENT COMMENT '排班ID',
+  `doctor_id` bigint NOT NULL COMMENT '医生ID',
+  `dept_id` bigint NOT NULL COMMENT '科室ID',
+  `type_id` int NULL DEFAULT NULL COMMENT '排班类型ID',
+  `schedule_date` date NOT NULL COMMENT '排班日期',
+  `time_slot` tinyint NOT NULL COMMENT '时段(1-上午,2-下午,3-晚上)',
+  `used_quota` int NOT NULL DEFAULT 0 COMMENT '已使用号源',
+  `status` tinyint NOT NULL DEFAULT 1 COMMENT '状态(1-有效,0-停用)',
+  `create_time` datetime NOT NULL COMMENT '创建时间',
+  `update_time` datetime NOT NULL COMMENT '更新时间',
+  PRIMARY KEY (`schedule_id`) USING BTREE,
+  INDEX `idx_doctor_date`(`doctor_id`, `schedule_date`) USING BTREE,
+  INDEX `idx_dept_date`(`dept_id`, `schedule_date`) USING BTREE,
+  CONSTRAINT `doctor_schedule_ibfk_1` FOREIGN KEY (`doctor_id`) REFERENCES `doctor` (`doctor_id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `doctor_schedule_ibfk_2` FOREIGN KEY (`dept_id`) REFERENCES `department` (`dept_id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '医生排班表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
 -- Table structure for hos_user
 -- ----------------------------
 DROP TABLE IF EXISTS `hos_user`;
 CREATE TABLE `hos_user`  (
   `user_id` bigint NOT NULL AUTO_INCREMENT COMMENT '用户唯一标识',
+  `name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '用户真实姓名',
   `user_account` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '登录账号（患者：学号/工号/手机号；医生：管理员分配账号；管理员：固定账号）',
   `user_password` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '加密存储的密码（如MD5+盐值）',
   `user_type` tinyint NOT NULL COMMENT '用户类型（1-患者；2-医生；3-管理员）',

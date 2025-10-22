@@ -98,15 +98,18 @@
 </template> 
 
 <script setup> 
-import { ref, onMounted } from 'vue' 
+import { ref, onMounted, computed } from 'vue' 
 import { uniNavigateTo, uniShowToast } from '../../../utils/uniHelper' 
-// ... existing code ...
+import { useUserStore } from '../../../store/user.js'
+import { doctorApi } from '../../../api/doctor'
 
 // 医生信息（如需从用户状态中取，可替换为 pinia 的 userStore）
+const userStore = useUserStore()
 const doctorInfo = ref({ 
   name: '张医生', 
   department: '内科' 
 }) 
+const doctorId = computed(() => userStore.userInfo?.id || 1)
 
 // 当前日期
 const todayDate = ref('') 
@@ -118,7 +121,8 @@ const selectedDateIndex = ref(0)
 // 排班列表
 const scheduleList = ref([]) 
 
-// 初始化日期列表
+const fmtDate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+
 const initDateList = () => { 
   const dates = [] 
   const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'] 
@@ -143,38 +147,35 @@ const selectDate = (index) => {
   loadScheduleData() 
 } 
 
-// 加载排班数据（模拟数据）
-const loadScheduleData = () => { 
-  const mockData = [ 
-    { timePeriod: '上午 08:00-12:00', roomNumber: '101', totalSlots: 20, bookedSlots: 15, remainingSlots: 5 }, 
-    { timePeriod: '下午 14:00-17:00', roomNumber: '101', totalSlots: 15, bookedSlots: 13, remainingSlots: 2 }, 
-    { timePeriod: '晚上 18:00-20:00', roomNumber: '102', totalSlots: 10, bookedSlots: 5, remainingSlots: 5 } 
-  ] 
-  if (selectedDateIndex.value === 0) { 
+// 加载后端排班数据
+const labelFromRange = (range) => {
+  if (range === '08:00-12:00') return `上午 ${range}`
+  if (range === '14:00-17:00') return `下午 ${range}`
+  if (range === '18:00-20:00') return `晚上 ${range}`
+  return range
+}
+
+const loadScheduleData = async () => { 
+  try {
+    const sel = dateList.value[selectedDateIndex.value]
+    const startDate = fmtDate(sel.fullDate)
+    const resp = await doctorApi.getSchedules(doctorId.value, startDate, 1)
+    scheduleList.value = (resp || []).map(s => ({
+      timePeriod: labelFromRange(s.timeRange),
+      roomNumber: s.roomNo || 'A-101',
+      totalSlots: s.totalSlots || 0,
+      bookedSlots: s.bookedCount || 0,
+      remainingSlots: (s.totalSlots || 0) - (s.bookedCount || 0)
+    }))
+  } catch (e) {
+    // 回退到本地模拟
+    const mockData = [ 
+      { timePeriod: '上午 08:00-12:00', roomNumber: '101', totalSlots: 20, bookedSlots: 15, remainingSlots: 5 }, 
+      { timePeriod: '下午 14:00-17:00', roomNumber: '101', totalSlots: 15, bookedSlots: 13, remainingSlots: 2 }, 
+      { timePeriod: '晚上 18:00-20:00', roomNumber: '102', totalSlots: 10, bookedSlots: 5, remainingSlots: 5 } 
+    ] 
     scheduleList.value = mockData 
-  } else { 
-    scheduleList.value = mockData.map(item => ({ 
-      ...item, 
-      bookedSlots: Math.floor(item.totalSlots * 0.3), 
-      remainingSlots: Math.floor(item.totalSlots * 0.7) 
-    })) 
-  } 
-} 
-
-// 获取状态样式类
-const getStatusClass = (item) => { 
-  const rate = item.bookedSlots / item.totalSlots 
-  if (rate >= 0.9) return 'status-full' 
-  if (rate >= 0.6) return 'status-busy' 
-  return 'status-available' 
-} 
-
-// 获取状态文本
-const getStatusText = (item) => { 
-  const rate = item.bookedSlots / item.totalSlots 
-  if (rate >= 0.9) return '号源紧张' 
-  if (rate >= 0.6) return '预约较多' 
-  return '可预约' 
+  }
 } 
 
 // 跳转到申请调班（映射到已存在的页面路径）
@@ -192,9 +193,29 @@ const goToProfile = () => {
   uniNavigateTo({ url: '/pages/doctor/profile/index' }) 
 } 
 
+// 根据剩余号源与占用比，返回状态的样式类
+const getStatusClass = (item) => {
+  const total = item?.totalSlots ?? 0
+  const booked = item?.bookedSlots ?? 0
+  const remaining = item?.remainingSlots ?? (total - booked)
+  if (remaining <= 0) return 'status-full'
+  const ratio = total > 0 ? booked / total : 0
+  if (remaining < 3 || ratio >= 0.7) return 'status-busy'
+  return 'status-available'
+}
+
+// 根据样式类返回显示文案
+const getStatusText = (item) => {
+  const cls = getStatusClass(item)
+  if (cls === 'status-full') return '已满'
+  if (cls === 'status-busy') return '紧张'
+  return '可预约'
+}
+
 onMounted(() => { 
-  initDateList() 
-  loadScheduleData() 
+  userStore.initFromStorage()
+  initDateList()
+  loadScheduleData()
 }) 
 </script> 
 

@@ -102,7 +102,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { userApi } from '@/api/user'
 import { useUserStore } from '@/store/user'
-import { uniShowToast, uniSwitchTab } from '@/utils/uniHelper'
+import { uniShowToast, uniSwitchTab, uniNavigateTo } from '@/utils/uniHelper'
 import LoginPrompt from '@/components/LoginPrompt.vue'
 
 const userInfo = ref({})
@@ -212,9 +212,8 @@ const handleLogout = async () => {
       
       // 显示退出成功提示
       await uniShowToast({ title: '已退出登录' })
-      
-      // 跳转到登录页
-      await uniSwitchTab({ url: '/pages/login/login' })
+      // 登录页不是 tabBar 页面，使用 navigateTo
+      await uniNavigateTo({ url: '/subpkg/auth/login' })
     }
   } catch (e) {
     await uniShowToast({ title: '退出失败', icon: 'none' })
