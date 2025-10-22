@@ -1,34 +1,19 @@
 "use strict";
 const common_vendor = require("../common/vendor.js");
-const uniNavigateTo = (options) => {
-  return new Promise((resolve, reject) => {
-    common_vendor.index.navigateTo({
-      ...options,
-      success: resolve,
-      fail: reject
-    });
-  });
-};
-const uniShowToast = (options) => {
-  return new Promise((resolve) => {
-    common_vendor.index.showToast({
-      icon: "none",
-      duration: 2e3,
-      ...options,
-      success: resolve
-    });
-  });
-};
-const uniSwitchTab = (options) => {
-  return new Promise((resolve, reject) => {
-    common_vendor.index.switchTab({
-      ...options,
-      success: resolve,
-      fail: reject
-    });
-  });
-};
+function uniShowModal(options) {
+  common_vendor.index.showModal(options);
+}
+function uniShowToast(options) {
+  common_vendor.index.showToast(options);
+}
+function uniNavigateTo(options) {
+  common_vendor.index.navigateTo(options);
+}
+function uniSwitchTab(options) {
+  common_vendor.index.switchTab(options);
+}
 exports.uniNavigateTo = uniNavigateTo;
+exports.uniShowModal = uniShowModal;
 exports.uniShowToast = uniShowToast;
 exports.uniSwitchTab = uniSwitchTab;
 //# sourceMappingURL=../../.sourcemap/mp-weixin/utils/uniHelper.js.map

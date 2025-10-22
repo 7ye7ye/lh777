@@ -1,6 +1,8 @@
 package org.jeecg.modules.hospital.mapper;
 import com.baomidou.dynamic.datasource.annotation.DS;
 import org.apache.ibatis.annotations.Mapper;
+
+import com.baomidou.dynamic.datasource.annotation.DS;
 import org.jeecg.modules.hospital.entity.Patient;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
@@ -43,3 +45,7 @@ public interface PatientMapper extends BaseMapper<Patient> {
             @org.apache.ibatis.annotations.Param("endDate") java.time.LocalDate endDate
     );
 }
+
+
+
+

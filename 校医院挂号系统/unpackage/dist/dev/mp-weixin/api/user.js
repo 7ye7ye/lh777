@@ -18,15 +18,6 @@ const userApi = {
   getCurrentUser: () => u.get("/current"),
   // 退出登录
   logout: () => u.post("/logout"),
-  // 就诊卡相关
-  getCard: () => u.get("/card"),
-  rechargeCard: (data) => u.post("/card/recharge", data),
-  getCardHistory: () => u.get("/card/history"),
-  // 就诊人相关
-  getPatientList: () => u.get("/patients"),
-  addPatient: (data) => u.post("/patients", data),
-  updatePatient: (id, data) => u.put(`/patients/${id}`, data),
-  deletePatient: (id) => u.delete(`/patients/${id}`),
   // 医生相关
   getDoctorList: () => u.get("/doctors"),
   getDoctorDetail: (id) => u.get(`/doctors/${id}`),

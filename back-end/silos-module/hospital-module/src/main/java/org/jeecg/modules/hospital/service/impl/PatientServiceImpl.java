@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.jeecg.modules.hospital.entity.Patient;
 import org.jeecg.modules.hospital.service.PatientService;
 import org.jeecg.modules.hospital.mapper.PatientMapper;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import com.baomidou.dynamic.datasource.annotation.DS;
 import jakarta.annotation.Resource;
@@ -15,6 +16,13 @@ import org.jeecg.modules.hospital.vo.PatientDetailVO;
 import java.time.LocalDate;
 import java.util.List;
 
+import java.util.HashMap;
+
+/**
+* @author Administrator
+* @description 针对表【patient(患者表)】的数据库操作Service实现
+* @createDate 2025-09-22 20:15:21
+*/
 @Service
 @DS("hospital")
 public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient>
@@ -50,6 +58,7 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient>
         vo.setVisits(null); // 使用 patient 表，不返回就诊记录
         return vo;
     }
+
 }
 
 
