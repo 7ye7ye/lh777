@@ -97,7 +97,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { userApi } from '@/api/user'
 import { useUserStore } from '@/store/user'
-import { uniShowToast, uniSwitchTab } from '@/utils/uniHelper'
+import { uniShowToast, uniSwitchTab, uniNavigateTo } from '@/utils/uniHelper'
 import LoginPrompt from '@/components/LoginPrompt.vue'
 import { AUTH_REQUIRED_FEATURES, createAuthHandler } from '@/utils/auth'
 
@@ -208,7 +208,7 @@ const handleLogout = async () => {
         success: (result) => resolve(result.confirm)
       })
     })
-    
+
     if (res) {
       // 调用后端退出接口（可选）
       try {
@@ -217,13 +217,13 @@ const handleLogout = async () => {
         // 即使后端退出失败，也要清除本地状态
         console.log('后端退出失败，但继续清除本地状态')
       }
-      
+
       // 清除本地状态
       userStore.logout()
-      
+
       // 显示退出成功提示
       await uniShowToast({ title: '已退出登录' })
-      
+
       // 跳转到登录页
       await uniSwitchTab({ url: '/pages/profile/profile' })
     }

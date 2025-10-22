@@ -14,6 +14,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+// 假设该类是 CommonAPI 中 getHosUserByAccount 的返回类型
+// 您可能需要在 pom.xml 或项目中引入或创建这个 DTO
+// import org.jeecg.common.api.dto.HosUserDTO;
+
 /**
  * 进入fallback的方法 检查是否token未设置
  * @author: jeecg-boot
@@ -23,6 +27,25 @@ public class SysBaseAPIFallback implements ISysBaseAPI {
 
     @Setter
     private Throwable cause;
+
+    // =========================================================================================
+    // ** 修复新增抽象方法 getHosUserByAccount(String) **
+    // 假设返回类型为 JSONObject，因为 HosUserDTO 的包路径未知。请根据实际情况调整返回类型。
+    // =========================================================================================
+    /**
+     * 实现 CommonAPI/ISysBaseAPI 中新增的抽象方法
+     * @param account 登录账号
+     * @return 默认返回 null，表示 Feign 服务调用失败
+     */
+    @Override
+    public HosUser getHosUserByAccount(String account) {
+        log.error("根据账号查询HosUser信息失败, 执行 Feign Fallback, account: {}, 原因: {}", account, cause.getMessage(), cause);
+        return null;
+    }
+
+    // =========================================================================================
+    // ** 以下是原始代码 **
+    // =========================================================================================
 
     @Override
     public void sendSysAnnouncement(MessageDTO message) {
@@ -395,7 +418,7 @@ public class SysBaseAPIFallback implements ISysBaseAPI {
 
     @Override
     public void sendAppChatSocket(String userId) {
-        
+
     }
 
     @Override
