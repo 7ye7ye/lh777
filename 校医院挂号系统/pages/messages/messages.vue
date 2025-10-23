@@ -80,6 +80,11 @@
 				uni.request({
 					url: `${apiUrl}?userId=${testUserId}`,
 					method: 'GET',
+					header: {
+							// 'X-Access-Token' 是 jeecg-boot 框架默认的 Token 键名
+							// 'token' 是您调用 uni.setStorageSync 存入时的键名，请确保一致
+							'X-Access-Token': uni.getStorageSync('token') 
+						},
 					success: (res) => {
 						if (res.statusCode === 200) {
 							this.messageList = res.data;

@@ -66,6 +66,9 @@
 				uni.request({
 					url: `${apiUrl}?appointmentId=${this.appointmentId}`,
 					method: 'GET',
+					header:{
+						'X-Access-Token': uni.getStorageSync('token') 
+					},
 					success: (res) => {
 						if (res.statusCode === 200) {
 							// 后端返回的 content 是字符串，需要解析成JSON对象
@@ -91,9 +94,9 @@
 			},
 			// 跳转到最终的挂号回执单页面
 			goToReceipt(appointmentId) {
-				// 我们还没有创建回执单页面，先把逻辑写好
 				uni.navigateTo({
 					url: `/subpkg/messages/receipt?id=${appointmentId}`
+					
 				});
 				// uni.showToast({ title: '即将跳转到挂号回执单', icon: 'none' });
 			},
