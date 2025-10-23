@@ -6,7 +6,7 @@
         <text class="banner-title">选择就诊科室</text>
         <text class="banner-subtitle">北京交通大学校医院为您服务</text>
       </view>
-      <image class="banner-image" src="/static/logo.png" mode="aspectFit" />
+      <image class="banner-image" src="/static/choosekeshi.svg" mode="aspectFit" />
     </view>
 
     <!-- 搜索栏 -->
@@ -332,7 +332,7 @@ const callConsult = () => {
 
 .header-banner {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 48rpx 32rpx 80rpx;
+  padding: 48rpx 32rpx 32rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -365,8 +365,8 @@ const callConsult = () => {
 }
 
 .search-section {
-  margin-top: -48rpx;
-  padding: 0 32rpx 24rpx;
+  padding: 24rpx 32rpx;
+  background: #f5f7fa;
 }
 
 .search-box {

@@ -29,9 +29,15 @@ const _sfc_main = {
     const goDepartments = () => {
       common_vendor.index.navigateTo({ url: "/subpkg/hospital/departments" });
     };
+    const goDoctors = () => {
+      common_vendor.index.navigateTo({ url: "/subpkg/hospital/doctors" });
+    };
+    const goPhysicalExam = () => {
+      common_vendor.index.navigateTo({ url: "/subpkg/hospital/department-detail?deptId=43" });
+    };
     return (_ctx, _cache) => {
       return {
-        a: common_assets._imports_0$1,
+        a: common_assets._imports_0,
         b: common_assets._imports_1,
         c: common_vendor.t(hospitalName.value),
         d: common_vendor.f(branches, (b, idx, i0) => {
@@ -46,10 +52,10 @@ const _sfc_main = {
         f: common_assets._imports_2,
         g: common_assets._imports_2,
         h: common_vendor.o(goDepartments),
-        i: common_vendor.o(goDepartments),
-        j: common_vendor.o(goDepartments),
+        i: common_assets._imports_2,
+        j: common_vendor.o(goDoctors),
         k: common_assets._imports_2,
-        l: common_assets._imports_2,
+        l: common_vendor.o(goPhysicalExam),
         m: common_assets._imports_2,
         n: common_vendor.t(currentBranch.value.intro)
       };

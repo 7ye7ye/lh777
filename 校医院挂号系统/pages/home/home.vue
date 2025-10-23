@@ -140,14 +140,44 @@ const currentItems = computed(() => itemsMap[tabs[activeIndex.value]] || [])
 
 // 快捷入口点击处理
 const onQuickItemClick = (type) => {
+  console.log('点击快捷入口:', type)
+  
   switch (type) {
     case 'disease':
       // 按疾病挂号 - 跳转到疾病导航页面
-      uni.navigateTo({ url: '/subpkg/hospital/disease-guide' })
+      console.log('准备跳转到疾病指南页面')
+      uni.navigateTo({ 
+        url: '/subpkg/hospital/disease-guide',
+        success: () => {
+          console.log('疾病指南页面跳转成功')
+        },
+        fail: (err) => {
+          console.error('疾病指南页面跳转失败:', err)
+          uni.showToast({ 
+            title: '页面跳转失败: ' + (err.errMsg || '未知错误'), 
+            icon: 'none',
+            duration: 3000
+          })
+        }
+      })
       break
     case 'department':
       // 按科室挂号 - 跳转到科室预约页面
-      uni.navigateTo({ url: '/subpkg/hospital/department-booking' })
+      console.log('准备跳转到科室挂号页面')
+      uni.navigateTo({ 
+        url: '/subpkg/hospital/department-booking',
+        success: () => {
+          console.log('科室挂号页面跳转成功')
+        },
+        fail: (err) => {
+          console.error('科室挂号页面跳转失败:', err)
+          uni.showToast({ 
+            title: '页面跳转失败: ' + (err.errMsg || '未知错误'), 
+            icon: 'none',
+            duration: 3000
+          })
+        }
+      })
       break
     case 'report':
       // 报告查询

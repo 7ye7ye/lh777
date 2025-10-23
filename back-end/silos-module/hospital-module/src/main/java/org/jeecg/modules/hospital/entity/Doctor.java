@@ -3,6 +3,7 @@ package org.jeecg.modules.hospital.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
 import lombok.Data;
 
 /**
@@ -24,17 +25,17 @@ public class Doctor {
     private Long userId;
 
     /**
-     * 所属科室ID（二级科室，如“消化内科”）
+     * 所属科室ID（二级科室，如"消化内科"）
      */
     private Long deptId;
 
     /**
-     * 职称（如“主治医师”“主任医师”）
+     * 职称（如"主治医师""主任医师"）
      */
     private String title;
 
     /**
-     * 擅长领域（如“胃炎、胃溃疡诊疗”）
+     * 擅长领域（如"胃炎、胃溃疡诊疗"）
      */
     private String specialty;
 
@@ -62,4 +63,10 @@ public class Doctor {
      * 医生姓名
      */
     private String doctorName;
+
+    /**
+     * 科室名称（关联查询，不存储到数据库）
+     */
+    @TableField(exist = false)
+    private String deptName;
 }

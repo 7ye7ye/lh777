@@ -115,19 +115,19 @@ const _sfc_main = {
       } : {
         e: common_vendor.o(handleLogout)
       }, {
-        f: common_assets._imports_0$2,
+        f: common_assets._imports_0$1,
         g: common_vendor.o((...args) => common_vendor.unref(goToMyCard) && common_vendor.unref(goToMyCard)(...args)),
         h: common_assets._imports_1$1,
         i: common_vendor.o((...args) => common_vendor.unref(goToMyPatient) && common_vendor.unref(goToMyPatient)(...args)),
         j: common_assets._imports_2$1,
         k: common_vendor.o((...args) => common_vendor.unref(goToMyDoctor) && common_vendor.unref(goToMyDoctor)(...args)),
-        l: common_assets._imports_3,
+        l: common_assets._imports_0$2,
         m: common_vendor.o((...args) => common_vendor.unref(goToRegisterRecord) && common_vendor.unref(goToRegisterRecord)(...args)),
         n: common_assets._imports_4,
         o: common_vendor.o((...args) => common_vendor.unref(goToOutpatientRecord) && common_vendor.unref(goToOutpatientRecord)(...args)),
         p: common_assets._imports_5,
         q: common_vendor.o((...args) => common_vendor.unref(goToHospitalRecord) && common_vendor.unref(goToHospitalRecord)(...args)),
-        r: common_assets._imports_6,
+        r: common_assets._imports_1$2,
         s: common_vendor.o((...args) => common_vendor.unref(goToConsultRecord) && common_vendor.unref(goToConsultRecord)(...args)),
         t: common_assets._imports_7,
         v: common_vendor.o((...args) => common_vendor.unref(goToRevisitRecord) && common_vendor.unref(goToRevisitRecord)(...args)),

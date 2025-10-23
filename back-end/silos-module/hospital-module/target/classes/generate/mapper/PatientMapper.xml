@@ -2,9 +2,9 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="generate.mapper.PatientMapper">
+<mapper namespace="org.jeecg.modules.hospital.mapper.PatientMapper">
 
-    <resultMap id="BaseResultMap" type="org.jeecg.modules.hospital.entity.entity.Patient">
+    <resultMap id="BaseResultMap" type="org.jeecg.modules.hospital.entity.Patient">
             <id property="patientId" column="patient_id" />
             <result property="userId" column="user_id" />
             <result property="patientType" column="patient_type" />

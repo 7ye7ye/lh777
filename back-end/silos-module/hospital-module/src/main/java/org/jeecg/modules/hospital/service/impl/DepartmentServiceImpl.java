@@ -63,6 +63,9 @@ public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Departm
                 node.put("deptId", row.get("deptId"));
                 node.put("deptName", row.get("deptName"));
                 node.put("deptDesc", row.get("deptDesc"));
+                node.put("location", row.get("location"));
+                node.put("parentDeptId", null);
+                node.put("deptLevel", 1);
                 node.put("children", new ArrayList<Map<String, Object>>());
                 return node;
             });
@@ -76,6 +79,8 @@ public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Departm
                 child.put("deptName", row.get("childDeptName"));
                 child.put("deptDesc", row.get("childDeptDesc"));
                 child.put("location", row.get("childLocation"));
+                child.put("parentDeptId", row.get("childParentDeptId"));
+                child.put("deptLevel", row.get("childDeptLevel"));
                 children.add(child);
             }
         }

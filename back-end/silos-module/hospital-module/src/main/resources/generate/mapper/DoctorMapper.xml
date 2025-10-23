@@ -15,37 +15,41 @@
         <result property="isActive" column="is_active"/>
         <result property="updateVerify" column="update_verify"/>
         <result property="doctorName" column="doctor_name"/>
+        <result property="deptName" column="dept_name"/>
     </resultMap>
 
     <sql id="Base_Column_List">
-        doctor_id, user_id, dept_id, title, specialty, doctor_desc, avatar, is_active, update_verify, doctor_name
+        d.doctor_id, d.user_id, d.dept_id, d.title, d.specialty, d.doctor_desc, d.avatar, d.is_active, d.update_verify, d.doctor_name, dept.dept_name
     </sql>
 
     <!-- 根据科室ID查询医生列表 -->
     <select id="selectByDeptId" resultMap="BaseResultMap">
         SELECT
         <include refid="Base_Column_List"/>
-        FROM doctor
-        WHERE dept_id = #{deptId} AND is_active = 1
-        ORDER BY doctor_id ASC
+        FROM doctor d
+        LEFT JOIN department dept ON d.dept_id = dept.dept_id
+        WHERE d.dept_id = #{deptId} AND d.is_active = 1
+        ORDER BY d.doctor_id ASC
     </select>
 
     <!-- 查询所有在职医生 -->
     <select id="selectActiveDoctors" resultMap="BaseResultMap">
         SELECT
         <include refid="Base_Column_List"/>
-        FROM doctor
-        WHERE is_active = 1
-        ORDER BY doctor_id ASC
+        FROM doctor d
+        LEFT JOIN department dept ON d.dept_id = dept.dept_id
+        WHERE d.is_active = 1
+        ORDER BY d.doctor_id ASC
     </select>
 
     <!-- 根据医生姓名模糊查询 -->
     <select id="selectByDoctorName" resultMap="BaseResultMap">
         SELECT
         <include refid="Base_Column_List"/>
-        FROM doctor
-        WHERE doctor_name LIKE CONCAT('%', #{doctorName}, '%') AND is_active = 1
-        ORDER BY doctor_id ASC
+        FROM doctor d
+        LEFT JOIN department dept ON d.dept_id = dept.dept_id
+        WHERE d.doctor_name LIKE CONCAT('%', #{doctorName}, '%') AND d.is_active = 1
+        ORDER BY d.doctor_id ASC
     </select>
 
 </mapper>

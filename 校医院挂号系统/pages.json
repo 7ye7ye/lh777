@@ -84,6 +84,12 @@
 			"style": {
 				"navigationBarTitleText": "注册"
 			}
+		},
+		{
+			"path": "pages/physical-exam/physical-exam",
+			"style": {
+				"navigationBarTitleText": "体检服务"
+			}
 		}
 	],
 	"subPackages": [
@@ -244,6 +250,36 @@
 					"style": {
 						"navigationBarTitleText": "科室详情"
 					}
+				},
+				{
+					"path": "disease-guide",
+					"style": {
+						"navigationBarTitleText": "疾病指南"
+					}
+				},
+				{
+					"path": "department-booking",
+					"style": {
+						"navigationBarTitleText": "科室挂号"
+					}
+				},
+				{
+					"path": "doctors",
+					"style": {
+						"navigationBarTitleText": "医生列表"
+					}
+				},
+				{
+					"path": "doctor-detail",
+					"style": {
+						"navigationBarTitleText": "医生详情"
+					}
+				},
+				{
+					"path": "physical-exam-packages",
+					"style": {
+						"navigationBarTitleText": "体检套餐"
+					}
 				}
 			]
 		},
@@ -271,9 +307,42 @@
 					}
 				}
 			]
-		}
-	],
-	"subPackages": [
+		},
+		{
+			"root": "subpkg/physical-exam/",
+			"pages": [
+				{
+					"path": "individual-booking",
+					"style": {
+						"navigationBarTitleText": "个检预约"
+					}
+				},
+				{
+					"path": "group-booking",
+					"style": {
+						"navigationBarTitleText": "团检预约"
+					}
+				},
+				{
+					"path": "exam-report",
+					"style": {
+						"navigationBarTitleText": "体检报告"
+					}
+				},
+				{
+					"path": "exam-orders",
+					"style": {
+						"navigationBarTitleText": "体检订单"
+					}
+				},
+				{
+					"path": "exam-center",
+					"style": {
+						"navigationBarTitleText": "体检中心"
+					}
+				}
+			]
+		},
 		{
 			"root": "subpkg/auth/",
 			"pages": [
@@ -305,8 +374,8 @@
 			{
 				"pagePath": "pages/home/home",
 				"text": "首页",
-				"iconPath": "static/logo.png",
-				"selectedIconPath": "static/logo.png"
+				"iconPath": "static/home.png",
+				"selectedIconPath": "static/home.png"
 			},
 			{
 				"pagePath": "pages/assistant/assistant",
@@ -323,8 +392,8 @@
 			{
 				"pagePath": "pages/hospital/hospital",
 				"text": "医院信息",
-				"iconPath": "static/logo.png",
-				"selectedIconPath": "static/logo.png"
+				"iconPath": "static/hospitalmess.png",
+				"selectedIconPath": "static/hospitalmess.png"
 			},
 			{
 				"pagePath": "pages/profile/profile",

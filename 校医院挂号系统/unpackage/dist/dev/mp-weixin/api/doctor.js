@@ -1,6 +1,6 @@
 "use strict";
 const utils_request = require("../utils/request.js");
-const PREFIX = "/doctor";
+const PREFIX = "/applet/doctor";
 const d = {
   get: (path, params, options) => utils_request.http.get(`${PREFIX}${path}`, params, options),
   post: (path, data, options) => utils_request.http.post(`${PREFIX}${path}`, data, options),
@@ -21,5 +21,21 @@ const doctorApi = {
   // 更新就诊状态（已接诊/已完成）
   updatePatientStatus: (appointmentId, status) => d.post("/patient/status", { appointmentId, status })
 };
+const getDoctorDetail = async (doctorId) => {
+  return d.get(`/${doctorId}`);
+};
+const getAllDoctors = async () => {
+  return d.get("/list");
+};
+const searchDoctors = async (keyword) => {
+  return d.get("/search", { keyword });
+};
+const getDoctorsByDeptId = async (deptId) => {
+  return d.get(`/by-dept/${deptId}`);
+};
 exports.doctorApi = doctorApi;
+exports.getAllDoctors = getAllDoctors;
+exports.getDoctorDetail = getDoctorDetail;
+exports.getDoctorsByDeptId = getDoctorsByDeptId;
+exports.searchDoctors = searchDoctors;
 //# sourceMappingURL=../../.sourcemap/mp-weixin/api/doctor.js.map

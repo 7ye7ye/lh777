@@ -11,9 +11,68 @@
     "pages/hospital/hospital",
     "pages/profile/profile",
     "pages/messages/login",
-    "pages/messages/register"
+    "pages/messages/register",
+    "pages/physical-exam/physical-exam"
   ],
   "subPackages": [
+    {
+      "root": "subpkg/profile",
+      "pages": [
+        "personal/modify-info",
+        "personal/mycard",
+        "personal/create-card",
+        "personal/mypatient",
+        "personal/mydoctor",
+        "records/register-record",
+        "records/outpatient-record",
+        "records/hospital-record",
+        "records/consult-record",
+        "records/revisit-record",
+        "records/check-record",
+        "settings/privacy",
+        "help/help",
+        "settings/complain",
+        "settings/evaluate",
+        "settings/unbind",
+        "help/login",
+        "help/bindcard",
+        "help/register",
+        "help/payment",
+        "help/hospitalization",
+        "help/report",
+        "help/other"
+      ]
+    },
+    {
+      "root": "subpkg/hospital/",
+      "pages": [
+        "departments",
+        "department-detail",
+        "disease-guide",
+        "department-booking",
+        "doctors",
+        "doctor-detail",
+        "physical-exam-packages",
+        "test-page"
+      ]
+    },
+    {
+      "root": "subpkg/messages/",
+      "pages": [
+        "detail",
+        "receipt"
+      ]
+    },
+    {
+      "root": "subpkg/physical-exam/",
+      "pages": [
+        "individual-booking",
+        "group-booking",
+        "exam-report",
+        "exam-orders",
+        "exam-center"
+      ]
+    },
     {
       "root": "subpkg/auth/",
       "pages": [
@@ -37,8 +96,8 @@
       {
         "pagePath": "pages/home/home",
         "text": "首页",
-        "iconPath": "static/logo.png",
-        "selectedIconPath": "static/logo.png"
+        "iconPath": "static/home.png",
+        "selectedIconPath": "static/home.png"
       },
       {
         "pagePath": "pages/assistant/assistant",
@@ -55,8 +114,8 @@
       {
         "pagePath": "pages/hospital/hospital",
         "text": "医院信息",
-        "iconPath": "static/logo.png",
-        "selectedIconPath": "static/logo.png"
+        "iconPath": "static/hospitalmess.png",
+        "selectedIconPath": "static/hospitalmess.png"
       },
       {
         "pagePath": "pages/profile/profile",

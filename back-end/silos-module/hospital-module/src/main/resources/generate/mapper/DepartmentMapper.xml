@@ -43,10 +43,13 @@
         d1.dept_id AS deptId,
         d1.dept_name AS deptName,
         d1.dept_desc AS deptDesc,
+        d1.location AS location,
         d2.dept_id AS childDeptId,
         d2.dept_name AS childDeptName,
         d2.dept_desc AS childDeptDesc,
-        d2.location AS childLocation
+        d2.location AS childLocation,
+        d2.parent_dept_id AS childParentDeptId,
+        d2.dept_level AS childDeptLevel
         FROM department d1
         LEFT JOIN department d2 ON d1.dept_id = d2.parent_dept_id
         WHERE d1.dept_level = 1

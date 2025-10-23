@@ -28,4 +28,21 @@
         </dependency>
     </dependencies>
 
+    <build>
+        <resources>
+            <!-- 确保 src/main/resources 下的所有资源文件被包含 -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>**/*.xml</include>
+                    <include>**/*.ftl</include>
+                    <include>**/*.properties</include>
+                    <include>**/*.yml</include>
+                    <include>**/*.yaml</include>
+                </includes>
+                <filtering>false</filtering>
+            </resource>
+        </resources>
+    </build>
+
 </project>

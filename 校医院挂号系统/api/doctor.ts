@@ -1,5 +1,6 @@
 import { http } from '../utils/request';
-const PREFIX = '/doctor';
+
+const PREFIX = '/applet/doctor';
 
 const d = {
   get: (path: string, params?: any, options?: any) => http.get(`${PREFIX}${path}`, params, options),
@@ -72,4 +73,24 @@ export const doctorApi = {
   // 更新就诊状态（已接诊/已完成）
   updatePatientStatus: (appointmentId: number, status: 'RECEIVED' | 'DONE') =>
     d.post('/patient/status', { appointmentId, status }),
+};
+
+// 获取医生详情
+export const getDoctorDetail = async (doctorId: number | string) => {
+  return d.get(`/${doctorId}`);
+};
+
+// 获取所有医生列表
+export const getAllDoctors = async () => {
+  return d.get('/list');
+};
+
+// 搜索医生
+export const searchDoctors = async (keyword: string) => {
+  return d.get('/search', { keyword });
+};
+
+// 兼容旧代码导出的工具函数：按科室ID获取医生列表
+export const getDoctorsByDeptId = async (deptId: number | string) => {
+  return d.get(`/by-dept/${deptId}`);
 };
