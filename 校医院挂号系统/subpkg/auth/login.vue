@@ -100,7 +100,7 @@ const onSubmit = async () => {
 import { uniNavigateTo } from '@/utils/uniHelper'
 
 const goRegister = () => {
-  uniNavigateTo({ url: '/pages/register/register' })
+  uniNavigateTo({ url: '/subpkg/auth/register' })
 }
 
 </script>

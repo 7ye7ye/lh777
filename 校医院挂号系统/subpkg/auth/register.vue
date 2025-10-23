@@ -83,8 +83,8 @@ const onSubmit = async () => {
     // 后端期望字段：{ userAccount, userPassword, checkPassword,userType }
     const res=await userApi.register({ userAccount: form.value.userAccount, userPassword: form.value.userPassword, checkPassword: form.value.checkPassword, userType:'patient'})
     console.log(res)
-	await uniShowToast({ title: '注册成功' })
-    await uniNavigateTo({ url: '/pages/login/login' })
+    await uniShowToast({ title: '注册成功' })
+    await uniNavigateTo({ url: '/subpkg/auth/login' })
   } catch (e) {
     await uniShowToast({ title: (e && e.message) || '注册失败', icon: 'none' })
   } finally {
@@ -93,7 +93,7 @@ const onSubmit = async () => {
 }
 
 const goLogin = () => {
-  uniNavigateTo({ url: '/pages/login/login' })
+  uniNavigateTo({ url: '/subpkg/auth/login' })
 }
 </script>
 

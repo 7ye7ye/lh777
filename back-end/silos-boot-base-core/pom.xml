@@ -444,5 +444,13 @@
 			<artifactId>langchain4j-open-ai-spring-boot-starter</artifactId>
 			<version>1.0.0-beta3</version>
 		</dependency>
+		<!-- Lombok 依赖（必须放在 <dependencies> 内） -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<version>1.18.30</version>
+			<scope>provided</scope>
+		</dependency>
+
     </dependencies>
 </project>

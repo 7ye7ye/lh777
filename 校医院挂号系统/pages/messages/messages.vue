@@ -19,8 +19,12 @@
 			<image class="empty-icon" src="/static/empty_message.png" mode="aspectFit"></image>
 			<text class="empty-text">暂无任何消息</text>
 		</view>
+
+		<!-- 医生端入口按钮 -->
+		<button class="doctor-entry-btn" @click="goDoctorMain">进入医生端</button>
 	</view>
 </template>
+
 <script>
 	export default {
 		data() {
@@ -106,74 +110,77 @@
 				if (!dateTimeStr) return '';
 				// 简单处理，只取日期部分
 				return dateTimeStr.split('T')[0];
+			},
+
+			// 跳转到医生端
+			goDoctorMain() {
+				uni.navigateTo({ 
+					url: '/pages/doctor/schedule/main' 
+				});
 			}
 		}
 	}
 </script>
+
 <style scoped>
 	.container {
 		background-color: #f5f5f5;
 		min-height: 100vh;
 		padding: 16rpx 0;
+		position: relative;
 	}
 
 	.message-list {
-		width: 100%;
+		padding: 0 16rpx;
 	}
-	
+
 	.message-card {
+		background-color: #fff;
+		border-radius: 12rpx;
+		padding: 20rpx;
+		margin-bottom: 16rpx;
 		display: flex;
-		align-items: center;
-		background-color: #ffffff;
-		margin: 16rpx 24rpx;
-		padding: 24rpx;
-		border-radius: 16rpx;
-		box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+		align-items: flex-start;
 	}
-	
+
 	.card-icon {
-		width: 88rpx;
-		height: 88rpx;
-		margin-right: 24rpx;
+		width: 80rpx;
+		height: 80rpx;
+		margin-right: 16rpx;
 	}
-	
+
 	.card-icon image {
 		width: 100%;
 		height: 100%;
 	}
-	
+
 	.card-content {
 		flex: 1;
-		display: flex;
-		flex-direction: column;
 	}
-	
+
 	.card-title-line {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
 		margin-bottom: 8rpx;
 	}
-	
+
 	.card-title {
 		font-size: 32rpx;
-		font-weight: bold;
 		color: #333;
+		font-weight: bold;
 	}
-	
+
 	.card-time {
 		font-size: 24rpx;
 		color: #999;
 	}
-	
+
 	.card-summary {
 		font-size: 28rpx;
 		color: #666;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
 	}
-	
+
 	.empty-container {
 		display: flex;
 		flex-direction: column;
@@ -181,15 +188,29 @@
 		justify-content: center;
 		padding-top: 200rpx;
 	}
-	
+
 	.empty-icon {
 		width: 200rpx;
 		height: 200rpx;
-		margin-bottom: 24rpx;
+		margin-bottom: 20rpx;
 	}
-	
+
 	.empty-text {
 		font-size: 28rpx;
 		color: #999;
+	}
+
+	/* 医生端入口按钮样式 */
+	.doctor-entry-btn {
+		position: fixed;
+		bottom: 40rpx;
+		left: 50%;
+		transform: translateX(-50%);
+		background: #479fff;
+		color: #fff;
+		border-radius: 999rpx;
+		padding: 20rpx 40rpx;
+		font-size: 28rpx;
+		box-shadow: 0 4rpx 16rpx rgba(71,159,255,0.3);
 	}
 </style>

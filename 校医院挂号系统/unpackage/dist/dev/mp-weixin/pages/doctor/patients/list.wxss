@@ -1,0 +1,39 @@
+
+.patients-page.data-v-102359a3 { min-height: 100vh; background: #f7faff;
+}
+.header.data-v-102359a3 { display: flex; justify-content: space-between; align-items: center; padding: 24rpx; background: linear-gradient(90deg, #479fff 0%, #2176ff 100%);
+}
+.title.data-v-102359a3 { color: #fff; font-size: 32rpx; font-weight: 700;
+}
+.back.data-v-102359a3 { background: #fff; color: #2176ff; border-radius: 999rpx; padding: 8rpx 18rpx;
+}
+.filters.data-v-102359a3 { padding: 24rpx;
+}
+.filter-card.data-v-102359a3 { background: #fff; border-radius: 16rpx; padding: 16rpx; box-shadow: 0 6rpx 16rpx rgba(33,118,255,0.08); display: grid; grid-template-columns: 1fr 1fr; gap: 12rpx;
+}
+.filter-item.data-v-102359a3 {
+}
+.label.data-v-102359a3 { color: #64748b; font-size: 26rpx;
+}
+.picker.data-v-102359a3 { margin-top: 8rpx; background: #f1f5f9; border-radius: 12rpx; padding: 12rpx; font-size: 26rpx; color: #0f172a;
+}
+.list.data-v-102359a3 { padding: 24rpx;
+}
+.empty-state.data-v-102359a3 { background: #fff; border-radius: 16rpx; padding: 32rpx; text-align: center; color: #64748b;
+}
+.patient-card.data-v-102359a3 { background: #fff; border-radius: 16rpx; padding: 16rpx; margin-bottom: 12rpx; box-shadow: 0 6rpx 16rpx rgba(33,118,255,0.08);
+}
+.row.data-v-102359a3 { display: flex; justify-content: space-between; align-items: center; margin: 6rpx 0;
+}
+.name.data-v-102359a3 { font-size: 30rpx; color: #0f172a; font-weight: 700;
+}
+.identity.data-v-102359a3 { font-size: 26rpx; color: #64748b;
+}
+.slot.data-v-102359a3 { font-size: 26rpx; color: #334155;
+}
+.status.data-v-102359a3 { font-size: 26rpx;
+}
+.status-wait.data-v-102359a3 { color: #0ea5e9;
+}
+.status-done.data-v-102359a3 { color: #10b981;
+}

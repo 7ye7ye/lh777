@@ -102,7 +102,11 @@ const responseInterceptor = (response) => {
       uni.showToast({ title: errorMsg, icon: 'none' });
       return Promise.reject(new Error(errorMsg));
     }
-    return Promise.resolve(data.data !== undefined ? data.data : data);
+    // 统一解包 JEECG 的 result
+    const payload = data.result !== undefined
+      ? data.result
+      : (data.data !== undefined ? data.data : data);
+    return Promise.resolve(payload);
   }
 
   // 3. 处理Spring Boot ResponseEntity响应格式
@@ -115,7 +119,7 @@ const responseInterceptor = (response) => {
   // 4. 其他结构：直接返回原始 data
   console.log('返回原始data:', data);
   return Promise.resolve(data);
-};
+}
 
 // 封装统一请求方法
 export const request = (options) => {

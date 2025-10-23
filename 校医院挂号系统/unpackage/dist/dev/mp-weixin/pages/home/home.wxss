@@ -1,0 +1,168 @@
+
+.home-bg.data-v-07e72d3c {
+  background: #f8faff;
+  min-height: 100vh;
+  padding-bottom: 120rpx;
+}
+.home-header.data-v-07e72d3c {
+  background: #3a9cff;
+  height: 120rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32rpx;
+}
+.title.data-v-07e72d3c {
+  color: #fff;
+  font-size: 36rpx;
+  font-weight: bold;
+}
+.header-icons.data-v-07e72d3c {
+  display: flex;
+  align-items: center;
+}
+.header-icon.data-v-07e72d3c {
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+}
+.banner.data-v-07e72d3c {
+  width: 100%;
+  height: 180rpx;
+  margin-bottom: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 80rpx;
+  background: #f0f0f0;
+  border-radius: 12rpx;
+}
+.bind-tip.data-v-07e72d3c {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(90deg, #3a9cff 0%, #1de9b6 100%);
+  color: #fff;
+  font-size: 28rpx;
+  border-radius: 16rpx;
+  margin: 16rpx 24rpx 0 24rpx;
+  padding: 24rpx 0;
+  font-weight: bold;
+}
+.plus.data-v-07e72d3c {
+  font-size: 36rpx;
+  margin-right: 16rpx;
+}
+.special-banner.data-v-07e72d3c {
+  width: 92%;
+  margin: 24rpx 4% 0 4%;
+  border-radius: 16rpx;
+  height: 120rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 60rpx;
+  background: #f0f0f0;
+}
+.visit-card.data-v-07e72d3c {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 16rpx 24rpx 0 24rpx;
+  padding: 16rpx 24rpx;
+}
+.visit-left .weather.data-v-07e72d3c { font-size: 26rpx; color: #fff;
+}
+.visit-left .ecard.data-v-07e72d3c { margin-top: 8rpx; background: #fff; color: #3a9cff; display: inline-block; padding: 6rpx 12rpx; border-radius: 8rpx; font-size: 24rpx;
+}
+.visit-left .visit-no.data-v-07e72d3c { margin-top: 8rpx; color: #fff; font-size: 26rpx;
+}
+.visit-right.data-v-07e72d3c { display:flex; flex-direction: column; align-items: center; color:#fff;
+}
+.visit-right .qrcode.data-v-07e72d3c { font-size: 48rpx;
+}
+.visit-right .enter.data-v-07e72d3c { font-size: 22rpx; margin-top: 6rpx;
+}
+.night-banner.data-v-07e72d3c {
+  margin: 16rpx 24rpx 0 24rpx;
+  height: 120rpx;
+  border-radius: 16rpx;
+  background: linear-gradient(90deg, #6a00ff 0%, #8a2eff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24rpx;
+  color: #fff;
+  font-weight: bold;
+}
+.night-btn.data-v-07e72d3c { background: #fff; color: #6a00ff; border-radius: 999rpx; padding: 8rpx 16rpx;
+}
+.quick .quick-grid.data-v-07e72d3c { display: flex;
+}
+.quick-item.data-v-07e72d3c { width: 25%; display: flex; flex-direction: column; align-items: center;
+}
+.quick-icon.data-v-07e72d3c { width: 56rpx; height: 56rpx; display: flex; align-items: center; justify-content: center; font-size: 32rpx; margin-bottom: 8rpx;
+}
+.card.data-v-07e72d3c {
+  background: #fff;
+  border-radius: 16rpx;
+  margin: 24rpx 24rpx 0 24rpx;
+  padding: 24rpx 0;
+  box-shadow: 0 4rpx 16rpx rgba(58,156,255,0.08);
+}
+.home-section.data-v-07e72d3c {
+  margin-top: 24rpx;
+}
+.home-row.data-v-07e72d3c {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  margin: 0 0 16rpx 0;
+}
+.home-grid.data-v-07e72d3c {
+  display: flex;
+  flex-wrap: wrap;
+}
+.home-item.data-v-07e72d3c {
+  width: 25%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 16rpx 0;
+}
+.icon.data-v-07e72d3c {
+  width: 56rpx;
+  height: 56rpx;
+  margin-bottom: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+}
+.home-tabs.data-v-07e72d3c {
+  display: flex;
+  background: #fff;
+  border-radius: 16rpx;
+  margin: 24rpx 24rpx 0 24rpx;
+  overflow: hidden;
+}
+.tab.data-v-07e72d3c {
+  flex: 1;
+  text-align: center;
+  padding: 24rpx 0;
+  font-size: 28rpx;
+  color: #888;
+}
+.tab.active.data-v-07e72d3c {
+  color: #3a9cff;
+  font-weight: bold;
+  border-bottom: 4rpx solid #3a9cff;
+  background: #f0f8ff;
+}
+.tabbar-placeholder.data-v-07e72d3c {
+  height: 120rpx;
+}

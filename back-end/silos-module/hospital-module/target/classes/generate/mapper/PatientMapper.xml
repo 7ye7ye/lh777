@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="generate.mapper.PatientMapper">
+
+    <resultMap id="BaseResultMap" type="org.jeecg.modules.hospital.entity.entity.Patient">
+            <id property="patientId" column="patient_id" />
+            <result property="userId" column="user_id" />
+            <result property="patientType" column="patient_type" />
+            <result property="studentId" column="student_id" />
+            <result property="staffId" column="staff_id" />
+            <result property="birthDate" column="birth_date" />
+            <result property="gender" column="gender" />
+            <result property="height" column="height" />
+            <result property="weight" column="weight" />
+            <result property="bloodType" column="blood_type" />
+            <result property="maritalStatus" column="marital_status" />
+            <result property="fertilityStatus" column="fertility_status" />
+            <result property="presentIllness" column="present_illness" />
+            <result property="pastIllness" column="past_illness" />
+            <result property="familyIllness" column="family_illness" />
+            <result property="allergyHistory" column="allergy_history" />
+            <result property="idType" column="id_type" />
+            <result property="idNumber" column="id_number" />
+            <result property="nation" column="nation" />
+            <result property="nationality" column="nationality" />
+            <result property="region" column="region" />
+            <result property="detailedAddress" column="detailed_address" />
+            <result property="phoneNumber" column="phone_number" />
+            <result property="homeAddress" column="home_address" />
+            <result property="emergencyContact" column="emergency_contact" />
+            <result property="emergencyPhone" column="emergency_phone" />
+            <result property="medicalHistory" column="medical_history" />
+            <result property="identityVerify" column="identity_verify" />
+            <result property="verifyTime" column="verify_time" />
+            <result property="outpatientNumber" column="outpatient_number" />
+            <result property="hospitalizationNumber" column="hospitalization_number" />
+            <result property="barcodeInfo" column="barcode_info" />
+            <result property="qrCodeInfo" column="qr_code_info" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        patient_id,user_id,patient_type,student_id,staff_id,birth_date,
+        gender,height,weight,blood_type,marital_status,
+        fertility_status,present_illness,past_illness,family_illness,allergy_history,
+        id_type,id_number,nation,nationality,region,
+        detailed_address,phone_number,home_address,emergency_contact,emergency_phone,
+        medical_history,identity_verify,verify_time,outpatient_number,hospitalization_number,
+        barcode_info,qr_code_info
+    </sql>
+</mapper>
