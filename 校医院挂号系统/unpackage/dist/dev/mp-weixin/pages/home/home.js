@@ -1,7 +1,7 @@
 "use strict";
 const common_vendor = require("../../common/vendor.js");
 const common_assets = require("../../common/assets.js");
-const store_user = require("../../store/user.js");
+const utils_auth = require("../../utils/auth.js");
 if (!Math) {
   LoginPrompt();
 }
@@ -12,7 +12,6 @@ const _sfc_main = {
     const tabs = ["门诊", "住院", "体检", "其他"];
     const activeIndex = common_vendor.ref(0);
     const loginPromptRef = common_vendor.ref(null);
-    const userStore = store_user.useUserStore();
     const itemsMap = {
       门诊: [
         { icon: "🌙", text: "晚间门诊" },
@@ -67,17 +66,15 @@ const _sfc_main = {
     const onItemClick = (item) => {
       common_vendor.index.showToast({ title: item.text, icon: "none" });
     };
-    const onVisitCardClick = () => {
-      if (!userStore.isLoggedIn) {
-        loginPromptRef.value && loginPromptRef.value.open("请先登录后查看电子就诊卡");
-        return;
-      }
-      common_vendor.index.navigateTo({ url: "/subpkg/profile/personal/mycard" });
-    };
+    const onVisitCardClick = utils_auth.createAuthHandler(
+      utils_auth.AUTH_REQUIRED_FEATURES.HOME.VISIT_CARD,
+      "/subpkg/profile/personal/mycard",
+      { requireCard: true }
+    );
     return (_ctx, _cache) => {
       return {
         a: common_assets._imports_0,
-        b: common_vendor.o(onVisitCardClick),
+        b: common_vendor.o((...args) => common_vendor.unref(onVisitCardClick) && common_vendor.unref(onVisitCardClick)(...args)),
         c: common_vendor.f(tabs, (tab, idx, i0) => {
           return {
             a: common_vendor.t(tab),

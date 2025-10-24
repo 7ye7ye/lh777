@@ -31,24 +31,6 @@ interface UserInfo {
   bindTime?: string;
 }
 
-interface CardInfo {
-  name: string;
-  cardNumber: string;
-  balance: string;
-  status: string;
-}
-
-interface PatientInfo {
-  id: number;
-  name: string;
-  gender: string;
-  age: number;
-  idType: string;
-  idNumber: string;
-  phone: string;
-  birthday: string;
-}
-
 interface DoctorInfo {
   id: number;
   name: string;
@@ -107,17 +89,6 @@ export const userApi = {
   
   // 退出登录
   logout: () => u.post('/logout'),
-
-  // 就诊卡相关
-  getCard: () => u.get('/card'),
-  rechargeCard: (data: { amount: number }) => u.post('/card/recharge', data),
-  getCardHistory: () => u.get('/card/history'),
-
-  // 就诊人相关
-  getPatientList: () => u.get('/patients'),
-  addPatient: (data: PatientInfo) => u.post('/patients', data),
-  updatePatient: (id: number, data: Partial<PatientInfo>) => u.put(`/patients/${id}`, data),
-  deletePatient: (id: number) => u.delete(`/patients/${id}`),
 
   // 医生相关
   getDoctorList: () => u.get('/doctors'),

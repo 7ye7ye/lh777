@@ -12,7 +12,7 @@
         <button class="unbind-btn" size="mini" @click="goLogin">登录</button>
       </template>
       <template v-else>
-        <button class="unbind-btn" size="mini" @click="goToUnbind">账户解绑</button>
+        <button class="unbind-btn" size="mini" @click="handleLogout">退出登录</button>
       </template>
     </view>
 
@@ -89,11 +89,6 @@
       </view>
     </view>
 
-    <!-- 退出登录按钮（登录状态下显示） -->
-    <view class="logout-section" v-if="isLoggedIn">
-      <button class="logout-btn" @click="handleLogout">退出登录</button>
-    </view>
-
     <view class="tabbar-placeholder"></view>
   </view>
 </template>
@@ -104,6 +99,7 @@ import { userApi } from '@/api/user'
 import { useUserStore } from '@/store/user'
 import { uniShowToast, uniSwitchTab, uniNavigateTo } from '@/utils/uniHelper'
 import LoginPrompt from '@/components/LoginPrompt.vue'
+import { AUTH_REQUIRED_FEATURES, createAuthHandler } from '@/utils/auth'
 
 const userInfo = ref({})
 const userStore = useUserStore()
@@ -125,62 +121,77 @@ const getUserInfo = () => {
   }
 }
 
-// 导航函数
-const goToMyCard = () => {
-  uni.navigateTo({ url: '/subpkg/profile/personal/mycard' })
-}
+// 使用统一的权限控制创建导航函数
+const goToMyCard = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.MY_CARD,
+  '/subpkg/profile/personal/mycard',
+  { requireCard: true }
+)
 
-const goToMyPatient = () => {
-  uni.navigateTo({ url: '/subpkg/profile/personal/mypatient' })
-}
+const goToMyPatient = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.MY_PATIENT,
+  '/subpkg/profile/personal/mypatient'
+)
 
-const goToMyDoctor = () => {
-  uni.navigateTo({ url: '/subpkg/profile/personal/mydoctor' })
-}
+const goToMyDoctor = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.MY_DOCTOR,
+  '/subpkg/profile/personal/mydoctor'
+)
 
-const goToRegisterRecord = () => {
-  uni.navigateTo({ url: '/subpkg/profile/records/register-record' })
-}
+const goToRegisterRecord = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.RECORDS,
+  '/subpkg/profile/records/register-record'
+)
 
-const goToOutpatientRecord = () => {
-  uni.navigateTo({ url: '/subpkg/profile/records/outpatient-record' })
-}
+const goToOutpatientRecord = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.RECORDS,
+  '/subpkg/profile/records/outpatient-record'
+)
 
-const goToHospitalRecord = () => {
-  uni.navigateTo({ url: '/subpkg/profile/records/hospital-record' })
-}
+const goToHospitalRecord = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.RECORDS,
+  '/subpkg/profile/records/hospital-record'
+)
 
-const goToConsultRecord = () => {
-  uni.navigateTo({ url: '/subpkg/profile/records/consult-record' })
-}
+const goToConsultRecord = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.RECORDS,
+  '/subpkg/profile/records/consult-record'
+)
 
-const goToRevisitRecord = () => {
-  uni.navigateTo({ url: '/subpkg/profile/records/revisit-record' })
-}
+const goToRevisitRecord = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.RECORDS,
+  '/subpkg/profile/records/revisit-record'
+)
 
-const goToCheckRecord = () => {
-  uni.navigateTo({ url: '/subpkg/profile/records/check-record' })
-}
+const goToCheckRecord = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.RECORDS,
+  '/subpkg/profile/records/check-record'
+)
 
-const goToPrivacy = () => {
-  uni.navigateTo({ url: '/subpkg/profile/settings/privacy' })
-}
+const goToPrivacy = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.SETTINGS,
+  '/subpkg/profile/settings/privacy'
+)
 
-const goToHelp = () => {
-  uni.navigateTo({ url: '/subpkg/profile/help/help' })
-}
+const goToHelp = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.SETTINGS,
+  '/subpkg/profile/help/help'
+)
 
-const goToComplain = () => {
-  uni.navigateTo({ url: '/subpkg/profile/settings/complain' })
-}
+const goToComplain = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.SETTINGS,
+  '/subpkg/profile/settings/complain'
+)
 
-const goToEvaluate = () => {
-  uni.navigateTo({ url: '/subpkg/profile/settings/evaluate' })
-}
+const goToEvaluate = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.SETTINGS,
+  '/subpkg/profile/settings/evaluate'
+)
 
-const goToUnbind = () => {
-  uni.navigateTo({ url: '/subpkg/profile/settings/unbind' })
-}
+const goToUnbind = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.SETTINGS,
+  '/subpkg/profile/settings/unbind'
+)
 
 const goLogin = () => {
   uni.navigateTo({ url: '/subpkg/auth/login' })
@@ -197,7 +208,7 @@ const handleLogout = async () => {
         success: (result) => resolve(result.confirm)
       })
     })
-    
+
     if (res) {
       // 调用后端退出接口（可选）
       try {
@@ -206,16 +217,18 @@ const handleLogout = async () => {
         // 即使后端退出失败，也要清除本地状态
         console.log('后端退出失败，但继续清除本地状态')
       }
-      
+
       // 清除本地状态
       userStore.logout()
-      
+
       // 显示退出成功提示
       await uniShowToast({ title: '已退出登录' })
-      // 登录页不是 tabBar 页面，使用 navigateTo
-      await uniNavigateTo({ url: '/subpkg/auth/login' })
+
+      // 跳转到登录页
+      await uniSwitchTab({ url: '/pages/profile/profile' })
     }
   } catch (e) {
+    console.log(e)
     await uniShowToast({ title: '退出失败', icon: 'none' })
   }
 }

@@ -19,6 +19,7 @@ const useUserStore = common_vendor.defineStore("user", {
     setUserInfo(userInfo) {
       this.userInfo = userInfo;
       if (userInfo) {
+        common_vendor.index.__f__("log", "at store/user.js:24", "store存储的userInfo:", userInfo);
         common_vendor.index.setStorageSync("userInfo", userInfo);
       } else {
         common_vendor.index.removeStorageSync("userInfo");
