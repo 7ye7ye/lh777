@@ -18,34 +18,12 @@ export interface Schedule {
 }
 
 export interface ShiftApply {
-  scheduleId: number;
-  newDate: string;
-  newTimeRange: string;
-  reason: string;
-}
-
-export interface PatientSummary {
-  appointmentId: number;
-  patientId: number;
-  name: string;
-  identity: string;
-  appointmentTimeRange: string;
-  statusText?: string;
-  statusClass?: string;
-}
-
-export interface PatientDetail {
-  name: string;
-  identity: string;
-  age: number;
-  gender: string;
-  history: string;
-  visitedBefore: boolean;
-  lastVisit?: {
-    time: string;
-    dept: string;
-    doctor: string;
-  }
+  doctorId: number
+  originalScheduleId: number
+  targetDate: string
+  targetTimeSlot: number
+  targetDeptId: number
+  reason: string
 }
 
 export const doctorApi = {
@@ -57,9 +35,13 @@ export const doctorApi = {
   getTodaySchedule: (doctorId: number) =>
     d.get('/schedule/today', { doctorId }),
 
-  // 申请调班
+  // 申请调班（后端：/doctor/shift-change/apply）
   applyShiftChange: (data: ShiftApply) =>
-    d.post('/schedule/shift/apply', data),
+    d.post('/shift-change/apply', data),
+
+  // 查询我的调班申请（后端：/doctor/shift-change/list）
+  listShiftChange: (doctorId: number, status?: number) =>
+    d.get('/shift-change/list', { doctorId, status }),
 
   // 按日期获取患者列表
   getPatientsByDate: (doctorId: number, date: string) =>

@@ -298,3 +298,31 @@ CREATE TABLE `waiting_queue`  (
 -- ----------------------------
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- 医生调班申请表
+DROP TABLE IF EXISTS `doctor_schedule_adjustment`;
+CREATE TABLE `doctor_schedule_adjustment` (
+  `adjustment_id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '调班申请记录唯一标识',
+  `doctor_id` BIGINT NOT NULL COMMENT '申请调班的医生ID',
+  `original_schedule_id` BIGINT NOT NULL COMMENT '原排班记录ID(被调整的排班)',
+  `target_date` DATE NOT NULL COMMENT '目标调班日期',
+  `target_time_slot` INT NOT NULL COMMENT '目标调班时段(1-上午; 2-下午; 3-晚上; ...)',
+  `target_dept_id` BIGINT NOT NULL COMMENT '目标出诊科室ID(可能跨科室调班)',
+  `reason` VARCHAR(200) NOT NULL COMMENT '医生申请调班的原因',
+  `apply_time` DATETIME NOT NULL COMMENT '申请提交时间',
+  `status` TINYINT NOT NULL DEFAULT 1 COMMENT '审批状态(1-待审批; 2-已通过; 3-已驳回; 4-已撤销)',
+  `admin_id` BIGINT NULL DEFAULT NULL COMMENT '负责审批的管理员ID(状态为2/3时填写)',
+  `approve_time` DATETIME NULL DEFAULT NULL COMMENT '审批时间',
+  `reject_reason` VARCHAR(200) NULL DEFAULT NULL COMMENT '驳回原因(状态为3时填写)',
+  `new_schedule_id` BIGINT NULL DEFAULT NULL COMMENT '新排班记录ID(若审批通过, 系统创建的新排班记录)',
+  PRIMARY KEY (`adjustment_id`),
+  KEY `idx_doctor` (`doctor_id`),
+  KEY `idx_original_schedule` (`original_schedule_id`),
+  KEY `idx_new_schedule` (`new_schedule_id`),
+  KEY `idx_target_date` (`target_date`),
+  CONSTRAINT `fk_adjustment_doctor` FOREIGN KEY (`doctor_id`) REFERENCES `doctor`(`doctor_id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `fk_adjustment_original_schedule` FOREIGN KEY (`original_schedule_id`) REFERENCES `doctor_schedule`(`schedule_id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `fk_adjustment_new_schedule` FOREIGN KEY (`new_schedule_id`) REFERENCES `doctor_schedule`(`schedule_id`) ON DELETE SET NULL ON UPDATE RESTRICT,
+  CONSTRAINT `fk_adjustment_target_dept` FOREIGN KEY (`target_dept_id`) REFERENCES `department`(`dept_id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `fk_adjustment_admin` FOREIGN KEY (`admin_id`) REFERENCES `admin`(`admin_id`) ON DELETE SET NULL ON UPDATE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='医生申请排班(调班)表';

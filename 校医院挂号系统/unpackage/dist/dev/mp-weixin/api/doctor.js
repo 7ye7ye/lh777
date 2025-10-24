@@ -12,8 +12,10 @@ const doctorApi = {
   getSchedules: (doctorId, startDate, days) => d.get("/schedules", { doctorId, startDate, days }),
   // 获取今日排班
   getTodaySchedule: (doctorId) => d.get("/schedule/today", { doctorId }),
-  // 申请调班
-  applyShiftChange: (data) => d.post("/schedule/shift/apply", data),
+  // 申请调班（后端：/doctor/shift-change/apply）
+  applyShiftChange: (data) => d.post("/shift-change/apply", data),
+  // 查询我的调班申请（后端：/doctor/shift-change/list）
+  listShiftChange: (doctorId, status) => d.get("/shift-change/list", { doctorId, status }),
   // 按日期获取患者列表
   getPatientsByDate: (doctorId, date) => d.get("/patients/by-date", { doctorId, date }),
   // 患者详情
