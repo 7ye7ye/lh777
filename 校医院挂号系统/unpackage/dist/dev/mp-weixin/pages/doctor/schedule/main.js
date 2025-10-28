@@ -8,13 +8,30 @@ const _sfc_main = {
   setup(__props) {
     const userStore = store_user.useUserStore();
     const doctorInfo = common_vendor.ref({
-      name: "张医生",
-      department: "内科"
+      name: "",
+      department: ""
     });
+    const doctorIdRef = common_vendor.ref(null);
     const doctorId = common_vendor.computed(() => {
       var _a;
-      return ((_a = userStore.userInfo) == null ? void 0 : _a.id) || 1;
+      return doctorIdRef.value ?? ((_a = userStore.userInfo) == null ? void 0 : _a.doctorId) ?? 1;
     });
+    const initDoctorInfo = async () => {
+      var _a;
+      try {
+        userStore.initFromStorage();
+        const userId = (_a = userStore.userInfo) == null ? void 0 : _a.userId;
+        if (!userId)
+          return;
+        const profile = await api_doctor.doctorApi.getProfileByUserId(userId);
+        doctorInfo.value = {
+          name: (profile == null ? void 0 : profile.doctorName) || (profile == null ? void 0 : profile.realname) || "未命名",
+          department: (profile == null ? void 0 : profile.deptName) || "—"
+        };
+        doctorIdRef.value = (profile == null ? void 0 : profile.doctorId) ?? null;
+      } catch (e) {
+      }
+    };
     const todayDate = common_vendor.ref("");
     const dateList = common_vendor.ref([]);
     const selectedDateIndex = common_vendor.ref(0);
@@ -80,6 +97,15 @@ const _sfc_main = {
     const goToProfile = () => {
       utils_uniHelper.uniNavigateTo({ url: "/pages/doctor/profile/index" });
     };
+    const handleRefresh = async () => {
+      utils_uniHelper.uniShowToast({ title: "正在刷新...", icon: "loading" });
+      try {
+        await loadScheduleData();
+        utils_uniHelper.uniShowToast({ title: "刷新成功", icon: "success" });
+      } catch (error) {
+        utils_uniHelper.uniShowToast({ title: "刷新失败", icon: "error" });
+      }
+    };
     const getStatusClass = (item) => {
       const total = (item == null ? void 0 : item.totalSlots) ?? 0;
       const booked = (item == null ? void 0 : item.bookedSlots) ?? 0;
@@ -102,7 +128,7 @@ const _sfc_main = {
     common_vendor.onMounted(() => {
       userStore.initFromStorage();
       initDateList();
-      loadScheduleData();
+      initDoctorInfo().finally(loadScheduleData);
     });
     return (_ctx, _cache) => {
       return common_vendor.e({
@@ -135,9 +161,10 @@ const _sfc_main = {
           };
         })
       }, {
-        g: common_vendor.o(goToAdjustSchedule),
-        h: common_vendor.o(goToPatients),
-        i: common_vendor.o(goToProfile)
+        g: common_vendor.o(handleRefresh),
+        h: common_vendor.o(goToAdjustSchedule),
+        i: common_vendor.o(goToPatients),
+        j: common_vendor.o(goToProfile)
       });
     };
   }

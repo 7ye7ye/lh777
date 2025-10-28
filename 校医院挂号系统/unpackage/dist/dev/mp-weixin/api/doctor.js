@@ -21,7 +21,11 @@ const doctorApi = {
   // 患者详情
   getPatientDetail: (patientId) => d.get(`/patient/${patientId}`),
   // 更新就诊状态（已接诊/已完成）
-  updatePatientStatus: (appointmentId, status) => d.post("/patient/status", { appointmentId, status })
+  updatePatientStatus: (appointmentId, status) => d.post("/patient/status", { appointmentId, status }),
+  // 按 userId 查询医生资料（依赖后端 /doctor/profile/byUserId）
+  getProfileByUserId: (userId) => d.get("/profile/byUserId", { userId }),
+  // 会话接口（如保留可用作备选）
+  getMyProfile: () => d.get("/profile/me")
 };
 exports.doctorApi = doctorApi;
 //# sourceMappingURL=../../.sourcemap/mp-weixin/api/doctor.js.map

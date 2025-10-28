@@ -5,13 +5,10 @@ import org.jeecg.modules.hospital.entity.Department;
 import org.jeecg.modules.hospital.service.DepartmentService;
 import org.jeecg.modules.hospital.mapper.DepartmentMapper;
 import org.springframework.stereotype.Service;
+import com.baomidou.dynamic.datasource.annotation.DS;
 
-/**
-* @author Administrator
-* @description 针对表【department(科室表)】的数据库操作Service实现
-* @createDate 2025-09-22 20:15:20
-*/
 @Service
+@DS("hospital")
 public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Department>
     implements DepartmentService{
 

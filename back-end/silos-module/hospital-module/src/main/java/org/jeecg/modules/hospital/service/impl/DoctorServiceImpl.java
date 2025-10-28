@@ -5,6 +5,7 @@ import org.jeecg.modules.hospital.entity.Doctor;
 import org.jeecg.modules.hospital.service.DoctorService;
 import org.jeecg.modules.hospital.mapper.DoctorMapper;
 import org.springframework.stereotype.Service;
+import com.baomidou.dynamic.datasource.annotation.DS;
 
 /**
 * @author Administrator
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 * @createDate 2025-09-22 20:15:20
 */
 @Service
+@DS("hospital")
 public class DoctorServiceImpl extends ServiceImpl<DoctorMapper, Doctor>
     implements DoctorService {
 
