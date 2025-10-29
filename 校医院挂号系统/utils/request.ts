@@ -69,7 +69,8 @@ const requestInterceptor = (options) => {
   const skipAuth = !!options.skipAuth;
   const token = uni.getStorageSync('token'); // 从缓存获取 token
   if (!skipAuth && token) {
-    header['Authorization'] = `Bearer ${token}`; // 如需改为 token 直传，请在此调整
+    header['Authorization'] = `Bearer ${token}`;
+    header['X-Access-Token'] = token;
   }
   options.header = header;
   return options;

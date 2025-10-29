@@ -45,14 +45,15 @@ const requestInterceptor = (options) => {
   const token = common_vendor.index.getStorageSync("token");
   if (!skipAuth && token) {
     header["Authorization"] = `Bearer ${token}`;
+    header["X-Access-Token"] = token;
   }
   options.header = header;
   return options;
 };
 const responseInterceptor = (response) => {
   const { data, statusCode } = response;
-  common_vendor.index.__f__("log", "at utils/request.ts:82", "响应拦截器 - 原始响应:", response);
-  common_vendor.index.__f__("log", "at utils/request.ts:83", "响应拦截器 - data:", data);
+  common_vendor.index.__f__("log", "at utils/request.ts:83", "响应拦截器 - 原始响应:", response);
+  common_vendor.index.__f__("log", "at utils/request.ts:84", "响应拦截器 - data:", data);
   if (statusCode < 200 || statusCode >= 300) {
     common_vendor.index.showToast({ title: `请求失败: ${statusCode}`, icon: "none" });
     return Promise.reject(new Error(`HTTP Error: ${statusCode}`));
@@ -70,10 +71,10 @@ const responseInterceptor = (response) => {
     return Promise.resolve(payload);
   }
   if (data && typeof data === "object" && data.body !== void 0) {
-    common_vendor.index.__f__("log", "at utils/request.ts:115", "检测到ResponseEntity格式，提取body:", data.body);
+    common_vendor.index.__f__("log", "at utils/request.ts:116", "检测到ResponseEntity格式，提取body:", data.body);
     return Promise.resolve(data.body);
   }
-  common_vendor.index.__f__("log", "at utils/request.ts:120", "返回原始data:", data);
+  common_vendor.index.__f__("log", "at utils/request.ts:121", "返回原始data:", data);
   return Promise.resolve(data);
 };
 const request = (options) => {

@@ -73,14 +73,16 @@
 import { defineComponent, onMounted, ref, computed } from 'vue';
 import { PageWrapper } from '/@/components/Page';
 import { message, Tag } from 'ant-design-vue';
-import { getDoctorProfile, updateDoctorProfile, type Doctor } from '/@/api/hospital/doctor';
+import { getDoctorProfile, updateDoctorProfile, type Doctor, getMyDoctorProfile, getDoctorByAccount, getDoctorByUserId } from '/@/api/hospital/doctor';
 import { useRoute } from 'vue-router';
+import { useUserStoreWithOut } from '/@/store/modules/user';
 
 export default defineComponent({
   name: 'DoctorProfile',
   components: { PageWrapper, Tag },
   setup() {
     const route = useRoute();
+    const userStore = useUserStoreWithOut();
     const profile = ref<Doctor>({
       doctorId: 0,
       doctorName: '',
@@ -122,14 +124,21 @@ export default defineComponent({
       }
     }
 
-    async function fetchProfile() {
-      // 优先：当前登录医生（仅用真实接口）
-      try {
-        const { getMyDoctorProfile } = await import('/@/api/hospital/doctor');
-        const me: any = await getMyDoctorProfile();
+    // 判断返回的医生数据是否属于当前登录用户
+    function isProfileMatchesCurrentUser(p: Partial<Doctor> | null | undefined): boolean {
+      if (!p) return false;
+      const currentUserId = Number(userStore.getUserInfo?.userId || 0);
+      const currentAccount = userStore.getUserInfo?.userAccount || parseUsernameFromToken(userStore.getToken);
+      if (p.userId && currentUserId && Number(p.userId) === currentUserId) return true;
+      if (p.userAccount && currentAccount && p.userAccount === currentAccount) return true;
+      return false;
+    }
 
-        // 兼容后端异常返回：数组或空对象
-        if (me && !Array.isArray(me) && me.doctorId) {
+    async function fetchProfile() {
+      // 优先：当前登录医生（真实接口）
+      try {
+        const me: any = await getMyDoctorProfile();
+        if (me && !Array.isArray(me) && me.doctorId && isProfileMatchesCurrentUser(me)) {
           profile.value = me as Doctor;
           return;
         }
@@ -137,14 +146,45 @@ export default defineComponent({
         console.warn('getMyDoctorProfile失败，将尝试路由doctorId兜底', e);
       }
 
-      // 兜底：路由上携带的doctorId（仍为真实数据源）
+      // 兜底一：路由上携带的doctorId（仍为真实数据源）
       const doctorId = Number(route.query.doctorId || 0);
       if (doctorId) {
         const data = await getDoctorProfile({ doctorId });
-        profile.value = data;
-        return;
+        if (data && data.doctorId && isProfileMatchesCurrentUser(data)) {
+          profile.value = data;
+          return;
+        }
       }
-      message.error('无法获取医生信息，请重新登录或检查账号绑定');
+
+      // 兜底二：使用当前登录用户的 userId
+      const currentUserId = Number(userStore.getUserInfo?.userId || 0);
+      if (currentUserId) {
+        try {
+          const data = await getDoctorByUserId(currentUserId);
+          if (data && data.doctorId && isProfileMatchesCurrentUser(data)) {
+            profile.value = data as Doctor;
+            return;
+          }
+        } catch (e) {
+          console.warn('按userId查询医生失败', e);
+        }
+      }
+
+      // 兜底三：解析登录token中的账号，按账号查询医生
+      try {
+        const account = parseUsernameFromToken(userStore.getToken);
+        if (account) {
+          const data = await getDoctorByAccount(account);
+          if (data && data.doctorId && isProfileMatchesCurrentUser(data)) {
+            profile.value = data as Doctor;
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('按账号查询医生失败', e);
+      }
+
+      message.error('无法获取医生信息或身份不匹配，请重新登录或检查账号绑定');
     }
 
     // base64url 解析 JWT 的 payload，取 username

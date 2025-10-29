@@ -7,6 +7,12 @@ const d = {
   put: (path, data, options) => utils_request.http.put(`${PREFIX}${path}`, data, options),
   delete: (path, params, options) => utils_request.http.delete(`${PREFIX}${path}`, params, options)
 };
+function normalizeOne(data) {
+  if (Array.isArray(data)) {
+    return data[0] ?? {};
+  }
+  return data;
+}
 const doctorApi = {
   // 获取未来 N 天排班
   getSchedules: (doctorId, startDate, days) => d.get("/schedules", { doctorId, startDate, days }),
@@ -23,9 +29,9 @@ const doctorApi = {
   // 更新就诊状态（已接诊/已完成）
   updatePatientStatus: (appointmentId, status) => d.post("/patient/status", { appointmentId, status }),
   // 按 userId 查询医生资料（依赖后端 /doctor/profile/byUserId）
-  getProfileByUserId: (userId) => d.get("/profile/byUserId", { userId }),
-  // 会话接口（如保留可用作备选）
-  getMyProfile: () => d.get("/profile/me")
+  getProfileByUserId: (userId) => d.get("/profile/byUserId", { userId }).then((res) => normalizeOne(res)),
+  // 会话接口（依赖后端 /doctor/profile/me）
+  getMyProfile: () => d.get("/profile/me").then((res) => normalizeOne(res))
 };
 exports.doctorApi = doctorApi;
 //# sourceMappingURL=../../.sourcemap/mp-weixin/api/doctor.js.map

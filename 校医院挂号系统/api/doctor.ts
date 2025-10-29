@@ -8,6 +8,14 @@ const d = {
   delete: (path: string, params?: any, options?: any) => http.delete(`${PREFIX}${path}`, params, options),
 };
 
+// 方法：规范化服务端返回，空数组 -> 空对象，数组 -> 首元素
+function normalizeOne<T>(data: T | T[]): T {
+  if (Array.isArray(data)) {
+    return (data[0] ?? ({} as T)) as T;
+  }
+  return data as T;
+}
+
 export interface Schedule {
   id: number;
   date: string;
@@ -57,7 +65,9 @@ export const doctorApi = {
 
   // 按 userId 查询医生资料（依赖后端 /doctor/profile/byUserId）
   getProfileByUserId: (userId: number) =>
-    d.get('/profile/byUserId', { userId }),
-  // 会话接口（如保留可用作备选）
-  getMyProfile: () => d.get('/profile/me'),
+    d.get('/profile/byUserId', { userId }).then((res) => normalizeOne<any>(res)),
+
+  // 会话接口（依赖后端 /doctor/profile/me）
+  getMyProfile: () =>
+    d.get('/profile/me').then((res) => normalizeOne<any>(res)),
 };
