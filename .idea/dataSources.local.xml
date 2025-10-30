@@ -18,6 +18,7 @@
       <secret-storage>master_key</secret-storage>
       <schema-mapping />
     </data-source>
+<<<<<<< HEAD
     <data-source name="0@127.0.0.1" uuid="326e27cc-2c1c-469e-b830-b5e1a6cd7f11">
       <database-info product="" version="" jdbc-version="" driver-name="" driver-version="" dbms="REDIS" />
       <schema-mapping />
@@ -26,5 +27,7 @@
       <database-info product="" version="" jdbc-version="" driver-name="" driver-version="" dbms="POSTGRES" />
       <schema-mapping />
     </data-source>
+=======
+>>>>>>> 18202d67877fe5074ca10d389f11e447d0ecde55
   </component>
 </project>

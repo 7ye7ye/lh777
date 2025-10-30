@@ -11,7 +11,11 @@
  Target Server Version : 90300 (9.3.0)
  File Encoding         : 65001
 
+<<<<<<< HEAD
  Date: 29/10/2025 21:22:01
+=======
+ Date: 27/10/2025 11:54:10
+>>>>>>> 18202d67877fe5074ca10d389f11e447d0ecde55
 */
 
 SET NAMES utf8mb4;
@@ -34,7 +38,11 @@ CREATE TABLE `admin`  (
                           UNIQUE INDEX `admin_account`(`admin_account` ASC) USING BTREE,
                           INDEX `admin_ibfk_1`(`user_id` ASC) USING BTREE,
                           CONSTRAINT `admin_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `hos_user` (`user_id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+<<<<<<< HEAD
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '管理员表' ROW_FORMAT = DYNAMIC;
+=======
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '管理员表' ROW_FORMAT = DYNAMIC;
+>>>>>>> 18202d67877fe5074ca10d389f11e447d0ecde55
 
 -- ----------------------------
 -- Records of admin
@@ -102,9 +110,15 @@ DROP TABLE IF EXISTS `doctor`;
 CREATE TABLE `doctor`  (
                            `doctor_id` bigint NOT NULL AUTO_INCREMENT COMMENT '医生唯一标识',
                            `user_id` bigint NOT NULL COMMENT '关联用户表',
+<<<<<<< HEAD
                            `dept_id` bigint NOT NULL COMMENT '所属科室ID（二级科室，如"消化内科"）',
                            `title` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '职称（如"主治医师""主任医师"）',
                            `specialty` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '擅长领域（如"胃炎、胃溃疡诊疗"）',
+=======
+                           `dept_id` bigint NOT NULL COMMENT '所属科室ID（二级科室，如“消化内科”）',
+                           `title` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '职称（如“主治医师”“主任医师”）',
+                           `specialty` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '擅长领域（如“胃炎、胃溃疡诊疗”）',
+>>>>>>> 18202d67877fe5074ca10d389f11e447d0ecde55
                            `doctor_desc` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '医生简介',
                            `avatar` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '医生头像URL',
                            `is_active` tinyint NOT NULL COMMENT '出诊状态（0-暂停出诊；1-正常出诊）',
@@ -120,6 +134,7 @@ CREATE TABLE `doctor`  (
 -- ----------------------------
 -- Records of doctor
 -- ----------------------------
+<<<<<<< HEAD
 INSERT INTO `doctor` VALUES
                          (1, 10, 101, '主治医师', '胃炎、胃溃疡诊疗', '擅长胃肠道常见病、多发病的诊治。', NULL, 1, 2, '王医生'),
                          (2, 5, 101, '主任医师', '肝病、胰腺疾病诊疗', '资深专家，享受国务院特殊津贴。', NULL, 1, 2, '张医生'),
@@ -136,6 +151,10 @@ INSERT INTO `doctor` VALUES
                          (13, 30, 203, '主任医师', '脑肿瘤、脑血管病', '神经外科专家。', NULL, 1, 2, '朱医生'),
                          (14, 31, 203, '主治医师', '颅脑损伤、脑出血', '擅长神经外科急诊。', NULL, 1, 2, '马医生'),
                          (15, 32, 204, '副主任医师', '前列腺疾病、泌尿系结石', '泌尿外科专家。', NULL, 1, 2, '胡医生');
+=======
+INSERT INTO `doctor` VALUES (1, 10, 101, '主治医师', '胃炎、胃溃疡诊疗', '擅长胃肠道常见病、多发病的诊治。', NULL, 1, 2, '王医生');
+INSERT INTO `doctor` VALUES (2, 5, 101, '主任医师', '肝病、胰腺疾病诊疗', '资深专家，享受国务院特殊津贴。', NULL, 1, 2, '张医生');
+>>>>>>> 18202d67877fe5074ca10d389f11e447d0ecde55
 
 -- ----------------------------
 -- Table structure for doctor_schedule
@@ -162,6 +181,7 @@ CREATE TABLE `doctor_schedule`  (
 -- ----------------------------
 -- Records of doctor_schedule
 -- ----------------------------
+<<<<<<< HEAD
 INSERT INTO `doctor_schedule` VALUES
                                   (1, 1, 101, 1, '2025-10-29', 1, 2, 1, '2025-10-22 14:34:02', '2025-10-22 14:34:02'),
                                   (2, 2, 101, 1, '2025-10-25', 2, 0, 1, '2025-10-22 14:34:02', '2025-10-22 14:34:02'),
@@ -178,6 +198,11 @@ INSERT INTO `doctor_schedule` VALUES
                                   (13, 11, 202, 2, '2025-10-30', 1, 4, 1, '2025-10-23 09:00:00', '2025-10-23 09:00:00'),
                                   (14, 12, 202, 1, '2025-10-31', 2, 2, 1, '2025-10-23 09:00:00', '2025-10-23 09:00:00'),
                                   (15, 13, 203, 1, '2025-10-30', 1, 1, 1, '2025-10-23 09:00:00', '2025-10-23 09:00:00');
+=======
+INSERT INTO `doctor_schedule` VALUES (1, 1, 101, 1, '2025-10-24', 1, 2, 1, '2025-10-22 14:34:02', '2025-10-22 14:34:02');
+INSERT INTO `doctor_schedule` VALUES (2, 2, 101, 1, '2025-10-25', 2, 0, 1, '2025-10-22 14:34:02', '2025-10-22 14:34:02');
+INSERT INTO `doctor_schedule` VALUES (3, 1, 101, 2, '2025-10-25', 3, 5, 1, '2025-10-22 14:34:02', '2025-10-22 14:34:02');
+>>>>>>> 18202d67877fe5074ca10d389f11e447d0ecde55
 
 -- ----------------------------
 -- Table structure for doctor_schedule_adjustment
@@ -214,6 +239,7 @@ CREATE TABLE `doctor_schedule_adjustment`  (
 -- ----------------------------
 -- Records of doctor_schedule_adjustment
 -- ----------------------------
+<<<<<<< HEAD
 INSERT INTO `doctor_schedule_adjustment` VALUES
                                              (1, 1, 1, '2025-10-25', 1, 100, '俺要回家', '2025-10-24 15:05:10', 1, NULL, NULL, NULL, NULL),
                                              (2, 1, 1, '2025-10-24', 3, 100, '俺要回家', '2025-10-24 15:09:42', 1, NULL, NULL, NULL, NULL),
@@ -230,6 +256,10 @@ INSERT INTO `doctor_schedule_adjustment` VALUES
                                              (13, 10, 12, '2025-11-11', 1, 201, '学术报告', '2025-10-30 09:00:00', 2, 2, '2025-10-30 14:00:00', NULL, 20),
                                              (14, 12, 14, '2025-11-12', 2, 202, '教学任务', '2025-10-30 10:00:00', 1, NULL, NULL, NULL, NULL),
                                              (15, 14, NULL, '2025-11-13', 1, 203, '急诊支援', '2025-10-31 09:00:00', 2, 2, '2025-10-31 14:00:00', NULL, 21);
+=======
+INSERT INTO `doctor_schedule_adjustment` VALUES (1, 1, 1, '2025-10-25', 1, 100, '俺要回家', '2025-10-24 15:05:10', 1, NULL, NULL, NULL, NULL);
+INSERT INTO `doctor_schedule_adjustment` VALUES (2, 1, 1, '2025-10-24', 3, 100, '俺要回家', '2025-10-24 15:09:42', 1, NULL, NULL, NULL, NULL);
+>>>>>>> 18202d67877fe5074ca10d389f11e447d0ecde55
 
 -- ----------------------------
 -- Table structure for hos_user
@@ -255,6 +285,7 @@ CREATE TABLE `hos_user`  (
 -- ----------------------------
 -- Records of hos_user
 -- ----------------------------
+<<<<<<< HEAD
 INSERT INTO `hos_user` VALUES
                            (1, 'zhangxiaoming_std', 'hashed_password', 1, '110105200010221234', '13900000011', 'zxm@example.com', 1, '2025-10-22 10:00:00', '2025-10-22 10:00:00'),
                            (2, '11111111', 'b090a8e2dd67f03005adeff82c6b80e7', 1, NULL, NULL, NULL, 1, '2025-09-23 19:53:32', '2025-09-23 19:53:32'),
@@ -297,6 +328,18 @@ INSERT INTO `hos_user` VALUES
                            (40, 'patient_zhou', 'hashed_password', 1, '620101200711201234', '13000000129', 'patient_zhou@example.com', 1, '2025-11-10 16:00:00', '2025-11-10 16:00:00'),
                            (41, 'patient_wu', 'hashed_password', 1, '630101200811211234', '13000000130', 'patient_wu@example.com', 1, '2025-11-10 17:00:00', '2025-11-10 17:00:00'),
                            (42, 'patient_zheng', 'hashed_password', 1, '640101200911221234', '13000000131', 'patient_zheng@example.com', 1, '2025-11-10 18:00:00', '2025-11-10 18:00:00');
+=======
+INSERT INTO `hos_user` VALUES (1, 'zhangxiaoming_std', 'hashed_password', 1, '110105200010221234', '13900000011', 'zxm@example.com', 1, '2025-10-22 10:00:00', '2025-10-22 10:00:00');
+INSERT INTO `hos_user` VALUES (2, '11111111', 'b090a8e2dd67f03005adeff82c6b80e7', 1, NULL, NULL, NULL, 1, '2025-09-23 19:53:32', '2025-09-23 19:53:32');
+INSERT INTO `hos_user` VALUES (3, '23301172', '71df02cfe7dd9606db2ef65b6d048f5b', 1, NULL, NULL, NULL, 1, '2025-10-20 11:30:24', '2025-10-20 11:30:24');
+INSERT INTO `hos_user` VALUES (4, '123456bjtu', 'hashed_password', 2, '210102197510223456', '13600000044', 'chen@hospital.com', 1, '2025-10-25 13:45:00', '2025-10-25 13:45:00');
+INSERT INTO `hos_user` VALUES (5, '234567bjtu', 'hashed_password', 2, '500101198010267890', '13500000055', 'zhao@hospital.com', 1, '2025-10-26 14:50:00', '2025-10-26 14:50:00');
+INSERT INTO `hos_user` VALUES (6, 'doctor_sun', 'hashed_password', 2, '610101199510292345', '13400000066', 'sun@hospital.com', 1, '2025-10-27 15:55:00', '2025-10-27 15:55:00');
+INSERT INTO `hos_user` VALUES (7, 'admin_a', 'hashed_password', 3, '440101197010226789', '13300000077', 'admin_a@hospital.com', 1, '2025-10-28 16:10:00', '2025-10-28 16:10:00');
+INSERT INTO `hos_user` VALUES (8, 'admin_b', 'hashed_password', 3, '320101198010231234', '13200000088', 'admin_b@hospital.com', 1, '2025-10-29 17:25:00', '2025-10-29 17:25:00');
+INSERT INTO `hos_user` VALUES (9, 'admin_c', 'hashed_password', 3, '510101199010305678', '13100000099', 'admin_c@hospital.com', 1, '2025-10-30 18:40:00', '2025-10-30 18:40:00');
+INSERT INTO `hos_user` VALUES (10, '345678bjtu', 'f5cce500f5ffb83ecfcc4fd19b8b1377', 2, NULL, '', NULL, 1, '2025-10-26 12:03:20', '2025-10-26 12:03:20');
+>>>>>>> 18202d67877fe5074ca10d389f11e447d0ecde55
 
 -- ----------------------------
 -- Table structure for patient
@@ -346,6 +389,7 @@ CREATE TABLE `patient`  (
 -- ----------------------------
 -- Records of patient
 -- ----------------------------
+<<<<<<< HEAD
 INSERT INTO `patient` VALUES
                           (1, 2, 1, '23301172', NULL, '2005-03-14', '女', 170.50, 55.00, 'O型', '未婚', NULL, '近三天腹泻', '无特殊病史', '无', '青霉素', '身份证', '440301200010105678', '汉族', '中国', '北京市', 'XX大学22宿舍楼214', '13000130003', '北京市海淀区北下关', '郑女士', '13912345678', NULL, 1, '2025-10-22 14:37:09', 'P20250001', NULL, NULL, NULL),
                           (2, 1, 1, '20230001', NULL, '2002-05-15', '男', 175.00, 65.00, 'A型', '未婚', NULL, '感冒发烧', '无', '无', '无', '身份证', '110105200010221234', '汉族', '中国', '北京市', 'XX大学1宿舍楼101', '13900000011', '北京市朝阳区', '张先生', '13900000012', '无', 1, '2025-10-23 10:00:00', 'P20250002', NULL, NULL, NULL),
@@ -359,6 +403,9 @@ INSERT INTO `patient` VALUES
                           (10, 40, 3, NULL, 'S2023002', '1978-01-30', '男', 175.00, 68.00, 'AB型', '已婚', '已生育', '关节痛', '关节炎', '无', '无', '身份证', '620101200711201234', '汉族', '中国', '北京市', '职工宿舍D栋104', '13000000129', '北京市大兴区', '周先生', '13000000130', '关节炎病史', 1, '2025-10-23 18:00:00', 'P20250010', NULL, NULL, NULL),
                           (11, 41, 1, '20230006', NULL, '2003-02-14', '男', 177.00, 63.00, 'O型', '未婚', NULL, '发热', '无', '无', '无', '身份证', '630101200811211234', '汉族', '中国', '北京市', 'XX大学11宿舍楼721', '13000000130', '北京市房山区', '吴先生', '13000000131', '无', 1, '2025-10-23 19:00:00', 'P20250011', NULL, NULL, NULL),
                           (12, 42, 1, '20230007', NULL, '2004-03-18', '女', 164.00, 49.00, 'B型', '未婚', NULL, '胸闷', '无', '心脏病', '无', '身份证', '640101200911221234', '汉族', '中国', '北京市', 'XX大学13宿舍楼819', '13000000131', '北京市顺义区', '郑女士', '13000000132', '无', 1, '2025-10-23 20:00:00', 'P20250012', NULL, NULL, NULL);
+=======
+INSERT INTO `patient` VALUES (1, 2, 1, '23301172', NULL, '2005-03-14', '女', 170.50, 55.00, 'O型', '未婚', NULL, '近三天腹泻', '无特殊病史', '无', '青霉素', '身份证', '440301200010105678', '汉族', '中国', '北京市', 'XX大学22宿舍楼214', '13000130003', '北京市海淀区北下关', '郑女士', '13912345678', NULL, 1, '2025-10-22 14:37:09', 'P20250001', NULL, NULL, NULL);
+>>>>>>> 18202d67877fe5074ca10d389f11e447d0ecde55
 
 -- ----------------------------
 -- Table structure for registration_record

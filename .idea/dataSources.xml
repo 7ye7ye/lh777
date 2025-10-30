@@ -37,6 +37,7 @@
       </jdbc-additional-properties>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+<<<<<<< HEAD
     <data-source source="LOCAL" name="0@127.0.0.1" uuid="326e27cc-2c1c-469e-b830-b5e1a6cd7f11">
       <driver-ref>redis</driver-ref>
       <synchronize>true</synchronize>
@@ -60,5 +61,7 @@
       </jdbc-additional-properties>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+=======
+>>>>>>> 18202d67877fe5074ca10d389f11e447d0ecde55
   </component>
 </project>

@@ -59,9 +59,19 @@ export const doctorApi = {
   getPatientDetail: (patientId: number) =>
     d.get(`/patient/${patientId}`),
 
+<<<<<<< HEAD
   // 更新就诊状态（开始接诊/完成接诊）
   updatePatientStatus: (appointmentId: number, action: 'start' | 'finish') =>
     d.post('/patient/status', { appointmentId, action }),
+=======
+  // 更新就诊状态（已接诊/已完成）
+  updatePatientStatus: (appointmentId: number, status: 'RECEIVED' | 'DONE') =>
+    d.post('/patient/status', { appointmentId, status }),
+
+  // 按 userId 查询医生资料（依赖后端 /doctor/profile/byUserId）
+  getProfileByUserId: (userId: number) =>
+    d.get('/profile/byUserId', { userId }).then((res) => normalizeOne<any>(res)),
+>>>>>>> 18202d67877fe5074ca10d389f11e447d0ecde55
 
   // 会话接口（依赖后端 /doctor/profile/me）
   getMyProfile: () =>
