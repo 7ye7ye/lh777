@@ -10,6 +10,7 @@ import org.jeecg.config.shiro.IgnoreAuth;
 import org.jeecg.modules.hospital.dto.HosUserLoginResult;
 import org.jeecg.modules.hospital.entity.HosUser;
 import org.jeecg.modules.hospital.service.HosUserService;
+import org.jeecg.common.system.util.JwtUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -49,43 +50,106 @@ public class UserController {
     public ResponseEntity<?> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
         System.out.println("已收到请求");
         if (userLoginRequest == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("请求体不能为空");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new HashMap<String, Object>() {{
+                put("code", 400);
+                put("message", "请求体不能为空");
+            }});
         }
 
         String userAccount = userLoginRequest.getUserAccount();
         String userPassword = userLoginRequest.getUserPassword();
 
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("用户名和用户密码不能为空");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new HashMap<String, Object>() {{
+                put("code", 400);
+                put("message", "用户名和用户密码不能为空");
+            }});
         }
-        // 调用服务层进行登录验证
-        HosUserLoginResult userLoginResult = userService.userLogin(userAccount, userPassword, request);
 
-        if (userLoginResult == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("用户名或密码错误");
+        try {
+            HosUserLoginResult userLoginResult = userService.userLogin(userAccount, userPassword, request);
+            if (userLoginResult == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new HashMap<String, Object>() {{
+                    put("code", 401);
+                    put("message", "用户名或密码错误");
+                }});
+            }
+            System.out.println(userLoginResult);
+            return ResponseEntity.ok(new HashMap<String, Object>() {{
+                put("code", 0);
+                put("data", userLoginResult);
+            }});
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new HashMap<String, Object>() {{
+                put("code", 500);
+                put("message", "登录失败");
+            }});
         }
-        System.out.println(userLoginResult);
-        // 登录成功，返回用户信息（可以根据需要去掉敏感信息）
-        return ResponseEntity.ok(userLoginResult);
     }
 
 
     @GetMapping("/current")
-    public String getCurrentUser(HttpServletRequest request) {
-        Object userObj=null;
+    public ResponseEntity<?> getCurrentUser(HttpServletRequest request) {
         try {
-            userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+            Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
             System.out.println("Retrieved user info: " + userObj);
             System.out.println("Session ID (get): " + request.getSession().getId());
 
+            // 1) 优先使用会话态
+            if (userObj instanceof HosUser) {
+                HosUser currentUser = (HosUser) userObj;
+                return ResponseEntity.ok(new HashMap<String, Object>() {{
+                    put("code", 0);
+                    put("data", currentUser.getUserAccount());
+                }});
+            }
+
+            // 2) 会话不存在时，使用 Token 兜底（X-Access-Token 或 Authorization: Bearer ...）
+            String token = request.getHeader("X-Access-Token");
+            if (StringUtils.isBlank(token)) {
+                String auth = request.getHeader("Authorization");
+                if (StringUtils.isNotBlank(auth) && auth.startsWith("Bearer ")) {
+                    token = auth.substring(7);
+                }
+            }
+
+            if (StringUtils.isBlank(token)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new HashMap<String, Object>() {{
+                    put("code", 401);
+                    put("message", "未登录或Token缺失");
+                }});
+            }
+
+            // 3) 从 Token 解析用户名，并查询用户
+            String username = JwtUtil.getUsername(token);
+            if (StringUtils.isBlank(username)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new HashMap<String, Object>() {{
+                    put("code", 401);
+                    put("message", "Token无效或已过期");
+                }});
+            }
+
+            org.jeecg.common.system.vo.HosUser userVo = userService.getHosUserByAccount(username);
+            if (userVo == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new HashMap<String, Object>() {{
+                    put("code", 401);
+                    put("message", "用户不存在");
+                }});
+            }
+
+            // 成功返回账号（也可返回完整用户信息）
+            return ResponseEntity.ok(new HashMap<String, Object>() {{
+                put("code", 0);
+                put("data", userVo.getUserAccount());
+            }});
         } catch (Exception e) {
             e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new HashMap<String, Object>() {{
+                put("code", 500);
+                put("message", "获取当前用户失败");
+            }});
         }
-        HosUser currentUser = (HosUser) userObj;
-        if(currentUser==null){
-            return null;
-        }
-        return currentUser.getUserAccount();
     }
 
     @PostMapping("/logout")

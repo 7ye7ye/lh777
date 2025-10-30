@@ -49,4 +49,10 @@ public interface PatientVisitMapper extends BaseMapper<PatientVisit> {
             @Param("endDate") LocalDate endDate,
             @Param("status") Integer status
     );
+
+    @Select("SELECT * FROM patient_visit WHERE schedule_id = #{scheduleId} AND patient_id = #{patientId} LIMIT 1")
+    PatientVisit findByScheduleAndPatient(@Param("scheduleId") Long scheduleId, @Param("patientId") Long patientId);
+
+    @org.apache.ibatis.annotations.Update("UPDATE patient_visit SET status = #{status}, update_time = NOW() WHERE visit_id = #{visitId}")
+    int updateStatus(@Param("visitId") Long visitId, @Param("status") Integer status);
 }

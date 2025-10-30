@@ -92,6 +92,19 @@ export function createPermissionGuard(router: Router) {
     if (!token) {
       // You can access without permission. You need to set the routing meta.ignoreAuth to true
       if (to.meta.ignoreAuth) {
+        // 未登录也构建一次菜单和动态路由，保证侧边栏显示
+        if (!permissionStore.getIsDynamicAddedRoute) {
+          try {
+            const routes = await permissionStore.buildRoutesAction();
+            routes.forEach((route) => {
+              router.addRoute(route as unknown as RouteRecordRaw);
+            });
+            router.addRoute(PAGE_NOT_FOUND_ROUTE as unknown as RouteRecordRaw);
+            permissionStore.setDynamicAddedRoute(true);
+          } catch (error) {
+            console.error('未登录构建路由失败:', error);
+          }
+        }
         next();
         return;
       }

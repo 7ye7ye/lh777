@@ -10,14 +10,23 @@ const detectBaseURL = () => {
   return "http://localhost:8095";
 };
 const baseURL = detectBaseURL();
-const API_PREFIX = "/jeecg-boot";
+const API_PREFIX = (() => {
+  try {
+    return typeof common_vendor.index !== "undefined" ? common_vendor.index.getStorageSync("API_PREFIX") || "/jeecg-boot" : "/jeecg-boot";
+  } catch (_) {
+    return "/jeecg-boot";
+  }
+})();
 const requestInterceptor = (options) => {
   if (options.url && !/^https?:\/\//i.test(options.url)) {
     let path = options.url;
     if (!path.startsWith("/"))
       path = `/${path}`;
-    if (!path.startsWith(API_PREFIX + "/")) {
-      path = API_PREFIX + path;
+    const usePrefix = API_PREFIX && !(options == null ? void 0 : options.noPrefix);
+    if (usePrefix) {
+      if (!path.startsWith(API_PREFIX + "/")) {
+        path = API_PREFIX + path;
+      }
     }
     options.url = baseURL + path;
   }
@@ -45,17 +54,19 @@ const requestInterceptor = (options) => {
   const token = common_vendor.index.getStorageSync("token");
   if (!skipAuth && token) {
     header["Authorization"] = `Bearer ${token}`;
+    header["X-Access-Token"] = token;
   }
   options.header = header;
   return options;
 };
 const responseInterceptor = (response) => {
   const { data, statusCode } = response;
-  common_vendor.index.__f__("log", "at utils/request.ts:82", "响应拦截器 - 原始响应:", response);
-  common_vendor.index.__f__("log", "at utils/request.ts:83", "响应拦截器 - data:", data);
+  common_vendor.index.__f__("log", "at utils/request.ts:85", "响应拦截器 - 原始响应:", response);
+  common_vendor.index.__f__("log", "at utils/request.ts:86", "响应拦截器 - data:", data);
   if (statusCode < 200 || statusCode >= 300) {
-    common_vendor.index.showToast({ title: `请求失败: ${statusCode}`, icon: "none" });
-    return Promise.reject(new Error(`HTTP Error: ${statusCode}`));
+    const httpMsg = statusCode === 502 ? "网关错误(502)：后端服务不可达或路由未配置" : statusCode === 404 ? "接口不存在(404)" : statusCode >= 500 ? "服务器错误" : `请求失败: ${statusCode}`;
+    common_vendor.index.showToast({ title: httpMsg, icon: "none" });
+    return Promise.reject(new Error(httpMsg));
   }
   if (data && typeof data === "object" && ("code" in data || "success" in data)) {
     const code = data.code;
@@ -70,10 +81,10 @@ const responseInterceptor = (response) => {
     return Promise.resolve(payload);
   }
   if (data && typeof data === "object" && data.body !== void 0) {
-    common_vendor.index.__f__("log", "at utils/request.ts:115", "检测到ResponseEntity格式，提取body:", data.body);
+    common_vendor.index.__f__("log", "at utils/request.ts:126", "检测到ResponseEntity格式，提取body:", data.body);
     return Promise.resolve(data.body);
   }
-  common_vendor.index.__f__("log", "at utils/request.ts:120", "返回原始data:", data);
+  common_vendor.index.__f__("log", "at utils/request.ts:131", "返回原始data:", data);
   return Promise.resolve(data);
 };
 const request = (options) => {
@@ -81,14 +92,16 @@ const request = (options) => {
   return new Promise((resolve, reject) => {
     common_vendor.index.request({
       ...finalOptions,
+      timeout: finalOptions.timeout ?? 8e3,
       // 发起请求
       success: (res) => {
         responseInterceptor(res).then(resolve).catch(reject);
       },
-      // 处理网络错误（如断网）
+      // 处理网络错误（如断网/空响应）
       fail: (err) => {
         if (!finalOptions.silent) {
-          common_vendor.index.showToast({ title: "网络连接失败", icon: "none" });
+          const msg = typeof (err == null ? void 0 : err.errMsg) === "string" && err.errMsg.includes("ERR_EMPTY_RESPONSE") ? "服务器未返回数据（可能端口/HTTPS/防火墙/网关导致）" : "网络连接失败";
+          common_vendor.index.showToast({ title: msg, icon: "none" });
         }
         reject(err);
       }

@@ -35,6 +35,12 @@ function createApp() {
   const { useUserStore } = require("./store/user.js");
   const userStore = useUserStore();
   userStore.initFromStorage();
+  try {
+    common_vendor.index.setStorageSync("BASE_URL", "http://127.0.0.1:8095");
+    common_vendor.index.setStorageSync("API_PREFIX", "/jeecg-boot");
+  } catch (e) {
+    common_vendor.index.__f__("warn", "at main.js:35", "设置 BASE_URL/API_PREFIX 失败:", e);
+  }
   return {
     app
   };

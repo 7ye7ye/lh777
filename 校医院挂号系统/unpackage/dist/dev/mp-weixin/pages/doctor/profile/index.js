@@ -1,25 +1,65 @@
 "use strict";
 const common_vendor = require("../../../common/vendor.js");
 const utils_uniHelper = require("../../../utils/uniHelper.js");
+const store_user = require("../../../store/user.js");
+const api_doctor = require("../../../api/doctor.js");
 const _sfc_main = {
   __name: "index",
   setup(__props) {
     const doctorInfo = common_vendor.ref({
-      name: "张医生",
-      title: "主治医师",
-      department: "内科",
+      name: "",
+      title: "",
+      department: "",
       avatar: "/static/doctor.svg",
-      phone: "138****5678",
-      email: "zhang***@hospital.edu.cn",
-      licenseNumber: "1101-2024-XYZ",
-      yearsOfPractice: 8,
-      specialty: "呼吸道疾病、发热门诊、慢性病管理"
+      phone: "",
+      email: "",
+      licenseNumber: "",
+      yearsOfPractice: 0,
+      specialty: ""
     });
     const stats = common_vendor.ref({
-      totalPatients: 1258,
-      todayPatients: 12,
-      rating: 4.8
+      totalPatients: 0,
+      todayPatients: 0,
+      rating: 0
     });
+    const userStore = store_user.useUserStore();
+    const loadProfile = async () => {
+      var _a;
+      try {
+        userStore.initFromStorage();
+        const userId = (_a = userStore.userInfo) == null ? void 0 : _a.userId;
+        let profile = null;
+        if (userId) {
+          profile = await api_doctor.doctorApi.getProfileByUserId(userId);
+        } else {
+          profile = await api_doctor.doctorApi.getMyProfile();
+        }
+        if (!profile || !profile.doctorId) {
+          utils_uniHelper.uniShowToast("未绑定医生资料或接口返回空数据");
+          return;
+        }
+        doctorInfo.value = {
+          name: profile.doctorName || profile.realname || "",
+          title: profile.title || "",
+          department: profile.deptName || "",
+          avatar: profile.avatar || "/static/doctor.svg",
+          phone: profile.phone || "",
+          email: profile.email || "",
+          licenseNumber: profile.licenseNumber || "",
+          yearsOfPractice: profile.yearsOfPractice || 0,
+          specialty: profile.specialty || ""
+        };
+        stats.value = {
+          totalPatients: 0,
+          todayPatients: 0,
+          rating: 0
+        };
+      } catch (e) {
+        utils_uniHelper.uniShowToast("获取医生资料失败");
+        common_vendor.index.__f__("warn", "at pages/doctor/profile/index.vue:263", "loadProfile错误：", e);
+      }
+    };
+    common_vendor.onMounted(loadProfile);
     function goBackToSchedule() {
       const pages = getCurrentPages();
       if (pages.length > 1) {

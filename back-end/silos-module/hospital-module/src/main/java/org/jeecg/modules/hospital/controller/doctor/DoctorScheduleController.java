@@ -6,8 +6,14 @@ import jakarta.annotation.Resource;
 import org.jeecg.common.api.vo.Result; // 使用 Jeecg 统一返回类
 import org.jeecg.modules.hospital.entity.DoctorSchedule;
 import org.jeecg.modules.hospital.service.DoctorScheduleService;
+import org.jeecg.modules.hospital.service.DoctorService;
+import org.jeecg.modules.hospital.service.HosUserService;
 import org.springframework.web.bind.annotation.*;
-
+import jakarta.servlet.http.HttpServletRequest;
+import org.jeecg.common.constant.CommonConstant;
+import org.jeecg.common.system.util.JwtUtil;
+import org.jeecg.modules.hospital.entity.HosUser;
+import org.jeecg.modules.hospital.entity.Doctor;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -25,37 +31,45 @@ public class DoctorScheduleController {
 
     @Resource
     private DoctorScheduleService scheduleService;
+    @Resource
+    private DoctorService doctorService;
+
+    @Resource
+    private HosUserService hosUserService;
 
     // ------------------- API 接口 -------------------
 
     @Operation(summary = "获取今日排班")
     @GetMapping("/schedule/today")
-    public Result<List<ScheduleDTO>> getTodaySchedule(@RequestParam Long doctorId) {
+    public Result<List<ScheduleDTO>> getTodaySchedule(HttpServletRequest request) {
+        Long doctorId = resolveCurrentDoctorId(request);
+        if (doctorId == null) {
+            return Result.error("未登录或未绑定医生信息");
+        }
         LocalDate today = LocalDate.now();
         List<DoctorSchedule> list = scheduleService.list(doctorId, null, today);
         return Result.ok(toDTOList(list));
     }
 
     /**
-     * 【重点修正】这个方法对应请求路径 /doctor/schedules
-     * 如果前端未传 doctorId 或 startDate，Jeecg 的 Result.error 会处理
+     * 获取未来N天排班（起始日期 + 天数）
      */
     @Operation(summary = "获取未来N天排班")
     @GetMapping("/schedules")
     public Result<List<ScheduleDTO>> getSchedules(
-            @RequestParam Long doctorId,
+            HttpServletRequest request,
             @RequestParam String startDate,
             @RequestParam(defaultValue = "7") Integer days
     ) {
+        Long doctorId = resolveCurrentDoctorId(request);
+        if (doctorId == null) {
+            return Result.error("未登录或未绑定医生信息");
+        }
         try {
-            // 确保日期格式正确
             LocalDate start = LocalDate.parse(startDate, DateTimeFormatter.ISO_DATE);
             LocalDate end = start.plusDays(Math.max(1, days) - 1);
 
-            // 注意：你原始的过滤逻辑是在 Java 内存中进行的（list(doctorId, null, null)）。
-            // 生产环境中，强烈建议将日期过滤逻辑放到 service/mapper 层，使用 SQL 查询来提高性能。
             List<DoctorSchedule> all = scheduleService.list(doctorId, null, null);
-
             List<DoctorSchedule> filtered = new ArrayList<>();
             for (DoctorSchedule s : all) {
                 if (s.getScheduleDate() != null && !s.getScheduleDate().isBefore(start) && !s.getScheduleDate().isAfter(end)) {
@@ -63,9 +77,7 @@ public class DoctorScheduleController {
                 }
             }
             return Result.ok(toDTOList(filtered));
-
         } catch (Exception e) {
-            // 捕获日期解析错误或其他异常
             return Result.error("查询排班失败：" + e.getMessage());
         }
     }
@@ -145,11 +157,32 @@ public class DoctorScheduleController {
         return 1;
     }
 
+    // ------------------- 当前登录医生解析 -------------------
+    private Long resolveCurrentDoctorId(HttpServletRequest httpRequest) {
+        HosUser current = null;
+        String token = httpRequest.getHeader(CommonConstant.X_ACCESS_TOKEN);
+        if (token != null && !token.isEmpty()) {
+            try {
+                String account = JwtUtil.getUsername(token);
+                current = hosUserService.lambdaQuery()
+                        .eq(HosUser::getUserAccount, account)
+                        .one();
+            } catch (Exception ignored) {}
+        }
+        if (current == null) {
+            Object userObj = httpRequest.getSession().getAttribute(org.jeecg.modules.hospital.contant.UserContant.USER_LOGIN_STATE);
+            if (userObj instanceof HosUser) {
+                current = (HosUser) userObj;
+            }
+        }
+        if (current == null || current.getUserType() == null || current.getUserType() != 2) {
+            return null;
+        }
+        Doctor doctor = doctorService.lambdaQuery().eq(Doctor::getUserId, current.getUserId()).one();
+        return doctor != null ? doctor.getDoctorId() : null;
+    }
+
     // ------------------- DTO/Request 类 -------------------
-
-    // 注意：在 Jeecg-Boot 环境中，你可能需要将这些内部类定义为公共的独立类，
-    // 或者在外部使用 @Data 注解（Lombok）简化代码。
-
     public static class ScheduleDTO {
         private Long id;
         private String date;

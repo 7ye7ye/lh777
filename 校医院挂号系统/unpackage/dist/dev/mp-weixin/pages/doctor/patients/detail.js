@@ -1,6 +1,7 @@
 "use strict";
 const common_vendor = require("../../../common/vendor.js");
 const utils_uniHelper = require("../../../utils/uniHelper.js");
+const api_doctor = require("../../../api/doctor.js");
 const _sfc_main = {
   __name: "detail",
   setup(__props) {
@@ -34,6 +35,68 @@ const _sfc_main = {
         return "status-done";
       return "status-pending";
     };
+    const patientIdRef = common_vendor.ref(null);
+    const appointmentIdRef = common_vendor.ref(null);
+    const calcAge = (birthDate) => {
+      if (!birthDate)
+        return "";
+      try {
+        const d = new Date(birthDate);
+        const now = /* @__PURE__ */ new Date();
+        let age = now.getFullYear() - d.getFullYear();
+        const m = now.getMonth() - d.getMonth();
+        if (m < 0 || m === 0 && now.getDate() < d.getDate())
+          age--;
+        return age;
+      } catch {
+        return "";
+      }
+    };
+    const mapIdentity = (type) => {
+      if (type === 1)
+        return "学生";
+      if (type === 2)
+        return "教师";
+      if (type === 3)
+        return "职工";
+      return "其他";
+    };
+    async function loadPatientDetail(id) {
+      var _a, _b, _c;
+      try {
+        const detail = await api_doctor.doctorApi.getPatientDetail(id);
+        const p = (detail == null ? void 0 : detail.patient) || {};
+        const visits = Array.isArray(detail == null ? void 0 : detail.visits) ? detail.visits : [];
+        const statusMap = (s) => s === 2 ? "已完成" : s === 1 ? "接诊中" : "待接诊";
+        const latestStatus = visits.length > 0 ? statusMap((_a = visits[0]) == null ? void 0 : _a.status) : "待接诊";
+        patient.value = {
+          name: p.patientName || p.name || "",
+          gender: p.gender || "",
+          age: calcAge(p.birthDate),
+          identity: mapIdentity(p.patientType),
+          phone: p.phone || "",
+          registrationNumber: ((_b = visits[0]) == null ? void 0 : _b.visitNo) || (appointmentIdRef.value ? String(appointmentIdRef.value) : ""),
+          appointmentTime: ((_c = visits[0]) == null ? void 0 : _c.timeSlot) || "",
+          department: "",
+          // 后端当前VO未返回科室名（只有 deptId），先留空
+          doctor: "",
+          // 同理 doctorId -> 名称未返回，先留空
+          status: latestStatus,
+          medicalHistory: [],
+          // 暂无病史字段，留空
+          visitHistory: visits.map((v) => ({
+            date: v.visitDate,
+            department: "",
+            // 仅有 deptId，页面先留空
+            doctor: "",
+            // 仅有 doctorId，页面先留空
+            diagnosis: v.diagnosis || ""
+          }))
+        };
+      } catch (e) {
+        utils_uniHelper.uniShowToast({ title: "获取患者详情失败", icon: "none" });
+      }
+    }
     function goBackToPatientList() {
       const pages = getCurrentPages();
       if (pages.length > 1) {
@@ -42,23 +105,41 @@ const _sfc_main = {
         utils_uniHelper.uniNavigateTo("/pages/doctor/patients/list");
       }
     }
-    function receivePatient() {
-      patient.value.status = "接诊中";
-      utils_uniHelper.uniShowToast("已开始接诊");
+    async function receivePatient() {
+      if (!appointmentIdRef.value) {
+        utils_uniHelper.uniShowToast({ title: "缺少预约ID", icon: "none" });
+        return;
+      }
+      try {
+        await api_doctor.doctorApi.updatePatientStatus(appointmentIdRef.value, "start");
+        patient.value.status = "接诊中";
+        utils_uniHelper.uniShowToast({ title: "已开始接诊", icon: "success" });
+      } catch {
+        utils_uniHelper.uniShowToast({ title: "开始接诊失败", icon: "none" });
+      }
     }
-    function completePatient() {
-      patient.value.status = "已完成";
-      utils_uniHelper.uniShowToast("已完成接诊");
+    async function completePatient() {
+      if (!appointmentIdRef.value) {
+        utils_uniHelper.uniShowToast({ title: "缺少预约ID", icon: "none" });
+        return;
+      }
+      try {
+        await api_doctor.doctorApi.updatePatientStatus(appointmentIdRef.value, "finish");
+        patient.value.status = "已完成";
+        utils_uniHelper.uniShowToast({ title: "已完成接诊", icon: "success" });
+      } catch {
+        utils_uniHelper.uniShowToast({ title: "完成接诊失败", icon: "none" });
+      }
     }
     function saveNote() {
       if (!visitNote.value) {
-        utils_uniHelper.uniShowToast("请输入备注内容");
+        utils_uniHelper.uniShowToast({ title: "请输入备注内容", icon: "none" });
         return;
       }
-      utils_uniHelper.uniShowToast("备注已保存");
+      utils_uniHelper.uniShowToast({ title: "备注已保存", icon: "success" });
     }
     function viewVisitDetail(visit) {
-      utils_uniHelper.uniShowToast(`就诊记录：${visit.date} ${visit.department}`);
+      utils_uniHelper.uniShowToast({ title: `就诊记录：${visit.date}`, icon: "none" });
     }
     common_vendor.onLoad((options) => {
       try {
@@ -68,8 +149,14 @@ const _sfc_main = {
         }
       } catch (e) {
       }
+      if (options == null ? void 0 : options.id) {
+        patientIdRef.value = Number(options.id);
+      }
+      if (options == null ? void 0 : options.appointmentId) {
+        appointmentIdRef.value = Number(options.appointmentId);
+      }
     });
-    common_vendor.onMounted(() => {
+    common_vendor.onMounted(async () => {
       const pages = getCurrentPages();
       const cur = pages[pages.length - 1];
       if (cur && cur.getOpenerEventChannel) {
@@ -80,11 +167,14 @@ const _sfc_main = {
               patient.value = { ...patient.value, ...data };
           });
           ec.on("sendPatient", (data) => {
-            if (data && data.patient) {
+            if (data == null ? void 0 : data.patient) {
               patient.value = { ...patient.value, ...data.patient };
             }
           });
         }
+      }
+      if (patientIdRef.value) {
+        await loadPatientDetail(patientIdRef.value);
       }
     });
     return (_ctx, _cache) => {

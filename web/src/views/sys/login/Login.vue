@@ -1,5 +1,7 @@
 <template>
+  <!-- 登录页布局 -->
   <div :class="prefixCls" class="relative w-full h-full px-4">
+    <!-- 语言/暗色切换 -->
     <AppLocalePicker class="absolute text-white top-4 right-4 enter-x xl:text-gray-600" :showText="false" v-if="!sessionTimeout && showLocale" />
     <AppDarkModeToggle class="absolute top-3 right-7 enter-x" v-if="!sessionTimeout" />
     <span class="-enter-x xl:hidden">
@@ -30,12 +32,17 @@
             <RegisterForm />
             <MobileForm />
             <QrCodeForm />
+            <!-- 管理员端快捷入口 -->
+            <div class="mt-4 text-center">
+              <a-button type="link" @click="goAdmin">无需登录，直接进入管理员端</a-button>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 </template>
+
 <script lang="ts" setup>
   import { computed } from 'vue';
   import { AppLogo } from '/@/components/Application';
@@ -50,6 +57,8 @@
   import { useDesign } from '/@/hooks/web/useDesign';
   import { useLocaleStore } from '/@/store/modules/locale';
   import { useLoginState, LoginStateEnum } from './useLogin';
+  import { useRouter } from 'vue-router';
+
   defineProps({
     sessionTimeout: {
       type: Boolean,
@@ -64,6 +73,12 @@
   const title = computed(() => globSetting?.title ?? '');
   const { handleBackLogin } = useLoginState();
   handleBackLogin();
+
+  const router = useRouter();
+
+  function goAdmin() {
+    router.push('/hospital/adjustment/approve');
+  }
 </script>
 <style lang="less">
   @prefix-cls: ~'@{namespace}-login';

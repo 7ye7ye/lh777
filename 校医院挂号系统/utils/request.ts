@@ -16,24 +16,26 @@ const detectBaseURL = (): string => {
 };
 
 const baseURL = detectBaseURL();
-const API_PREFIX = '/jeecg-boot';
+const API_PREFIX = (() => {
+  try {
+    return typeof uni !== 'undefined' ? (uni.getStorageSync('API_PREFIX') || '/jeecg-boot') : '/jeecg-boot';
+  } catch (_) {
+    return '/jeecg-boot';
+  }
+})();
 
 // 请求拦截器：添加 token、统一配置等
-// 扩展可用字段：
-// - params: GET/DELETE 查询参数对象
-// - contentType: 'json' | 'form' | 'multipart'
-// - baseURL: 覆盖默认 baseURL
-// - skipAuth: 不携带 Authorization 头
-// - silent: 失败不自动 toast
 const requestInterceptor = (options) => {
   // 1. 添加 baseURL（仅当传入相对路径时）
   if (options.url && !/^https?:\/\//i.test(options.url)) {
     let path = options.url;
-    // 确保以 / 开头
     if (!path.startsWith('/')) path = `/${path}`;
-    // 统一加 jeecg-boot 前缀（避免重复）
-    if (!path.startsWith(API_PREFIX + '/')) {
-      path = API_PREFIX + path;
+    // 允许通过 noPrefix 关闭 jeecg-boot 前缀
+    const usePrefix = API_PREFIX && !options?.noPrefix;
+    if (usePrefix) {
+      if (!path.startsWith(API_PREFIX + '/')) {
+        path = API_PREFIX + path;
+      }
     }
     options.url = baseURL + path;
   }
@@ -69,7 +71,8 @@ const requestInterceptor = (options) => {
   const skipAuth = !!options.skipAuth;
   const token = uni.getStorageSync('token'); // 从缓存获取 token
   if (!skipAuth && token) {
-    header['Authorization'] = `Bearer ${token}`; // 如需改为 token 直传，请在此调整
+    header['Authorization'] = `Bearer ${token}`;
+    header['X-Access-Token'] = token;
   }
   options.header = header;
   return options;
@@ -84,8 +87,16 @@ const responseInterceptor = (response) => {
   
   // 1. 处理 HTTP 错误（如 404、500）
   if (statusCode < 200 || statusCode >= 300) {
-    uni.showToast({ title: `请求失败: ${statusCode}`, icon: 'none' });
-    return Promise.reject(new Error(`HTTP Error: ${statusCode}`));
+    const httpMsg =
+      statusCode === 502
+        ? '网关错误(502)：后端服务不可达或路由未配置'
+        : statusCode === 404
+        ? '接口不存在(404)'
+        : statusCode >= 500
+        ? '服务器错误'
+        : `请求失败: ${statusCode}`;
+    uni.showToast({ title: httpMsg, icon: 'none' });
+    return Promise.reject(new Error(httpMsg));
   }
   
   // 2. 处理后端自定义错误（兼容多种返回结构）
@@ -129,15 +140,20 @@ export const request = (options) => {
   return new Promise((resolve, reject) => {
     uni.request({
       ...finalOptions,
+      timeout: finalOptions.timeout ?? 8000,
       // 发起请求
       success: (res) => {
         // 应用响应拦截器
         responseInterceptor(res).then(resolve).catch(reject);
       },
-      // 处理网络错误（如断网）
+      // 处理网络错误（如断网/空响应）
       fail: (err) => {
         if (!finalOptions.silent) {
-          uni.showToast({ title: '网络连接失败', icon: 'none' });
+          const msg =
+            typeof err?.errMsg === 'string' && err.errMsg.includes('ERR_EMPTY_RESPONSE')
+              ? '服务器未返回数据（可能端口/HTTPS/防火墙/网关导致）'
+              : '网络连接失败';
+          uni.showToast({ title: msg, icon: 'none' });
         }
         reject(err);
       },

@@ -3,6 +3,7 @@ package org.jeecg.modules.hospital.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -28,43 +29,34 @@ public class Patient {
     private Long userId;
 
     /**
+     * 用户姓名（映射 patient_name）
+     */
+    @TableField("patient_name")
+    private String patientName;
+
+    /**
      * 患者身份（1-学生；2-教师；3-职工）
      */
     private Integer patientType;
 
     /**
-     * 用户姓名
+     * 身份证号（映射 id_number）
      */
-    private String patientName;
-
-    /**
-     * 身份证号（敏感信息，加密存储）
-     */
+    @TableField("id_number")
     private String idCard;
 
     /**
-     * 手机号（用于接收就诊提醒）
+     * 手机号（映射 phone_number）
      */
+    @TableField("phone_number")
     private String phone;
 
-    /**
-     * 学号（学生用户必填）
-     */
     private String studentId;
 
-    /**
-     * 工号（教师/职工用户必填）
-     */
     private String staffId;
 
-    /**
-     * 出生日期
-     */
     private LocalDate birthDate;
 
-    /**
-     * 性别（男/女/未知）
-     */
     private String gender;
 
     /**

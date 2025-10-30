@@ -112,18 +112,27 @@
 .low-remaining.data-v-72f5bcce { color: #ef4444;
 } 
 
-/* 申请调班按钮 */
-.action-section.data-v-72f5bcce { padding: 0 24rpx 24rpx;
+/* 操作按钮 */
+.action-section.data-v-72f5bcce { 
+  padding: 0 24rpx 24rpx; 
+  display: flex; 
+  gap: 16rpx;
 }
 .action-btn.data-v-72f5bcce { 
-  width: 100%; 
-  background: #2176ff; 
+  flex: 1; 
   color: #fff; 
   border-radius: 12rpx; 
   padding: 16rpx; 
-  font-size: 28rpx;
+  font-size: 28rpx; 
+  text-align: center;
 }
-.adjust-btn.data-v-72f5bcce { box-shadow: 0 6rpx 16rpx rgba(33,118,255,0.18);
+.refresh-btn.data-v-72f5bcce { 
+  background: #10b981; 
+  box-shadow: 0 6rpx 16rpx rgba(16,185,129,0.18);
+}
+.adjust-btn.data-v-72f5bcce { 
+  background: #2176ff; 
+  box-shadow: 0 6rpx 16rpx rgba(33,118,255,0.18);
 } 
 
 /* 底部导航 */

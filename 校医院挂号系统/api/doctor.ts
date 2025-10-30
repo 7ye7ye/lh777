@@ -8,6 +8,14 @@ const d = {
   delete: (path: string, params?: any, options?: any) => http.delete(`${PREFIX}${path}`, params, options),
 };
 
+// 方法：规范化服务端返回，空数组 -> 空对象，数组 -> 首元素
+function normalizeOne<T>(data: T | T[]): T {
+  if (Array.isArray(data)) {
+    return (data[0] ?? ({} as T)) as T;
+  }
+  return data as T;
+}
+
 export interface Schedule {
   id: number;
   date: string;
@@ -18,34 +26,12 @@ export interface Schedule {
 }
 
 export interface ShiftApply {
-  scheduleId: number;
-  newDate: string;
-  newTimeRange: string;
-  reason: string;
-}
-
-export interface PatientSummary {
-  appointmentId: number;
-  patientId: number;
-  name: string;
-  identity: string;
-  appointmentTimeRange: string;
-  statusText?: string;
-  statusClass?: string;
-}
-
-export interface PatientDetail {
-  name: string;
-  identity: string;
-  age: number;
-  gender: string;
-  history: string;
-  visitedBefore: boolean;
-  lastVisit?: {
-    time: string;
-    dept: string;
-    doctor: string;
-  }
+  doctorId: number
+  originalScheduleId: number
+  targetDate: string
+  targetTimeSlot: number
+  targetDeptId: number
+  reason: string
 }
 
 export const doctorApi = {
@@ -57,9 +43,13 @@ export const doctorApi = {
   getTodaySchedule: (doctorId: number) =>
     d.get('/schedule/today', { doctorId }),
 
-  // 申请调班
+  // 申请调班（后端：/doctor/shift-change/apply）
   applyShiftChange: (data: ShiftApply) =>
-    d.post('/schedule/shift/apply', data),
+    d.post('/shift-change/apply', data),
+
+  // 查询我的调班申请（后端：/doctor/shift-change/list）
+  listShiftChange: (doctorId: number, status?: number) =>
+    d.get('/shift-change/list', { doctorId, status }),
 
   // 按日期获取患者列表
   getPatientsByDate: (doctorId: number, date: string) =>
@@ -69,7 +59,11 @@ export const doctorApi = {
   getPatientDetail: (patientId: number) =>
     d.get(`/patient/${patientId}`),
 
-  // 更新就诊状态（已接诊/已完成）
-  updatePatientStatus: (appointmentId: number, status: 'RECEIVED' | 'DONE') =>
-    d.post('/patient/status', { appointmentId, status }),
+  // 更新就诊状态（开始接诊/完成接诊）
+  updatePatientStatus: (appointmentId: number, action: 'start' | 'finish') =>
+    d.post('/patient/status', { appointmentId, action }),
+
+  // 会话接口（依赖后端 /doctor/profile/me）
+  getMyProfile: () =>
+    d.get('/profile/me').then((res) => normalizeOne<any>(res)),
 };
