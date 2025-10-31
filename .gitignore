@@ -1,3 +1,8 @@
 # 忽略logs文件夹及其所有内容
 logs/
 .idea/
+
+# 忽略UniApp构建目录（根据你的路径调整）
+校医院挂号系统/unpackage/
+# 同时添加通用的 unpackage 忽略（防止其他位置的构建目录）
+unpackage/

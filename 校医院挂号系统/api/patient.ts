@@ -37,19 +37,44 @@ interface CreateCardRequest {
     emergencyPhone?: string;
 }
 
+// 更新就诊卡请求参数
+interface UpdateCardRequest extends Partial<CreateCardRequest> {
+    patientId: number;
+}
+
+// 健康档案请求参数
+interface HealthProfileRequest {
+    patientId: number;
+    height?: string;
+    weight?: string;
+    bloodType?: string;
+    maritalStatus?: string;
+    fertilityStatus?: string;
+    currentIllness?: string;
+    pastHistory?: string;
+    familyHistory?: string;
+    allergyHistory?: string;
+}
+
 
 export const patientApi = {
 
 // 就诊卡相关
 getCard: (data: { userId: number }) => u.post('/cardInfo', data),
 createCard: (data: CreateCardRequest) => u.post('/create', data),
+updateCard: (data: UpdateCardRequest) => u.put('/update', data),
+unbindCard: (data: { userId: number; patientId: number }) => u.post('/unbind', data),
 rechargeCard: (data: { amount: number }) => u.post('/card/recharge', data),
 getCardHistory: () => u.post('/card/history'),
 
 // 就诊人相关
-getPatientList: () => u.get('/patients'),
-// addPatient: (data: PatientInfo) => u.post('/patients', data),
-// updatePatient: (id: number, data: Partial<PatientInfo>) => u.put(`/patients/${id}`, data),
-deletePatient: (id: number) => u.delete(`/patients/${id}`)
+getPatientList: (data: { userId: number }) => u.post('/list', data),
+addPatient: (data: CreateCardRequest) => u.post('/create', data),
+updatePatient: (data: UpdateCardRequest) => u.put('/update', data),
+deletePatient: (data: { userId: number; patientId: number }) => u.post('/delete', data),
+
+// 健康档案相关
+getHealthProfile: (data: { patientId: number }) => u.post('/health/get', data),
+updateHealthProfile: (data: HealthProfileRequest) => u.post('/health/update', data)
 
 }

@@ -15,21 +15,49 @@ import java.util.HashMap;
 @RequestMapping("/patient")
 public class PatientController {
     @Resource
-    private PatientService patirntService;
+    private PatientService patientService;
 
     @PostMapping("/create")
     public ResponseEntity<HashMap<String, Object>> create(@RequestBody Patient patient) {
-        patirntService.save(patient);
+        patientService.save(patient);
         return ResponseEntity.ok().body(new HashMap<String, Object>() {{
             put("code", 200);
             put("message", "创建就诊卡成功");
         }});
     }
 
+    @PostMapping("/update")
+    public ResponseEntity<HashMap<String, Object>> update(@RequestBody Patient patient) {
+        // 1. 验证主键是否存在
+        if (patient.getPatientId() == null) {
+            return ResponseEntity.badRequest().body(new HashMap<String, Object>() {{
+                put("code", 400);
+                put("message", "患者ID不能为空");
+            }});
+        }
+
+        // 2. 使用 MyBatis-Plus 的 updateById 方法执行更新
+        boolean isUpdated = patientService.updateById(patient);
+
+        // 3. 根据更新结果返回不同响应
+        if (isUpdated) {
+            return ResponseEntity.ok().body(new HashMap<String, Object>() {{
+                put("code", 200);
+                put("message", "更新成功");
+                put("data", patient.getPatientId()); // 返回更新的患者ID
+            }});
+        } else {
+            return ResponseEntity.ok().body(new HashMap<String, Object>() {{
+                put("code", 300);
+                put("message", "更新失败，未找到该患者或数据未变更");
+            }});
+        }
+    }
+
     @PostMapping("/cardInfo")
     public ResponseEntity<HashMap<String, Object>> cardInfo(@RequestBody Patient patient ) {
         // 1. 根据 userId 查询患者信息（userId 是关联字段，用条件构造器匹配）
-        Patient patientInfo = patirntService.lambdaQuery()
+        Patient patientInfo = patientService.lambdaQuery()
                 .eq(Patient::getUserId, patient.getUserId()) // 匹配 patient 表的 userId 字段
                 .one(); // 查询一条（确保 userId 唯一，避免多结果）
 
@@ -46,4 +74,6 @@ public class PatientController {
 
         return ResponseEntity.ok(result);
     }
+
+
 }
