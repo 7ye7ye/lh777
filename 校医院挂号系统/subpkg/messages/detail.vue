@@ -61,7 +61,7 @@
 		methods: {
 			fetchMessageDetail() {
 				// 【重要】请确保这里的IP地址和端口是正确的
-				const apiUrl = `http://10.61.62.249:8095/jeecg-boot/api/messages/detail`;
+				const apiUrl = `http://172.20.10.2:8095/jeecg-boot/api/messages/detail`;
 				
 				uni.request({
 					url: `${apiUrl}?appointmentId=${this.appointmentId}`,

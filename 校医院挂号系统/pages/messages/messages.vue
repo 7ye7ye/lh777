@@ -72,7 +72,7 @@
 				
 				// 这里的IP地址和端口需要换成你后端项目运行的实际地址
 				// 不要使用 localhost 或 127.0.0.1，而要使用你电脑的局域网IP
-				const apiUrl = 'http://10.61.62.249:8095/jeecg-boot/api/messages/list';
+				const apiUrl = 'http://172.20.10.2:8095/jeecg-boot/api/messages/list';
 				
 				// 这里的userId应该是动态获取的，先用测试ID
 				const testUserId = 'wuzhizhu_001'; 
