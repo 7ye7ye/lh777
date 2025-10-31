@@ -78,6 +78,10 @@ const onSubmit = async () => {
     const token = res?.token || ''
     const userInfo = res?.user || null
     
+    if(userInfo.userType == 3){
+      await uniShowToast({ title: '登录失败，请使用患者或医生账号登录' })
+      return
+    }
     if (token) {
       // 保存 token 和用户信息到状态管理
       userStore.setToken(token)
@@ -85,8 +89,11 @@ const onSubmit = async () => {
         userStore.setUserInfo(userInfo)
       }
       await uniShowToast({ title: '登录成功' })
-      // 跳首页 Tab
-      await uniSwitchTab({ url: '/pages/home/home' })
+      if(userInfo.userType == 1){
+        await uniSwitchTab({ url: '/pages/home/home' })
+      }else if(userInfo.userType == 2){
+        await uniNavigateTo({ url: '/pages/doctor/profile/index' })
+      }
     } else {
       await uniShowToast({ title: '登录失败：未获取到token', icon: 'none' })
     }
