@@ -19,6 +19,7 @@ if (!Math) {
   "./subpkg/profile/personal/create-card.js";
   "./subpkg/profile/personal/mypatient.js";
   "./subpkg/profile/personal/mydoctor.js";
+  "./subpkg/profile/personal/health-profile.js";
   "./subpkg/profile/records/register-record.js";
   "./subpkg/profile/records/outpatient-record.js";
   "./subpkg/profile/records/hospital-record.js";

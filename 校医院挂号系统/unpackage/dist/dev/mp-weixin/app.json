@@ -22,6 +22,7 @@
         "personal/create-card",
         "personal/mypatient",
         "personal/mydoctor",
+        "personal/health-profile",
         "records/register-record",
         "records/outpatient-record",
         "records/hospital-record",
