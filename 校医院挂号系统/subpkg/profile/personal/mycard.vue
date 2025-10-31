@@ -24,20 +24,6 @@
     <!-- 就诊卡卡片（电子就诊卡） -->
     <view v-else-if="cardInfo.patientId && activeTab === 'card'" class="card-container">
       <view class="medical-card">
-        <!-- 条形码 -->
-        <view class="barcode-container">
-          <uqrcode 
-            ref="barcodeRef"
-            canvas-id="barcode"
-            :value="cardInfo.outpatientNumber || 'M017080045'" 
-            :size="550"
-            :margin="0"
-            background-color="#FFFFFF"
-            foreground-color="#000000"
-            file-type="png"
-          ></uqrcode>
-        </view>
-        
         <!-- 门诊号 -->
         <view class="outpatient-number">
           门诊号：{{ cardInfo.outpatientNumber || 'M017080045' }}
@@ -49,8 +35,8 @@
             ref="qrcodeRef"
             canvas-id="qrcode"
             :value="cardInfo.outpatientNumber || 'M017080045'" 
-            :size="320"
-            :margin="10"
+            :size="200"
+            :margin="5"
             background-color="#FFFFFF"
             foreground-color="#000000"
             file-type="png"
@@ -315,23 +301,14 @@ onShow(() => {
   box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
 }
 
-/* 条形码容器 */
-.barcode-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 20rpx;
-  padding: 20rpx 0;
-  background: #fff;
-}
-
 /* 门诊号 */
 .outpatient-number {
   text-align: center;
-  font-size: 32rpx;
+  font-size: 36rpx;
   font-weight: 600;
   color: #333;
-  margin-bottom: 40rpx;
+  margin-bottom: 32rpx;
+  margin-top: 20rpx;
   letter-spacing: 2rpx;
 }
 
@@ -340,7 +317,7 @@ onShow(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 20rpx 0;
+  padding: 30rpx 0;
   margin-bottom: 40rpx;
 }
 
