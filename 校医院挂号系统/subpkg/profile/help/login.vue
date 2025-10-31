@@ -68,11 +68,11 @@ const goHome = () => {
 }
 
 const goToLogin = () => {
-  uni.navigateTo({ url: '/pages/login/login' })
+  uni.navigateTo({ url: '/subpkg/auth/login' })
 }
 
 const goToRegister = () => {
-  uni.navigateTo({ url: '/pages/login/register' })
+  uni.navigateTo({ url: '/subpkg/auth/register' })
 }
 </script>
 

@@ -21,6 +21,7 @@ export const useUserStore = defineStore('user', {
             this.userInfo = userInfo
             // 同步到本地存储
             if (userInfo) {
+                console.log("store存储的userInfo:",userInfo)
                 uni.setStorageSync('userInfo', userInfo)
             } else {
                 uni.removeStorageSync('userInfo')

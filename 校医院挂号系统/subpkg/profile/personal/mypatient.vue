@@ -1,402 +1,438 @@
 <template>
   <view class="page-bg">
-    <view class="patient-header">
-      <text class="header-title">我的就诊人</text>
-      <button class="add-btn" @click="showAddForm = true">+ 添加就诊人</button>
+    <!-- 医院信息头部 -->
+    <view class="hospital-header">
+      <text class="hospital-name">中国医科大学附属盛京医院</text>
+      <view class="card-badge">
+        <text class="badge-icon">+</text>
+        <text class="badge-text">电子就诊卡</text>
+      </view>
+    </view>
+
+    <!-- 加载状态 -->
+    <view v-if="loading" class="loading-container">
+      <view class="loading-text">加载中...</view>
     </view>
 
     <!-- 就诊人列表 -->
-    <view class="patient-list">
-      <view class="patient-item" v-for="patient in patients" :key="patient.id">
+    <view v-else-if="patientList.length > 0" class="patient-list">
+      <view 
+        v-for="patient in patientList" 
+        :key="patient.patientId" 
+        class="patient-card"
+        @click="viewPatientDetail(patient)"
+      >
         <view class="patient-info">
-          <view class="patient-basic">
-            <text class="patient-name">{{ patient.name }}</text>
-            <text class="patient-gender">{{ patient.gender }}</text>
-            <text class="patient-age">{{ patient.age }}岁</text>
+          <!-- 头像 -->
+          <view class="avatar-container">
+            <image 
+              v-if="patient.avatar" 
+              :src="patient.avatar" 
+              class="avatar" 
+              mode="aspectFill"
+            />
+            <view v-else class="avatar default-avatar">
+              <text class="avatar-text">{{ getFirstChar(patient.patientName) }}</text>
+            </view>
           </view>
-          <view class="patient-detail">
-            <text class="patient-id">{{ patient.idType }}：{{ patient.idNumber }}</text>
-            <text class="patient-phone">手机：{{ patient.phone }}</text>
+          
+          <!-- 基本信息 -->
+          <view class="info-content">
+            <text class="patient-name">{{ patient.patientName }}</text>
+            <text class="patient-id">{{ maskIdNumber(patient.idCard) }}</text>
           </view>
         </view>
-        <view class="patient-actions">
-          <button class="action-btn edit" @click="editPatient(patient)">编辑</button>
-          <button class="action-btn delete" @click="deletePatient(patient.id)">删除</button>
+        
+        <!-- 二维码 -->
+        <view class="qrcode-wrapper">
+          <uqrcode 
+            :ref="'qrcode' + patient.patientId"
+            :canvas-id="'patient-qr-' + patient.patientId"
+            :value="patient.outpatientNumber || patient.patientId.toString()" 
+            :size="120"
+            :margin="5"
+            background-color="#FFFFFF"
+            foreground-color="#3a9cff"
+            file-type="png"
+          ></uqrcode>
         </view>
       </view>
     </view>
 
-    <!-- 添加/编辑表单 -->
-    <view class="form-modal" v-if="showAddForm">
-      <view class="form-content">
-        <view class="form-header">
-          <text class="form-title">{{ isEdit ? '编辑就诊人' : '添加就诊人' }}</text>
-          <text class="close-btn" @click="closeForm">×</text>
-        </view>
-        
-        <view class="form-tip">实名制就诊，请如实填写就诊信息</view>
-        
-        <view class="form-body">
-          <view class="form-item">
-            <text class="form-label">姓名*</text>
-            <input class="form-input" placeholder="请填写就诊人姓名" v-model="formData.name" />
-          </view>
-          <view class="form-item">
-            <text class="form-label">证件类型*</text>
-            <picker :range="idTypes" @change="onTypeChange">
-              <view class="form-input">{{ formData.idType }}</view>
-            </picker>
-          </view>
-          <view class="form-item">
-            <text class="form-label">证件号码*</text>
-            <input class="form-input" placeholder="请填写证件号码" v-model="formData.idNumber" />
-          </view>
-          <view class="form-item">
-            <text class="form-label">性别*</text>
-            <picker :range="genders" @change="onGenderChange">
-              <view class="form-input">{{ formData.gender }}</view>
-            </picker>
-          </view>
-          <view class="form-item">
-            <text class="form-label">出生日期*</text>
-            <picker mode="date" @change="onDateChange">
-              <view class="form-input">{{ formData.birthday }}</view>
-            </picker>
-          </view>
-          <view class="form-item">
-            <text class="form-label">手机号*</text>
-            <input class="form-input" placeholder="请填写手机号" v-model="formData.phone" />
-          </view>
-        </view>
-        
-        <view class="form-actions">
-          <button class="form-btn cancel" @click="closeForm">取消</button>
-          <button class="form-btn submit" @click="submitForm">提交</button>
-        </view>
+    <!-- 空状态 -->
+    <view v-else class="empty-container">
+      <image 
+        class="empty-bg-image" 
+        src="/static/images/no_data.png" 
+        mode="scaleToFill"
+      />
+      <view class="empty-content">
+        <view class="empty-text">暂无就诊人</view>
+        <view class="empty-tip">请先添加就诊人</view>
+        <button class="add-patient-btn-empty" @click="goToAddPatient">添加就诊人</button>
       </view>
+    </view>
+
+    <!-- 底部统计和添加按钮（有数据时显示） -->
+    <view v-if="patientList.length > 0" class="footer-section">
+      <text class="footer-text">
+        已添加<text class="highlight-num">{{ patientList.length }}</text>位就诊人，
+        还可以添加<text class="highlight-num">{{ maxPatients - patientList.length }}</text>位
+      </text>
+      <button class="add-patient-btn" @click="goToAddPatient">添加就诊人</button>
+      <button class="unbind-link" @click="showUnbindHelp">解绑电子就诊卡</button>
     </view>
   </view>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { userApi } from '@/api/user'
+import { onShow } from '@dcloudio/uni-app'
+import uqrcode from '@/uni_modules/Sansnn-uQRCode/components/uqrcode/uqrcode.vue'
+import { patientApi } from '@/api/patient'
+import { useUserStore } from '@/store/user'
+import { uniShowToast, uniNavigateTo, uniShowModal } from '@/utils/uniHelper'
 
-const patients = ref([
-  { 
-    id: 1, 
-    name: '张三', 
-    gender: '男', 
-    age: 35, 
-    idType: '身份证', 
-    idNumber: '110101199001011234', 
-    phone: '138****5678',
-    birthday: '1990-01-01'
-  },
-  { 
-    id: 2, 
-    name: '李四', 
-    gender: '女', 
-    age: 28, 
-    idType: '身份证', 
-    idNumber: '110101199501011234', 
-    phone: '139****5678',
-    birthday: '1995-01-01'
-  }
-])
+const userStore = useUserStore()
+const loading = ref(false)
+const patientList = ref([])
+const maxPatients = 9 // 最多9位就诊人
 
-const showAddForm = ref(false)
-const isEdit = ref(false)
-const idTypes = ['身份证', '护照']
-const genders = ['男', '女']
-
-const formData = ref({
-  name: '',
-  idType: '身份证',
-  idNumber: '',
-  gender: '男',
-  birthday: '请选择',
-  phone: ''
-})
-
-const onTypeChange = (e) => { 
-  formData.value.idType = idTypes[e.detail.value] 
-}
-
-const onGenderChange = (e) => { 
-  formData.value.gender = genders[e.detail.value] 
-}
-
-const onDateChange = (e) => { 
-  formData.value.birthday = e.detail.value 
-}
-
-const editPatient = (patient) => {
-  isEdit.value = true
-  formData.value = { ...patient }
-  showAddForm.value = true
-}
-
-const deletePatient = (id) => {
-  uni.showModal({
-    title: '确认删除',
-    content: '确定要删除这个就诊人吗？',
-    success: (res) => {
-      if (res.confirm) {
-        patients.value = patients.value.filter(p => p.id !== id)
-        uni.showToast({ title: '删除成功', icon: 'success' })
-      }
+// 获取就诊人列表
+const getPatientList = async () => {
+  loading.value = true
+  try {
+    const userId = userStore.userInfo?.userId
+    if (!userId) {
+      console.log('未获取到用户ID')
+      patientList.value = []
+      loading.value = false
+      return
     }
+    
+    const data = await patientApi.getPatientList({ userId })
+    console.log('就诊人列表:', data)
+    
+    // 假设后端返回的是一个数组
+    if (Array.isArray(data)) {
+      patientList.value = data
+    } else if (data && Array.isArray(data.list)) {
+      patientList.value = data.list
+    } else {
+      patientList.value = []
+      console.log('暂无就诊人数据')
+    }
+  } catch (error) {
+    console.error('获取就诊人列表失败:', error)
+    patientList.value = []
+    // 只在非网络错误时提示
+    if (error.message && !error.message.includes('Network')) {
+      uniShowToast({ 
+        title: '获取就诊人列表失败', 
+        icon: 'none' 
+      })
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+// 脱敏身份证号
+const maskIdNumber = (idCard) => {
+  if (!idCard) return '未填写'
+  if (idCard.length < 18) return idCard
+  return idCard.substring(0, 3) + '**********' + idCard.substring(14)
+}
+
+// 获取姓名首字符
+const getFirstChar = (name) => {
+  if (!name) return '?'
+  return name.charAt(0)
+}
+
+// 查看就诊人详情
+const viewPatientDetail = (patient) => {
+  uniNavigateTo({ 
+    url: `/subpkg/profile/personal/mycard?patientId=${patient.patientId}` 
   })
 }
 
-const closeForm = () => {
-  showAddForm.value = false
-  isEdit.value = false
-  resetForm()
-}
-
-const resetForm = () => {
-  formData.value = {
-    name: '',
-    idType: '身份证',
-    idNumber: '',
-    gender: '男',
-    birthday: '请选择',
-    phone: ''
-  }
-}
-
-const submitForm = () => {
-  if (!formData.value.name || !formData.value.idNumber || !formData.value.phone) {
-    uni.showToast({ title: '请填写完整信息', icon: 'error' })
+// 跳转到添加就诊人页面
+const goToAddPatient = () => {
+  if (patientList.value.length >= maxPatients) {
+    uniShowToast({ 
+      title: `最多只能添加${maxPatients}位就诊人`, 
+      icon: 'none' 
+    })
     return
   }
-  
-  if (isEdit.value) {
-    // 编辑模式
-    const index = patients.value.findIndex(p => p.id === formData.value.id)
-    if (index !== -1) {
-      patients.value[index] = { ...formData.value }
-    }
-    uni.showToast({ title: '编辑成功', icon: 'success' })
-  } else {
-    // 添加模式
-    const newPatient = {
-      ...formData.value,
-      id: Date.now(),
-      age: new Date().getFullYear() - new Date(formData.value.birthday).getFullYear()
-    }
-    patients.value.push(newPatient)
-    uni.showToast({ title: '添加成功', icon: 'success' })
-  }
-  
-  closeForm()
+  uniNavigateTo({ url: '/subpkg/profile/personal/create-card' })
 }
 
-const getPatientList = () => {
-  userApi.getPatientList().then(res => {
-    // patients.value = res.data
-  }).catch(() => {
-    // 使用默认数据
+// 解绑帮助
+const showUnbindHelp = () => {
+  uniShowModal({
+    title: '解绑说明',
+    content: '如需解绑就诊卡，请在每个就诊人详情页进行操作',
+    confirmText: '我知道了',
+    showCancel: false
   })
 }
 
+// 页面挂载时获取数据
 onMounted(() => {
+  getPatientList()
+})
+
+// 页面显示时刷新数据
+onShow(() => {
+  console.log('mypatient页面onShow，刷新数据')
   getPatientList()
 })
 </script>
 
 <style scoped>
-.page-bg { 
-  min-height: 100vh; 
-  background: #f8faff; 
+.page-bg {
+  min-height: 100vh;
+  background: #f5f5f5;
 }
 
-.patient-header {
+/* 医院信息头部 */
+.hospital-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 32rpx;
+  padding: 32rpx 24rpx;
+  background: #fff;
+  margin-bottom: 16rpx;
 }
 
-.header-title {
-  font-size: 36rpx;
-  font-weight: bold;
+.hospital-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+  flex: 1;
 }
 
-.add-btn {
-  background: #3a9cff;
+.card-badge {
+  display: flex;
+  align-items: center;
+  background: #ff4d4f;
   color: #fff;
-  border: none;
-  border-radius: 8rpx;
-  padding: 12rpx 24rpx;
-  font-size: 26rpx;
+  padding: 8rpx 16rpx;
+  border-radius: 20rpx;
+  font-size: 24rpx;
 }
 
+.badge-icon {
+  font-size: 20rpx;
+  font-weight: bold;
+  margin-right: 4rpx;
+}
+
+.badge-text {
+  font-size: 22rpx;
+}
+
+/* 加载状态 */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 80rpx 0;
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* 就诊人列表 */
 .patient-list {
   padding: 0 24rpx;
 }
 
-.patient-item {
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  margin-bottom: 16rpx;
-  box-shadow: 0 4rpx 16rpx rgba(58,156,255,0.08);
-}
-
-.patient-info {
-  margin-bottom: 16rpx;
-}
-
-.patient-basic {
-  display: flex;
-  align-items: center;
-  margin-bottom: 8rpx;
-}
-
-.patient-name {
-  font-size: 30rpx;
-  font-weight: bold;
-  margin-right: 16rpx;
-}
-
-.patient-gender, .patient-age {
-  font-size: 26rpx;
-  color: #666;
-  margin-right: 16rpx;
-}
-
-.patient-detail {
-  display: flex;
-  flex-direction: column;
-}
-
-.patient-id, .patient-phone {
-  font-size: 26rpx;
-  color: #999;
-  margin-bottom: 4rpx;
-}
-
-.patient-actions {
-  display: flex;
-  gap: 16rpx;
-}
-
-.action-btn {
-  flex: 1;
-  padding: 12rpx;
-  border-radius: 8rpx;
-  font-size: 26rpx;
-  border: none;
-}
-
-.action-btn.edit {
-  background: #3a9cff;
-  color: #fff;
-}
-
-.action-btn.delete {
-  background: #ff4d4f;
-  color: #fff;
-}
-
-.form-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.form-content {
-  background: #fff;
-  border-radius: 16rpx;
-  margin: 32rpx;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-.form-header {
+.patient-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24rpx 32rpx;
-  border-bottom: 1px solid #f0f0f0;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 32rpx 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
 }
 
-.form-title {
-  font-size: 32rpx;
-  font-weight: bold;
+.patient-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
 }
 
-.close-btn {
-  font-size: 40rpx;
-  color: #999;
-  width: 60rpx;
-  height: 60rpx;
+.avatar-container {
+  margin-right: 24rpx;
+}
+
+.avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+}
+
+.default-avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.form-tip { 
-  color: #e69a2a; 
-  font-size: 26rpx; 
-  margin: 16rpx 32rpx; 
+.avatar-text {
+  font-size: 40rpx;
+  color: #fff;
+  font-weight: bold;
 }
 
-.form-body {
-  padding: 32rpx;
-}
-
-.form-item { 
-  display: flex; 
-  align-items: center; 
-  margin-bottom: 24rpx; 
-}
-
-.form-label { 
-  width: 180rpx; 
-  font-size: 28rpx; 
-}
-
-.form-input { 
-  flex: 1; 
-  border-bottom: 1px solid #eee; 
-  font-size: 28rpx; 
-  color: #333; 
-  padding: 8rpx 0; 
-}
-
-.form-actions {
+.info-content {
   display: flex;
-  gap: 16rpx;
-  padding: 24rpx 32rpx;
-  border-top: 1px solid #f0f0f0;
+  flex-direction: column;
+  gap: 12rpx;
 }
 
-.form-btn {
-  flex: 1;
-  padding: 20rpx;
-  border-radius: 12rpx;
+.patient-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.patient-id {
+  font-size: 26rpx;
+  color: #999;
+}
+
+.qrcode-wrapper {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 底部统计和添加按钮 */
+.footer-section {
+  padding: 40rpx 24rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.footer-text {
   font-size: 28rpx;
+  color: #666;
+  margin-bottom: 32rpx;
+  text-align: center;
+}
+
+.highlight-num {
+  color: #3a9cff;
+  font-weight: 600;
+  padding: 0 4rpx;
+}
+
+.add-patient-btn {
+  width: 100%;
+  height: 88rpx;
+  background: #3a9cff;
+  color: #fff;
+  border: none;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16rpx;
+}
+
+.add-patient-btn:active {
+  background: #2980e6;
+  transform: scale(0.98);
+}
+
+.unbind-link {
+  background: transparent;
+  color: #3a9cff;
+  font-size: 28rpx;
+  border: none;
+  padding: 16rpx;
+}
+
+.unbind-link::after {
   border: none;
 }
 
-.form-btn.cancel {
-  background: #f5f5f5;
-  color: #666;
+.unbind-link:active {
+  opacity: 0.7;
 }
 
-.form-btn.submit {
+/* 空状态样式 */
+.empty-container {
+  position: relative;
+  min-height: calc(100vh - 200rpx);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 40rpx 40rpx 120rpx;
+}
+
+.empty-bg-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  opacity: 0.6;
+}
+
+.empty-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-top: auto;
+}
+
+.empty-text {
+  font-size: 32rpx;
+  color: #333;
+  font-weight: 600;
+  margin-bottom: 16rpx;
+}
+
+.empty-tip {
+  font-size: 28rpx;
+  color: #999;
+  margin-bottom: 48rpx;
+}
+
+.add-patient-btn-empty {
   background: #3a9cff;
   color: #fff;
+  border: none;
+  border-radius: 44rpx;
+  padding: 24rpx 80rpx;
+  font-size: 30rpx;
+  font-weight: 500;
+  box-shadow: 0 8rpx 24rpx rgba(58, 156, 255, 0.3);
+}
+
+.add-patient-btn-empty:active {
+  background: #2980e6;
+  transform: scale(0.98);
 }
 </style>
