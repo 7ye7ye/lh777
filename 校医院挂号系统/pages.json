@@ -271,9 +271,7 @@
 					}
 				}
 			]
-		}
-	],
-	"subPackages": [
+		},
 		{
 			"root": "subpkg/auth/",
 			"pages": [
