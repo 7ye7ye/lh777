@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.jeecg.common.api.vo.Result;
-<<<<<<< HEAD
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 import org.jeecg.common.constant.CommonConstant;
@@ -15,11 +14,9 @@ import org.jeecg.modules.hospital.service.DoctorService;
 import org.jeecg.modules.hospital.service.HosUserService;
 import org.jeecg.modules.hospital.entity.DoctorShiftChangeRequest;
 import org.jeecg.modules.hospital.service.DoctorShiftChangeRequestService;
-=======
 import org.jeecg.modules.hospital.entity.DoctorShiftChangeRequest;
 import org.jeecg.modules.hospital.service.DoctorShiftChangeRequestService;
 import org.springframework.web.bind.annotation.*;
->>>>>>> 18202d67877fe5074ca10d389f11e447d0ecde55
 
 import java.util.List;
 
@@ -30,39 +27,30 @@ public class DoctorShiftChangeController {
 
     @Resource
     private DoctorShiftChangeRequestService service;
-
-<<<<<<< HEAD
     @Resource
     private DoctorService doctorService;
 
     @Resource
     private HosUserService hosUserService;
 
-    @io.swagger.v3.oas.annotations.Operation(summary = "提交排班调整申请")
-    @org.springframework.web.bind.annotation.PostMapping("/apply")
-    public org.jeecg.common.api.vo.Result<java.lang.Boolean> apply(
+    @Operation(summary = "提交排班调整申请")
+    @PostMapping("/apply")
+    public Result<Boolean> apply(
             HttpServletRequest request,
-            @org.springframework.web.bind.annotation.RequestBody org.jeecg.modules.hospital.entity.DoctorShiftChangeRequest req) {
+            @RequestBody DoctorShiftChangeRequest req
+    ) {
         Long doctorId = resolveCurrentDoctorId(request);
         if (doctorId == null) {
-            return org.jeecg.common.api.vo.Result.error("未登录或未绑定医生信息");
+            return Result.error("未登录或未绑定医生信息");
         }
         req.setDoctorId(doctorId);
-=======
-    @io.swagger.v3.oas.annotations.Operation(summary = "提交排班调整申请")
-    @org.springframework.web.bind.annotation.PostMapping("/apply")
-    public org.jeecg.common.api.vo.Result<java.lang.Boolean> apply(
-            @org.springframework.web.bind.annotation.RequestBody org.jeecg.modules.hospital.entity.DoctorShiftChangeRequest req) {
-        // 这里可从登录态解析 doctorId（如果已接入登录），当前版本接受 doctorId 作为入参
->>>>>>> 18202d67877fe5074ca10d389f11e447d0ecde55
         boolean ok = service.submitAdjustment(req);
-        return ok ? org.jeecg.common.api.vo.Result.OK(true) : org.jeecg.common.api.vo.Result.error("提交失败");
+        return ok ? Result.OK(true) : Result.error("提交失败");
     }
 
     @Operation(summary = "查询我的调班申请")
     @GetMapping("/list")
     public Result<List<DoctorShiftChangeRequest>> list(
-<<<<<<< HEAD
             HttpServletRequest request,
             @RequestParam(required = false) Integer status
     ) {
@@ -70,11 +58,6 @@ public class DoctorShiftChangeController {
         if (doctorId == null) {
             return Result.error("未登录或未绑定医生信息");
         }
-=======
-            @RequestParam Long doctorId,
-            @RequestParam(required = false) Integer status
-    ) {
->>>>>>> 18202d67877fe5074ca10d389f11e447d0ecde55
         List<DoctorShiftChangeRequest> list = service.lambdaQuery()
                 .eq(DoctorShiftChangeRequest::getDoctorId, doctorId)
                 .eq(status != null, DoctorShiftChangeRequest::getStatus, status)
@@ -82,7 +65,6 @@ public class DoctorShiftChangeController {
                 .list();
         return Result.OK(list);
     }
-<<<<<<< HEAD
 
     private Long resolveCurrentDoctorId(HttpServletRequest httpRequest) {
         HosUser current = null;
@@ -107,6 +89,4 @@ public class DoctorShiftChangeController {
         Doctor doctor = doctorService.lambdaQuery().eq(Doctor::getUserId, current.getUserId()).one();
         return doctor != null ? doctor.getDoctorId() : null;
     }
-=======
->>>>>>> 18202d67877fe5074ca10d389f11e447d0ecde55
 }

@@ -41,13 +41,17 @@ public class DoctorScheduleController {
 
     @Operation(summary = "获取今日排班")
     @GetMapping("/schedule/today")
-    public Result<List<ScheduleDTO>> getTodaySchedule(HttpServletRequest request) {
-        Long doctorId = resolveCurrentDoctorId(request);
-        if (doctorId == null) {
+    public Result<List<ScheduleDTO>> getTodaySchedule(
+            HttpServletRequest request,
+            @RequestParam(required = false) Long doctorId // 新增：允许联调时显式传入
+    ) {
+        Long resolvedDoctorId = (doctorId != null ? doctorId : resolveCurrentDoctorId(request));
+        if (resolvedDoctorId == null) {
             return Result.error("未登录或未绑定医生信息");
         }
         LocalDate today = LocalDate.now();
-        List<DoctorSchedule> list = scheduleService.list(doctorId, null, today);
+        // 更明确的单日查询
+        List<DoctorSchedule> list = scheduleService.listByDoctorAndDate(resolvedDoctorId, today);
         return Result.ok(toDTOList(list));
     }
 
@@ -59,24 +63,19 @@ public class DoctorScheduleController {
     public Result<List<ScheduleDTO>> getSchedules(
             HttpServletRequest request,
             @RequestParam String startDate,
-            @RequestParam(defaultValue = "7") Integer days
+            @RequestParam(defaultValue = "7") Integer days,
+            @RequestParam(required = false) Long doctorId // 新增：允许联调时显式传入
     ) {
-        Long doctorId = resolveCurrentDoctorId(request);
-        if (doctorId == null) {
+        Long resolvedDoctorId = (doctorId != null ? doctorId : resolveCurrentDoctorId(request));
+        if (resolvedDoctorId == null) {
             return Result.error("未登录或未绑定医生信息");
         }
         try {
-            LocalDate start = LocalDate.parse(startDate, DateTimeFormatter.ISO_DATE);
+            LocalDate start = LocalDate.parse(startDate, java.time.format.DateTimeFormatter.ISO_DATE);
             LocalDate end = start.plusDays(Math.max(1, days) - 1);
-
-            List<DoctorSchedule> all = scheduleService.list(doctorId, null, null);
-            List<DoctorSchedule> filtered = new ArrayList<>();
-            for (DoctorSchedule s : all) {
-                if (s.getScheduleDate() != null && !s.getScheduleDate().isBefore(start) && !s.getScheduleDate().isAfter(end)) {
-                    filtered.add(s);
-                }
-            }
-            return Result.ok(toDTOList(filtered));
+            // 使用区间查询，避免内存过滤
+            List<DoctorSchedule> list = scheduleService.listByDoctorAndDateRange(resolvedDoctorId, start, end);
+            return Result.ok(toDTOList(list));
         } catch (Exception e) {
             return Result.error("查询排班失败：" + e.getMessage());
         }

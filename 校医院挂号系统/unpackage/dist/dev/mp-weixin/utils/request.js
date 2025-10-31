@@ -61,13 +61,8 @@ const requestInterceptor = (options) => {
 };
 const responseInterceptor = (response) => {
   const { data, statusCode } = response;
-<<<<<<< HEAD
   common_vendor.index.__f__("log", "at utils/request.ts:85", "响应拦截器 - 原始响应:", response);
   common_vendor.index.__f__("log", "at utils/request.ts:86", "响应拦截器 - data:", data);
-=======
-  common_vendor.index.__f__("log", "at utils/request.ts:83", "响应拦截器 - 原始响应:", response);
-  common_vendor.index.__f__("log", "at utils/request.ts:84", "响应拦截器 - data:", data);
->>>>>>> 18202d67877fe5074ca10d389f11e447d0ecde55
   if (statusCode < 200 || statusCode >= 300) {
     const httpMsg = statusCode === 502 ? "网关错误(502)：后端服务不可达或路由未配置" : statusCode === 404 ? "接口不存在(404)" : statusCode >= 500 ? "服务器错误" : `请求失败: ${statusCode}`;
     common_vendor.index.showToast({ title: httpMsg, icon: "none" });
@@ -86,17 +81,10 @@ const responseInterceptor = (response) => {
     return Promise.resolve(payload);
   }
   if (data && typeof data === "object" && data.body !== void 0) {
-<<<<<<< HEAD
     common_vendor.index.__f__("log", "at utils/request.ts:126", "检测到ResponseEntity格式，提取body:", data.body);
     return Promise.resolve(data.body);
   }
   common_vendor.index.__f__("log", "at utils/request.ts:131", "返回原始data:", data);
-=======
-    common_vendor.index.__f__("log", "at utils/request.ts:116", "检测到ResponseEntity格式，提取body:", data.body);
-    return Promise.resolve(data.body);
-  }
-  common_vendor.index.__f__("log", "at utils/request.ts:121", "返回原始data:", data);
->>>>>>> 18202d67877fe5074ca10d389f11e447d0ecde55
   return Promise.resolve(data);
 };
 const request = (options) => {

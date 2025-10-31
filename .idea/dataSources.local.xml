@@ -1,33 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="dataSourceStorageLocal" created-in="IU-252.26830.84">
-    <data-source name="hosiptal@localhost" uuid="7947e88a-92bd-4b03-8377-680c85e0e0b4">
-      <database-info product="" version="" jdbc-version="" driver-name="" driver-version="" dbms="MYSQL" />
+    <data-source name="hospital@localhost" uuid="8e45aaac-7638-4d9e-b6b6-182efd449b18">
+      <database-info product="MySQL" version="9.3.0" jdbc-version="4.2" driver-name="MySQL Connector/J" driver-version="mysql-connector-j-8.2.0 (Revision: 06a1f724497fd81c6a659131fda822c9e5085b6c)" dbms="MYSQL" exact-version="9.3.0" exact-driver-version="8.2">
+        <extra-name-characters>#@</extra-name-characters>
+        <identifier-quote-string>`</identifier-quote-string>
+        <jdbc-catalog-is-schema>true</jdbc-catalog-is-schema>
+      </database-info>
+      <case-sensitivity plain-identifiers="lower" quoted-identifiers="lower" />
       <secret-storage>master_key</secret-storage>
       <user-name>root</user-name>
-      <schema-mapping />
+      <schema-mapping>
+        <introspection-scope>
+          <node kind="schema" qname="@" />
+        </introspection-scope>
+      </schema-mapping>
     </data-source>
-    <data-source name="@localhost" uuid="3b7c7d55-79a4-4925-83fd-c3330f921350">
-      <database-info product="" version="" jdbc-version="" driver-name="" driver-version="" dbms="MYSQL" />
-      <secret-storage>master_key</secret-storage>
-      <user-name>root</user-name>
-      <schema-mapping />
-    </data-source>
-    <data-source name="@localhost [2]" uuid="31307611-8058-4df4-86a7-056c543a585e">
-      <database-info product="" version="" jdbc-version="" driver-name="" driver-version="" dbms="MYSQL" />
-      <secret-storage>master_key</secret-storage>
-      <schema-mapping />
-    </data-source>
-<<<<<<< HEAD
-    <data-source name="0@127.0.0.1" uuid="326e27cc-2c1c-469e-b830-b5e1a6cd7f11">
-      <database-info product="" version="" jdbc-version="" driver-name="" driver-version="" dbms="REDIS" />
-      <schema-mapping />
-    </data-source>
-    <data-source name="postgres@localhost" uuid="7998a4c7-dd97-4898-a9a5-18d0a144ee41">
-      <database-info product="" version="" jdbc-version="" driver-name="" driver-version="" dbms="POSTGRES" />
-      <schema-mapping />
-    </data-source>
-=======
->>>>>>> 18202d67877fe5074ca10d389f11e447d0ecde55
   </component>
 </project>
