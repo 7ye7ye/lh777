@@ -1,1 +1,0 @@
-{"version":3,"file":"privacy.js","sources":["../../../plugins/uniapp-cli-vite/uniPage:/c3VicGtnXHByb2ZpbGVcc2V0dGluZ3NccHJpdmFjeS52dWU"],"sourcesContent":["import MiniProgramPage from 'D:/HBuilderX/HBuilderProjects/lh777/校医院挂号系统/subpkg/profile/settings/privacy.vue'\nwx.createPage(MiniProgramPage)"],"names":[],"mappings":";;;;;;;AACA,GAAG,WAAW,eAAe;"}
