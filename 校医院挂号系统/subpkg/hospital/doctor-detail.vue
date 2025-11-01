@@ -1,0 +1,317 @@
+<template>
+  <view class="detail-bg">
+    <!-- 医生基本信息 -->
+    <view class="doctor-card">
+      <image 
+        :src="doctor.avatar || '/static/doctor.svg'" 
+        mode="aspectFill" 
+        class="avatar"
+      ></image>
+      <view class="doctor-info">
+        <view class="name-title">
+          <text class="name">{{ doctor.doctorName }}</text>
+          <text class="title">{{ doctor.title }}</text>
+        </view>
+        <view class="specialty">擅长：{{ doctor.specialty }}</view>
+        <view class="status" v-if="doctor.isActive === 1">
+          <text class="status-dot"></text>
+          <text>正常出诊</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 医生简介 -->
+    <view class="section-card">
+      <view class="section-title">医生简介</view>
+      <view class="section-content">
+        {{ doctor.doctorDesc || '暂无医生简介' }}
+      </view>
+    </view>
+
+    <!-- 所属科室 -->
+    <view class="section-card" v-if="departmentInfo">
+      <view class="section-title">所属科室</view>
+      <view class="dept-info" @click="navigateToDepartment">
+        <text class="dept-name">{{ departmentInfo.deptName }}</text>
+        <text class="arrow">></text>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="action-buttons">
+      <view class="action-btn primary" @click="handleRegister">
+        <image src="/static/register.svg" mode="widthFix" class="btn-icon"></image>
+        <text>预约挂号</text>
+      </view>
+      <view class="action-btn" @click="handleConsult">
+        <image src="/static/consult.svg" mode="widthFix" class="btn-icon"></image>
+        <text>在线咨询</text>
+      </view>
+    </view>
+    
+    <view class="tabbar-placeholder"></view>
+  </view>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { getDoctorDetail } from '../../api/doctor'
+import { getDepartmentDetail } from '../../api/department'
+
+const doctorId = ref('')
+const doctor = ref({})
+const departmentInfo = ref(null)
+
+// 加载医生详情
+const loadDoctorDetail = async () => {
+  try {
+    const res = await getDoctorDetail(doctorId.value)
+    console.log('医生详情数据:', res)
+    
+    // 处理不同的响应格式
+    let data = res
+    if (res && res.data) {
+      data = res.data
+    } else if (res && res.result) {
+      data = res.result
+    }
+    
+    if (data) {
+      doctor.value = data
+      // 加载所属科室信息
+      if (data.deptId) {
+        loadDepartmentInfo(data.deptId)
+      }
+    } else {
+      console.warn('医生详情数据格式异常:', res)
+      uni.showToast({
+        title: '数据格式异常',
+        icon: 'none'
+      })
+    }
+  } catch (error) {
+    console.error('加载医生详情失败:', error)
+    uni.showToast({
+      title: '加载失败',
+      icon: 'none'
+    })
+  }
+}
+
+// 加载科室信息
+const loadDepartmentInfo = async (deptId) => {
+  try {
+    const res = await getDepartmentDetail(deptId)
+    let data = res
+    if (res && res.data) {
+      data = res.data
+    } else if (res && res.result) {
+      data = res.result
+    }
+    if (data) {
+      departmentInfo.value = data
+    }
+  } catch (error) {
+    console.error('加载科室信息失败:', error)
+  }
+}
+
+// 跳转到科室详情
+const navigateToDepartment = () => {
+  if (departmentInfo.value && departmentInfo.value.deptId) {
+    uni.navigateTo({
+      url: `/subpkg/hospital/department-detail?deptId=${departmentInfo.value.deptId}`
+    })
+  }
+}
+
+// 预约挂号
+const handleRegister = () => {
+  uni.showToast({
+    title: '预约挂号功能开发中',
+    icon: 'none'
+  })
+}
+
+// 在线咨询
+const handleConsult = () => {
+  uni.showToast({
+    title: '在线咨询功能开发中',
+    icon: 'none'
+  })
+}
+
+onLoad((query) => {
+  doctorId.value = query?.doctorId || ''
+  if (doctorId.value) {
+    loadDoctorDetail()
+  }
+})
+</script>
+
+<style scoped>
+.detail-bg {
+  background: #f8faff;
+  min-height: 100vh;
+  padding-bottom: 180rpx;
+}
+
+.doctor-card {
+  background: linear-gradient(135deg, #3a9cff 0%, #1de9b6 100%);
+  padding: 40rpx 24rpx;
+  display: flex;
+  align-items: center;
+}
+
+.avatar {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 70rpx;
+  margin-right: 24rpx;
+  border: 4rpx solid rgba(255,255,255,0.3);
+  background: #fff;
+}
+
+.doctor-info {
+  flex: 1;
+}
+
+.name-title {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.name {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #fff;
+  margin-right: 16rpx;
+}
+
+.title {
+  font-size: 24rpx;
+  color: #fff;
+  background: rgba(255,255,255,0.3);
+  padding: 4rpx 12rpx;
+  border-radius: 4rpx;
+}
+
+.specialty {
+  font-size: 28rpx;
+  color: rgba(255,255,255,0.9);
+  margin-bottom: 12rpx;
+  line-height: 1.4;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  font-size: 26rpx;
+  color: rgba(255,255,255,0.9);
+}
+
+.status-dot {
+  width: 12rpx;
+  height: 12rpx;
+  background: #4caf50;
+  border-radius: 50%;
+  margin-right: 8rpx;
+  display: inline-block;
+}
+
+.section-card {
+  background: #fff;
+  border-radius: 16rpx;
+  margin: 16rpx 16rpx 0 16rpx;
+  padding: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(58,156,255,0.08);
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 16rpx;
+  padding-bottom: 12rpx;
+  border-bottom: 2rpx solid #f0f0f0;
+}
+
+.section-content {
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.6;
+}
+
+.dept-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 0;
+}
+
+.dept-info:active {
+  background-color: #f5f5f5;
+  border-radius: 8rpx;
+}
+
+.dept-name {
+  font-size: 30rpx;
+  color: #3a9cff;
+}
+
+.arrow {
+  font-size: 32rpx;
+  color: #ccc;
+}
+
+.action-buttons {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  padding: 16rpx;
+  background: #fff;
+  box-shadow: 0 -4rpx 16rpx rgba(0,0,0,0.05);
+}
+
+.action-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  background: #f0f0f0;
+  margin: 0 8rpx;
+  font-size: 28rpx;
+  color: #666;
+}
+
+.action-btn.primary {
+  background: linear-gradient(135deg, #3a9cff 0%, #1de9b6 100%);
+  color: #fff;
+}
+
+.action-btn:active {
+  opacity: 0.8;
+}
+
+.btn-icon {
+  width: 48rpx;
+  margin-bottom: 8rpx;
+}
+
+.tabbar-placeholder { 
+  height: 120rpx; 
+}
+</style>
+
+
+
+
+
+

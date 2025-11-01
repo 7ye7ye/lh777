@@ -6,3 +6,7 @@ logs/
 校医院挂号系统/unpackage/
 # 同时添加通用的 unpackage 忽略（防止其他位置的构建目录）
 unpackage/
+
+# 忽略Maven/Gradle构建目录
+**/target/
+target/
