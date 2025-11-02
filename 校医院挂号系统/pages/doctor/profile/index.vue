@@ -225,12 +225,12 @@ const stats = ref({
 
 // 返回医生主界面
 function goBackToSchedule() {
-  const pages = getCurrentPages()
-  if (pages.length > 1) {
-    uni.navigateBack()
-  } else {
+  // const pages = getCurrentPages()
+  // if (pages.length > 1) {
+  //   uni.navigateBack()
+  // } else {
     uniNavigateTo('/pages/doctor/schedule/main')
-  }
+  // }
 }
 
 // 功能菜单
