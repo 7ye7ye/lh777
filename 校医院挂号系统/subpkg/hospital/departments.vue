@@ -40,18 +40,21 @@
           class="first-level"
         >
           <!-- 一级科室标题 -->
-          <view class="first-level-title" @click="toggleFirstLevel(index)">
+          <view 
+            class="first-level-title" 
+            @click="hasChildren(firstLevel) ? toggleFirstLevel(index) : navigateToDetail(firstLevel)"
+          >
             <text class="dept-name">{{ firstLevel.deptName }}</text>
-            <image 
-              src="/static/icons/arrow-down.png" 
-              mode="widthFix" 
+            <!-- 只有有二级科室的才显示箭头 -->
+            <text 
+              v-if="hasChildren(firstLevel)"
               class="arrow-icon"
               :class="{ 'rotate': firstLevel.expanded }"
-            ></image>
+            >▼</text>
           </view>
 
           <!-- 二级科室列表 -->
-          <view class="second-level-list" v-if="firstLevel.expanded">
+          <view class="second-level-list" v-if="firstLevel.expanded && hasChildren(firstLevel)">
             <view 
               v-for="(secondLevel, sIndex) in firstLevel.children" 
               :key="sIndex" 
@@ -121,6 +124,11 @@ const loadDepartmentTree = async () => {
   }
 }
 
+// 检查是否有二级科室
+const hasChildren = (firstLevel) => {
+  return firstLevel.children && firstLevel.children.length > 0
+}
+
 // 切换一级科室展开/折叠
 const toggleFirstLevel = (index) => {
   departmentTree.value[index].expanded = !departmentTree.value[index].expanded
@@ -177,7 +185,7 @@ const handleSearch = async () => {
 // 跳转到科室详情
 const navigateToDetail = (dept) => {
   uni.navigateTo({
-    url: `/pages/hospital/department-detail?deptId=${dept.deptId}`
+    url: `/subpkg/hospital/department-detail?deptId=${dept.deptId}`
   })
 }
 
@@ -242,9 +250,10 @@ onMounted(() => {
 }
 
 .arrow-icon {
-  width: 36rpx;
-  height: 36rpx;
+  font-size: 24rpx;
+  color: #999;
   transition: transform 0.3s;
+  display: inline-block;
 }
 
 .rotate {
