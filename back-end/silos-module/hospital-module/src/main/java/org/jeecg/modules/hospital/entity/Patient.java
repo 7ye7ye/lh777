@@ -9,12 +9,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.Data;
 
-/**
- * 患者表
- * @TableName patient
- */
 @TableName(value ="patient")
-@Data
 public class Patient {
     /**
      * 患者唯一标识
@@ -31,24 +26,25 @@ public class Patient {
     /**
      * 用户姓名（映射 patient_name）
      */
-    @TableField("patient_name")
+    @com.baomidou.mybatisplus.annotation.TableField("patient_name")
     private String patientName;
 
     /**
-     * 患者身份（1-学生；2-教师；3-职工）
+     * 新增：按表结构恢复 patient_type
      */
+    @TableField("patient_type")
     private Integer patientType;
 
     /**
-     * 身份证号（映射 id_number）
+     * 身份证号（映射 id_card）
      */
-    @TableField("id_number")
+    @TableField("id_card")
     private String idCard;
 
     /**
-     * 手机号（映射 phone_number）
+     * 手机号（映射 phone）
      */
-    @TableField("phone_number")
+    @TableField("phone")
     private String phone;
 
     private String studentId;
@@ -441,5 +437,13 @@ public class Patient {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getPatientName() {
+        return patientName;
+    }
+
+    public void setPatientName(String patientName) {
+        this.patientName = patientName;
     }
 }

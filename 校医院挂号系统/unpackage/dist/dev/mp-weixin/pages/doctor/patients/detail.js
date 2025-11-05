@@ -65,34 +65,52 @@ const _sfc_main = {
       var _a, _b, _c;
       try {
         const detail = await api_doctor.doctorApi.getPatientDetail(id);
-        const p = (detail == null ? void 0 : detail.patient) || {};
-        const visits = Array.isArray(detail == null ? void 0 : detail.visits) ? detail.visits : [];
+        const dto = detail && (detail.patient || detail.visits) ? detail : (detail == null ? void 0 : detail.data) || (detail == null ? void 0 : detail.result) || (detail == null ? void 0 : detail.body) || {};
+        const p = (dto == null ? void 0 : dto.patient) || {};
+        const visits = Array.isArray(dto == null ? void 0 : dto.visits) ? dto.visits : [];
         const statusMap = (s) => s === 2 ? "已完成" : s === 1 ? "接诊中" : "待接诊";
         const latestStatus = visits.length > 0 ? statusMap((_a = visits[0]) == null ? void 0 : _a.status) : "待接诊";
-        patient.value = {
-          name: p.patientName || p.name || "",
+        const mh = [];
+        if (p.presentIllness)
+          mh.push({ type: "现病史", description: p.presentIllness });
+        if (p.pastIllness)
+          mh.push({ type: "既往史", description: p.pastIllness });
+        if (p.familyIllness)
+          mh.push({ type: "家族史", description: p.familyIllness });
+        if (p.allergyHistory && p.allergyHistory !== "无")
+          mh.push({ type: "过敏史", description: p.allergyHistory });
+        Object.assign(patient.value, {
+          name: p.patientName || "",
           gender: p.gender || "",
           age: calcAge(p.birthDate),
           identity: mapIdentity(p.patientType),
           phone: p.phone || "",
-          registrationNumber: ((_b = visits[0]) == null ? void 0 : _b.visitNo) || (appointmentIdRef.value ? String(appointmentIdRef.value) : ""),
+          registrationNumber: ((_b = visits[0]) == null ? void 0 : _b.visitNo) || p.outpatientNumber || (appointmentIdRef.value ? String(appointmentIdRef.value) : ""),
           appointmentTime: ((_c = visits[0]) == null ? void 0 : _c.timeSlot) || "",
           department: "",
-          // 后端当前VO未返回科室名（只有 deptId），先留空
           doctor: "",
-          // 同理 doctorId -> 名称未返回，先留空
           status: latestStatus,
-          medicalHistory: [],
-          // 暂无病史字段，留空
+          medicalHistory: mh,
           visitHistory: visits.map((v) => ({
             date: v.visitDate,
             department: "",
-            // 仅有 deptId，页面先留空
             doctor: "",
-            // 仅有 doctorId，页面先留空
             diagnosis: v.diagnosis || ""
           }))
-        };
+        });
+        if (appointmentIdRef.value) {
+          try {
+            const ap = await api_doctor.doctorApi.getAppointmentDetail(appointmentIdRef.value);
+            if (ap) {
+              Object.assign(patient.value, {
+                appointmentTime: ap.appointmentTime || patient.value.appointmentTime,
+                department: ap.department || patient.value.department,
+                doctor: ap.doctor || patient.value.doctor
+              });
+            }
+          } catch {
+          }
+        }
       } catch (e) {
         utils_uniHelper.uniShowToast({ title: "获取患者详情失败", icon: "none" });
       }
@@ -111,7 +129,7 @@ const _sfc_main = {
         return;
       }
       try {
-        await api_doctor.doctorApi.updatePatientStatus(appointmentIdRef.value, "start");
+        await api_doctor.doctorApi.updatePatientStatus({ appointmentId: appointmentIdRef.value, action: "start" });
         patient.value.status = "接诊中";
         utils_uniHelper.uniShowToast({ title: "已开始接诊", icon: "success" });
       } catch {
@@ -124,7 +142,7 @@ const _sfc_main = {
         return;
       }
       try {
-        await api_doctor.doctorApi.updatePatientStatus(appointmentIdRef.value, "finish");
+        await api_doctor.doctorApi.updatePatientStatus({ appointmentId: appointmentIdRef.value, action: "finish" });
         patient.value.status = "已完成";
         utils_uniHelper.uniShowToast({ title: "已完成接诊", icon: "success" });
       } catch {
@@ -151,9 +169,14 @@ const _sfc_main = {
       }
       if (options == null ? void 0 : options.id) {
         patientIdRef.value = Number(options.id);
+      } else if (options == null ? void 0 : options.patientId) {
+        patientIdRef.value = Number(options.patientId);
       }
       if (options == null ? void 0 : options.appointmentId) {
         appointmentIdRef.value = Number(options.appointmentId);
+      }
+      if (patientIdRef.value) {
+        loadPatientDetail(patientIdRef.value);
       }
     });
     common_vendor.onMounted(async () => {
@@ -173,7 +196,7 @@ const _sfc_main = {
           });
         }
       }
-      if (patientIdRef.value) {
+      if (patientIdRef.value && (!patient.value || !patient.value.name || patient.value.name === "张**")) {
         await loadPatientDetail(patientIdRef.value);
       }
     });

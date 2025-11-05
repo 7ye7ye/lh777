@@ -77,7 +77,8 @@
   const router = useRouter();
 
   function goAdmin() {
-    router.push('/hospital/adjustment/approve');
+    // 回到系统默认首页
+    router.push('/');
   }
 </script>
 <style lang="less">

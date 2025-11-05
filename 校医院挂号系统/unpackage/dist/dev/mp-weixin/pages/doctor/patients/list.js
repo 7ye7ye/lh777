@@ -30,14 +30,18 @@ const _sfc_main = {
     });
     const loadPatients = async () => {
       try {
-        patients.value = await api_doctor.doctorApi.getPatientsByDate(doctorId.value, selectedDate.value);
-        if (!Array.isArray(patients.value))
-          patients.value = [];
+        let list = [];
+        if (selectedDate.value) {
+          list = await api_doctor.doctorApi.getPatientsByDate(doctorId.value, selectedDate.value);
+          if (!Array.isArray(list) || list.length === 0) {
+            list = await api_doctor.doctorApi.getPatientsBasic();
+          }
+        } else {
+          list = await api_doctor.doctorApi.getPatientsBasic();
+        }
+        patients.value = Array.isArray(list) ? list : [];
       } catch (e) {
-        patients.value = [
-          { appointmentId: 101, patientId: 1001, name: "张三", identity: "学生", appointmentTimeRange: "08:00-12:00", statusText: "已预约", statusClass: "status-wait" },
-          { appointmentId: 102, patientId: 1002, name: "李四", identity: "教职工", appointmentTimeRange: "14:00-17:00", statusText: "已预约", statusClass: "status-wait" }
-        ];
+        patients.value = [];
       }
     };
     const openDetail = (p) => {

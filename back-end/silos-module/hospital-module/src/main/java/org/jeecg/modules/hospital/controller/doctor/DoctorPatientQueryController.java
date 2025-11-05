@@ -67,7 +67,8 @@ public class DoctorPatientQueryController {
                 current = (HosUser) userObj;
             }
         }
-        if (current == null || current.getUserType() == null || current.getUserType() != 2) {
+        // 优化：不再严格依赖 userType == 2，只要有医生绑定记录即可
+        if (current == null) {
             return null;
         }
         Doctor doctor = doctorService.lambdaQuery().eq(Doctor::getUserId, current.getUserId()).one();

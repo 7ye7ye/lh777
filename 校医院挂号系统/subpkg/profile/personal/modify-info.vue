@@ -91,7 +91,7 @@
         </view>
       </view>
       
-      <view class="form-item">
+      <view class="form-item" @click="goToHealthProfile">
         <view class="health-archive">
           <view class="archive-icon">📋</view>
           <text class="archive-label">健康档案</text>
@@ -107,13 +107,14 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { userApi } from '@/api/user'
+import { patientApi } from '@/api/patient'
 import { useUserStore } from '@/store/user'
 import { uniShowToast } from '@/utils/uniHelper'
 
 const userStore = useUserStore()
 const loading = ref(false)
 const countdown = ref(0)
+const patientId = ref(null)
 
 // 表单数据
 const formData = reactive({
@@ -173,6 +174,14 @@ const onRegionChange = (e) => {
   formData.region = e.detail.value.join('')
 }
 
+// 跳转到健康档案页面
+const goToHealthProfile = () => {
+  // 直接跳转，如果没有patientId则传空值，健康档案页面会处理
+  uni.navigateTo({
+    url: `/subpkg/profile/personal/health-profile?patientId=${patientId.value || ''}`
+  })
+}
+
 // 获取验证码
 const getVerificationCode = () => {
   if (!formData.phone) {
@@ -195,43 +204,109 @@ const getVerificationCode = () => {
 
 // 提交表单
 const submitForm = async () => {
+  // 验证表单
   if (!formData.name) {
     uniShowToast({ title: '请输入姓名', icon: 'none' })
     return
   }
   
-  if (!formData.verificationCode) {
-    uniShowToast({ title: '请输入验证码', icon: 'none' })
+  if (!formData.phone) {
+    uniShowToast({ title: '请输入手机号', icon: 'none' })
     return
   }
   
+  if (!/^1[3-9]\d{9}$/.test(formData.phone)) {
+    uniShowToast({ title: '请输入正确的手机号', icon: 'none' })
+    return
+  }
+
+  //暂未接通短信验证码接口，暂时注释
+  // if (!formData.verificationCode) {
+  //   uniShowToast({ title: '请输入验证码', icon: 'none' })
+  //   return
+  // }
+  
+  // 开始加载
   loading.value = true
+  
   try {
-    // 这里调用修改个人信息的API
-    // await userApi.updateUserInfo(formData)
+    // 调用修改就诊卡信息的API
+    const requestData = {
+      patientId: patientId.value,
+      patientName: formData.name,
+      idType: formData.idType,
+      idNumber: formData.idNumber,
+      gender: formData.gender,
+      birthDate: formData.birthDate,
+      nation: formData.nation,
+      nationality: formData.nationality,
+      region: formData.region,
+      detailedAddress: formData.address,
+      phone: formData.phone
+    }
     
-    // 模拟API调用
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    console.log('提交修改请求:', requestData)
+    
+    const response = await patientApi.updateCard(requestData)
+    console.log('修改成功响应:', response)
+    
+    // 关闭loading
+    loading.value = false
     
     uniShowToast({ title: '修改成功', icon: 'success' })
     
-    // 返回上一页
+    // 延迟返回上一页
     setTimeout(() => {
       uni.navigateBack()
     }, 1500)
-  } catch (e) {
-    uniShowToast({ title: '修改失败', icon: 'none' })
-  } finally {
+    
+  } catch (error) {
+    // 关闭loading
     loading.value = false
+    
+    console.error('修改失败:', error)
+    uniShowToast({ 
+      title: error.message || error.msg || '修改失败，请重试', 
+      icon: 'none',
+      duration: 2000
+    })
   }
 }
 
 // 初始化数据
 onMounted(() => {
-  // 从用户状态中获取信息
-  if (userStore.userInfo) {
-    formData.name = userStore.userInfo.name || ''
-    formData.phone = userStore.userInfo.phone || ''
+  // 从页面参数获取就诊卡信息
+  const pages = getCurrentPages()
+  const currentPage = pages[pages.length - 1]
+  const options = currentPage.options || {}
+  
+  if (options.cardInfo) {
+    try {
+      const cardInfo = JSON.parse(decodeURIComponent(options.cardInfo))
+      console.log('接收到的就诊卡信息:', cardInfo)
+      
+      // 填充表单数据
+      patientId.value = cardInfo.patientId
+      formData.name = cardInfo.patientName || ''
+      formData.idType = cardInfo.idType || '身份证'
+      formData.idNumber = cardInfo.idCard || ''
+      formData.gender = cardInfo.gender || '女'
+      formData.birthDate = cardInfo.birthDate || '2004-09-29'
+      formData.nation = cardInfo.nation || '汉族'
+      formData.nationality = cardInfo.nationality || '中国'
+      formData.region = cardInfo.region || '北京市北京市海淀区'
+      formData.address = cardInfo.detailedAddress || '北京交通大学'
+      formData.phone = cardInfo.phone || ''
+      
+      // 设置选择器索引
+      idTypeIndex.value = idTypeOptions.indexOf(formData.idType)
+      genderIndex.value = genderOptions.indexOf(formData.gender)
+      nationIndex.value = nationOptions.indexOf(formData.nation)
+      nationalityIndex.value = nationalityOptions.indexOf(formData.nationality)
+      
+    } catch (error) {
+      console.error('解析就诊卡信息失败:', error)
+    }
   }
 })
 </script>

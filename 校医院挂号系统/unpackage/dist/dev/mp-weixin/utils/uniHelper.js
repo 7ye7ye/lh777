@@ -9,9 +9,13 @@ function uniShowToast(options) {
 function uniNavigateTo(options) {
   common_vendor.index.navigateTo(options);
 }
+function uniNavigateBack(options) {
+  common_vendor.index.navigateBack(options);
+}
 function uniSwitchTab(options) {
   common_vendor.index.switchTab(options);
 }
+exports.uniNavigateBack = uniNavigateBack;
 exports.uniNavigateTo = uniNavigateTo;
 exports.uniShowModal = uniShowModal;
 exports.uniShowToast = uniShowToast;

@@ -24,8 +24,12 @@ const doctorApi = {
   listShiftChange: (doctorId, status) => d.get("/shift-change/list", { doctorId, status }),
   // 按日期获取患者列表
   getPatientsByDate: (doctorId, date) => d.get("/patients/by-date", { doctorId, date }),
+  // 基础患者列表（直接查 patient 表）
+  getPatientsBasic: (params) => d.get("/patient/list-basic", params),
   // 患者详情
   getPatientDetail: (patientId) => d.get(`/patient/${patientId}`),
+  // 预约详情（根据 record_id）使用新前缀 /appointment/detail 避免与 /{patientId} 冲突
+  getAppointmentDetail: (appointmentId) => d.get("/patient/appointment/detail", { appointmentId }),
   // 更新就诊状态（开始接诊/完成接诊）, 支持 record_id 或 registration_no 二选一
   updatePatientStatus: (payload) => d.post("/patient/status", payload),
   // 按 userId 查询医生资料（依赖后端 /doctor/profile/byUserId）

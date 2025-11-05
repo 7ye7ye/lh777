@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.util.List;
 import org.jeecg.modules.hospital.vo.PatientBriefVO;
 import org.jeecg.modules.hospital.vo.PatientDetailVO;
+import org.jeecg.modules.hospital.vo.AppointmentDetailVO;
 
 /**
 * @author Administrator
@@ -32,4 +33,9 @@ public interface PatientService extends IService<Patient> {
      */
     // 更新就诊状态：支持 record_id 或 registration_no 二选一
     boolean updateVisitStatus(Long appointmentId, String registrationNo, String action);
+    // 基础患者列表（直接查 patient 表）
+    java.util.List<org.jeecg.modules.hospital.vo.PatientBriefVO> listBasic(String keyword, java.time.LocalDate startDate, java.time.LocalDate endDate);
+
+    // 预约详情（基于 registration_record ）
+    AppointmentDetailVO appointmentDetail(Long appointmentId);
 }

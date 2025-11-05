@@ -15,6 +15,49 @@
   ],
   "subPackages": [
     {
+      "root": "subpkg/profile",
+      "pages": [
+        "personal/modify-info",
+        "personal/mycard",
+        "personal/create-card",
+        "personal/mypatient",
+        "personal/mydoctor",
+        "personal/health-profile",
+        "records/register-record",
+        "records/outpatient-record",
+        "records/hospital-record",
+        "records/consult-record",
+        "records/revisit-record",
+        "records/check-record",
+        "settings/privacy",
+        "help/help",
+        "settings/complain",
+        "settings/evaluate",
+        "settings/unbind",
+        "help/login",
+        "help/bindcard",
+        "help/register",
+        "help/payment",
+        "help/hospitalization",
+        "help/report",
+        "help/other"
+      ]
+    },
+    {
+      "root": "subpkg/hospital/",
+      "pages": [
+        "departments",
+        "department-detail"
+      ]
+    },
+    {
+      "root": "subpkg/messages/",
+      "pages": [
+        "detail",
+        "receipt"
+      ]
+    },
+    {
       "root": "subpkg/auth/",
       "pages": [
         "login",

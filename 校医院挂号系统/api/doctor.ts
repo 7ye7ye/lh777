@@ -55,8 +55,15 @@ export const doctorApi = {
   getPatientsByDate: (doctorId: number, date: string) =>
     d.get('/patients/by-date', { doctorId, date }),
 
+  // 基础患者列表（直接查 patient 表）
+  getPatientsBasic: (params?: { keyword?: string; startDate?: string; endDate?: string }) =>
+    d.get('/patient/list-basic', params),
+
   // 患者详情
   getPatientDetail: (patientId: number) => d.get(`/patient/${patientId}`),
+
+  // 预约详情（根据 record_id）使用新前缀 /appointment/detail 避免与 /{patientId} 冲突
+  getAppointmentDetail: (appointmentId: number) => d.get('/patient/appointment/detail', { appointmentId }),
 
   // 更新就诊状态（开始接诊/完成接诊）, 支持 record_id 或 registration_no 二选一
   updatePatientStatus: (payload: {

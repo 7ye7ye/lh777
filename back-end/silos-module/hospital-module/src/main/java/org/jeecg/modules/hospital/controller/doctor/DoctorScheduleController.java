@@ -37,6 +37,10 @@ public class DoctorScheduleController {
     @Resource
     private HosUserService hosUserService;
 
+    // 新增：用于实时统计挂号人数
+    @Resource
+    private org.jeecg.modules.hospital.mapper.RegistrationRecordMapper registrationRecordMapper;
+
     // ------------------- API 接口 -------------------
 
     @Operation(summary = "获取今日排班")
@@ -109,9 +113,9 @@ public class DoctorScheduleController {
 
     // ------------------- 辅助方法 -------------------
 
+    // DoctorScheduleController.toDTOList 辅助方法
     private List<ScheduleDTO> toDTOList(List<DoctorSchedule> list) {
         List<ScheduleDTO> res = new ArrayList<>();
-        // ... (保持不变)
         for (DoctorSchedule s : list) {
             ScheduleDTO dto = new ScheduleDTO();
             dto.setId(s.getScheduleId() == null ? 0L : s.getScheduleId());
@@ -119,7 +123,15 @@ public class DoctorScheduleController {
             dto.setTimeRange(mapSlotToTimeRange(s.getTimeSlot()));
             dto.setRoomNo(mapSlotToRoomNo(s.getTimeSlot()));
             int total = defaultTotalSlots(s.getTimeSlot());
-            int booked = s.getUsedQuota() == null ? 0 : s.getUsedQuota();
+            // 安全统计：云库异常时回退 usedQuota，避免前端全挂
+            int booked;
+            try {
+                booked = (s.getScheduleId() == null)
+                    ? 0
+                    : registrationRecordMapper.countActiveByScheduleId(s.getScheduleId());
+            } catch (Exception ex) {
+                booked = s.getUsedQuota() == null ? 0 : s.getUsedQuota();
+            }
             dto.setTotalSlots(total);
             dto.setBookedCount(booked);
             res.add(dto);
@@ -174,7 +186,8 @@ public class DoctorScheduleController {
                 current = (HosUser) userObj;
             }
         }
-        if (current == null || current.getUserType() == null || current.getUserType() != 2) {
+        // 优化：不再严格依赖 userType == 2，只要有医生绑定记录即可
+        if (current == null) {
             return null;
         }
         Doctor doctor = doctorService.lambdaQuery().eq(Doctor::getUserId, current.getUserId()).one();

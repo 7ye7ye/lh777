@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import com.baomidou.dynamic.datasource.annotation.DS;
 
 import java.time.LocalDateTime;
+import jakarta.annotation.PostConstruct;
 
 /**
  * 医生调班申请服务实现
@@ -18,8 +19,14 @@ public class DoctorShiftChangeRequestServiceImpl
     extends ServiceImpl<DoctorShiftChangeRequestMapper, DoctorShiftChangeRequest>
     implements DoctorShiftChangeRequestService {
 
+    @PostConstruct
+    public void ensureTableExists() {
+        try { this.baseMapper.ensureTable(); } catch (Exception ignored) {}
+    }
+
     @Override
     public boolean submitAdjustment(DoctorShiftChangeRequest request) {
+        ensureTableExists();
         request.setApplyTime(LocalDateTime.now());
         request.setStatus(1); // 待审批
         return this.save(request);

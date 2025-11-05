@@ -13,6 +13,7 @@ import org.jeecg.modules.hospital.entity.PatientVisit;
 import org.jeecg.modules.hospital.mapper.PatientVisitMapper;
 import org.jeecg.modules.hospital.vo.PatientBriefVO;
 import org.jeecg.modules.hospital.vo.PatientDetailVO;
+import org.jeecg.modules.hospital.vo.AppointmentDetailVO;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -44,6 +45,21 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient>
     @Resource
     private org.jeecg.modules.hospital.mapper.RegistrationRecordMapper registrationRecordMapper;
 
+    @Override
+    public java.util.List<org.jeecg.modules.hospital.vo.PatientBriefVO> listBasic(
+            String keyword,
+            java.time.LocalDate startDate,
+            java.time.LocalDate endDate
+    ) {
+        // 直接查询 patient 表（已配置 @DS("hospital") 使用云库）
+        return this.baseMapper.selectBriefPatients(keyword, startDate, endDate);
+    }
+
+    @Override
+    public AppointmentDetailVO appointmentDetail(Long appointmentId) {
+        if (appointmentId == null) return null;
+        return this.baseMapper.selectAppointmentDetail(appointmentId);
+    }
     @Override
     public java.util.List<org.jeecg.modules.hospital.vo.PatientBriefVO> list(
             Long doctorId,

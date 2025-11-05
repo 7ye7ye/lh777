@@ -121,6 +121,12 @@
 					}
 				},
 				{
+					"path": "personal/health-profile",
+					"style": {
+						"navigationBarTitleText": "健康档案"
+					}
+				},
+				{
 					"path": "records/register-record",
 					"style": {
 						"navigationBarTitleText": "挂号记录"
@@ -271,9 +277,7 @@
 					}
 				}
 			]
-		}
-	],
-	"subPackages": [
+		},
 		{
 			"root": "subpkg/auth/",
 			"pages": [

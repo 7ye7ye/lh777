@@ -222,30 +222,58 @@ const mapIdentity = (type) => {
 async function loadPatientDetail(id) {
   try {
     const detail = await doctorApi.getPatientDetail(id)
-    const p = detail?.patient || {}
-    const visits = Array.isArray(detail?.visits) ? detail.visits : []
+    // 兼容多种返回结构：{patient, visits} 或 {data:{patient,visits}} / {result:{...}} / {body:{...}}
+    const dto = (detail && (detail.patient || detail.visits))
+      ? detail
+      : (detail?.data || detail?.result || detail?.body || {})
+    const p = dto?.patient || {}
+    const visits = Array.isArray(dto?.visits) ? dto.visits : []
 
     const statusMap = (s) => s === 2 ? '已完成' : (s === 1 ? '接诊中' : '待接诊')
     const latestStatus = visits.length > 0 ? statusMap(visits[0]?.status) : '待接诊'
 
-    patient.value = {
-      name: p.patientName || p.name || '',
+    // 为避免某些端/编译器对整个对象替换的追踪问题，使用就地合并
+    // 从 patient 表构造病史条目
+    const mh = []
+    if (p.presentIllness) mh.push({ type: '现病史', description: p.presentIllness })
+    if (p.pastIllness) mh.push({ type: '既往史', description: p.pastIllness })
+    if (p.familyIllness) mh.push({ type: '家族史', description: p.familyIllness })
+    if (p.allergyHistory && p.allergyHistory !== '无') mh.push({ type: '过敏史', description: p.allergyHistory })
+
+    Object.assign(patient.value, {
+      name: p.patientName || '',
       gender: p.gender || '',
       age: calcAge(p.birthDate),
       identity: mapIdentity(p.patientType),
       phone: p.phone || '',
-      registrationNumber: (visits[0]?.visitNo) || (appointmentIdRef.value ? String(appointmentIdRef.value) : ''),
+      registrationNumber: (visits[0]?.visitNo)
+        || p.outpatientNumber
+        || (appointmentIdRef.value ? String(appointmentIdRef.value) : ''),
       appointmentTime: visits[0]?.timeSlot || '',
-      department: '', // 后端当前VO未返回科室名（只有 deptId），先留空
-      doctor: '', // 同理 doctorId -> 名称未返回，先留空
+      department: '',
+      doctor: '',
       status: latestStatus,
-      medicalHistory: [], // 暂无病史字段，留空
+      medicalHistory: mh,
       visitHistory: visits.map(v => ({
         date: v.visitDate,
-        department: '', // 仅有 deptId，页面先留空
-        doctor: '', // 仅有 doctorId，页面先留空
+        department: '',
+        doctor: '',
         diagnosis: v.diagnosis || ''
       }))
+    })
+
+    // 若带了预约ID，则加载 registration_record 详情，填充预约时段/科室/医生
+    if (appointmentIdRef.value) {
+      try {
+        const ap = await doctorApi.getAppointmentDetail(appointmentIdRef.value)
+        if (ap) {
+          Object.assign(patient.value, {
+            appointmentTime: ap.appointmentTime || patient.value.appointmentTime,
+            department: ap.department || patient.value.department,
+            doctor: ap.doctor || patient.value.doctor,
+          })
+        }
+      } catch {}
     }
   } catch (e) {
     uniShowToast({ title: '获取患者详情失败', icon: 'none' })
@@ -268,7 +296,7 @@ async function receivePatient() {
     return
   }
   try {
-    await doctorApi.updatePatientStatus(appointmentIdRef.value, 'start')
+    await doctorApi.updatePatientStatus({ appointmentId: appointmentIdRef.value, action: 'start' })
     patient.value.status = '接诊中'
     uniShowToast({ title: '已开始接诊', icon: 'success' })
   } catch {
@@ -283,7 +311,7 @@ async function completePatient() {
     return
   }
   try {
-    await doctorApi.updatePatientStatus(appointmentIdRef.value, 'finish')
+    await doctorApi.updatePatientStatus({ appointmentId: appointmentIdRef.value, action: 'finish' })
     patient.value.status = '已完成'
     uniShowToast({ title: '已完成接诊', icon: 'success' })
   } catch {
@@ -313,11 +341,18 @@ onLoad((options) => {
   } catch (e) {
     // ignore parse error
   }
+  // 兼容 id 或 patientId 作为参数名
   if (options?.id) {
     patientIdRef.value = Number(options.id)
+  } else if (options?.patientId) {
+    patientIdRef.value = Number(options.patientId)
   }
   if (options?.appointmentId) {
     appointmentIdRef.value = Number(options.appointmentId)
+  }
+  // 直接在 onLoad 阶段触发加载，避免 onMounted 时机差异导致未请求
+  if (patientIdRef.value) {
+    loadPatientDetail(patientIdRef.value)
   }
 })
 
@@ -338,8 +373,8 @@ onMounted(async () => {
       })
     }
   }
-  // 若URL带了id，加载后端详情
-  if (patientIdRef.value) {
+  // 若 onLoad 尚未触发或未成功加载，再兜底加载一次
+  if (patientIdRef.value && (!patient.value || !patient.value.name || patient.value.name === '张**')) {
     await loadPatientDetail(patientIdRef.value)
   }
 })
