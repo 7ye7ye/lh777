@@ -36,9 +36,9 @@
           <image src="/static/logo.png" class="icon" @tap="goDepartments" />
           <text @tap="goDepartments">科室介绍</text>
         </view>
-        <view class="hospital-item">
-          <image src="/static/logo.png" class="icon" />
-          <text>专家介绍</text>
+        <view class="hospital-item" @tap="goDoctors">
+          <image src="/static/logo.png" class="icon" @tap="goDoctors" />
+          <text @tap="goDoctors">专家介绍</text>
         </view>
         <view class="hospital-item">
           <image src="/static/logo.png" class="icon" />
@@ -90,6 +90,10 @@ const switchBranch = (idx) => {
 
 const goDepartments = () => {
   uni.navigateTo({ url: '/subpkg/hospital/departments' })
+}
+
+const goDoctors = () => {
+  uni.navigateTo({ url: '/subpkg/hospital/doctors' })
 }
 </script>
 
