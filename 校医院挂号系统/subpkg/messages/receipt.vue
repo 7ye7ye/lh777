@@ -71,7 +71,7 @@
 		},
 		methods: {
 			fetchReceiptDetail() {
-				const apiUrl = `http://172.20.10.2:8095/jeecg-boot/api/appointment/detail`;
+				const apiUrl = `http://10.61.62.249:8095/jeecg-boot/api/appointment/detail`;
 				
 				uni.request({
 					url: `${apiUrl}?id=${this.appointmentId}`,
