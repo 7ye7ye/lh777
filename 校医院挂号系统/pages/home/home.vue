@@ -30,11 +30,11 @@
     </view>
     <view class="quick card">
       <view class="quick-grid">
-        <view class="quick-item">
+        <view class="quick-item" @click="goToDiseaseGuide">
           <view class="quick-icon">📝</view>
           <text>按疾病挂号</text>
         </view>
-        <view class="quick-item">
+        <view class="quick-item" @click="goToDepartmentBooking">
           <view class="quick-icon">🏥</view>
           <text>按科室挂号</text>
         </view>
@@ -139,7 +139,69 @@ const itemsMap = {
 const currentItems = computed(() => itemsMap[tabs[activeIndex.value]] || [])
 
 const onItemClick = (item) => {
-  uni.showToast({ title: item.text, icon: 'none' })
+  // 体检功能跳转映射
+  const examRoutes = {
+    '个检预约': '/subpkg/physical-exam/individual-booking',
+    '团检预约': '/subpkg/physical-exam/group-booking',
+    '体检报告': '/subpkg/physical-exam/exam-report',
+    '体检订单': '/subpkg/physical-exam/exam-orders',
+    '体检中心': '/subpkg/physical-exam/exam-center'
+  }
+  
+  const route = examRoutes[item.text]
+  if (route) {
+    uni.navigateTo({
+      url: route,
+      success: () => {
+        console.log('跳转成功:', item.text)
+      },
+      fail: (err) => {
+        console.error('跳转失败:', err)
+        uni.showToast({
+          title: '页面未找到',
+          icon: 'none'
+        })
+      }
+    })
+  } else {
+    uni.showToast({ title: item.text, icon: 'none' })
+  }
+}
+
+// 跳转到按疾病挂号
+const goToDiseaseGuide = () => {
+  console.log('点击按疾病挂号')
+  uni.navigateTo({
+    url: '/subpkg/hospital/disease-guide',
+    success: () => {
+      console.log('跳转成功')
+    },
+    fail: (err) => {
+      console.error('跳转失败:', err)
+      uni.showToast({
+        title: '页面未找到',
+        icon: 'none'
+      })
+    }
+  })
+}
+
+// 跳转到按科室挂号
+const goToDepartmentBooking = () => {
+  console.log('点击按科室挂号')
+  uni.navigateTo({
+    url: '/subpkg/hospital/department-booking',
+    success: () => {
+      console.log('跳转成功')
+    },
+    fail: (err) => {
+      console.error('跳转失败:', err)
+      uni.showToast({
+        title: '页面未找到',
+        icon: 'none'
+      })
+    }
+  })
 }
 
 // 使用统一的权限控制（需要就诊卡）

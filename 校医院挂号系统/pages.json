@@ -243,7 +243,7 @@
 			]
 		},
 		{
-			"root": "subpkg/hospital/",
+			"root": "subpkg/hospital",
 			"pages": [
 				{
 					"path": "departments",
@@ -256,11 +256,41 @@
 					"style": {
 						"navigationBarTitleText": "科室详情"
 					}
+				},
+				{
+					"path": "department-booking",
+					"style": {
+						"navigationBarTitleText": "科室挂号"
+					}
+				},
+				{
+					"path": "disease-guide",
+					"style": {
+						"navigationBarTitleText": "疾病指南"
+					}
+				},
+				{
+					"path": "doctors",
+					"style": {
+						"navigationBarTitleText": "医生列表"
+					}
+				},
+				{
+					"path": "doctor-detail",
+					"style": {
+						"navigationBarTitleText": "医生详情"
+					}
+				},
+				{
+					"path": "physical-exam-packages",
+					"style": {
+						"navigationBarTitleText": "体检套餐"
+					}
 				}
 			]
 		},
 		{
-			"root": "subpkg/messages/",
+			"root": "subpkg/messages",
 			"pages": [
 				{
 					"path" : "detail",
@@ -285,7 +315,7 @@
 			]
 		},
 		{
-			"root": "subpkg/auth/",
+			"root": "subpkg/auth",
 			"pages": [
 				{
 					"path": "login",
@@ -301,6 +331,45 @@
 						"navigationBarTitleText": "注册",
 						"navigationBarBackgroundColor": "#479fff",
 						"navigationBarTextStyle": "white"
+					}
+				}
+			]
+		},
+		{
+			"root": "subpkg/physical-exam",
+			"pages": [
+				{
+					"path": "individual-booking",
+					"style": {
+						"navigationBarTitleText": "个检预约",
+						"navigationBarBackgroundColor": "#479fff",
+						"navigationBarTextStyle": "white"
+					}
+				},
+				{
+					"path": "group-booking",
+					"style": {
+						"navigationBarTitleText": "团检预约",
+						"navigationBarBackgroundColor": "#479fff",
+						"navigationBarTextStyle": "white"
+					}
+				},
+				{
+					"path": "exam-report",
+					"style": {
+						"navigationBarTitleText": "体检报告"
+					}
+				},
+				{
+					"path": "exam-orders",
+					"style": {
+						"navigationBarTitleText": "体检订单"
+					}
+				},
+				{
+					"path": "exam-center",
+					"style": {
+						"navigationBarTitleText": "体检中心"
 					}
 				}
 			]

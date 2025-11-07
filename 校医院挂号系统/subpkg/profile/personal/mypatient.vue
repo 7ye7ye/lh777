@@ -2,7 +2,7 @@
   <view class="page-bg">
     <!-- 医院信息头部 -->
     <view class="hospital-header">
-      <text class="hospital-name">中国医科大学附属盛京医院</text>
+      <text class="hospital-name">BJTU号号通</text>
       <view class="card-badge">
         <text class="badge-icon">+</text>
         <text class="badge-text">电子就诊卡</text>

@@ -62,7 +62,7 @@ export const patientApi = {
 // 就诊卡相关
 getCard: (data: { userId: number }) => u.post('/cardInfo', data),
 createCard: (data: CreateCardRequest) => u.post('/create', data),
-updateCard: (data: UpdateCardRequest) => u.put('/update', data),
+updateCard: (data: UpdateCardRequest) => u.post('/update', data),
 unbindCard: (data: { userId: number; patientId: number }) => u.post('/unbind', data),
 rechargeCard: (data: { amount: number }) => u.post('/card/recharge', data),
 getCardHistory: () => u.post('/card/history'),

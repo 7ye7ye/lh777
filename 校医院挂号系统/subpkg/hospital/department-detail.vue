@@ -12,6 +12,22 @@
       </view>
     </view>
 
+    <!-- 体检套餐快捷入口 (仅常规体检显示) -->
+    <view class="package-banner" v-if="deptId === '43' || deptId === 43" @click="goToPackages">
+      <view class="banner-left">
+        <view class="banner-title">💎 精选体检套餐</view>
+        <view class="banner-desc">三种套餐可选 · 价格透明 · 专业体检</view>
+        <view class="price-tags">
+          <text class="tag">基础 ¥280</text>
+          <text class="tag">标准 ¥480</text>
+          <text class="tag">深度 ¥880</text>
+        </view>
+      </view>
+      <view class="banner-right">
+        <view class="enter-btn">查看套餐 ›</view>
+      </view>
+    </view>
+
     <!-- 医生列表 -->
     <view class="doctor-list">
       <view class="list-title">出诊医生</view>
@@ -47,6 +63,7 @@
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getDepartmentDetail } from '../../api/department'
+import { getDoctorsByDeptId } from '../../api/doctor'
 
 const deptId = ref('')
 const department = ref({})
@@ -84,31 +101,43 @@ const loadDepartmentDetail = async () => {
   }
 }
 
-// 加载科室医生（这里需要创建医生API，暂时用模拟数据）
+// 加载科室医生
 const loadDoctorsByDeptId = async () => {
-  // 模拟医生数据，实际项目中需要调用医生API
-  doctorList.value = [
-    {
-      doctorId: 1,
-      doctorName: '张医生',
-      title: '主任医师',
-      specialty: '心血管疾病诊疗',
-      avatar: '/static/doctor.png'
-    },
-    {
-      doctorId: 2,
-      doctorName: '李医生',
-      title: '副主任医师',
-      specialty: '呼吸系统疾病',
-      avatar: '/static/doctor.png'
+  try {
+    // 使用医生API获取科室医生列表
+    const res = await getDoctorsByDeptId(deptId.value)
+    
+    // 处理不同的响应格式
+    let data = res
+    if (res && res.data) {
+      data = res.data
+    } else if (res && res.result) {
+      data = res.result
     }
-  ]
+    
+    if (data && Array.isArray(data)) {
+      doctorList.value = data
+    } else if (Array.isArray(res)) {
+      doctorList.value = res
+    } else {
+      console.warn('医生列表数据格式异常:', res)
+    }
+  } catch (error) {
+    console.error('加载科室医生列表失败:', error)
+  }
 }
 
 // 跳转到医生详情
 const navigateToDoctorDetail = (doctor) => {
   uni.navigateTo({
-    url: `/subpkg/doctor/detail?doctorId=${doctor.doctorId}`
+    url: `/subpkg/hospital/doctor-detail?doctorId=${doctor.doctorId}`
+  })
+}
+
+// 跳转到体检套餐页面
+const goToPackages = () => {
+  uni.navigateTo({
+    url: '/subpkg/hospital/physical-exam-packages'
   })
 }
 
@@ -153,6 +182,69 @@ onLoad((query) => {
 .location {
   font-size: 26rpx;
   color: #999;
+}
+
+/* 体检套餐横幅 */
+.package-banner {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16rpx;
+  margin: 16rpx;
+  padding: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.25);
+  transition: all 0.3s;
+}
+
+.package-banner:active {
+  transform: scale(0.98);
+}
+
+.banner-left {
+  flex: 1;
+}
+
+.banner-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 12rpx;
+}
+
+.banner-desc {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 16rpx;
+}
+
+.price-tags {
+  display: flex;
+  gap: 12rpx;
+}
+
+.price-tags .tag {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  font-size: 22rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+  backdrop-filter: blur(10rpx);
+}
+
+.banner-right {
+  display: flex;
+  align-items: center;
+}
+
+.enter-btn {
+  background: #fff;
+  color: #667eea;
+  font-size: 26rpx;
+  font-weight: bold;
+  padding: 16rpx 32rpx;
+  border-radius: 999rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
 }
 
 .doctor-list {

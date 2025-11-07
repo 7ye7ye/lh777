@@ -114,7 +114,7 @@ INSERT INTO `department` VALUES (200, '外科', NULL, 1, '综合外科诊疗服�
 -- Table structure for doctor_info (医生信息表)
 -- ----------------------------
 DROP TABLE IF EXISTS `doctor`;
-CREATE TABLE `doctor`  (
+CREATE TABLE `doctor_info`  (
   `doctor_id` bigint NOT NULL AUTO_INCREMENT COMMENT '医生唯一标识',
   `user_id` bigint NOT NULL COMMENT '关联用户表(外键关联hos_user.user_id，唯一)',
   `dept_id` bigint NOT NULL COMMENT '所属科室ID（二级科室，外键关联department.dept_id）',
@@ -135,8 +135,8 @@ CREATE TABLE `doctor`  (
 -- ----------------------------
 -- Records of doctor_info
 -- ----------------------------
-INSERT INTO `doctor` VALUES (1, 4, 101, '主治医师', '胃炎、胃溃疡诊疗', '擅长胃肠道常见病、多发病的诊治。', NULL, 1, 2, '王医生');
-INSERT INTO `doctor` VALUES (2, 5, 101, '主任医师', '肝病、胰腺疾病诊疗', '资深专家，享受国务院特殊津贴。', NULL, 1, 2, '张医生');
+INSERT INTO `doctor_info` VALUES (1, 4, 101, '主治医师', '胃炎、胃溃疡诊疗', '擅长胃肠道常见病、多发病的诊治。', NULL, 1, 2, '王医生');
+INSERT INTO `doctor_info` VALUES (2, 5, 101, '主任医师', '肝病、胰腺疾病诊疗', '资深专家，享受国务院特殊津贴。', NULL, 1, 2, '张医生');
 
 -- ----------------------------
 -- Table structure for admin (管理员表)
@@ -179,7 +179,7 @@ CREATE TABLE `doctor_schedule`  (
   PRIMARY KEY (`schedule_id`) USING BTREE,
   INDEX `idx_doctor_date`(`doctor_id` ASC, `schedule_date` ASC) USING BTREE,
   INDEX `idx_dept_date`(`dept_id` ASC, `schedule_date` ASC) USING BTREE,
-  CONSTRAINT `doctor_schedule_ibfk_1` FOREIGN KEY (`doctor_id`) REFERENCES `doctor` (`doctor_id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `doctor_schedule_ibfk_1` FOREIGN KEY (`doctor_id`) REFERENCES `doctor_info` (`doctor_id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `doctor_schedule_ibfk_2` FOREIGN KEY (`dept_id`) REFERENCES `department` (`dept_id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '医生排班表' ROW_FORMAT = DYNAMIC;
 
@@ -245,7 +245,7 @@ CREATE TABLE `registration_record`  (
   INDEX `type_id`(`type_id` ASC) USING BTREE,
   CONSTRAINT `registration_record_ibfk_1` FOREIGN KEY (`schedule_id`) REFERENCES `doctor_schedule` (`schedule_id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `registration_record_ibfk_2` FOREIGN KEY (`patient_id`) REFERENCES `patient` (`patient_id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
-  CONSTRAINT `registration_record_ibfk_3` FOREIGN KEY (`doctor_id`) REFERENCES `doctor` (`doctor_id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `registration_record_ibfk_3` FOREIGN KEY (`doctor_id`) REFERENCES `doctor_info` (`doctor_id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `registration_record_ibfk_4` FOREIGN KEY (`type_id`) REFERENCES `registration_type` (`type_id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '挂号记录表' ROW_FORMAT = DYNAMIC;
 

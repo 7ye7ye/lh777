@@ -201,84 +201,41 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { uniNavigateTo, uniShowToast } from '@/utils/uniHelper'
-import { useUserStore } from '../../../store/user.js'
-import { doctorApi } from '../../../api/doctor'
 
-// 医生信息（从后端填充）
+// 医生信息（示例数据，可通过接口替换）
 const doctorInfo = ref({
-  name: '',
-  title: '',
-  department: '',
+  name: '张医生',
+  title: '主治医师',
+  department: '内科',
   avatar: '/static/doctor.svg',
-  phone: '',
-  email: '',
-  licenseNumber: '',
-  yearsOfPractice: 0,
-  specialty: ''
+  phone: '138****5678',
+  email: 'zhang***@hospital.edu.cn',
+  licenseNumber: '1101-2024-XYZ',
+  yearsOfPractice: 8,
+  specialty: '呼吸道疾病、发热门诊、慢性病管理'
 })
 
 const stats = ref({
-  totalPatients: 0,
-  todayPatients: 0,
-  rating: 0
+  totalPatients: 1258,
+  todayPatients: 12,
+  rating: 4.8
 })
-
-// 加载后端医生资料（优先用当前登录用户的 userId）
-const userStore = useUserStore()
-const loadProfile = async () => {
-  try {
-    userStore.initFromStorage()
-    const userId = userStore.userInfo?.userId
-    let profile = null
-    if (userId) {
-      profile = await doctorApi.getProfileByUserId(userId)
-    } else {
-      profile = await doctorApi.getMyProfile()
-    }
-    if (!profile || !profile.doctorId) {
-      uniShowToast('未绑定医生资料或接口返回空数据')
-      return
-    }
-    doctorInfo.value = {
-      name: profile.doctorName || profile.realname || '',
-      title: profile.title || '',
-      department: profile.deptName || '',
-      avatar: profile.avatar || '/static/doctor.svg',
-      phone: profile.phone || '',
-      email: profile.email || '',
-      licenseNumber: profile.licenseNumber || '',
-      yearsOfPractice: profile.yearsOfPractice || 0,
-      specialty: profile.specialty || ''
-    }
-    // 可选：统计项从其它接口获取，这里占位
-    stats.value = {
-      totalPatients: 0,
-      todayPatients: 0,
-      rating: 0
-    }
-  } catch (e) {
-    uniShowToast('获取医生资料失败')
-    console.warn('loadProfile错误：', e)
-  }
-}
-
-onMounted(loadProfile)
 
 // 返回医生主界面
 function goBackToSchedule() {
-  const pages = getCurrentPages()
-  if (pages.length > 1) {
-    uni.navigateBack()
-  } else {
-    uniNavigateTo('/subpkg/doctor/schedule/main')
-  }
+  // const pages = getCurrentPages()
+  // if (pages.length > 1) {
+  //   uni.navigateBack()
+  // } else {
+    uniNavigateTo('/pages/doctor/schedule/main')
+  // }
 }
 
 // 功能菜单
 function goToScheduleManagement() {
-  uniNavigateTo('/subpkg/doctor/schedule/main')
+  uniNavigateTo('/pages/doctor/schedule/main')
 }
 function goToStatistics() {
   uniShowToast('接诊统计功能开发中')

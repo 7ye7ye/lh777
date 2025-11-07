@@ -1,1 +1,0 @@
-{"version":3,"file":"assistant.js","sources":["../../../../../../../HBuilderX/plugins/uniapp-cli-vite/uniPage:/cGFnZXMvYXNzaXN0YW50L2Fzc2lzdGFudC52dWU"],"sourcesContent":["import MiniProgramPage from 'D:/HuaweiMoveData/Users/zheng/Documents/GitHub/lh7772/校医院挂号系统/pages/assistant/assistant.vue'\nwx.createPage(MiniProgramPage)"],"names":[],"mappings":";;;;;;;AACA,GAAG,WAAW,eAAe;"}

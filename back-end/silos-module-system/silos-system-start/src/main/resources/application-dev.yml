@@ -24,10 +24,6 @@ management:
         include: metrics,httpexchanges,jeecghttptrace
 
 spring:
-  #  # 新增：指定MySQL驱动版本，解决版本不兼容问题
-  #  mysql:
-  #    version: 8.0.32
-
   devtools:
     restart:
       enabled: true
@@ -168,11 +164,11 @@ spring:
           username: hospital
           password: 123456
           driver-class-name: com.mysql.cj.jdbc.Driver
-        #           多数据源配置
+#           多数据源配置
         hospital:
-          url: jdbc:mysql://sh-cynosdbmysql-grp-7obf0puk.sql.tencentcdb.com:24624/cloud1-0gj86keq64e9c8c2?characterEncoding=UTF-8&useUnicode=true&useSSL=false&tinyInt1isBit=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+          url: jdbc:mysql://localhost:3306/hospital?useUnicode=true&characterEncoding=utf8&autoReconnect=true&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
           username: hospital
-          password: Aaa12345678
+          password: 123456
           driver-class-name: com.mysql.cj.jdbc.Driver
       # 包路径与数据源的映射
       # 正确的包路径映射格式（键值对）
