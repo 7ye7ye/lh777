@@ -272,13 +272,13 @@ function goBackToSchedule() {
   if (pages.length > 1) {
     uni.navigateBack()
   } else {
-    uniNavigateTo('/pages/doctor/schedule/main')
+    uniNavigateTo('/subpkg/doctor/schedule/main')
   }
 }
 
 // 功能菜单
 function goToScheduleManagement() {
-  uniNavigateTo('/pages/doctor/schedule/main')
+  uniNavigateTo('/subpkg/doctor/schedule/main')
 }
 function goToStatistics() {
   uniShowToast('接诊统计功能开发中')

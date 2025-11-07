@@ -98,7 +98,7 @@ const loadPatients = async () => {
 
 const openDetail = (p) => {
   const qs = `?id=${p.patientId}&appointmentId=${p.appointmentId}`
-  uniNavigateTo({ url: `/pages/doctor/patients/detail${qs}` })
+  uniNavigateTo({ url: `/subpkg/doctor/patients/detail${qs}` })
 }
 
 onMounted(async () => {

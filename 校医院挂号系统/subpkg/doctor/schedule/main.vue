@@ -202,17 +202,17 @@ const loadScheduleData = async () => {
 
 // 跳转到申请调班（映射到已存在的页面路径）
 const goToAdjustSchedule = () => { 
-  uniNavigateTo({ url: '/pages/doctor/schedule/apply' }) 
+  uniNavigateTo({ url: '/subpkg/doctor/schedule/apply' }) 
 } 
 
 // 跳转到患者列表（映射到已存在的页面路径）
 const goToPatients = () => { 
-  uniNavigateTo({ url: '/pages/doctor/patients/list' }) 
+  uniNavigateTo({ url: '/subpkg/doctor/patients/list' }) 
 } 
 
 // 跳转到个人信息（映射到已存在的页面路径）
 const goToProfile = () => { 
-  uniNavigateTo({ url: '/pages/doctor/profile/index' }) 
+  uniNavigateTo({ url: '/subpkg/doctor/profile/index' }) 
 }
 
 // 刷新排班数据

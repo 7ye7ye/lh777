@@ -3,17 +3,22 @@
     "pages/home/home",
     "pages/assistant/assistant",
     "pages/messages/messages",
-    "pages/doctor/schedule/main",
-    "pages/doctor/schedule/apply",
-    "pages/doctor/patients/list",
-    "pages/doctor/patients/detail",
-    "pages/doctor/profile/index",
     "pages/hospital/hospital",
     "pages/profile/profile",
     "pages/messages/login",
     "pages/messages/register"
   ],
   "subPackages": [
+    {
+      "root": "subpkg/doctor/",
+      "pages": [
+        "schedule/main",
+        "schedule/apply",
+        "patients/list",
+        "patients/detail",
+        "profile/index"
+      ]
+    },
     {
       "root": "subpkg/profile",
       "pages": [

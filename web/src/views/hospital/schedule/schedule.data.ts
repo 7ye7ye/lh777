@@ -60,9 +60,20 @@ export const columns: BasicColumn[] = [
 export const searchFormSchema: FormSchema[] = [
   {
     field: 'doctorName',
-    label: '医生姓名',
+    label: '医生',
     component: 'Input',
-    colProps: { span: 8 },
+    // 放在同一行（与日期各占一半宽度）
+    colProps: { span: 12 },
+    componentProps: {
+      placeholder: '输入医生姓名',
+    },
+  },
+  {
+    field: '[startDate, endDate]',
+    label: '日期',
+    component: 'RangePicker',
+    // 放在同一行（与医生各占一半宽度）
+    colProps: { span: 12 },
   },
   {
     field: 'deptId',
@@ -73,13 +84,8 @@ export const searchFormSchema: FormSchema[] = [
       labelField: 'deptName',
       valueField: 'deptId',
     },
-    colProps: { span: 8 },
-  },
-  {
-    field: '[startDate, endDate]',
-    label: '排班日期',
-    component: 'RangePicker',
-    colProps: { span: 8 },
+    // 放到下一行显示
+    colProps: { span: 24 },
   },
 ];
 

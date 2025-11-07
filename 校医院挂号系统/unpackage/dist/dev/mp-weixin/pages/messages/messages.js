@@ -11,7 +11,7 @@ const _sfc_main = {
       ];
     });
     const goDoctorMain = () => {
-      common_vendor.index.navigateTo({ url: "/pages/doctor/schedule/main" });
+      common_vendor.index.navigateTo({ url: "/subpkg/doctor/schedule/main" });
     };
     const openDetail = (item) => {
       common_vendor.index.navigateTo({ url: `/subpkg/messages/detail?id=${item.id}` });

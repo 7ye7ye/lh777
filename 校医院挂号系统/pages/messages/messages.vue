@@ -30,7 +30,7 @@ onMounted(() => {
 })
 
 const goDoctorMain = () => {
-  uni.navigateTo({ url: '/pages/doctor/schedule/main' })
+  uni.navigateTo({ url: '/subpkg/doctor/schedule/main' })
 }
 
 const openDetail = (item) => {

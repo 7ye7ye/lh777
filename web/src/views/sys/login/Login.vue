@@ -56,8 +56,11 @@
   import { useI18n } from '/@/hooks/web/useI18n';
   import { useDesign } from '/@/hooks/web/useDesign';
   import { useLocaleStore } from '/@/store/modules/locale';
-  import { useLoginState, LoginStateEnum } from './useLogin';
+  import { useLoginState } from './useLogin';
   import { useRouter } from 'vue-router';
+  import type { RouteRecordRaw } from 'vue-router';
+  import { usePermissionStoreWithOut } from '/@/store/modules/permission';
+  import { PAGE_NOT_FOUND_ROUTE } from '/@/router/routes/basic';
 
   defineProps({
     sessionTimeout: {
@@ -75,10 +78,23 @@
   handleBackLogin();
 
   const router = useRouter();
+  const permissionStore = usePermissionStoreWithOut();
 
-  function goAdmin() {
-    // 回到系统默认首页
-    router.push('/');
+  async function goAdmin() {
+    // 免登录直达管理员端：确保动态路由已构建后再跳转
+    if (!permissionStore.getIsDynamicAddedRoute) {
+      try {
+        const routes = await permissionStore.buildRoutesAction();
+        routes.forEach((route) => {
+          router.addRoute(route as unknown as RouteRecordRaw);
+        });
+        router.addRoute(PAGE_NOT_FOUND_ROUTE as unknown as RouteRecordRaw);
+        permissionStore.setDynamicAddedRoute(true);
+      } catch (error) {
+        console.error('构建动态路由失败:', error);
+      }
+    }
+    router.push('/admin');
   }
 </script>
 <style lang="less">

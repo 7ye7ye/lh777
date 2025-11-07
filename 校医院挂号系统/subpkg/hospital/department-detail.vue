@@ -108,7 +108,7 @@ const loadDoctorsByDeptId = async () => {
 // 跳转到医生详情
 const navigateToDoctorDetail = (doctor) => {
   uni.navigateTo({
-    url: `/pages/doctor/detail?doctorId=${doctor.doctorId}`
+    url: `/subpkg/doctor/detail?doctorId=${doctor.doctorId}`
   })
 }
 
