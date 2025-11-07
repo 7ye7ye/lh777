@@ -3,10 +3,7 @@ package org.jeecg.modules.hospital.controller;
 import org.jeecg.modules.hospital.entity.Message;
 import org.jeecg.modules.hospital.service.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
@@ -30,12 +27,26 @@ public class MessageController {
         // 在实际项目中，userId通常从登录状态中获取，这里为了方便测试，从请求参数中直接传递
         return messageService.listMessagesByUserId(userId);
     }
+    
     /**
      * 根据预约ID获取消息详情列表
      * 访问地址： GET http://localhost:8095/jeecg-boot/api/messages/detail?appointmentId=APPOINTMENT_001
+     * @param appointmentId 预约ID
+     * @return 该预约的所有消息列表
      */
     @GetMapping("/detail")
     public List<Message> getMessageDetail(@RequestParam String appointmentId) {
         return messageService.listMessagesByAppointmentId(appointmentId);
+    }
+    
+    /**
+     * 根据消息ID获取单条消息详情
+     * 访问地址： GET http://localhost:8095/jeecg-boot/api/messages/{messageId}
+     * @param messageId 消息ID（路径变量）
+     * @return 单条消息详情
+     */
+    @GetMapping("/{messageId}")
+    public Message getMessageById(@PathVariable Integer messageId) {
+        return messageService.getMessageById(messageId);
     }
 }

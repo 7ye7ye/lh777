@@ -1,38 +1,40 @@
 <template>
 	<view class="container">
-		<view class="message-detail-list">
-			<view v-for="item in messageDetailList" :key="item.messageId" class="detail-card">
+		<view class="message-detail-list" v-if="messageDetail">
+			<view class="detail-card" :class="getCardClass(messageDetail.messageType)">
 				<view class="card-header">
-					<text>{{ formatDateTime(item.createdTime) }}</text>
+					<text>{{ formatDateTime(messageDetail.createdTime) }}</text>
 				</view>
 				<view class="card-body">
-					<view class="body-title">{{ item.title }}</view>
-					<view class="info-row" v-if="item.content.patient_card_no">
+					<view class="body-title" :class="getTitleClass(messageDetail.messageType)">
+						{{ messageDetail.title }}
+					</view>
+					<view class="info-row" v-if="messageDetail.content.patient_card_no">
 						<text class="label">用户就诊卡号：</text>
-						<text class="value">{{ item.content.patient_card_no }}</text>
+						<text class="value">{{ messageDetail.content.patient_card_no }}</text>
 					</view>
-					<view class="info-row" v-if="item.content.patient_name">
+					<view class="info-row" v-if="messageDetail.content.patient_name">
 						<text class="label">用户姓名：</text>
-						<text class="value">{{ item.content.patient_name }}</text>
+						<text class="value">{{ messageDetail.content.patient_name }}</text>
 					</view>
-					<view class="info-row" v-if="item.content.doctor_name">
+					<view class="info-row" v-if="messageDetail.content.doctor_name">
 						<text class="label">医生姓名：</text>
-						<text class="value">{{ item.content.doctor_name }}</text>
+						<text class="value">{{ messageDetail.content.doctor_name }}</text>
 					</view>
-					<view class="info-row" v-if="item.content.department_name">
+					<view class="info-row" v-if="messageDetail.content.department_name">
 						<text class="label">科室名称：</text>
-						<text class="value">{{ item.content.department_name }}</text>
+						<text class="value">{{ messageDetail.content.department_name }}</text>
 					</view>
-					<view class="info-row" v-if="item.content.appointment_time">
+					<view class="info-row" v-if="messageDetail.content.appointment_time">
 						<text class="label">预约时间：</text>
-						<text class="value">{{ item.content.appointment_time }}</text>
+						<text class="value">{{ messageDetail.content.appointment_time }}</text>
 					</view>
-					<view class="info-row" v-if="item.content.hospital_remark">
+					<view class="info-row" v-if="messageDetail.content.hospital_remark">
 						<text class="label">医院备注：</text>
-						<text class="value remark">{{ item.content.hospital_remark }}</text>
+						<text class="value remark">{{ messageDetail.content.hospital_remark }}</text>
 					</view>
 				</view>
-				<view class="card-footer" @click="goToReceipt(item.appointmentId)">
+				<view class="card-footer" @click="goToReceipt(messageDetail.appointmentId)">
 					<text>查看详情</text>
 					<image class="arrow-icon" src="/static/icon_arrow_right.png" mode="aspectFit"></image>
 				</view>
@@ -45,49 +47,79 @@
 	export default {
 		data() {
 			return {
-				appointmentId: null, // 从上个页面传来的预约ID
-				messageDetailList: [] // 存储消息详情列表
+				messageId: null, // 从上个页面传来的消息ID
+				messageDetail: null // 存储单条消息详情
 			};
 		},
 		// uni-app生命周期函数，在页面加载时执行，可以获取路由参数
 		onLoad(options) {
-			if (options.appointmentId) {
-				this.appointmentId = options.appointmentId;
+			if (options.messageId) {
+				this.messageId = options.messageId;
 				this.fetchMessageDetail();
 			} else {
-				uni.showToast({ title: '加载失败，缺少预约ID', icon: 'none' });
+				uni.showToast({ title: '加载失败，缺少消息ID', icon: 'none' });
 			}
 		},
 		methods: {
+			// 根据消息类型返回卡片样式类
+			getCardClass(messageType) {
+				switch(messageType) {
+					case 'APPOINTMENT_REMINDER':
+						return 'card-reminder';
+					default:
+						return '';
+				}
+			},
+			
+			// 根据消息类型返回标题样式类
+			getTitleClass(messageType) {
+				switch(messageType) {
+					case 'APPOINTMENT_REMINDER':
+						return 'title-reminder';
+					case 'APPOINTMENT_CANCEL':
+						return 'title-cancel';
+					default:
+						return '';
+				}
+			},
+			
 			fetchMessageDetail() {
-				// 【重要】请确保这里的IP地址和端口是正确的
-				const apiUrl = `http://10.61.62.249:8095/jeecg-boot/api/messages/detail`;
+				// 【重要】调用新的单条消息接口
+				const apiUrl = `http://10.61.62.249:8095/jeecg-boot/api/messages/${this.messageId}`;
+				
+				console.log('📤 请求消息详情, messageId =', this.messageId);
+				console.log('📤 请求URL:', apiUrl);
 				
 				uni.request({
-					url: `${apiUrl}?appointmentId=${this.appointmentId}`,
+					url: apiUrl,
 					method: 'GET',
 					header:{
 						'X-Access-Token': uni.getStorageSync('token') 
 					},
 					success: (res) => {
-						if (res.statusCode === 200) {
+						console.log('📥 响应状态码:', res.statusCode);
+						console.log('📥 响应数据:', res.data);
+						
+						if (res.statusCode === 200 && res.data) {
 							// 后端返回的 content 是字符串，需要解析成JSON对象
-							this.messageDetailList = res.data.map(item => {
-								if (typeof item.content === 'string') {
-									try {
-										item.content = JSON.parse(item.content);
-									} catch (e) {
-										item.content = {}; // 解析失败则置为空对象
-									}
+							let item = res.data;
+							if (typeof item.content === 'string') {
+								try {
+									item.content = JSON.parse(item.content);
+								} catch (e) {
+									console.error('JSON解析失败:', e);
+									item.content = {}; // 解析失败则置为空对象
 								}
-								return item;
-							});
+							}
+							this.messageDetail = item;
+							console.log('✅ 消息详情加载成功');
 						} else {
+							console.error('❌ 加载失败，状态码:', res.statusCode);
 							uni.showToast({ title: '加载详情失败', icon: 'none' });
 						}
 					},
 					fail: (err) => {
-						console.error('API请求失败:', err);
+						console.error('❌ API请求失败:', err);
 						uni.showToast({ title: '网络请求失败', icon: 'none' });
 					}
 				});
@@ -137,6 +169,21 @@
 		font-weight: bold;
 		color: #333;
 		margin-bottom: 24rpx;
+	}
+	
+	/* 提醒消息标题样式 */
+	.body-title.title-reminder {
+		color: #ff9900;
+	}
+	
+	/* 取消消息标题样式 */
+	.body-title.title-cancel {
+		color: #999;
+	}
+	
+	/* 提醒消息卡片样式 */
+	.detail-card.card-reminder {
+		border-left: 4rpx solid #ff9900;
 	}
 	.info-row {
 		display: flex;

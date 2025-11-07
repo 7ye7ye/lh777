@@ -14,6 +14,7 @@ import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.core.env.Environment;
 
 import java.net.InetAddress;
@@ -27,6 +28,7 @@ import java.util.Map;
 */
 @Slf4j
 @SpringBootApplication
+@EnableScheduling
 //// 新增这行：扫描 org.jeecg.modules 下的所有子包（包括 hospital）
 //@ComponentScan(basePackages = "org.jeecg.modules")
 @ImportAutoConfiguration(JustAuthAutoConfiguration.class)  // spring boot 3.x justauth 兼容性处理

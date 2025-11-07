@@ -38,4 +38,13 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         queryWrapper.orderByDesc(Message::getCreatedTime);
         return baseMapper.selectList(queryWrapper);
     }
+    
+    /**
+     * 根据消息ID获取单条消息详情
+     */
+    @Override
+    public Message getMessageById(Integer messageId) {
+        // 直接使用MyBatis-Plus提供的getById方法
+        return baseMapper.selectById(messageId);
+    }
 }
