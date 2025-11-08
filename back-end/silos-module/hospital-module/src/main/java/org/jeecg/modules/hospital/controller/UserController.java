@@ -81,9 +81,16 @@ public class UserController {
             }});
         } catch (Exception e) {
             e.printStackTrace();
+            // 打印完整堆栈信息到控制台，便于排查问题
+            System.err.println("登录异常详情:");
+            e.printStackTrace();
+            // 构建错误信息（需要在匿名内部类外部构建，并声明为final）
+            final String errorMessage = (e.getMessage() != null && !e.getMessage().isEmpty()) 
+                ? "登录失败: " + e.getMessage() 
+                : "登录失败";
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new HashMap<String, Object>() {{
                 put("code", 500);
-                put("message", "登录失败");
+                put("message", errorMessage);
             }});
         }
     }
@@ -114,7 +121,13 @@ public class UserController {
                 }
             }
 
+            // 打印请求头信息，便于调试
+            System.out.println("请求头 X-Access-Token: " + request.getHeader("X-Access-Token"));
+            System.out.println("请求头 Authorization: " + request.getHeader("Authorization"));
+            System.out.println("提取的 Token: " + token);
+
             if (StringUtils.isBlank(token)) {
+                System.out.println("Token为空，返回401");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new HashMap<String, Object>() {{
                     put("code", 401);
                     put("message", "未登录或Token缺失");
@@ -123,7 +136,10 @@ public class UserController {
 
             // 3) 从 Token 解析用户名，并查询用户
             String username = JwtUtil.getUsername(token);
+            System.out.println("从Token解析的用户名: " + username);
+            
             if (StringUtils.isBlank(username)) {
+                System.out.println("Token解析失败，返回401");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new HashMap<String, Object>() {{
                     put("code", 401);
                     put("message", "Token无效或已过期");
