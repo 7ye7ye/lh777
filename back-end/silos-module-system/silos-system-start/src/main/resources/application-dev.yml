@@ -24,10 +24,6 @@ management:
         include: metrics,httpexchanges,jeecghttptrace
 
 spring:
-#  # 新增：指定MySQL驱动版本，解决版本不兼容问题
-#  mysql:
-#    version: 8.0.32
-
   devtools:
     restart:
       enabled: true

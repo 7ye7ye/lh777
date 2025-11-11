@@ -7,7 +7,7 @@
 </template>
 
 <script setup>
-import { computed, defineExpose } from 'vue'
+import { computed } from 'vue'
 import { useUserStore } from '@/store/user'
 
 const props = defineProps({

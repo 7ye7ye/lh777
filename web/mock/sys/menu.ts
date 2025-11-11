@@ -207,6 +207,119 @@ const sysRoute = {
   ],
 };
 
+// Admin management portal routes (backend-permission mock)
+const adminRoute = {
+  path: '/admin',
+  name: 'Admin',
+  component: 'LAYOUT',
+  redirect: '/admin/schedule-rules',
+  meta: {
+    icon: 'ion:settings-outline',
+    title: 'routes.admin.moduleName',
+  },
+  children: [
+    {
+      path: 'schedule-rules',
+      name: 'AdminScheduleRules',
+      component: '/admin/schedule/RuleSetting',
+      meta: {
+        title: 'routes.admin.scheduleRule',
+        ignoreKeepAlive: true,
+      },
+    },
+    {
+      path: 'schedule-adjustment',
+      name: 'AdminScheduleAdjustment',
+      component: '/admin/schedule/Adjustment',
+      meta: {
+        title: 'routes.admin.scheduleAdjustment',
+        ignoreKeepAlive: true,
+      },
+    },
+    {
+      path: 'number-type',
+      name: 'AdminNumberType',
+      component: '/admin/schedule/NumberTypeSetting',
+      meta: {
+        title: 'routes.admin.numberType',
+        ignoreKeepAlive: true,
+      },
+    },
+    {
+      path: 'reservation-rule',
+      name: 'AdminReservationRule',
+      component: '/admin/schedule/ReservationRule',
+      meta: {
+        title: 'routes.admin.reservationRule',
+        ignoreKeepAlive: true,
+      },
+    },
+    {
+      path: 'reg-rule',
+      name: 'AdminRegistrationRule',
+      component: '/admin/business/RegistrationRule',
+      meta: {
+        title: 'routes.admin.registrationRule',
+        ignoreKeepAlive: true,
+      },
+    },
+    {
+      path: 'refund-rule',
+      name: 'AdminRefundRule',
+      component: '/admin/business/RefundRule',
+      meta: {
+        title: 'routes.admin.refundRule',
+        ignoreKeepAlive: true,
+      },
+    },
+    {
+      path: 'statistics',
+      name: 'AdminStatistics',
+      component: '/admin/report/Statistics',
+      meta: {
+        title: 'routes.admin.statistics',
+        ignoreKeepAlive: true,
+      },
+    },
+    {
+      path: 'report-export',
+      name: 'AdminReportExport',
+      component: '/admin/report/ReportExport',
+      meta: {
+        title: 'routes.admin.reportExport',
+        ignoreKeepAlive: true,
+      },
+    },
+    {
+      path: 'role',
+      name: 'AdminRole',
+      component: '/admin/access/RoleManage',
+      meta: {
+        title: 'routes.admin.role',
+        ignoreKeepAlive: true,
+      },
+    },
+    {
+      path: 'account-permission',
+      name: 'AdminAccountPermission',
+      component: '/admin/access/AccountPermission',
+      meta: {
+        title: 'routes.admin.accountPermission',
+        ignoreKeepAlive: true,
+      },
+    },
+    {
+      path: 'leave-approval',
+      name: 'AdminLeaveApproval',
+      component: '/admin/access/LeaveApproval',
+      meta: {
+        title: 'routes.admin.leaveApproval',
+        ignoreKeepAlive: true,
+      },
+    },
+  ],
+};
+
 const linkRoute = {
   path: '/link',
   name: 'Link',
@@ -254,7 +367,7 @@ export default [
       switch (id) {
         case '1':
           dashboardRoute.redirect = dashboardRoute.path + '/' + dashboardRoute.children[0].path;
-          menu = [dashboardRoute, authRoute, levelRoute, sysRoute, linkRoute];
+          menu = [dashboardRoute, adminRoute, authRoute, levelRoute, sysRoute, linkRoute];
           break;
         case '2':
           dashboardRoute.redirect = dashboardRoute.path + '/' + dashboardRoute.children[1].path;

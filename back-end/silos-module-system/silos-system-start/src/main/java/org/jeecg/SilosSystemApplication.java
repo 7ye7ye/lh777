@@ -27,11 +27,9 @@ import java.util.Map;
 */
 @Slf4j
 @SpringBootApplication
-//// 新增这行：扫描 org.jeecg.modules 下的所有子包（包括 hospital）
-//@ComponentScan(basePackages = "org.jeecg.modules")
-@ImportAutoConfiguration(JustAuthAutoConfiguration.class)  // spring boot 3.x justauth 兼容性处理
+@ComponentScan(basePackages = "org.jeecg")
+@ImportAutoConfiguration(JustAuthAutoConfiguration.class)
 @MapperScan("org.jeecg.modules.hospital.mapper")
-//@EnableAutoConfiguration(exclude={MongoAutoConfiguration.class})
 public class SilosSystemApplication extends SpringBootServletInitializer {
 
     @Override
@@ -40,26 +38,16 @@ public class SilosSystemApplication extends SpringBootServletInitializer {
     }
 
     public static void main(String[] args) throws UnknownHostException {
-        SpringApplication app = new SpringApplication(SilosSystemApplication.class);
-        Map<String, Object> defaultProperties = new HashMap<>();
-        defaultProperties.put("management.health.elasticsearch.enabled", false);
-        app.setDefaultProperties(defaultProperties);
-        log.info("[JEECG] Elasticsearch Health Check Enabled: false" );
-
-        ConfigurableApplicationContext application = app.run(args);;
-        // Fix websocket
-//        org.jeecg.modules.m2.controller.websocket.WebsocketSessionController.setApplicationContext(application);
+        ConfigurableApplicationContext application = SpringApplication.run(SilosSystemApplication.class, args);
         Environment env = application.getEnvironment();
         String ip = InetAddress.getLocalHost().getHostAddress();
         String port = env.getProperty("server.port");
         String path = oConvertUtils.getString(env.getProperty("server.servlet.context-path"));
         log.info("\n----------------------------------------------------------\n\t" +
-                "Application Jeecg-Boot is running! Access URLs:\n\t" +
-                "Local: \t\thttp://localhost:" + port + path + "/doc.html\n\t" +
-                "External: \thttp://" + ip + ":" + port + path + "/doc.html\n\t" +
+                "Application Silos-System is running! Access URLs:\n\t" +
+                "Local: \t\thttp://localhost:" + port + path + "/\n\t" +
+                "External: \thttp://" + ip + ":" + port + path + "/\n\t" +
                 "Swagger文档: \thttp://" + ip + ":" + port + path + "/doc.html\n" +
                 "----------------------------------------------------------");
-
     }
-
 }
