@@ -280,6 +280,20 @@
 					"style": {
 						"navigationBarTitleText": "体检套餐"
 					}
+				},
+				{
+					"path" : "appointment",
+					"style" : 
+					{
+						"navigationBarTitleText" : "预约挂号"
+					}
+				},
+				{
+					"path" : "payment",
+					"style" : 
+					{
+						"navigationBarTitleText" : ""
+					}
 				}
 			]
 		},
