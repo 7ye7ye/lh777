@@ -56,7 +56,11 @@ public class RegistrationServiceImpl implements RegistrationService {
             if (schedule == null) {
                 return Result.error("未找到对应排班信息");
             }
-
+            // 3. 重复挂号检测
+            boolean isDuplicate = checkDuplicateBySchedule(patientId, schedule.getScheduleId());
+            if (isDuplicate) {
+                return Result.error("您已预约过该医生的该时段，请勿重复挂号！");
+            }
             // 3. 检查每日上限
             RegistrationType type = registrationMapper.selectTypeById(record.getTypeId());
             if (type == null) {
@@ -130,4 +134,11 @@ public class RegistrationServiceImpl implements RegistrationService {
         wrapper.orderByDesc("register_time");
         return registrationMapper.selectList(wrapper);
     }
+
+    @Override
+    public boolean checkDuplicateBySchedule(Long patientId, Long scheduleId) {
+        Integer count = registrationMapper.checkDuplicateBySchedule(patientId, scheduleId);
+        return count != null && count > 0;
+    }
+
 }

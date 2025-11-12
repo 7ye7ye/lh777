@@ -143,7 +143,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getRegistrationTypes, getDoctorSchedules, createRegistration } from '../../api/registration'
+import { getRegistrationTypes, getDoctorSchedules, createRegistration, checkDuplicateBySchedule } from '../../api/registration'
 
 const selectedSlot = ref(null)
 const doctor = ref({})
@@ -396,29 +396,45 @@ const confirmAppointment = async () => {
     return
   }
 
-  // 只提示预约成功，不写入挂号表
-  uni.showModal({
-    title: '预约成功',
-    content: '您的预约已成功，请前往支付完成挂号。',
-    showCancel: false,
-    confirmText: '去支付',
-    success: () => {
-      // 跳转到支付页面，传递必要参数
-      uni.navigateTo({
-        url: `/subpkg/hospital/payment?` +
-             `dept=${encodeURIComponent(department.value.deptName)}&` +
-             `deptId=${department.value.deptId}&` +
-             `doctor=${encodeURIComponent(doctor.value.doctorName)}&` +
-             `doctorId=${doctor.value.doctorId}&` +
-             `time=${encodeURIComponent(appointmentDate.value + ' ' + selectedSlot.value)}&` +
-             `typeId=${selectedType.value.typeId}&` +
-             `scheduleId=${selectedSchedule.value.schedule_id || selectedSchedule.value.scheduleId}`
-      })
+  const scheduleId = selectedSchedule.value.schedule_id ?? selectedSchedule.value.scheduleId
+
+  try {
+    // 调用后端检查是否重复挂号
+    const isDuplicate = await checkDuplicateBySchedule(1, selectedSchedule.value.schedule_id || selectedSchedule.value.scheduleId);
 
 
+
+    if (isDuplicate) {
+      uni.showToast({ title: '您已预约过该时段，请勿重复挂号', icon: 'none' })
+      return
     }
-  })
+
+    // 预约成功提示
+    uni.showModal({
+      title: '预约成功',
+      content: '您的预约已成功，请前往支付完成挂号。',
+      showCancel: false,
+      confirmText: '去支付',
+      success: () => {
+        uni.navigateTo({
+          url: `/subpkg/hospital/payment?` +
+               `dept=${encodeURIComponent(department.value.deptName)}&` +
+               `deptId=${department.value.deptId}&` +
+               `doctor=${encodeURIComponent(doctor.value.doctorName)}&` +
+               `doctorId=${doctor.value.doctorId}&` +
+               `time=${encodeURIComponent(appointmentDate.value + ' ' + selectedSlot.value)}&` +
+               `typeId=${selectedType.value.typeId}&` +
+               `scheduleId=${scheduleId}`
+        })
+      }
+    })
+
+  } catch (e) {
+    console.error('检查重复挂号失败', e)
+    uni.showToast({ title: '无法检查重复挂号，请稍后重试', icon: 'none' })
+  }
 }
+
 
 </script>
 

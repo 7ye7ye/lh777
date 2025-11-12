@@ -57,4 +57,19 @@ public class RegistrationAppletController {
         List<RegistrationRecord> records = registrationService.getRecordsByPatientId(patientId);
         return Result.OK(records);
     }
+
+    @Operation(summary = "检查患者是否已对该排班挂号（防止重复挂号）")
+    @GetMapping("/checkDuplicateBySchedule")
+    public Result<Boolean> checkDuplicateBySchedule(@RequestParam Long patientId,
+                                                    @RequestParam Long scheduleId) {
+        boolean isDuplicate = registrationService.checkDuplicateBySchedule(patientId, scheduleId);
+        if (isDuplicate) {
+            // 消息在前，数据在后
+            return Result.OK("您已挂过该排班的号", true);
+        } else {
+            return Result.OK("未发现重复挂号", false);
+        }
+    }
+
+
 }

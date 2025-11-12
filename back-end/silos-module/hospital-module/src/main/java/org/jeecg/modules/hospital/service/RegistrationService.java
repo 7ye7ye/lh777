@@ -38,4 +38,14 @@ public interface RegistrationService {
      * 根据患者ID获取挂号记录
      */
     List<RegistrationRecord> getRecordsByPatientId(Long patientId);
+
+    /**
+     * 检查患者是否对同一排班重复挂号
+     * @param patientId 患者ID
+     * @param scheduleId 排班ID
+     * @return true 表示已存在重复挂号，false 表示未重复
+     */
+    boolean checkDuplicateBySchedule(Long patientId, Long scheduleId);
+
+
 }

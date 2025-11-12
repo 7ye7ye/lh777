@@ -102,5 +102,19 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
             "#{scheduleId}, #{patientId}, #{doctorId}, #{typeId}, #{registrationNo}, #{registerTime}, #{status}, #{priceOriginal}, #{actualPrice}, #{isAdd}" +
             ")")
     void insertRegistration(RegistrationRecord record);
+    /**
+     * 检查患者是否对同一排班重复挂号（防止重复挂号）
+     * @param patientId 患者ID
+     * @param scheduleId 排班ID
+     * @return 重复记录数量（>0 表示重复）
+     */
+    @Select("SELECT COUNT(*) " +
+            "FROM registration_record r " +
+            "WHERE r.patient_id = #{patientId} " +
+            "AND r.schedule_id = #{scheduleId} " +
+            "AND r.status != 3")  // 状态 3 代表取消
+    Integer checkDuplicateBySchedule(@Param("patientId") Long patientId,
+                                                 @Param("scheduleId") Long scheduleId);
+
 
 }

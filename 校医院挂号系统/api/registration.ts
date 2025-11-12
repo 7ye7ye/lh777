@@ -48,3 +48,14 @@ export const createRegistration = async (
 export const getRegistrationRecords = async (patientId: number) => {
   return request.get('/records', { patientId });
 };
+
+/**
+ * ✅ 检查该患者是否已预约过同一排班（scheduleId）
+ * @param patientId 患者ID
+ * @param scheduleId 排班ID
+ */
+export const checkDuplicateBySchedule = async (patientId: number, scheduleId: number) => {
+  return request.get(
+      `/checkDuplicateBySchedule?patientId=${patientId}&scheduleId=${scheduleId}`
+    );
+};
