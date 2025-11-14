@@ -101,7 +101,7 @@
 import { ref, onMounted, computed } from 'vue' 
 import { uniNavigateTo, uniShowToast } from '../../../utils/uniHelper' 
 import { useUserStore } from '../../../store/user.js'
-import { doctorApi } from '../../../api/doctor'
+import { doctorApi } from '../../../api/doctor_massage'
 
 // 医生信息（如需从用户状态中取，可替换为 pinia 的 userStore）
 const userStore = useUserStore()

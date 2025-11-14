@@ -63,7 +63,7 @@
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getDepartmentDetail } from '../../api/department'
-import { getDoctorsByDeptId } from '../../api/doctor'
+import { getDoctorsByDeptId } from '../../api/doctor_massage'
 
 const deptId = ref('')
 const department = ref({})

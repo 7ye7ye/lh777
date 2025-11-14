@@ -47,7 +47,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { uniNavigateTo, uniShowToast } from '../../../utils/uniHelper'
 import { useUserStore } from '../../../store/user.js'
-import { doctorApi } from '../../../api/doctor'
+import { doctorApi } from '../../../api/doctor_massage'
 
 const userStore = useUserStore()
 const doctorId = computed(() => userStore.userInfo?.id || 1)

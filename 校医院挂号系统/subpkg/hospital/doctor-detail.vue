@@ -56,7 +56,7 @@
 <script setup>
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getDoctorDetail } from '../../api/doctor'
+import { getDoctorDetail } from '../../api/doctor_massage'
 import { getDepartmentDetail } from '../../api/department'
 
 const doctorId = ref('')
