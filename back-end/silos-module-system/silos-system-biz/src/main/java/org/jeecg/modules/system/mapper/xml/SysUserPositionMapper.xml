@@ -17,7 +17,6 @@
         SELECT position_id FROM sys_user_position
         WHERE
         user_id = #{userId}
-        ORDER BY create_time DESC
     </select>
 
     <!--根据用户ID和租户ID获取职位id-->

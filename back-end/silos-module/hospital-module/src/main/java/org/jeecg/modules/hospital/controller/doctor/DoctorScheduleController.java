@@ -121,8 +121,8 @@ public class DoctorScheduleController {
             dto.setId(s.getScheduleId() == null ? 0L : s.getScheduleId());
             dto.setDate(s.getScheduleDate() == null ? "" : s.getScheduleDate().toString());
             dto.setTimeRange(mapSlotToTimeRange(s.getTimeSlot()));
-            dto.setRoomNo(mapSlotToRoomNo(s.getTimeSlot()));
-            int total = defaultTotalSlots(s.getTimeSlot());
+            dto.setRoomNo(s.getRoomNumber());
+            int total = s.getMaxQuota() == null ? 0 : s.getMaxQuota();
             // 安全统计：云库异常时回退 usedQuota，避免前端全挂
             int booked;
             try {

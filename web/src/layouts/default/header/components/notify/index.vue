@@ -69,7 +69,9 @@
 
       const popoverVisible = ref<boolean>(false);
       onMounted(() => {
-       initWebSocket();
+        if (!import.meta.env.VITE_USE_MOCK) {
+          initWebSocket();
+        }
       });
 
       function mapAnnouncement(item) {
@@ -84,6 +86,10 @@
       // 获取系统消息
       async function loadData() {
         try {
+          const token = getToken();
+          if (!token) {
+            return;
+          }
           let { anntMsgList, sysMsgList, anntMsgTotal, sysMsgTotal } = await listCementByUser({
             pageSize: 5,
           });
@@ -121,6 +127,9 @@
       // 初始化 WebSocket
       function initWebSocket() {
         let token = getToken();
+        if (!token) {
+          return;
+        }
         //将登录token生成一个短的标识
         let wsClientId = md5(token);
         let userId = unref(userStore.getUserInfo).id + "_" + wsClientId;

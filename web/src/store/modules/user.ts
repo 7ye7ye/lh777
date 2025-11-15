@@ -144,47 +144,26 @@ export const useUserStore = defineStore({
     ): Promise<GetUserInfoModel | null> {
       try {
         const { goHome = true, mode, ...loginParams } = params;
-        
-        // 1. 调用登录接口并打印调试信息
-        console.log('登录请求参数:', loginParams);
-        const response = await loginApi(loginParams, mode);
-        console.log('登录接口返回数据:', response);
-        
-        // 2. 检查接口是否返回了有效响应
-        if (!response) {
-          throw new Error('登录接口未返回任何数据，请检查接口是否正常');
+        const res = await loginApi(loginParams, mode);
+        const payload: any = res?.data ?? res?.result ?? res;
+        const token = payload?.token;
+        const user = payload?.user;
+        if (!token || !user) {
+          throw new Error('登录响应缺少必要字段');
         }
-        
-        // 3. 解构token和user信息（适配HosUser类型）
-        const { token, user } = response; // 直接解构响应数据
-        
-        // 4. 验证关键数据是否存在
-        if (!token) {
-          throw new Error('登录失败：后端未返回token');
-        }
-        if (!user) {
-          throw new Error('登录失败：后端未返回用户信息');
-        }
-        
-        // 5. 保存token
         this.setToken(token);
-        
-        // 6. 构造用户信息对象，适配HosUser类型
         const userInfo = {
           username: user.userAccount,
-          realname: user.userAccount, // 如果后端没有返回realname，使用userAccount
+          realname: user.userAccount,
           avatar: '',
           desc: '',
           roles: [],
-          homePath: '/dashboard/analysis', // 默认首页
-          ...user // 保留所有HosUser的原始字段
-        };
-        
-        // 7. 执行登录后的后续操作
+          homePath: '/dashboard/analysis',
+          ...user,
+        } as any;
+        this.setUserInfo(userInfo as any);
         return this.afterLoginAction(goHome, { token, userInfo });
       } catch (error) {
-        // 打印完整错误信息，方便排查
-        console.error('登录过程出错:', error);
         return Promise.reject(error);
       }
     },
@@ -208,41 +187,27 @@ export const useUserStore = defineStore({
      */
     async afterLoginAction(goHome?: boolean, data?: any): Promise<any | null> {
       if (!this.getToken) return null;
-      
       try {
-        // 获取用户信息（使用简化版本）
-        const userInfo = await this.getUserInfoAction();
-        
-        // 设置登录信息
+        const passed = data?.userInfo;
+        const userInfo = passed ? passed : await this.getUserInfoAction();
+        if (userInfo) this.setUserInfo(userInfo);
         await this.setLoginInfo({ ...data, isLogin: true });
-        
-        // 缓存拖拽模块的接口前缀
         localStorage.setItem(JDragConfigEnum.DRAG_BASE_URL, useGlobSetting().domainUrl);
-
-        // 设置 session timeout 标志
         const sessionTimeout = this.sessionTimeout;
         if (sessionTimeout) {
           this.setSessionTimeout(false);
         }
-
-        // 处理重定向逻辑
         let redirect = router.currentRoute.value?.query?.redirect as string;
         if (redirect && goHome) {
-          // 如果有重定向地址，跳转到指定页面
           window.open(`${router.options.history.base}${redirect}`, '_self');
           return data;
         }
-
-        // 默认跳转到首页
         if (goHome) {
           const homePath = userInfo?.homePath || PageEnum.BASE_HOME;
           await router.replace(homePath);
         }
-        
         return data;
       } catch (error) {
-        console.error('登录后处理失败:', error);
-        // 即使出错也要跳转到首页，避免用户卡在登录页
         if (goHome) {
           await router.replace(PageEnum.BASE_HOME);
         }

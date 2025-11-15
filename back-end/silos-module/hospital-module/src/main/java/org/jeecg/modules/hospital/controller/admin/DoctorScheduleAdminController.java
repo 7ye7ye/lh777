@@ -12,7 +12,10 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 管理员-医生排班管理控制器
@@ -37,7 +40,7 @@ public class DoctorScheduleAdminController {
     }
 
     @Operation(summary = "根据排班ID获取详情")
-    @GetMapping("/{scheduleId}")
+    @GetMapping("/{scheduleId:\\d+}")
     public Result<DoctorSchedule> detail(@PathVariable Long scheduleId) {
         DoctorSchedule s = scheduleService.getById(scheduleId);
         return Result.OK(s);
@@ -77,9 +80,61 @@ public class DoctorScheduleAdminController {
     }
 
     @Operation(summary = "删除排班")
-    @DeleteMapping("/{scheduleId}")
+    @DeleteMapping("/{scheduleId:\\d+}")
     public Result<Boolean> delete(@PathVariable Long scheduleId) {
         boolean ok = scheduleService.delete(scheduleId);
         return Result.OK(ok);
+    }
+
+    @Operation(summary = "按科室查询指定年月排班映射")
+    @GetMapping("/month-by-dept")
+    public Result<Map<String, List<Map<String, Integer>>>> monthByDept(
+            @RequestParam Long deptId,
+            @RequestParam Integer year,
+            @RequestParam Integer month
+    ) {
+        LocalDate start = LocalDate.of(year, month, 1);
+        LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
+        List<DoctorSchedule> list = scheduleService.lambdaQuery()
+                .eq(DoctorSchedule::getDeptId, deptId)
+                .ge(DoctorSchedule::getScheduleDate, start)
+                .le(DoctorSchedule::getScheduleDate, end)
+                .eq(DoctorSchedule::getStatus, 1)
+                .list();
+        Map<String, List<Map<String, Integer>>> resp = new HashMap<>();
+        for (DoctorSchedule ds : list) {
+            String key = ds.getScheduleDate().toString();
+            List<Map<String, Integer>> arr = resp.computeIfAbsent(key, k -> new ArrayList<>());
+            Map<String, Integer> obj = new HashMap<>();
+            obj.put("timeSlot", ds.getTimeSlot());
+            arr.add(obj);
+        }
+        return Result.OK(resp);
+    }
+
+    @Operation(summary = "按医生查询指定年月排班映射")
+    @GetMapping("/month-by-doctor")
+    public Result<Map<String, List<Map<String, Integer>>>> monthByDoctor(
+            @RequestParam Long doctorId,
+            @RequestParam Integer year,
+            @RequestParam Integer month
+    ) {
+        LocalDate start = LocalDate.of(year, month, 1);
+        LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
+        List<DoctorSchedule> list = scheduleService.lambdaQuery()
+                .eq(DoctorSchedule::getDoctorId, doctorId)
+                .ge(DoctorSchedule::getScheduleDate, start)
+                .le(DoctorSchedule::getScheduleDate, end)
+                .eq(DoctorSchedule::getStatus, 1)
+                .list();
+        Map<String, List<Map<String, Integer>>> resp = new HashMap<>();
+        for (DoctorSchedule ds : list) {
+            String key = ds.getScheduleDate().toString();
+            List<Map<String, Integer>> arr = resp.computeIfAbsent(key, k -> new ArrayList<>());
+            Map<String, Integer> obj = new HashMap<>();
+            obj.put("timeSlot", ds.getTimeSlot());
+            arr.add(obj);
+        }
+        return Result.OK(resp);
     }
 }

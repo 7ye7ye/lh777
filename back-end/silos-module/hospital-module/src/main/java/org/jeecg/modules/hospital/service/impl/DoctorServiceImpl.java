@@ -23,8 +23,8 @@ public class DoctorServiceImpl extends ServiceImpl<DoctorMapper, Doctor> impleme
     public List<Doctor> getAllDoctors() {
         QueryWrapper<Doctor> queryWrapper = new QueryWrapper<>();
         // 假设 status 字段为 1 表示正常出诊的医生
-        queryWrapper.eq("status", 1)
-                .orderByDesc("create_time");
+        queryWrapper.eq("is_active", 1);
+        queryWrapper.orderByDesc("doctor_id");
         return this.list(queryWrapper);
     }
 
@@ -41,8 +41,8 @@ public class DoctorServiceImpl extends ServiceImpl<DoctorMapper, Doctor> impleme
                         .or()
                         .like("specialty", keyword)
                 )
-                .eq("status", 1)  // 只搜索正常出诊的医生
-                .orderByDesc("create_time");
+                .eq("is_active", 1)  // 只搜索正常出诊的医生
+                .orderByDesc("doctor_id");  // 修复：使用 doctor_id 排序
         return this.list(queryWrapper);
     }
 
@@ -65,8 +65,8 @@ public class DoctorServiceImpl extends ServiceImpl<DoctorMapper, Doctor> impleme
     public List<Doctor> getDoctorsByDeptId(Long deptId) {
         QueryWrapper<Doctor> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("dept_id", deptId)
-                .eq("status", 1)  // 只返回正常出诊的医生
-                .orderByDesc("create_time");
+                .eq("is_active", 1)  // 只返回正常出诊的医生
+                .orderByDesc("doctor_id");  // 修复：使用 doctor_id 排序
         return this.list(queryWrapper);
     }
 }

@@ -75,8 +75,12 @@ export interface DoctorListParams {
 /**
  * 获取医生列表
  */
-export const getDoctorList = (params?: DoctorListParams) =>
-  defHttp.get<Doctor[]>({ url: Api.DoctorList, params });
+export const getDoctorList = (params?: DoctorListParams) => {
+  if (params?.deptId) {
+    return defHttp.get<Doctor[]>({ url: `/applet/doctor/by-dept/${params.deptId}` });
+  }
+  return defHttp.get<Doctor[]>({ url: `/applet/doctor/list` });
+}
 
 /**
  * 获取医生详情

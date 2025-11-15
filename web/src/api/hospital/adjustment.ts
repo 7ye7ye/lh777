@@ -60,3 +60,18 @@ export const getAdjustmentDetail = (adjustmentId: number) =>
   defHttp.get<AdjustmentRecord>({
     url: `/admin/adjustment/${adjustmentId}`,
   });
+
+// 医生提交调班申请
+export interface DoctorShiftChangeApplyDTO {
+  originalScheduleId: number;
+  targetDate: string;
+  targetTimeSlot: number;
+  targetDeptId: number;
+  reason: string;
+}
+
+export const applyShiftChange = (data: DoctorShiftChangeApplyDTO) =>
+  defHttp.post<boolean>({
+    url: '/doctor/shift-change/apply',
+    data,
+  });

@@ -201,8 +201,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { uniNavigateTo, uniShowToast } from '@/utils/uniHelper'
+import { useUserStore } from '@/store/user'
+import { doctorApi } from '@/api/doctor'
+import { getDepartmentDetail } from '@/api/department'
 
 // 医生信息（示例数据，可通过接口替换）
 const doctorInfo = ref({
@@ -221,6 +224,65 @@ const stats = ref({
   totalPatients: 1258,
   todayPatients: 12,
   rating: 4.8
+})
+
+const loadingProfile = ref(false)
+const userStore = useUserStore()
+
+async function loadDoctorProfile() {
+  if (loadingProfile.value) return
+  loadingProfile.value = true
+  try {
+    let p = await doctorApi.getMyProfile()
+    if (!p || (typeof p === 'object' && Object.keys(p).length === 0)) {
+      const uid =
+        userStore?.userInfo?.userId ??
+        userStore?.userInfo?.id ??
+        uni.getStorageSync('userInfo')?.userId ??
+        uni.getStorageSync('userInfo')?.id
+      if (uid) {
+        p = await doctorApi.getProfileByUserId(Number(uid))
+      }
+    }
+    if (!p || (typeof p === 'object' && Object.keys(p).length === 0)) {
+      await uniShowToast({ title: '未获取到医生资料', icon: 'none' })
+      return
+    }
+
+    doctorInfo.value = {
+      name: p.doctorName || p.name || p.realName || '未知姓名',
+      title: p.title || p.professionalTitle || '医师',
+      department: p.deptName || p.departmentName || p.department || '未知科室',
+      avatar: p.avatar || p.avatarUrl || p.photo || '/static/doctor.svg',
+      phone: p.phone || p.mobile || p.tel || '',
+      email: p.email || p.mail || '',
+      licenseNumber: p.licenseNumber || p.license_no || p.license || '',
+      yearsOfPractice: p.yearsOfPractice ?? p.years ?? p.practiceYears ?? 0,
+      specialty: p.specialty || p.doctor_desc || p.description || ''
+    }
+
+    if (p.totalPatients || p.todayPatients || p.rating) {
+      stats.value = {
+        totalPatients: Number(p.totalPatients ?? stats.value.totalPatients),
+        todayPatients: Number(p.todayPatients ?? stats.value.todayPatients),
+        rating: Number(p.rating ?? stats.value.rating)
+      }
+    }
+  } catch (e) {
+    console.error('加载医生资料失败:', e)
+    await uniShowToast({ title: '加载医生资料失败', icon: 'none' })
+  } finally {
+    loadingProfile.value = false
+  }
+}
+
+onMounted(() => {
+  try {
+    if (!userStore.userInfo || !userStore.token) {
+      userStore.initFromStorage?.()
+    }
+  } catch (_) {}
+  loadDoctorProfile()
 })
 
 // 返回医生主界面
