@@ -72,6 +72,10 @@ export const doctorApi = {
   // 更新就诊状态（已接诊/已完成）
   updatePatientStatus: (appointmentId: number, status: 'RECEIVED' | 'DONE') =>
     d.post('/patient/status', { appointmentId, status }),
+    
+  // 获取医生详情
+  getDoctorDetail: (doctorId: number | string) =>
+    d.get(`/${doctorId}`),
 };
 
 // 获取医生详情
