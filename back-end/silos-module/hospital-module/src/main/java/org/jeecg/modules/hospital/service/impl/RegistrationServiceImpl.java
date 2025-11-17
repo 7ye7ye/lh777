@@ -142,44 +142,38 @@ public class RegistrationServiceImpl implements RegistrationService {
     }
 
     @Override
-    public boolean addWaitingQueue(WaitingQueue queue) {
-        if (queue == null) {
-            System.err.println("[addWaitingQueue] 传入队列对象为空");
-            return false;
-        }
-        if (queue.getPatientId() == null) {
-            System.err.println("[addWaitingQueue] patientId 为空, queue=" + queue);
-            return false;
-        }
-        if (queue.getScheduleId() == null) {
-            System.err.println("[addWaitingQueue] scheduleId 为空, queue=" + queue);
-            return false;
+    public Result<String> addWaitingQueue(WaitingQueue queue) {
+        if (queue == null || queue.getPatientId() == null || queue.getScheduleId() == null) {
+            return Result.error("缺少必要信息");
         }
 
         try {
-            // 查询当前排班下候补最大排名
-            Integer maxRank = waitingQueueMapper.selectMaxQueueRank(queue.getScheduleId());
-            System.out.println("[addWaitingQueue] 当前最大排名 maxRank=" + maxRank);
+            // 检查是否已在候补队列
+            int existing = waitingQueueMapper.countExistingQueue(queue.getScheduleId(), queue.getPatientId());
+            if (existing > 0) {
+                return Result.error("您已在该排班的候补队列中");
+            }
 
+            // 查询最大排名
+            Integer maxRank = waitingQueueMapper.selectMaxQueueRank(queue.getScheduleId());
             queue.setQueueRank(maxRank != null ? maxRank + 1 : 1);
             queue.setQueueTime(LocalDateTime.now());
-            queue.setStatus(0); // 0-等待状态
+            queue.setStatus(0);
+            if (queue.getRecordId() == null) queue.setRecordId(null);
 
-            int rows = waitingQueueMapper.insert(queue); // 返回插入行数
-            System.out.println("[addWaitingQueue] 插入行数 rows=" + rows + ", queue=" + queue);
-
+            int rows = waitingQueueMapper.insert(queue);
             if (rows == 1) {
-                return true;
+                return Result.OK("已加入候补队列");
             } else {
-                System.err.println("[addWaitingQueue] 插入失败，rows=" + rows);
-                return false;
+                return Result.error("加入候补失败");
             }
         } catch (Exception e) {
-            System.err.println("[addWaitingQueue] 异常发生，queue=" + queue);
             e.printStackTrace();
-            return false;
+            return Result.error("加入候补异常：" + e.getMessage());
         }
     }
+
+
 
 
 

@@ -371,7 +371,7 @@
 			available: false,
 			remaining: 0
 		}
-
+	
 		// 无排班不可选
 		if (!slotInfo.exists) {
 			uni.showToast({
@@ -380,76 +380,85 @@
 			})
 			return
 		}
-
+	
 		// 有排班但已满 → 可以候补
 		if (slotInfo.remaining === 0) {
 			// ⭐即使已满，也要找到对应 schedule，给 selectedSchedule 赋值
-			    const slotSchedules = schedules.value.filter(s => {
-			        const dateStr = s.schedule_date ?? s.scheduleDate ?? ''
-			        return (
-			            String(dateStr).substring(0, 10) === String(appointmentDate.value).substring(0, 10) &&
-			            Number(s.time_slot) === Number(timeSlotMap[slot.key])
-			        )
-			    })
-			
-			    // 选一条（通常只有一条）
-			    selectedSchedule.value = slotSchedules.length ? slotSchedules[0] : null
-			    console.log("已满时 selectedSchedule =", selectedSchedule.value)
-		    uni.showModal({
-		        title: '号源已满',
-		        content: '该时段已无可用号源，您可以选择加入候补队列',
-		        cancelText: '取消',
-		        confirmText: '加入候补',
-		        async success(res) {
-		            if (res.confirm) {
-		                try {
+			const slotSchedules = schedules.value.filter(s => {
+				const dateStr = s.schedule_date ?? s.scheduleDate ?? ''
+				return (
+					String(dateStr).substring(0, 10) === String(appointmentDate.value).substring(0, 10) &&
+					Number(s.time_slot) === Number(timeSlotMap[slot.key])
+				)
+			})
+	
+			selectedSchedule.value = slotSchedules.length ? slotSchedules[0] : null
+			console.log("已满时 selectedSchedule =", selectedSchedule.value)
+	
+		uni.showModal({
+		    title: '号源已满',
+		    content: '该时段已无可用号源，您可以选择加入候补队列',
+		    cancelText: '取消',
+		    confirmText: '加入候补',
+		    async success(res) {
+		        if (res.confirm) {
+		            if (!selectedSchedule.value) {
+		                console.error("selectedSchedule.value 为空，无法获取排班 ID");
+		                uni.showToast({
+		                    title: '候补失败：未找到排班',
+		                    icon: 'none'
+		                });
+		                return;
+		            }
 		
-		                    if (!selectedSchedule.value) {
-		                        console.error("selectedSchedule.value 为空，无法获取排班 ID")
-		                        return
-		                    }
+		            try {
+		                const scheduleId = selectedSchedule.value.schedule_id ?? selectedSchedule.value.scheduleId;
+		                const recordId = selectedSchedule.value?.recordId ?? null;
+		                const patientId = 1; // TODO: 从用户登录信息获取
 		
-		                    const scheduleId =
-		                        selectedSchedule.value.schedule_id ??
-		                        selectedSchedule.value.scheduleId
+		                // 调用封装后的 addWaitingQueue，确保取到 data
+		                const resData = await addWaitingQueue({
+		                    scheduleId,
+		                    patientId,
+		                    recordId
+		                });
 		
-		                    const recordId = selectedSchedule.value?.recordId ?? null
-		                    const patientId = 1 // TODO: 从用户登录信息获取
+		                // 打印接口返回值，用于调试
+		                console.log('addWaitingQueue返回值', resData);
 		
-		                    // 调试信息
-		                    console.log("候补 scheduleId =", scheduleId)
-		                    console.log("候补 recordId =", recordId)
-		                    console.log("完整 selectedSchedule =", selectedSchedule.value)
+		                // toast 文本兜底
+		                const toastTitle = resData?.message || (resData?.success ? '已加入候补队列' : '加入候补失败');
 		
-		                    await addWaitingQueue({
-		                        scheduleId,
-		                        patientId,
-		                        recordId
-		                    })
-		
-		                    selectedSlot.value = slot.key
-		
+		                if (resData && resData.success) {
+		                    selectedSlot.value = slot.key; // 更新选中状态
 		                    uni.showToast({
-		                        title: '已加入候补队列',
+		                        title: toastTitle,
 		                        icon: 'success'
-		                    })
-		                } catch (e) {
-		                    console.error('加入候补失败', e)
+		                    });
+		                } else {
 		                    uni.showToast({
-		                        title: '加入候补失败',
+		                        title: toastTitle,
 		                        icon: 'none'
-		                    })
+		                    });
 		                }
+		            } catch (e) {
+		                console.error('加入候补异常', e);
+		                uni.showToast({
+		                    title: '加入候补失败，请稍后重试',
+		                    icon: 'none'
+		                });
 		            }
 		        }
-		    })
-		    return
+		    }
+		});
+
+
+			return
 		}
-
-
-		// 正常有号源
+	
+		// 正常有号源，直接选中
 		selectedSlot.value = slot.key
-		
+	
 		// 更新 selectedSchedule 对应选中时段的排班（优先选有剩余的记录，若多条选剩余最大的）
 		const slotSchedules = schedules.value.filter(s => {
 			const dateStr = s.schedule_date ?? s.scheduleDate ?? ''
@@ -458,79 +467,75 @@
 				Number(s.time_slot) === Number(timeSlotMap[slot.key])
 			)
 		})
-
-
+	
 		if (!slotSchedules.length) {
 			selectedSchedule.value = null
 		} else {
-			// 将 available_quota 解析为数字
 			selectedSchedule.value = slotSchedules.reduce((best, cur) => {
-				const curRem = Number(cur.available_quota ?? cur.availableQuota ?? ((cur.max_quota ?? cur
-					.maxQuota ?? 0) - (cur.used_quota ?? cur.usedQuota ?? 0)))
-				const bestRem = best ? Number(best.available_quota ?? best.availableQuota ?? ((best
-					.max_quota ?? best.maxQuota ?? 0) - (best.used_quota ?? best.usedQuota ?? 0))) : -1
+				const curRem = Number(cur.available_quota ?? cur.availableQuota ?? ((cur.max_quota ?? cur.maxQuota ?? 0) - (cur.used_quota ?? cur.usedQuota ?? 0)))
+				const bestRem = best ? Number(best.available_quota ?? best.availableQuota ?? ((best.max_quota ?? best.maxQuota ?? 0) - (best.used_quota ?? best.usedQuota ?? 0))) : -1
 				return curRem > bestRem ? cur : best
 			}, null)
 		}
-
 	}
 
-	// ------------------ 确认预约 ------------------
-	const confirmAppointment = async () => {
-		if (!canSubmit.value) {
-			uni.showToast({
-				title: '请完整选择预约信息',
-				icon: 'none'
-			})
-			return
-		}
 
-		const scheduleId = selectedSchedule.value.schedule_id ?? selectedSchedule.value.scheduleId
-		console.log("获得的 scheduleId：", scheduleId)
-		console.log("selectedSchedule.value：", selectedSchedule.value)
-		try {
-			// 调用后端检查是否重复挂号
-			const isDuplicate = await checkDuplicateBySchedule(1, selectedSchedule.value.schedule_id ||
-				selectedSchedule.value.scheduleId);
+				// ------------------ 确认预约 ------------------
+				const confirmAppointment = async () => {
+					if (!canSubmit.value) {
+						uni.showToast({
+							title: '请完整选择预约信息',
+							icon: 'none'
+						})
+						return
+					}
+
+					const scheduleId = selectedSchedule.value.schedule_id ?? selectedSchedule.value.scheduleId
+					console.log("获得的 scheduleId：", scheduleId)
+					console.log("selectedSchedule.value：", selectedSchedule.value)
+					try {
+						// 调用后端检查是否重复挂号
+						const isDuplicate = await checkDuplicateBySchedule(1, selectedSchedule.value.schedule_id ||
+							selectedSchedule.value.scheduleId);
 
 
 
-			if (isDuplicate) {
-				uni.showToast({
-					title: '您已预约过该时段，请勿重复挂号',
-					icon: 'none'
-				})
-				return
-			}
+						if (isDuplicate) {
+							uni.showToast({
+								title: '您已预约过该时段，请勿重复挂号',
+								icon: 'none'
+							})
+							return
+						}
 
-			// 预约成功提示
-			uni.showModal({
-				title: '预约成功',
-				content: '您的预约已成功，请前往支付完成挂号。',
-				showCancel: false,
-				confirmText: '去支付',
-				success: () => {
-					uni.navigateTo({
-						url: `/subpkg/hospital/payment?` +
-							`dept=${encodeURIComponent(department.value.deptName)}&` +
-							`deptId=${department.value.deptId}&` +
-							`doctor=${encodeURIComponent(doctor.value.doctorName)}&` +
-							`doctorId=${doctor.value.doctorId}&` +
-							`time=${encodeURIComponent(appointmentDate.value + ' ' + selectedSlot.value)}&` +
-							`typeId=${selectedType.value.typeId}&` +
-							`scheduleId=${scheduleId}`
-					})
+						// 预约成功提示
+						uni.showModal({
+							title: '预约成功',
+							content: '您的预约已成功，请前往支付完成挂号。',
+							showCancel: false,
+							confirmText: '去支付',
+							success: () => {
+								uni.navigateTo({
+									url: `/subpkg/hospital/payment?` +
+										`dept=${encodeURIComponent(department.value.deptName)}&` +
+										`deptId=${department.value.deptId}&` +
+										`doctor=${encodeURIComponent(doctor.value.doctorName)}&` +
+										`doctorId=${doctor.value.doctorId}&` +
+										`time=${encodeURIComponent(appointmentDate.value + ' ' + selectedSlot.value)}&` +
+										`typeId=${selectedType.value.typeId}&` +
+										`scheduleId=${scheduleId}`
+								})
+							}
+						})
+
+					} catch (e) {
+						console.error('检查重复挂号失败', e)
+						uni.showToast({
+							title: '无法检查重复挂号，请稍后重试',
+							icon: 'none'
+						})
+					}
 				}
-			})
-
-		} catch (e) {
-			console.error('检查重复挂号失败', e)
-			uni.showToast({
-				title: '无法检查重复挂号，请稍后重试',
-				icon: 'none'
-			})
-		}
-	}
 </script>
 
 <style scoped>

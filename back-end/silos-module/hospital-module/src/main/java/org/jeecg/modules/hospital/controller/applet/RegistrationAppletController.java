@@ -75,19 +75,12 @@ public class RegistrationAppletController {
     @PostMapping("/addWaitingQueue")
     public Result<String> addWaitingQueue(@RequestBody WaitingQueue queue) {
         try {
-            boolean success = registrationService.addWaitingQueue(queue);
-            if (success) {
-                return Result.OK("已加入候补队列");
-            } else {
-                return Result.error("加入候补队列失败");
-            }
+            // 调用服务层直接返回 Result<String>
+            return registrationService.addWaitingQueue(queue);
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("加入候补队列失败：" + e.getMessage());
         }
     }
-
-
-
 
 }

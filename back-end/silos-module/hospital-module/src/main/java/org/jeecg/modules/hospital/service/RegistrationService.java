@@ -53,5 +53,5 @@ public interface RegistrationService {
      * @param queue 候补信息对象
      * @return true 表示加入成功，false 表示失败
      */
-    boolean addWaitingQueue(WaitingQueue queue);
+    Result<String> addWaitingQueue(WaitingQueue queue);
 }

@@ -60,22 +60,39 @@ export const checkDuplicateBySchedule = async (patientId: number, scheduleId: nu
     );
 };
 
+// 定义接口
+interface Result<T = any> {
+  code: number;
+  message: string;
+  result?: T;
+}
+
 /**
  * 将患者加入候补队列
- * @param data 候补信息对象
- *  {
- *    scheduleId: number,
- *    patientId: number,
- *    recordId?: number
- *  }
  */
 export const addWaitingQueue = async (data: {
-  scheduleId: number,
-  patientId: number,
-  recordId?: number
-}) => {
-  return request.post('/addWaitingQueue', data);
+  scheduleId: number;
+  patientId: number;
+  recordId?: number;
+}): Promise<{ success: boolean; message: string }> => {
+  try {
+    // res 就是拦截器返回的 data
+    const res = await request.post('/addWaitingQueue', data) as Result<string> & { success: boolean };
+
+    return {
+      success: res.success,
+      message: res.message || res.result || '成功加入候补'
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error?.message || '加入候补队列失败'
+    };
+  }
 };
+
+
+
 
 
 
