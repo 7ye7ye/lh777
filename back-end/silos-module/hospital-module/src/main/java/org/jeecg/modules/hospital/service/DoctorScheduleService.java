@@ -34,4 +34,13 @@ public interface DoctorScheduleService extends IService<DoctorSchedule> {
 
     // 如果你坚持要保留这些方法名以兼容旧代码，则它们将成为自定义方法，需要在 Impl 中手动实现。
     // 在使用 Mybatis-Plus 时，强烈建议直接使用 IService 提供的标准方法 (save, updateById, removeById, getById)。
+
+    // 新增：按医生与单日查询
+    List<DoctorSchedule> listByDoctorAndDate(Long doctorId, LocalDate date);
+
+    // 新增：按医生与日期范围查询
+    List<DoctorSchedule> listByDoctorAndDateRange(Long doctorId, LocalDate startDate, LocalDate endDate);
+
+    // 新增：更新已使用号源
+    boolean updateUsedQuota(Long scheduleId, Integer usedQuota);
 }

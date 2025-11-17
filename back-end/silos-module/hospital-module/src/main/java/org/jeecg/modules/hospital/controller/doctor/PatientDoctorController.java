@@ -7,8 +7,16 @@ import org.jeecg.common.api.vo.Result;
 import org.jeecg.modules.hospital.service.PatientService;
 import org.jeecg.modules.hospital.vo.PatientBriefVO;
 import org.jeecg.modules.hospital.vo.PatientDetailVO;
+import org.jeecg.modules.hospital.vo.AppointmentDetailVO;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
+import org.jeecg.common.constant.CommonConstant;
+import org.jeecg.common.system.util.JwtUtil;
+import org.jeecg.modules.hospital.entity.HosUser;
+import org.jeecg.modules.hospital.entity.Doctor;
+import org.jeecg.modules.hospital.service.DoctorService;
+import org.jeecg.modules.hospital.service.HosUserService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -21,33 +29,124 @@ public class PatientDoctorController {
     @Resource
     private PatientService patientService;
 
+    @Resource
+    private DoctorService doctorService;
+
+    @Resource
+    private HosUserService hosUserService;
+
     @Operation(summary = "患者列表（医生端）")
     @GetMapping("/list")
     public Result<List<PatientBriefVO>> list(
-            @RequestParam(required = false) Long doctorId,
+            HttpServletRequest request,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(required = false) Integer status
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Long doctorId // 新增：允许显式传医生ID
     ) {
-        List<PatientBriefVO> list = patientService.list(doctorId, keyword, startDate, endDate, status);
+        Long resolvedDoctorId = (doctorId != null ? doctorId : resolveCurrentDoctorId(request));
+        if (resolvedDoctorId == null) {
+            return Result.error("未登录或未绑定医生信息");
+        }
+        List<PatientBriefVO> list = patientService.list(resolvedDoctorId, keyword, startDate, endDate, status);
         return Result.OK(list);
     }
 
-    @Operation(summary = "患者详情（基础信息 + 就诊记录）")
-    @GetMapping("/{patientId}")
-    public Result<PatientDetailVO> detail(@PathVariable Long patientId) {
-        PatientDetailVO vo = patientService.detail(patientId);
-        return Result.OK(vo);
+    @io.swagger.v3.oas.annotations.Operation(summary = "患者详情（基础信息 + 就诊记录）")
+    @org.springframework.web.bind.annotation.GetMapping("/{patientId}")
+    public org.springframework.http.ResponseEntity<java.util.HashMap<String, Object>> detail(@org.springframework.web.bind.annotation.PathVariable Long patientId) {
+        org.jeecg.modules.hospital.vo.PatientDetailVO vo = patientService.detail(patientId);
+        // 改为 data 字段，前端更容易识别
+        return org.springframework.http.ResponseEntity.ok(new java.util.HashMap<String, Object>() {{
+            put("code", 200);
+            put("message", "");
+            put("data", vo);
+        }});
+    }
+
+    // 预约详情（避免与 /{patientId} 冲突，使用 /appointment/detail 前缀）
+    @Operation(summary = "预约详情（path 变量）")
+    @GetMapping("/appointment/detail/{appointmentId}")
+    public Result<AppointmentDetailVO> appointmentDetailPath(@PathVariable Long appointmentId) {
+        AppointmentDetailVO vo = patientService.appointmentDetail(appointmentId);
+        return vo != null ? Result.OK(vo) : Result.error("未找到预约记录");
+    }
+
+    @Operation(summary = "预约详情（query 参数）")
+    @GetMapping("/appointment/detail")
+    public Result<AppointmentDetailVO> appointmentDetailQuery(@RequestParam("appointmentId") Long appointmentId) {
+        AppointmentDetailVO vo = patientService.appointmentDetail(appointmentId);
+        return vo != null ? Result.OK(vo) : Result.error("未找到预约记录");
     }
 
     @Operation(summary = "按日期获取患者列表（医生端）")
     @GetMapping("/patients/by-date")
     public Result<List<PatientBriefVO>> getByDate(
-            @RequestParam Long doctorId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+            HttpServletRequest request,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(required = false) Long doctorId // 新增：允许显式传医生ID
     ) {
-        List<PatientBriefVO> list = patientService.list(doctorId, null, date, date, null);
+        Long resolvedDoctorId = (doctorId != null ? doctorId : resolveCurrentDoctorId(request));
+        if (resolvedDoctorId == null) {
+            return Result.error("未登录或未绑定医生信息");
+        }
+        List<PatientBriefVO> list = patientService.list(resolvedDoctorId, null, date, date, null);
         return Result.OK(list);
+    }
+
+    @Operation(summary = "更新就诊状态（开始接诊/完成接诊）")
+    @PostMapping("/status")
+    public Result<Boolean> updateStatus(@RequestBody UpdateVisitStatusRequest req) {
+        boolean ok = patientService.updateVisitStatus(req.getAppointmentId(), req.getRegistrationNo(), req.getAction());
+        return ok ? Result.OK(true) : Result.error("更新失败，请检查参数或数据状态");
+    }
+
+    public static class UpdateVisitStatusRequest {
+        private Long appointmentId;
+        private String registrationNo; // 新增：挂号单号
+        private String action; // "start"/"finish" 或 "开始接诊"/"完成接诊" 或 “开始/完成”
+        public Long getAppointmentId() { return appointmentId; }
+        public void setAppointmentId(Long appointmentId) { this.appointmentId = appointmentId; }
+        public String getRegistrationNo() { return registrationNo; }
+        public void setRegistrationNo(String registrationNo) { this.registrationNo = registrationNo; }
+        public String getAction() { return action; }
+        public void setAction(String action) { this.action = action; }
+    }
+
+    private Long resolveCurrentDoctorId(HttpServletRequest httpRequest) {
+        HosUser current = null;
+        String token = httpRequest.getHeader(CommonConstant.X_ACCESS_TOKEN);
+        if (token != null && !token.isEmpty()) {
+            try {
+                String account = JwtUtil.getUsername(token);
+                current = hosUserService.lambdaQuery()
+                        .eq(HosUser::getUserAccount, account)
+                        .one();
+            } catch (Exception ignored) {}
+        }
+        if (current == null) {
+            Object userObj = httpRequest.getSession().getAttribute(org.jeecg.modules.hospital.contant.UserContant.USER_LOGIN_STATE);
+            if (userObj instanceof HosUser) {
+                current = (HosUser) userObj;
+            }
+        }
+        // 优化：不再严格依赖 userType == 2，只要有医生绑定记录即可
+        if (current == null) {
+            return null;
+        }
+        Doctor doctor = doctorService.lambdaQuery().eq(Doctor::getUserId, current.getUserId()).one();
+        return doctor != null ? doctor.getDoctorId() : null;
+    }
+
+    @Operation(summary = "基础患者列表（直接查 patient 表）")
+    @GetMapping("/list-basic")
+    public org.jeecg.common.api.vo.Result<java.util.List<org.jeecg.modules.hospital.vo.PatientBriefVO>> listBasic(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate
+    ) {
+        java.util.List<org.jeecg.modules.hospital.vo.PatientBriefVO> list = patientService.listBasic(keyword, startDate, endDate);
+        return org.jeecg.common.api.vo.Result.OK(list);
     }
 }

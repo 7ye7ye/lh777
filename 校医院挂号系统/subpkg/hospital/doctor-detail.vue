@@ -56,7 +56,7 @@
 <script setup>
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getDoctorDetail } from '../../api/doctor'
+import { doctorApi } from '../../api/doctor'
 import { getDepartmentDetail } from '../../api/department'
 
 const doctorId = ref('')
@@ -66,7 +66,7 @@ const departmentInfo = ref(null)
 // 加载医生详情
 const loadDoctorDetail = async () => {
   try {
-    const res = await getDoctorDetail(doctorId.value)
+    const res = await doctorApi.getDoctorDetail(doctorId.value)
     console.log('医生详情数据:', res)
     
     // 处理不同的响应格式

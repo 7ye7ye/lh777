@@ -5,10 +5,6 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
-/**
- * 医生表
- * @TableName doctor
- */
 @TableName(value ="doctor")
 @Data
 public class Doctor {

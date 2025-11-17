@@ -74,31 +74,53 @@ const onSubmit = async () => {
   loading.value = true
   try {
     const res = await userApi.login({ userAccount: form.value.userAccount, userPassword: form.value.userPassword })
+    console.log('登录接口返回数据:', res)
+    
     // 根据后端返回结构提取数据
+    // 后端返回格式: { code: 0, data: { user: {...}, token: "..." } }
+    // 响应拦截器会解包 data 字段，所以 res 就是 { user: {...}, token: "..." }
     const token = res?.token || ''
     const userInfo = res?.user || null
     
-    if(userInfo.userType == 3){
-      await uniShowToast({ title: '登录失败，请使用患者或医生账号登录' })
+    if (!userInfo) {
+      await uniShowToast({ title: '登录失败：未获取到用户信息', icon: 'none' })
       return
     }
-    if (token) {
-      // 保存 token 和用户信息到状态管理
-      userStore.setToken(token)
-      if (userInfo) {
-        userStore.setUserInfo(userInfo)
-      }
-      await uniShowToast({ title: '登录成功' })
-      if(userInfo.userType == 1){
-        await uniSwitchTab({ url: '/pages/home/home' })
-      }else if(userInfo.userType == 2){
-        await uniNavigateTo({ url: '/pages/doctor/profile/index' })
-      }
-    } else {
+    
+    // 检查用户类型
+    if (userInfo.userType == 3) {
+      await uniShowToast({ title: '登录失败，请使用患者或医生账号登录', icon: 'none' })
+      return
+    }
+    
+    if (!token) {
       await uniShowToast({ title: '登录失败：未获取到token', icon: 'none' })
+      return
+    }
+    
+    // 保存 token 和用户信息到状态管理
+    userStore.setToken(token)
+    userStore.setUserInfo(userInfo)
+    
+    await uniShowToast({ title: '登录成功' })
+    
+    // 根据用户类型跳转
+    if (userInfo.userType == 1) {
+      await uniSwitchTab({ url: '/pages/home/home' })
+    } else if (userInfo.userType == 2) {
+      await uniNavigateTo({ url: '/subpkg/doctor/profile/index' })
+    } else {
+      // 默认跳转到首页
+      await uniSwitchTab({ url: '/pages/home/home' })
     }
   } catch (e) {
-    await uniShowToast({ title: (e && e.message) || '登录失败', icon: 'none' })
+    console.error('登录失败:', e)
+    // 错误信息已经在响应拦截器中显示过了，这里不需要再次显示
+    // 但如果响应拦截器没有处理，这里作为兜底
+    if (e && e.message) {
+      // 如果错误信息还没有显示过，才显示
+      // 由于响应拦截器已经显示了 toast，这里可以不再显示
+    }
   } finally {
     loading.value = false
   }

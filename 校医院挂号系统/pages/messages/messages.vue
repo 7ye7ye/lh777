@@ -181,21 +181,21 @@
 				});
 			},
 			
+			// 跳转到医生端主页面
+			goDoctorMain() {
+				uni.navigateTo({
+					url: '/subpkg/doctor/schedule/main'
+				});
+			},
+			
 			// 格式化时间函数
 			formatTime(dateTimeStr) {
 				if (!dateTimeStr) return '';
 				// 简单处理，只取日期部分
 				return dateTimeStr.split('T')[0];
 			},
-
-			// 跳转到医生端
-			goDoctorMain() {
-				uni.navigateTo({ 
-					url: '/pages/doctor/schedule/main' 
-				});
-			}
 		}
-	}
+	};
 </script>
 
 <style scoped>

@@ -6,11 +6,14 @@ import { mainOutRoutes } from './mainOut';
 import { PageEnum } from '/@/enums/pageEnum';
 import { t } from '/@/hooks/web/useI18n';
 
+import hospital from './modules/hospital';
+import admin from './modules/admin';
+
 const modules = import.meta.glob('./modules/**/*.ts', { eager: true });
 
 const routeModuleList: AppRouteModule[] = [];
 
-// 加入到路由集合中
+// 加入到路由集合中（恢复默认：收集所有模块路由）
 Object.keys(modules).forEach((key) => {
   const mod = (modules as Recordable)[key].default || {};
   const modList = Array.isArray(mod) ? [...mod] : [mod];
@@ -65,4 +68,4 @@ export const TokenLoginRoute: AppRouteRecordRaw = {
   },
 };
 // Basic routing without permission
-export const basicRoutes = [LoginRoute, RootRoute, ...mainOutRoutes, REDIRECT_ROUTE, PAGE_NOT_FOUND_ROUTE, TokenLoginRoute, Oauth2LoginRoute];
+export const basicRoutes = [LoginRoute, RootRoute, admin, hospital, ...mainOutRoutes, REDIRECT_ROUTE, PAGE_NOT_FOUND_ROUTE, TokenLoginRoute, Oauth2LoginRoute];
