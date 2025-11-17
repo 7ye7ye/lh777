@@ -3,6 +3,7 @@ package org.jeecg.modules.hospital.service;
 import org.jeecg.common.api.vo.Result;
 import org.jeecg.modules.hospital.entity.RegistrationRecord;
 import org.jeecg.modules.hospital.entity.RegistrationType;
+import org.jeecg.modules.hospital.entity.WaitingQueue;
 
 import java.util.List;
 import java.util.Map;
@@ -47,5 +48,10 @@ public interface RegistrationService {
      */
     boolean checkDuplicateBySchedule(Long patientId, Long scheduleId);
 
-
+    /**
+     * 将患者加入候补队列
+     * @param queue 候补信息对象
+     * @return true 表示加入成功，false 表示失败
+     */
+    boolean addWaitingQueue(WaitingQueue queue);
 }

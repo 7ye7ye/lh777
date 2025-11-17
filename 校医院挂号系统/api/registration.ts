@@ -59,3 +59,23 @@ export const checkDuplicateBySchedule = async (patientId: number, scheduleId: nu
       `/checkDuplicateBySchedule?patientId=${patientId}&scheduleId=${scheduleId}`
     );
 };
+
+/**
+ * 将患者加入候补队列
+ * @param data 候补信息对象
+ *  {
+ *    scheduleId: number,
+ *    patientId: number,
+ *    recordId?: number
+ *  }
+ */
+export const addWaitingQueue = async (data: {
+  scheduleId: number,
+  patientId: number,
+  recordId?: number
+}) => {
+  return request.post('/addWaitingQueue', data);
+};
+
+
+
