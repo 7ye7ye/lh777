@@ -28,15 +28,8 @@ import java.util.Map;
 */
 @Slf4j
 @SpringBootApplication
-<<<<<<< HEAD
-@EnableScheduling
-//// 新增这行：扫描 org.jeecg.modules 下的所有子包（包括 hospital）
-//@ComponentScan(basePackages = "org.jeecg.modules")
-@ImportAutoConfiguration(JustAuthAutoConfiguration.class)  // spring boot 3.x justauth 兼容性处理
-=======
 @ComponentScan(basePackages = "org.jeecg")
 @ImportAutoConfiguration(JustAuthAutoConfiguration.class)
->>>>>>> main
 @MapperScan("org.jeecg.modules.hospital.mapper")
 public class SilosSystemApplication extends SpringBootServletInitializer {
 

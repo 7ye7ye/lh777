@@ -402,8 +402,8 @@
 			{
 				"pagePath": "pages/hospital/hospital",
 				"text": "医院信息",
-				"iconPath": "static/logo.png",
-				"selectedIconPath": "static/logo.png"
+				"iconPath": "static/navigation-message.png",
+				"selectedIconPath": "static/navigation-message.png"
 			},
 			{
 				"pagePath": "pages/profile/profile",
