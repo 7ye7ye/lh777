@@ -159,8 +159,9 @@
 import { ref, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { uniNavigateTo, uniShowToast } from '@/utils/uniHelper'
+import { doctorApi } from '@/api/doctor'
 
-// 患者详情数据（支持示例数据与外部传入）
+// 患者详情数据（加载后会用后端数据覆盖）
 const patient = ref({
   name: '张**',
   gender: '男',
@@ -191,35 +192,143 @@ const getStatusClass = (status) => {
   return 'status-pending'
 }
 
+// 工具：计算年龄
+// 移除 TS 泛型与类型注解
+const patientIdRef = ref(null)
+const appointmentIdRef = ref(null)
+
+// 工具：计算年龄（移除参数类型注解）
+const calcAge = (birthDate) => {
+  if (!birthDate) return ''
+  try {
+    const d = new Date(birthDate)
+    const now = new Date()
+    let age = now.getFullYear() - d.getFullYear()
+    const m = now.getMonth() - d.getMonth()
+    if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--
+    return age
+  } catch { return '' }
+}
+
+// 工具：患者身份映射
+const mapIdentity = (type) => {
+  if (type === 1) return '学生'
+  if (type === 2) return '教师'
+  if (type === 3) return '职工'
+  return '其他'
+}
+
+// 加载后端患者详情
+async function loadPatientDetail(id) {
+  try {
+    const detail = await doctorApi.getPatientDetail(id)
+    // 兼容多种返回结构：{patient, visits} 或 {data:{patient,visits}} / {result:{...}} / {body:{...}}
+    const dto = (detail && (detail.patient || detail.visits))
+      ? detail
+      : (detail?.data || detail?.result || detail?.body || {})
+    const p = dto?.patient || {}
+    const visits = Array.isArray(dto?.visits) ? dto.visits : []
+
+    const statusMap = (s) => s === 2 ? '已完成' : (s === 1 ? '接诊中' : '待接诊')
+    const latestStatus = visits.length > 0 ? statusMap(visits[0]?.status) : '待接诊'
+
+    // 为避免某些端/编译器对整个对象替换的追踪问题，使用就地合并
+    // 从 patient 表构造病史条目
+    const mh = []
+    if (p.presentIllness) mh.push({ type: '现病史', description: p.presentIllness })
+    if (p.pastIllness) mh.push({ type: '既往史', description: p.pastIllness })
+    if (p.familyIllness) mh.push({ type: '家族史', description: p.familyIllness })
+    if (p.allergyHistory && p.allergyHistory !== '无') mh.push({ type: '过敏史', description: p.allergyHistory })
+
+    Object.assign(patient.value, {
+      name: p.patientName || '',
+      gender: p.gender || '',
+      age: calcAge(p.birthDate),
+      identity: mapIdentity(p.patientType),
+      phone: p.phone || '',
+      registrationNumber: (visits[0]?.visitNo)
+        || p.outpatientNumber
+        || (appointmentIdRef.value ? String(appointmentIdRef.value) : ''),
+      appointmentTime: visits[0]?.timeSlot || '',
+      department: '',
+      doctor: '',
+      status: latestStatus,
+      medicalHistory: mh,
+      visitHistory: visits.map(v => ({
+        date: v.visitDate,
+        department: '',
+        doctor: '',
+        diagnosis: v.diagnosis || ''
+      }))
+    })
+
+    // 若带了预约ID，则加载 registration_record 详情，填充预约时段/科室/医生
+    if (appointmentIdRef.value) {
+      try {
+        const ap = await doctorApi.getAppointmentDetail(appointmentIdRef.value)
+        if (ap) {
+          Object.assign(patient.value, {
+            appointmentTime: ap.appointmentTime || patient.value.appointmentTime,
+            department: ap.department || patient.value.department,
+            doctor: ap.doctor || patient.value.doctor,
+          })
+        }
+      } catch {}
+    }
+  } catch (e) {
+    uniShowToast({ title: '获取患者详情失败', icon: 'none' })
+  }
+}
+
 function goBackToPatientList() {
   const pages = getCurrentPages()
   if (pages.length > 1) {
     uni.navigateBack()
   } else {
-    uniNavigateTo('/pages/doctor/patients/list')
+    uniNavigateTo('/subpkg/doctor/patients/list')
   }
 }
 
-function receivePatient() {
-  patient.value.status = '接诊中'
-  uniShowToast('已开始接诊')
+// 开始接诊：调用后端更新状态
+async function receivePatient() {
+  if (!appointmentIdRef.value) {
+    uniShowToast({ title: '缺少预约ID', icon: 'none' })
+    return
+  }
+  try {
+    await doctorApi.updatePatientStatus({ appointmentId: appointmentIdRef.value, action: 'start' })
+    patient.value.status = '接诊中'
+    uniShowToast({ title: '已开始接诊', icon: 'success' })
+  } catch {
+    uniShowToast({ title: '开始接诊失败', icon: 'none' })
+  }
 }
 
-function completePatient() {
-  patient.value.status = '已完成'
-  uniShowToast('已完成接诊')
+// 完成接诊：调用后端更新状态
+async function completePatient() {
+  if (!appointmentIdRef.value) {
+    uniShowToast({ title: '缺少预约ID', icon: 'none' })
+    return
+  }
+  try {
+    await doctorApi.updatePatientStatus({ appointmentId: appointmentIdRef.value, action: 'finish' })
+    patient.value.status = '已完成'
+    uniShowToast({ title: '已完成接诊', icon: 'success' })
+  } catch {
+    uniShowToast({ title: '完成接诊失败', icon: 'none' })
+  }
 }
 
 function saveNote() {
   if (!visitNote.value) {
-    uniShowToast('请输入备注内容')
+    uniShowToast({ title: '请输入备注内容', icon: 'none' })
     return
   }
-  uniShowToast('备注已保存')
+  uniShowToast({ title: '备注已保存', icon: 'success' })
 }
 
 function viewVisitDetail(visit) {
-  uniShowToast(`就诊记录：${visit.date} ${visit.department}`)
+  uniShowToast({ title: `就诊记录：${visit.date}`, icon: 'none' })
 }
 
 // URL 参数传入（patient=encodeURIComponent(JSON.stringify(obj))）
@@ -232,10 +341,23 @@ onLoad((options) => {
   } catch (e) {
     // ignore parse error
   }
+  // 兼容 id 或 patientId 作为参数名
+  if (options?.id) {
+    patientIdRef.value = Number(options.id)
+  } else if (options?.patientId) {
+    patientIdRef.value = Number(options.patientId)
+  }
+  if (options?.appointmentId) {
+    appointmentIdRef.value = Number(options.appointmentId)
+  }
+  // 直接在 onLoad 阶段触发加载，避免 onMounted 时机差异导致未请求
+  if (patientIdRef.value) {
+    loadPatientDetail(patientIdRef.value)
+  }
 })
 
-// EventChannel 传入（推荐从列表页使用）
-onMounted(() => {
+// EventChannel 传入（保持兼容）
+onMounted(async () => {
   const pages = getCurrentPages()
   const cur = pages[pages.length - 1]
   if (cur && cur.getOpenerEventChannel) {
@@ -245,11 +367,15 @@ onMounted(() => {
         if (data) patient.value = { ...patient.value, ...data }
       })
       ec.on('sendPatient', (data) => {
-        if (data && data.patient) {
+        if (data?.patient) {
           patient.value = { ...patient.value, ...data.patient }
         }
       })
     }
+  }
+  // 若 onLoad 尚未触发或未成功加载，再兜底加载一次
+  if (patientIdRef.value && (!patient.value || !patient.value.name || patient.value.name === '张**')) {
+    await loadPatientDetail(patientIdRef.value)
   }
 })
 </script>
