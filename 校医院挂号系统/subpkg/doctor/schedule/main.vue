@@ -76,8 +76,11 @@
       </view> 
     </view> 
 
-    <!-- 申请调班按钮 --> 
+    <!-- 操作按钮 --> 
     <view class="action-section"> 
+      <button class="action-btn refresh-btn" @click="handleRefresh"> 
+        🔄 刷新排班 
+      </button>
       <button class="action-btn adjust-btn" @click="goToAdjustSchedule"> 
         申请调班 
       </button> 
@@ -101,15 +104,34 @@
 import { ref, onMounted, computed } from 'vue' 
 import { uniNavigateTo, uniShowToast } from '../../../utils/uniHelper' 
 import { useUserStore } from '../../../store/user.js'
-import { doctorApi } from '../../../api/doctor'
+import { doctorApi } from '../../../api/doctor_massage'
 
-// 医生信息（如需从用户状态中取，可替换为 pinia 的 userStore）
+// 用接口数据填充页头信息与 doctorId
 const userStore = useUserStore()
 const doctorInfo = ref({ 
-  name: '张医生', 
-  department: '内科' 
+  name: '', 
+  department: '' 
 }) 
-const doctorId = computed(() => userStore.userInfo?.id || 1)
+// 修复：去掉 TS 泛型，使用纯 JS
+const doctorIdRef = ref(null)
+const doctorId = computed(() => doctorIdRef.value ?? userStore.userInfo?.doctorId ?? 1)
+
+// 初始化页头的医生信息
+const initDoctorInfo = async () => {
+  try {
+    userStore.initFromStorage()
+    const userId = userStore.userInfo?.userId
+    if (!userId) return
+    const profile = await doctorApi.getProfileByUserId(userId)
+    doctorInfo.value = {
+      name: profile?.doctorName || profile?.realname || '未命名',
+      department: profile?.deptName || '—'
+    }
+    doctorIdRef.value = profile?.doctorId ?? null
+  } catch (e) {
+    // 保留占位信息即可
+  }
+}
 
 // 当前日期
 const todayDate = ref('') 
@@ -180,17 +202,28 @@ const loadScheduleData = async () => {
 
 // 跳转到申请调班（映射到已存在的页面路径）
 const goToAdjustSchedule = () => { 
-  uniNavigateTo({ url: '/pages/doctor/schedule/apply' }) 
+  uniNavigateTo({ url: '/subpkg/doctor/schedule/apply' }) 
 } 
 
 // 跳转到患者列表（映射到已存在的页面路径）
 const goToPatients = () => { 
-  uniNavigateTo({ url: '/pages/doctor/patients/list' }) 
+  uniNavigateTo({ url: '/subpkg/doctor/patients/list' }) 
 } 
 
 // 跳转到个人信息（映射到已存在的页面路径）
 const goToProfile = () => { 
-  uniNavigateTo({ url: '/pages/doctor/profile/index' }) 
+  uniNavigateTo({ url: '/subpkg/doctor/profile/index' }) 
+}
+
+// 刷新排班数据
+const handleRefresh = async () => {
+  uniShowToast({ title: '正在刷新...', icon: 'loading' })
+  try {
+    await loadScheduleData()
+    uniShowToast({ title: '刷新成功', icon: 'success' })
+  } catch (error) {
+    uniShowToast({ title: '刷新失败', icon: 'error' })
+  }
 } 
 
 // 根据剩余号源与占用比，返回状态的样式类
@@ -215,7 +248,7 @@ const getStatusText = (item) => {
 onMounted(() => { 
   userStore.initFromStorage()
   initDateList()
-  loadScheduleData()
+  initDoctorInfo().finally(loadScheduleData)
 }) 
 </script> 
 
@@ -309,17 +342,28 @@ onMounted(() => {
 .remaining { color: #10b981; } 
 .low-remaining { color: #ef4444; } 
 
-/* 申请调班按钮 */ 
-.action-section { padding: 0 24rpx 24rpx; } 
+/* 操作按钮 */ 
+.action-section { 
+  padding: 0 24rpx 24rpx; 
+  display: flex; 
+  gap: 16rpx; 
+} 
 .action-btn { 
-  width: 100%; 
-  background: #2176ff; 
+  flex: 1; 
   color: #fff; 
   border-radius: 12rpx; 
   padding: 16rpx; 
   font-size: 28rpx; 
+  text-align: center;
 } 
-.adjust-btn { box-shadow: 0 6rpx 16rpx rgba(33,118,255,0.18); } 
+.refresh-btn { 
+  background: #10b981; 
+  box-shadow: 0 6rpx 16rpx rgba(16,185,129,0.18); 
+}
+.adjust-btn { 
+  background: #2176ff; 
+  box-shadow: 0 6rpx 16rpx rgba(33,118,255,0.18); 
+} 
 
 /* 底部导航 */ 
 .bottom-nav { 

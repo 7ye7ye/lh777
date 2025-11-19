@@ -75,6 +75,9 @@
 				
 				uni.request({
 					url: `${apiUrl}?id=${this.appointmentId}`,
+					header:{
+						'X-Access-Token': uni.getStorageSync('token') 
+					},
 					success: (res) => {
 						if (res.statusCode === 200 && res.data) {
 							this.receiptDetail = res.data;

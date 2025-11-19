@@ -25,6 +25,25 @@
         <module name="silos-system-biz" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="jeecg-cloud-gateway" target="1.5" />
+      <module name="jeecg-cloud-nacos" target="1.8" />
+      <module name="jeecg-cloud-sentinel" target="1.5" />
+      <module name="jeecg-cloud-test" target="1.5" />
+      <module name="jeecg-cloud-test-more" target="1.5" />
+      <module name="jeecg-cloud-test-rabbitmq" target="1.5" />
+      <module name="jeecg-cloud-test-rocketmq" target="1.5" />
+      <module name="jeecg-cloud-test-seata" target="1.5" />
+      <module name="jeecg-cloud-test-seata-account" target="1.5" />
+      <module name="jeecg-cloud-test-seata-order" target="1.5" />
+      <module name="jeecg-cloud-test-seata-product" target="1.5" />
+      <module name="jeecg-cloud-test-shardingsphere" target="1.5" />
+      <module name="jeecg-demo-cloud-start" target="1.5" />
+      <module name="jeecg-system-cloud-start" target="1.5" />
+      <module name="jeecg-visual" target="1.5" />
+      <module name="silos-cloud-monitor" target="1.5" />
+      <module name="silos-server-cloud" target="17" />
+    </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">

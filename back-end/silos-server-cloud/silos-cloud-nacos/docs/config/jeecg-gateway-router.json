@@ -27,6 +27,21 @@
   "filters": [],
   "uri": "lb://jeecg-demo"
 }, {
+  "id": "hospital-user",
+  "order": 4,
+  "predicates": [{
+    "name": "Path",
+    "args": {
+      "_genkey_0": "/user/**",
+      "_genkey_1": "/jeecg-boot/user/**"
+    }
+  }],
+  "filters": [{
+    "name": "StripPrefix",
+    "args": { "_genkey_0": "1" }
+  }],
+  "uri": "lb://jeecg-system"
+}, {
   "id": "jeecg-system-websocket",
   "order": 2,
   "predicates": [{

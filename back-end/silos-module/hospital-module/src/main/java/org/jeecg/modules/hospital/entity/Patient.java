@@ -3,17 +3,13 @@ package org.jeecg.modules.hospital.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.Data;
 
-/**
- * 患者表
- * @TableName patient
- */
 @TableName(value ="patient")
-@Data
 public class Patient {
     /**
      * 患者唯一标识
@@ -28,43 +24,35 @@ public class Patient {
     private Long userId;
 
     /**
-     * 患者身份（1-学生；2-教师；3-职工）
+     * 用户姓名（映射 patient_name）
      */
-    private Integer patientType;
-
-    /**
-     * 用户姓名
-     */
+    @com.baomidou.mybatisplus.annotation.TableField("patient_name")
     private String patientName;
 
     /**
-     * 身份证号（敏感信息，加密存储）
+     * 新增：按表结构恢复 patient_type
      */
+    @TableField("patient_type")
+    private Integer patientType;
+
+    /**
+     * 身份证号（映射 id_card）
+     */
+    @TableField("id_card")
     private String idCard;
 
     /**
-     * 手机号（用于接收就诊提醒）
+     * 手机号（映射 phone）
      */
+    @TableField("phone")
     private String phone;
 
-    /**
-     * 学号（学生用户必填）
-     */
     private String studentId;
 
-    /**
-     * 工号（教师/职工用户必填）
-     */
     private String staffId;
 
-    /**
-     * 出生日期
-     */
     private LocalDate birthDate;
 
-    /**
-     * 性别（男/女/未知）
-     */
     private String gender;
 
     /**
@@ -449,5 +437,13 @@ public class Patient {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getPatientName() {
+        return patientName;
+    }
+
+    public void setPatientName(String patientName) {
+        this.patientName = patientName;
     }
 }

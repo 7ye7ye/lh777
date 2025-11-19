@@ -50,7 +50,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { uniNavigateTo, uniShowToast } from '../../../utils/uniHelper'
 import { useUserStore } from '../../../store/user.js'
-import { doctorApi } from '../../../api/doctor'
+import { doctorApi } from '../../../api/doctor_massage'
 
 const userStore = useUserStore()
 const doctorId = computed(() => userStore.userInfo?.id || 1)
@@ -78,19 +78,27 @@ const filteredPatients = computed(() => {
 
 const loadPatients = async () => {
   try {
-    patients.value = await doctorApi.getPatientsByDate(doctorId.value, selectedDate.value)
-    if (!Array.isArray(patients.value)) patients.value = []
+    let list = []
+    if (selectedDate.value) {
+      // 优先按日期筛选（需要存在挂号记录）
+      list = await doctorApi.getPatientsByDate(doctorId.value, selectedDate.value)
+      if (!Array.isArray(list) || list.length === 0) {
+        // 若无挂号数据，降级为直接查询 patient 表
+        list = await doctorApi.getPatientsBasic()
+      }
+    } else {
+      // 未选择日期时，直接查询 patient 表
+      list = await doctorApi.getPatientsBasic()
+    }
+    patients.value = Array.isArray(list) ? list : []
   } catch (e) {
-    patients.value = [
-      { appointmentId: 101, patientId: 1001, name: '张三', identity: '学生', appointmentTimeRange: '08:00-12:00', statusText: '已预约', statusClass: 'status-wait' },
-      { appointmentId: 102, patientId: 1002, name: '李四', identity: '教职工', appointmentTimeRange: '14:00-17:00', statusText: '已预约', statusClass: 'status-wait' },
-    ]
+    patients.value = []
   }
 }
 
 const openDetail = (p) => {
   const qs = `?id=${p.patientId}&appointmentId=${p.appointmentId}`
-  uniNavigateTo({ url: `/pages/doctor/patients/detail${qs}` })
+  uniNavigateTo({ url: `/subpkg/doctor/patients/detail${qs}` })
 }
 
 onMounted(async () => {

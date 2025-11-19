@@ -16,24 +16,26 @@ const detectBaseURL = (): string => {
 };
 
 const baseURL = detectBaseURL();
-const API_PREFIX = '/jeecg-boot';
+const API_PREFIX = (() => {
+  try {
+    return typeof uni !== 'undefined' ? (uni.getStorageSync('API_PREFIX') || '/jeecg-boot') : '/jeecg-boot';
+  } catch (_) {
+    return '/jeecg-boot';
+  }
+})();
 
 // 请求拦截器：添加 token、统一配置等
-// 扩展可用字段：
-// - params: GET/DELETE 查询参数对象
-// - contentType: 'json' | 'form' | 'multipart'
-// - baseURL: 覆盖默认 baseURL
-// - skipAuth: 不携带 Authorization 头
-// - silent: 失败不自动 toast
 const requestInterceptor = (options) => {
   // 1. 添加 baseURL（仅当传入相对路径时）
   if (options.url && !/^https?:\/\//i.test(options.url)) {
     let path = options.url;
-    // 确保以 / 开头
     if (!path.startsWith('/')) path = `/${path}`;
-    // 统一加 jeecg-boot 前缀（避免重复）
-    if (!path.startsWith(API_PREFIX + '/')) {
-      path = API_PREFIX + path;
+    // 允许通过 noPrefix 关闭 jeecg-boot 前缀
+    const usePrefix = API_PREFIX && !options?.noPrefix;
+    if (usePrefix) {
+      if (!path.startsWith(API_PREFIX + '/')) {
+        path = API_PREFIX + path;
+      }
     }
     options.url = baseURL + path;
   }
@@ -68,10 +70,16 @@ const requestInterceptor = (options) => {
   // 4. 添加请求头（如 token）
   const skipAuth = !!options.skipAuth;
   const token = uni.getStorageSync('token'); // 从缓存获取 token
+  console.log('请求拦截器 - skipAuth:', skipAuth, 'token:', token ? token.substring(0, 20) + '...' : 'null');
   if (!skipAuth && token) {
-    header['Authorization'] = `Bearer ${token}`; // 如需改为 token 直传，请在此调整
+    header['Authorization'] = `Bearer ${token}`;
+    header['X-Access-Token'] = token;
+    console.log('请求拦截器 - 已添加token到请求头');
+  } else if (!skipAuth) {
+    console.warn('请求拦截器 - 未找到token，请求可能失败');
   }
   options.header = header;
+  console.log('请求拦截器 - 最终请求头:', Object.keys(header));
   return options;
 };
 
@@ -82,31 +90,40 @@ const responseInterceptor = (response) => {
   console.log('响应拦截器 - 原始响应:', response);
   console.log('响应拦截器 - data:', data);
   
-  // 1. 处理 HTTP 错误（如 404、500）
-  if (statusCode < 200 || statusCode >= 300) {
-    uni.showToast({ title: `请求失败: ${statusCode}`, icon: 'none' });
-    return Promise.reject(new Error(`HTTP Error: ${statusCode}`));
-  }
-  
-  // 2. 处理后端自定义错误（兼容多种返回结构）
+  // 1. 先处理后端自定义错误结构（即使HTTP状态码是错误码，也要先尝试解析响应体）
   // 常见结构 A: { code, message, data, description? }
   // 常见结构 B: { success, message, data }
-  // 常见结构 C: 直接返回对象/数组/字符串/数字
   if (data && typeof data === 'object' && ('code' in data || 'success' in data)) {
     const code = data.code;
     const success = data.success;
     const ok = success === true || code === 200 || code === 0;
+    
     if (!ok) {
       // 优先显示 description，没有则显示 message
       const errorMsg = data.description || data.message || '操作失败';
       uni.showToast({ title: errorMsg, icon: 'none' });
       return Promise.reject(new Error(errorMsg));
     }
+    
     // 统一解包 JEECG 的 result
     const payload = data.result !== undefined
       ? data.result
       : (data.data !== undefined ? data.data : data);
     return Promise.resolve(payload);
+  }
+  
+  // 2. 处理 HTTP 错误（如 404、500）- 只有在响应体中没有错误信息时才使用默认错误信息
+  if (statusCode < 200 || statusCode >= 300) {
+    const httpMsg =
+      statusCode === 502
+        ? '网关错误(502)：后端服务不可达或路由未配置'
+        : statusCode === 404
+        ? '接口不存在(404)'
+        : statusCode >= 500
+        ? '服务器错误'
+        : `请求失败: ${statusCode}`;
+    uni.showToast({ title: httpMsg, icon: 'none' });
+    return Promise.reject(new Error(httpMsg));
   }
 
   // 3. 处理Spring Boot ResponseEntity响应格式
@@ -129,15 +146,20 @@ export const request = (options) => {
   return new Promise((resolve, reject) => {
     uni.request({
       ...finalOptions,
+      timeout: finalOptions.timeout ?? 8000,
       // 发起请求
       success: (res) => {
         // 应用响应拦截器
         responseInterceptor(res).then(resolve).catch(reject);
       },
-      // 处理网络错误（如断网）
+      // 处理网络错误（如断网/空响应）
       fail: (err) => {
         if (!finalOptions.silent) {
-          uni.showToast({ title: '网络连接失败', icon: 'none' });
+          const msg =
+            typeof err?.errMsg === 'string' && err.errMsg.includes('ERR_EMPTY_RESPONSE')
+              ? '服务器未返回数据（可能端口/HTTPS/防火墙/网关导致）'
+              : '网络连接失败';
+          uni.showToast({ title: msg, icon: 'none' });
         }
         reject(err);
       },

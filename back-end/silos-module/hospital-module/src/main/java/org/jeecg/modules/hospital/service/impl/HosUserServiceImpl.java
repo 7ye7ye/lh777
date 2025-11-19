@@ -152,8 +152,18 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
      * 生成与原有系统兼容的JWT Token
      */
     private String generateToken(String username, String password) {
-        // 使用固定密钥生成Token，确保验证时的一致性
-        return JwtUtil.sign(username, getFixedSecret());
+        try {
+            // 使用固定密钥生成Token，确保验证时的一致性
+            String token = JwtUtil.sign(username, getFixedSecret());
+            if (token == null || token.isEmpty()) {
+                throw new RuntimeException("Token生成失败: 返回的Token为空");
+            }
+            return token;
+        } catch (Exception e) {
+            System.err.println("Token生成异常: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Token生成失败: " + e.getMessage(), e);
+        }
     }
 
     /**
@@ -165,12 +175,25 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
 
     /**
      * 将Token存储到Redis（与原有系统保持一致的存储方式）
+     * 如果Redis不可用，记录日志但不影响登录流程
      */
     private void storeTokenInRedis(String token) {
-        // 与原有系统保持相同的Key前缀和过期时间
-        redisUtil.set(CommonConstant.PREFIX_USER_TOKEN + token, token);
-        // 过期时间与原有系统保持一致（JwtUtil.EXPIRE_TIME单位是毫秒）
-        redisUtil.expire(CommonConstant.PREFIX_USER_TOKEN + token, JwtUtil.EXPIRE_TIME * 2 / 1000);
+        try {
+            // 检查redisUtil是否可用
+            if (redisUtil == null) {
+                System.out.println("警告: RedisUtil未注入，跳过Token存储到Redis");
+                return;
+            }
+            // 与原有系统保持相同的Key前缀和过期时间
+            redisUtil.set(CommonConstant.PREFIX_USER_TOKEN + token, token);
+            // 过期时间与原有系统保持一致（JwtUtil.EXPIRE_TIME单位是毫秒）
+            redisUtil.expire(CommonConstant.PREFIX_USER_TOKEN + token, JwtUtil.EXPIRE_TIME * 2 / 1000);
+            System.out.println("Token已存储到Redis: " + CommonConstant.PREFIX_USER_TOKEN + token);
+        } catch (Exception e) {
+            // Redis存储失败不影响登录流程，只记录日志
+            System.err.println("警告: Token存储到Redis失败，但登录继续: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
 

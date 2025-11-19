@@ -21,46 +21,7 @@
 				"navigationBarBackgroundColor": "#479fff"
 			}
 		},
-    {
-      "path": "pages/doctor/schedule/main",
-      "style": {
-        "navigationBarTitleText": "医生排班",
-        "navigationBarBackgroundColor": "#479fff",
-        "navigationBarTextStyle": "white"
-      }
-    },
-    {
-      "path": "pages/doctor/schedule/apply",
-      "style": {
-        "navigationBarTitleText": "申请调班",
-        "navigationBarBackgroundColor": "#479fff",
-        "navigationBarTextStyle": "white"
-      }
-    },
-    {
-      "path": "pages/doctor/patients/list",
-      "style": {
-        "navigationBarTitleText": "患者列表",
-        "navigationBarBackgroundColor": "#479fff",
-        "navigationBarTextStyle": "white"
-      }
-    },
-    {
-      "path": "pages/doctor/patients/detail",
-      "style": {
-        "navigationBarTitleText": "患者信息",
-        "navigationBarBackgroundColor": "#479fff",
-        "navigationBarTextStyle": "white"
-      }
-    },
-    {
-      "path": "pages/doctor/profile/index",
-      "style": {
-        "navigationBarTitleText": "医生个人信息",
-        "navigationBarBackgroundColor": "#479fff",
-        "navigationBarTextStyle": "white"
-      }
-    },
+		
 		{
 			"path": "pages/hospital/hospital",
 			"style": {
@@ -87,6 +48,51 @@
 		}
 	],
 	"subPackages": [
+		{
+			"root": "subpkg/doctor/",
+			"pages": [
+				{
+					"path": "schedule/main",
+					"style": {
+						"navigationBarTitleText": "医生排班",
+						"navigationBarBackgroundColor": "#479fff",
+						"navigationBarTextStyle": "white"
+					}
+				},
+				{
+					"path": "schedule/apply",
+					"style": {
+						"navigationBarTitleText": "申请调班",
+						"navigationBarBackgroundColor": "#479fff",
+						"navigationBarTextStyle": "white"
+					}
+				},
+				{
+					"path": "patients/list",
+					"style": {
+						"navigationBarTitleText": "患者列表",
+						"navigationBarBackgroundColor": "#479fff",
+						"navigationBarTextStyle": "white"
+					}
+				},
+				{
+					"path": "patients/detail",
+					"style": {
+						"navigationBarTitleText": "患者信息",
+						"navigationBarBackgroundColor": "#479fff",
+						"navigationBarTextStyle": "white"
+					}
+				},
+				{
+					"path": "profile/index",
+					"style": {
+						"navigationBarTitleText": "医生个人信息",
+						"navigationBarBackgroundColor": "#479fff",
+						"navigationBarTextStyle": "white"
+					}
+				}
+			]
+		},
 		{
 			"root": "subpkg/profile",
 			"pages": [
@@ -410,8 +416,8 @@
 			{
 				"pagePath": "pages/hospital/hospital",
 				"text": "医院信息",
-				"iconPath": "static/logo.png",
-				"selectedIconPath": "static/logo.png"
+				"iconPath": "static/navigation-message.png",
+				"selectedIconPath": "static/navigation-message.png"
 			},
 			{
 				"pagePath": "pages/profile/profile",
