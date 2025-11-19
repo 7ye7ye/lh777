@@ -6,6 +6,7 @@ import jakarta.annotation.Resource;
 import org.jeecg.common.api.vo.Result;
 import org.jeecg.modules.hospital.entity.RegistrationRecord;
 import org.jeecg.modules.hospital.entity.RegistrationType;
+import org.jeecg.modules.hospital.entity.WaitingQueue;
 import org.jeecg.modules.hospital.service.RegistrationService;
 import org.springframework.web.bind.annotation.*;
 
@@ -50,7 +51,6 @@ public class RegistrationAppletController {
     }
 
 
-
     @Operation(summary = "根据患者ID获取挂号记录")
     @GetMapping("/records")
     public Result<List<RegistrationRecord>> getRegistrationRecords(@RequestParam Long patientId) {
@@ -71,5 +71,16 @@ public class RegistrationAppletController {
         }
     }
 
+    @Operation(summary = "将患者加入候补队列")
+    @PostMapping("/addWaitingQueue")
+    public Result<String> addWaitingQueue(@RequestBody WaitingQueue queue) {
+        try {
+            // 调用服务层直接返回 Result<String>
+            return registrationService.addWaitingQueue(queue);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("加入候补队列失败：" + e.getMessage());
+        }
+    }
 
 }

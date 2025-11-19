@@ -16,23 +16,71 @@
           <text>{{ item.time }}</text>
         </view>
       </view>
+      <view v-if="records.length === 0" class="empty-text">暂无挂号记录</view>
     </view>
-    <button class="main-btn" @click="getRegisterRecord">刷新</button>
+    <button class="main-btn" @click="getRegisterRecords">刷新</button>
   </view>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { userApi } from '@/api/user'
-const records = ref([
-  { id: 1, dept: '内科', doctor: '李医生', time: '2025-09-21 09:00' }
-])
-const getRegisterRecord = () => {
-  userApi.getRegisterRecord().then(res => {
-    uni.showToast({ title: '获取成功', icon: 'success' })
-    // records.value = res.data
-  })
+import { ref, onMounted } from 'vue'
+import { getRegistrationRecords } from '@/api/registration'
+
+const records = ref([])
+const doctorMap = {
+  1: '张医生',
+  14: '孙医生',
+  15: '周医生'
 }
+
+const scheduleMap = {
+  1: '内科',
+  4: '神经内科',
+  5: '神经内科'
+}
+
+
+// 时间格式化（只取日期和时段）
+const slotText = (slot) => {
+  switch (slot) {
+    case 'morning': return '上午'
+    case 'afternoon': return '下午'
+    case 'evening': return '晚上'
+    default: return slot || ''
+  }
+}
+
+// 获取挂号记录
+const getRegisterRecords = async () => {
+  const patientId = 1;
+
+  try {
+    const res = await getRegistrationRecords(patientId);
+
+    console.log('挂号记录 res:', res); // ✅ 直接打印整个返回数组
+
+    const list = Array.isArray(res) ? res : [];
+
+    records.value = list.map(item => ({
+      id: item.recordId,
+      dept: scheduleMap[item.scheduleId] || `科室ID: ${item.scheduleId}`,
+      doctor: doctorMap[item.doctorId] || `医生ID: ${item.doctorId}`,
+      time: item.registerTime
+    }))
+
+    uni.showToast({ title: '获取成功', icon: 'success' });
+  } catch (e) {
+    console.error('获取挂号记录失败:', e);
+    uni.showToast({ title: '获取失败', icon: 'none' });
+  }
+}
+
+
+
+// 页面加载时自动获取
+onMounted(() => {
+  getRegisterRecords()
+})
 </script>
 
 <style scoped>
@@ -42,5 +90,6 @@ const getRegisterRecord = () => {
 .record-item { border-bottom: 1px solid #eee; padding: 16rpx 0; }
 .row { display: flex; align-items: center; margin-bottom: 8rpx; }
 .label { color: #888; width: 100rpx; }
-.main-btn { width: 100%; margin-top: 32rpx; background: #3a9cff; color: #fff; }
+.main-btn { width: 100%; margin-top: 32rpx; background: #3a9cff; color: #fff; padding: 20rpx; border-radius: 12rpx; }
+.empty-text { text-align: center; color: #999; padding: 32rpx 0; font-size: 28rpx; }
 </style>
