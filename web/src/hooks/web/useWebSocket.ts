@@ -14,7 +14,7 @@ const listeners = new Map();
 export function connectWebSocket(url: string) {
   //update-begin-author:taoyan date:2022-4-24 for: v2.4.6 的 websocket 服务端，存在性能和安全问题。 #3278
   const token = (getToken() || '') as string;
-  result = useWebSocket(url, {
+  const options = {
     // 自动重连 (遇到错误最多重复连接10次)
     autoReconnect: {
       retries : 10,
@@ -24,8 +24,15 @@ export function connectWebSocket(url: string) {
     heartbeat: {
       message: "ping",
       interval: 55000
-    },
-    protocols: [token],
+    }
+  };
+  
+  // 只有当token存在时才设置protocols
+  if (token) {
+    options.protocols = [token];
+  }
+  
+  result = useWebSocket(url, options,
     // update-begin--author:liaozhiyang---date:20240726---for：[issues/6662] 演示系统socket总断，换一个写法
     onConnected: function (ws) {
       console.log('[WebSocket] 连接成功', ws);

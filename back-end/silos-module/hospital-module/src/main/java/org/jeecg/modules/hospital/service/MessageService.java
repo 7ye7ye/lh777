@@ -15,6 +15,18 @@ public interface MessageService extends IService<Message> {
      * @return 消息列表
      */
     List<Message> listMessagesByUserId(String userId);
-    // 【新增方法】根据预约ID获取消息列表
+    
+    /**
+     * 根据预约ID获取消息列表
+     * @param appointmentId 预约ID
+     * @return 消息列表
+     */
     List<Message> listMessagesByAppointmentId(String appointmentId);
+    
+    /**
+     * 根据消息ID获取单条消息详情
+     * @param messageId 消息ID
+     * @return 单条消息
+     */
+    Message getMessageById(Integer messageId);
 }

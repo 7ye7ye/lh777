@@ -49,7 +49,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getAllDoctors, searchDoctors } from '../../api/doctor'
+import { getAllDoctors, searchDoctors } from '../../api/doctor_massage'
 
 const keyword = ref('')
 const doctorList = ref([])
