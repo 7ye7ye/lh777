@@ -141,4 +141,40 @@ public class RegistrationServiceImpl implements RegistrationService {
         return count != null && count > 0;
     }
 
+    @Override
+    public Result<String> addWaitingQueue(WaitingQueue queue) {
+        if (queue == null || queue.getPatientId() == null || queue.getScheduleId() == null) {
+            return Result.error("缺少必要信息");
+        }
+
+        try {
+            // 检查是否已在候补队列
+            int existing = waitingQueueMapper.countExistingQueue(queue.getScheduleId(), queue.getPatientId());
+            if (existing > 0) {
+                return Result.error("您已在该排班的候补队列中");
+            }
+
+            // 查询最大排名
+            Integer maxRank = waitingQueueMapper.selectMaxQueueRank(queue.getScheduleId());
+            queue.setQueueRank(maxRank != null ? maxRank + 1 : 1);
+            queue.setQueueTime(LocalDateTime.now());
+            queue.setStatus(0);
+            if (queue.getRecordId() == null) queue.setRecordId(null);
+
+            int rows = waitingQueueMapper.insert(queue);
+            if (rows == 1) {
+                return Result.OK("已加入候补队列");
+            } else {
+                return Result.error("加入候补失败");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("加入候补异常：" + e.getMessage());
+        }
+    }
+
+
+
+
+
 }
