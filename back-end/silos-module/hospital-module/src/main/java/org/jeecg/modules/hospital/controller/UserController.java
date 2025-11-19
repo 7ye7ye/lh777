@@ -7,8 +7,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.apache.commons.lang3.StringUtils;
 import org.jeecg.config.shiro.IgnoreAuth;
+import org.jeecg.modules.hospital.common.BaseResponse;
+import org.jeecg.modules.hospital.common.ErrorCode;
 import org.jeecg.modules.hospital.dto.HosUserLoginResult;
 import org.jeecg.modules.hospital.entity.HosUser;
+import org.jeecg.modules.hospital.exception.BusinessException;
 import org.jeecg.modules.hospital.service.HosUserService;
 import org.jeecg.common.system.util.JwtUtil;
 import org.springframework.http.HttpStatus;
@@ -28,17 +31,17 @@ public class UserController {
 
     @IgnoreAuth
     @PostMapping("/register")
-    public long userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
+    public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
         System.out.println("已收到请求");
         if(userRegisterRequest==null){
-            return 0;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求体为空");
         }
         String userAccount=userRegisterRequest.getUserAccount();
         String userPassword=userRegisterRequest.getUserPassword();
         String checkPassword=userRegisterRequest.getCheckPassword();
 
         if(StringUtils.isAnyBlank(userAccount,userPassword,checkPassword)){
-            return 0;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求体信息存在空值");
         }
         System.out.println("接收到用户注册："+userAccount+"<UNK>");
 
@@ -85,8 +88,8 @@ public class UserController {
             System.err.println("登录异常详情:");
             e.printStackTrace();
             // 构建错误信息（需要在匿名内部类外部构建，并声明为final）
-            final String errorMessage = (e.getMessage() != null && !e.getMessage().isEmpty()) 
-                ? "登录失败: " + e.getMessage() 
+            final String errorMessage = (e.getMessage() != null && !e.getMessage().isEmpty())
+                ? "登录失败: " + e.getMessage()
                 : "登录失败";
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new HashMap<String, Object>() {{
                 put("code", 500);
@@ -137,7 +140,7 @@ public class UserController {
             // 3) 从 Token 解析用户名，并查询用户
             String username = JwtUtil.getUsername(token);
             System.out.println("从Token解析的用户名: " + username);
-            
+
             if (StringUtils.isBlank(username)) {
                 System.out.println("Token解析失败，返回401");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new HashMap<String, Object>() {{

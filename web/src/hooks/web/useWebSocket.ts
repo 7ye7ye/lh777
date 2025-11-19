@@ -32,39 +32,25 @@ export function connectWebSocket(url: string) {
     options.protocols = [token];
   }
   
-  result = useWebSocket(url, options,
+  // useWebSocket.ts 中的相关代码
+  result = useWebSocket(url, {
+    ...options, // 扩展原有配置
     // update-begin--author:liaozhiyang---date:20240726---for：[issues/6662] 演示系统socket总断，换一个写法
     onConnected: function (ws) {
       console.log('[WebSocket] 连接成功', ws);
     },
-    onDisconnected: function (ws, event) {
-      console.log('[WebSocket] 连接断开：', ws, event);
+    onDisconnected: (ws, code, reason) => {
+      console.log('[WebSocket] 断开连接', code, reason);
     },
-    onError: function (ws, event) {
-      console.log('[WebSocket] 连接发生错误: ', ws, event);
+    onError: (ws, error) => {
+      console.error('[WebSocket] 错误', error);
     },
-    onMessage: function (_ws, e) {
-      console.debug('[WebSocket] -----接收消息-------', e.data);
-      try {
-        //update-begin---author:wangshuai---date:2024-05-07---for:【issues/1161】前端websocket因心跳导致监听不起作用---
-        if (e.data === 'ping') {
-          return;
-        }
-        //update-end---author:wangshuai---date:2024-05-07---for:【issues/1161】前端websocket因心跳导致监听不起作用---
-        const data = JSON.parse(e.data);
-        for (const callback of listeners.keys()) {
-          try {
-            callback(data);
-          } catch (err) {
-            console.error(err);
-          }
-        }
-      } catch (err) {
-        console.error('[WebSocket] data解析失败：', err);
-      }
+    onMessage: (ws, event) => {
+      console.log('[WebSocket] 收到消息', event.data);
     },
     // update-end--author:liaozhiyang---date:20240726---for：[issues/6662] 演示系统socket总断，换一个写法
   });
+
   // update-begin--author:liaozhiyang---date:20240726---for：[issues/6662] 演示系统socket总断，换一个写法
   //update-end-author:taoyan date:2022-4-24 for: v2.4.6 的 websocket 服务端，存在性能和安全问题。 #3278
   // if (result) {
