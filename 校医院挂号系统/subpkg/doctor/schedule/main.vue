@@ -104,7 +104,7 @@
 import { ref, onMounted, computed } from 'vue' 
 import { uniNavigateTo, uniShowToast } from '../../../utils/uniHelper' 
 import { useUserStore } from '../../../store/user.js'
-import { doctorApi } from '../../../api/doctor'
+import { doctorApi } from '../../../api/doctor_massage'
 
 // 用接口数据填充页头信息与 doctorId
 const userStore = useUserStore()

@@ -48,3 +48,11 @@ test-resources/  # 测试用资源目录
 miniprogram_npm/  # 小程序 npm 依赖（UniApp 编译时会自动生成，无需提交）
 wechatdevtools/  # 微信开发者工具配置
 alipaydev/  # 支付宝开发者工具配置
+
+# 8. 后端 Java 构建产物（Maven/Gradle 编译生成，无需提交）
+back-end/**/target/        # 匹配所有后端模块的 target 目录
+back-end/**/build/         # 若有用 Gradle，补充 Gradle 构建目录
+back-end/**/.gradle/       # Gradle 缓存目录
+back-end/**/*.jar          # 打包生成的 jar 包
+back-end/**/*.war          # 打包生成的 war 包
+back-end/**/*.class        # 单独的 .class 文件（防止漏网之鱼）

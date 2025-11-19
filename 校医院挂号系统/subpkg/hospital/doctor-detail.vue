@@ -39,7 +39,7 @@
 
     <!-- 操作按钮 -->
     <view class="action-buttons">
-      <view class="action-btn primary" @click="handleRegister">
+      <view class="action-btn primary" @click="navigateToRegister">
         <image src="/static/register.svg" mode="widthFix" class="btn-icon"></image>
         <text>预约挂号</text>
       </view>
@@ -56,7 +56,7 @@
 <script setup>
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { doctorApi } from '../../api/doctor'
+import { doctorApi } from '../../api/doctor_massage'
 import { getDepartmentDetail } from '../../api/department'
 
 const doctorId = ref('')
@@ -101,19 +101,36 @@ const loadDoctorDetail = async () => {
 
 // 加载科室信息
 const loadDepartmentInfo = async (deptId) => {
+  if (!deptId) {
+    console.warn('科室ID为空，跳过加载')
+    return
+  }
+  
   try {
     const res = await getDepartmentDetail(deptId)
+    // 响应拦截器已经解包了 result，所以 res 直接是数据
     let data = res
-    if (res && res.data) {
-      data = res.data
-    } else if (res && res.result) {
-      data = res.result
+    if (res && typeof res === 'object' && !Array.isArray(res)) {
+      // 如果还是包装格式，尝试解包
+      if (res.result) {
+        data = res.result
+      } else if (res.data) {
+        data = res.data
+      }
     }
     if (data) {
       departmentInfo.value = data
     }
   } catch (error) {
     console.error('加载科室信息失败:', error)
+    // 网络请求失败时不显示错误提示，避免影响用户体验
+    // 科室信息不是关键信息，可以继续使用
+    // 如果需要显示，可以取消下面的注释
+    // uni.showToast({ 
+    //   title: '加载科室信息失败，请检查网络连接', 
+    //   icon: 'none',
+    //   duration: 2000
+    // })
   }
 }
 
@@ -127,12 +144,33 @@ const navigateToDepartment = () => {
 }
 
 // 预约挂号
-const handleRegister = () => {
-  uni.showToast({
-    title: '预约挂号功能开发中',
-    icon: 'none'
+const navigateToRegister = () => {
+  if (!doctor.value.doctorId) {
+    uni.showToast({
+      title: '医生信息不完整',
+      icon: 'none'
+    })
+    return
+  }
+
+  // 优先使用 departmentInfo，如果没有则使用 doctor 中的 deptId
+  const deptId = departmentInfo.value?.deptId || doctor.value.deptId
+  const deptName = departmentInfo.value?.deptName || doctor.value.deptName || ''
+
+  // 构建 URL 查询参数传给 appointment 页面
+  const query = `doctorId=${doctor.value.doctorId}` +
+    `&doctorName=${encodeURIComponent(doctor.value.doctorName || '')}` +
+    `&title=${encodeURIComponent(doctor.value.title || '')}` +
+    `&specialty=${encodeURIComponent(doctor.value.specialty || '')}` +
+    `&deptId=${deptId || ''}` +
+    `&deptName=${encodeURIComponent(deptName)}` +
+    `&avatar=${encodeURIComponent(doctor.value.avatar || '')}`
+
+  uni.navigateTo({
+    url: `/subpkg/hospital/appointment?${query}`
   })
 }
+
 
 // 在线咨询
 const handleConsult = () => {
