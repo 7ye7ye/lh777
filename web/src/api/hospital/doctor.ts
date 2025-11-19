@@ -17,7 +17,6 @@ export interface Doctor {
   doctorDesc: string;
   avatar: string;
   isActive: number;
-  updateVerify: number;
   // 追加：HosUser字段
   userAccount?: string;
   email?: string;
@@ -65,21 +64,18 @@ export function updateDoctorProfile(data: Partial<Doctor> & { doctorId: number }
 }
 
 export interface DoctorListParams {
-  current?: number;
-  size?: number;
-  doctorName?: string;
+  pageNo?: number;
+  pageSize?: number;
+  keyword?: string;
   deptId?: number;
   isActive?: number;
 }
 
 /**
- * 获取医生列表
+ * 获取医生列表（管理员）
  */
 export const getDoctorList = (params?: DoctorListParams) => {
-  if (params?.deptId) {
-    return defHttp.get<Doctor[]>({ url: `/applet/doctor/by-dept/${params.deptId}` });
-  }
-  return defHttp.get<Doctor[]>({ url: `/applet/doctor/list` });
+  return defHttp.get<Record<string, any>>({ url: Api.DoctorList, params });
 }
 
 /**
@@ -87,3 +83,24 @@ export const getDoctorList = (params?: DoctorListParams) => {
  */
 export const getDoctorDetail = (doctorId: number) =>
   defHttp.get<Doctor>({ url: `${Api.DoctorDetail}/${doctorId}` });
+
+/**
+ * 添加医生
+ */
+export const addDoctor = (data: Omit<Doctor, 'doctorId' | 'userId' | 'avatar'>) => {
+  return defHttp.post<Record<string, any>>({ url: Api.DoctorDetail, data });
+}
+
+/**
+ * 更新医生
+ */
+export const updateDoctor = (data: Partial<Doctor> & { doctorId: number }) => {
+  return defHttp.put<Record<string, any>>({ url: `${Api.DoctorDetail}/update`, data });
+}
+
+/**
+ * 删除医生
+ */
+export const deleteDoctor = (doctorId: number) => {
+  return defHttp.delete<Record<string, any>>({ url: `${Api.DoctorDetail}/delete/${doctorId}` });
+}

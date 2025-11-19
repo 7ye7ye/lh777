@@ -16,6 +16,46 @@ const admin: AppRouteModule = {
   },
   children: [
     {
+      path: 'management',
+      name: 'AdminManagement',
+      component: LAYOUT,
+      redirect: '/admin/management/doctor',
+      meta: {
+        orderNo: 5,
+        title: '管理中心',
+        ignoreAuth: true,
+      },
+      children: [
+        {
+          path: 'doctor',
+          name: 'AdminDoctorManagement',
+          component: () => import('/@/views/admin/management/DoctorManagement.vue'),
+          meta: {
+            title: '医生管理',
+            ignoreAuth: true,
+          },
+        },
+        {
+          path: 'department',
+          name: 'AdminDepartmentManagement',
+          component: () => import('/@/views/admin/management/DepartmentManagement.vue'),
+          meta: {
+            title: '科室管理',
+            ignoreAuth: true,
+          },
+        },
+        {
+          path: 'referral',
+          name: 'AdminReferralManagement',
+          component: () => import('/@/views/admin/management/ReferralManagement.vue'),
+          meta: {
+            title: '转诊管理',
+            ignoreAuth: true,
+          },
+        },
+      ],
+    },
+    {
       path: 'schedule-today',
       name: 'AdminScheduleToday',
       component: () => import('/@/views/admin/schedule/ScheduleToday.vue'),
