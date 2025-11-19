@@ -54,6 +54,10 @@
 
           <view class="schedule-info"> 
             <view class="info-item"> 
+              <text class="info-label">排班ID：</text> 
+              <text class="info-value">{{ item.scheduleId }}</text> 
+            </view> 
+            <view class="info-item"> 
               <text class="info-label">诊室号：</text> 
               <text class="info-value">{{ item.roomNumber }}</text> 
             </view> 
@@ -183,8 +187,9 @@ const loadScheduleData = async () => {
     const startDate = fmtDate(sel.fullDate)
     const resp = await doctorApi.getSchedules(doctorId.value, startDate, 1)
     scheduleList.value = (resp || []).map(s => ({
+      scheduleId: s.id ?? s.scheduleId ?? 0,
       timePeriod: labelFromRange(s.timeRange),
-      roomNumber: s.roomNo || 'A-101',
+      roomNumber: s.roomNo || '',
       totalSlots: s.totalSlots || 0,
       bookedSlots: s.bookedCount || 0,
       remainingSlots: (s.totalSlots || 0) - (s.bookedCount || 0)

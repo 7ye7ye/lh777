@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.hospital.mapper.WebDoctorScheduleMapper">
+
+  <resultMap id="WebTodayScheduleDTOMap" type="org.jeecg.modules.hospital.dto.WebTodayScheduleDTO">
+    <result column="schedule_id" property="scheduleId"/>
+    <result column="doctor_id" property="doctorId"/>
+    <result column="doctor_name" property="doctorName"/>
+    <result column="dept_id" property="deptId"/>
+    <result column="dept_name" property="deptName"/>
+    <result column="schedule_date" property="scheduleDate"/>
+    <result column="time_slot" property="timeSlot"/>
+    <result column="used_quota" property="usedQuota"/>
+    <result column="status" property="status"/>
+    <result column="max_quota" property="maxQuota"/>
+    <result column="room_number" property="roomNumber"/>
+  </resultMap>
+
+  <select id="selectTodaySchedules" resultMap="WebTodayScheduleDTOMap">
+    SELECT
+      ds.schedule_id,
+      ds.doctor_id,
+      d.doctor_name,
+      ds.dept_id,
+      dept.dept_name,
+      ds.schedule_date,
+      ds.time_slot,
+      ds.used_quota,
+      ds.status,
+      ds.max_quota,
+      ds.room_number
+    FROM doctor_schedule ds
+    LEFT JOIN doctor d ON d.doctor_id = ds.doctor_id
+    LEFT JOIN department dept ON dept.dept_id = ds.dept_id
+    <where>
+      ds.schedule_date = #{queryDate,jdbcType=DATE}
+      <if test="deptId != null"> AND ds.dept_id = #{deptId} </if>
+      <if test="doctorId != null"> AND ds.doctor_id = #{doctorId} </if>
+      <if test="timeSlot != null"> AND ds.time_slot = #{timeSlot} </if>
+      <if test="keyword != null and keyword != ''"> AND (d.doctor_name LIKE CONCAT('%', #{keyword}, '%') OR dept.dept_name LIKE CONCAT('%', #{keyword}, '%')) </if>
+      AND ds.status = 1
+    </where>
+    ORDER BY ds.schedule_id ASC
+  </select>
+
+</mapper>

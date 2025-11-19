@@ -2,6 +2,8 @@ export default {
   moduleName: '管理员端',
   scheduleRule: '排班规则制定',
   scheduleAdjustment: '排班调整',
+  scheduleCalendar: '排班日历',
+  ruleGroup: '规则制定',
   numberType: '号别设置',
   reservationRule: '号源预约规则',
   registrationRule: '挂号规则制定',

@@ -51,6 +51,7 @@ public class DoctorScheduleServiceImpl
         return this.lambdaQuery()
                 .eq(DoctorSchedule::getDoctorId, doctorId)
                 .eq(DoctorSchedule::getScheduleDate, date)
+                .eq(DoctorSchedule::getStatus, 1)
                 .list();
     }
 
@@ -63,6 +64,7 @@ public class DoctorScheduleServiceImpl
                 .eq(DoctorSchedule::getDoctorId, doctorId)
                 .ge(DoctorSchedule::getScheduleDate, start)
                 .le(DoctorSchedule::getScheduleDate, end)
+                .eq(DoctorSchedule::getStatus, 1)
                 .list();
     }
 
@@ -88,6 +90,7 @@ public class DoctorScheduleServiceImpl
         if (schedule == null) return null;
         if (schedule.getUsedQuota() == null) schedule.setUsedQuota(0);
         if (schedule.getStatus() == null) schedule.setStatus(1);
+        if (schedule.getMaxQuota() == null) schedule.setMaxQuota(50);
         schedule.setCreateTime(java.time.LocalDateTime.now());
         schedule.setUpdateTime(java.time.LocalDateTime.now());
         super.save(schedule);

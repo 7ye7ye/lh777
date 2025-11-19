@@ -53,7 +53,7 @@ import { useUserStore } from '../../../store/user.js'
 import { doctorApi } from '../../../api/doctor_massage'
 
 const userStore = useUserStore()
-const doctorId = computed(() => userStore.userInfo?.id || 1)
+const doctorId = computed(() => userStore.userInfo?.doctorId ?? userStore.userInfo?.id ?? 1)
 
 const selectedDate = ref('')
 const timeRanges = ref(['全部', '08:00-12:00', '14:00-17:00', '18:00-20:00'])
@@ -78,18 +78,8 @@ const filteredPatients = computed(() => {
 
 const loadPatients = async () => {
   try {
-    let list = []
-    if (selectedDate.value) {
-      // 优先按日期筛选（需要存在挂号记录）
-      list = await doctorApi.getPatientsByDate(doctorId.value, selectedDate.value)
-      if (!Array.isArray(list) || list.length === 0) {
-        // 若无挂号数据，降级为直接查询 patient 表
-        list = await doctorApi.getPatientsBasic()
-      }
-    } else {
-      // 未选择日期时，直接查询 patient 表
-      list = await doctorApi.getPatientsBasic()
-    }
+    if (!selectedDate.value) return
+    const list = await doctorApi.getPatientsByDate(doctorId.value, selectedDate.value)
     patients.value = Array.isArray(list) ? list : []
   } catch (e) {
     patients.value = []

@@ -1,92 +1,106 @@
 package org.jeecg.modules.hospital.controller.doctor;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.jeecg.common.api.vo.Result;
-import org.springframework.web.bind.annotation.*;
-import jakarta.servlet.http.HttpServletRequest;
-import org.jeecg.common.constant.CommonConstant;
-import org.jeecg.common.system.util.JwtUtil;
-import org.jeecg.modules.hospital.entity.HosUser;
-import org.jeecg.modules.hospital.entity.Doctor;
-import org.jeecg.modules.hospital.service.DoctorService;
-import org.jeecg.modules.hospital.service.HosUserService;
 import org.jeecg.modules.hospital.entity.DoctorShiftChangeRequest;
+import org.jeecg.modules.hospital.entity.DoctorSchedule;
 import org.jeecg.modules.hospital.service.DoctorShiftChangeRequestService;
-import org.jeecg.modules.hospital.entity.DoctorShiftChangeRequest;
-import org.jeecg.modules.hospital.service.DoctorShiftChangeRequestService;
+import org.jeecg.modules.hospital.service.DoctorScheduleService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/doctor/shift-change")
-@Tag(name = "医生端-申请调班")
+@Tag(name = "医生端-调班申请")
 public class DoctorShiftChangeController {
 
     @Resource
-    private DoctorShiftChangeRequestService service;
-    @Resource
-    private DoctorService doctorService;
+    private DoctorShiftChangeRequestService adjustmentService;
 
     @Resource
-    private HosUserService hosUserService;
+    private DoctorScheduleService scheduleService;
 
-    @Operation(summary = "提交排班调整申请")
+    @Operation(summary = "医生提交调班申请")
     @PostMapping("/apply")
-    public Result<Boolean> apply(
-            HttpServletRequest request,
-            @RequestBody DoctorShiftChangeRequest req
-    ) {
-        Long doctorId = resolveCurrentDoctorId(request);
-        if (doctorId == null) {
-            return Result.error("未登录或未绑定医生信息");
+    public Result<Boolean> apply(@RequestBody ApplyRequest req) {
+        if (req.getDoctorId() == null || req.getOriginalScheduleId() == null) {
+            return Result.error("缺少必填字段：doctorId 或 originalScheduleId");
         }
-        req.setDoctorId(doctorId);
-        boolean ok = service.submitAdjustment(req);
+        DoctorSchedule origin = scheduleService.getById(req.getOriginalScheduleId());
+        if (origin == null) {
+            return Result.error("原排班记录不存在");
+        }
+
+        DoctorShiftChangeRequest r = new DoctorShiftChangeRequest();
+        r.setDoctorId(req.getDoctorId());
+        r.setOriginalScheduleId(req.getOriginalScheduleId());
+        if (req.getTargetDate() != null && !req.getTargetDate().isEmpty()) {
+            r.setTargetDate(LocalDate.parse(req.getTargetDate()));
+        }
+        r.setTargetTimeSlot(req.getTargetTimeSlot());
+        r.setTargetDeptId(req.getTargetDeptId());
+        r.setReason(req.getReason());
+        r.setApplyTime(LocalDateTime.now());
+        r.setStatus(1);
+
+        boolean ok = adjustmentService.submitAdjustment(r);
         return ok ? Result.OK(true) : Result.error("提交失败");
     }
 
-    @Operation(summary = "查询我的调班申请")
+    @Operation(summary = "医生查询自己的调班申请列表")
     @GetMapping("/list")
-    public Result<List<DoctorShiftChangeRequest>> list(
-            HttpServletRequest request,
-            @RequestParam(required = false) Integer status
+    public Result<IPage<DoctorShiftChangeRequest>> list(
+            @RequestParam Long doctorId,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(defaultValue = "1") Integer current,
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
-        Long doctorId = resolveCurrentDoctorId(request);
-        if (doctorId == null) {
-            return Result.error("未登录或未绑定医生信息");
+        Page<DoctorShiftChangeRequest> page = new Page<>(current, size);
+        LambdaQueryWrapper<DoctorShiftChangeRequest> q = new LambdaQueryWrapper<>();
+        q.eq(DoctorShiftChangeRequest::getDoctorId, doctorId);
+        if (status != null) {
+            q.eq(DoctorShiftChangeRequest::getStatus, status);
         }
-        List<DoctorShiftChangeRequest> list = service.lambdaQuery()
-                .eq(DoctorShiftChangeRequest::getDoctorId, doctorId)
-                .eq(status != null, DoctorShiftChangeRequest::getStatus, status)
-                .orderByDesc(DoctorShiftChangeRequest::getApplyTime)
-                .list();
-        return Result.OK(list);
+        if (startDate != null) {
+            q.ge(DoctorShiftChangeRequest::getApplyTime, startDate.atStartOfDay());
+        }
+        if (endDate != null) {
+            q.le(DoctorShiftChangeRequest::getApplyTime, endDate.atTime(23,59,59));
+        }
+        q.orderByDesc(DoctorShiftChangeRequest::getApplyTime);
+        IPage<DoctorShiftChangeRequest> result = adjustmentService.page(page, q);
+        return Result.OK(result);
     }
 
-    private Long resolveCurrentDoctorId(HttpServletRequest httpRequest) {
-        HosUser current = null;
-        String token = httpRequest.getHeader(CommonConstant.X_ACCESS_TOKEN);
-        if (token != null && !token.isEmpty()) {
-            try {
-                String account = JwtUtil.getUsername(token);
-                current = hosUserService.lambdaQuery()
-                        .eq(HosUser::getUserAccount, account)
-                        .one();
-            } catch (Exception ignored) {}
-        }
-        if (current == null) {
-            Object userObj = httpRequest.getSession().getAttribute(org.jeecg.modules.hospital.contant.UserContant.USER_LOGIN_STATE);
-            if (userObj instanceof HosUser) {
-                current = (HosUser) userObj;
-            }
-        }
-        if (current == null || current.getUserType() == null || current.getUserType() != 2) {
-            return null;
-        }
-        Doctor doctor = doctorService.lambdaQuery().eq(Doctor::getUserId, current.getUserId()).one();
-        return doctor != null ? doctor.getDoctorId() : null;
+    public static class ApplyRequest {
+        private Long doctorId;
+        private Long originalScheduleId;
+        private String targetDate;
+        private Integer targetTimeSlot;
+        private Long targetDeptId;
+        private String reason;
+
+        public Long getDoctorId() { return doctorId; }
+        public void setDoctorId(Long doctorId) { this.doctorId = doctorId; }
+        public Long getOriginalScheduleId() { return originalScheduleId; }
+        public void setOriginalScheduleId(Long originalScheduleId) { this.originalScheduleId = originalScheduleId; }
+        public String getTargetDate() { return targetDate; }
+        public void setTargetDate(String targetDate) { this.targetDate = targetDate; }
+        public Integer getTargetTimeSlot() { return targetTimeSlot; }
+        public void setTargetTimeSlot(Integer targetTimeSlot) { this.targetTimeSlot = targetTimeSlot; }
+        public Long getTargetDeptId() { return targetDeptId; }
+        public void setTargetDeptId(Long targetDeptId) { this.targetDeptId = targetDeptId; }
+        public String getReason() { return reason; }
+        public void setReason(String reason) { this.reason = reason; }
     }
 }

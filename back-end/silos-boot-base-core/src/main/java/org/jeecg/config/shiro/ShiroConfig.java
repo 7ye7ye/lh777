@@ -13,6 +13,8 @@ import org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSource
 import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
 import org.apache.shiro.spring.web.ShiroUrlPathHelper;
 import org.apache.shiro.web.mgt.DefaultWebSecurityManager;
+import org.apache.shiro.web.mgt.CookieRememberMeManager;
+import org.apache.shiro.web.servlet.SimpleCookie;
 import org.crazycake.shiro.*;
 import org.jeecg.common.constant.CommonConstant;
 import org.jeecg.common.util.oConvertUtils;
@@ -56,7 +58,7 @@ public class ShiroConfig {
     private JeecgBaseConfig jeecgBaseConfig;
     @Autowired(required = false)
     private RedisProperties redisProperties;
-    
+
     /**
      * Filter Chain定义说明
      *
@@ -144,7 +146,7 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/jmreport/**", "anon");
         filterChainDefinitionMap.put("/**/*.js.map", "anon");
         filterChainDefinitionMap.put("/**/*.css.map", "anon");
-        
+
         //积木BI大屏和仪表盘排除
         filterChainDefinitionMap.put("/drag/view", "anon");
         filterChainDefinitionMap.put("/drag/page/queryById", "anon");
@@ -245,7 +247,26 @@ public class ShiroConfig {
         securityManager.setSubjectDAO(subjectDAO);
         //自定义缓存实现,使用redis
         securityManager.setCacheManager(redisCacheManager());
+        securityManager.setRememberMeManager(rememberMeManager());
         return securityManager;
+    }
+
+    /**
+     * @return
+     */
+    @Bean
+    public CookieRememberMeManager rememberMeManager() {
+        SimpleCookie cookie = new SimpleCookie("rememberMe");
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setMaxAge(2592000); // 30天
+
+        // 移除 SameSite 设置，因为当前 Shiro 版本不支持 SameSiteOptions 枚举
+        // cookie.setSameSite(Cookie.SameSiteOptions.valueOf("Strict")); // 这行会报错
+
+        CookieRememberMeManager manager = new CookieRememberMeManager();
+        manager.setCookie(cookie);
+        return manager;
     }
 
     /**
@@ -298,7 +319,7 @@ public class ShiroConfig {
     /**
      * RedisConfig在项目starter项目中
      * jeecg-boot-starter-github\jeecg-boot-common\src\main\java\org\jeecg\common\modules\redis\config\RedisConfig.java
-     * 
+     *
      * 配置shiro redisManager
      * 使用的是shiro-redis开源插件
      *
@@ -340,7 +361,7 @@ public class ShiroConfig {
             //update-begin--Author:scott Date:20210531 for：修改集群模式下未设置redis密码的bug issues/I3QNIC
             if (oConvertUtils.isNotEmpty(lettuceConnectionFactory.getPassword())) {
                 JedisCluster jedisCluster = new JedisCluster(portSet, 2000, 2000, 5,
-                    lettuceConnectionFactory.getPassword(), new GenericObjectPoolConfig());
+                        lettuceConnectionFactory.getPassword(), new GenericObjectPoolConfig());
                 redisManager.setPassword(lettuceConnectionFactory.getPassword());
                 redisManager.setJedisCluster(jedisCluster);
             } else {

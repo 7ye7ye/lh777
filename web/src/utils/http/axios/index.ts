@@ -278,7 +278,7 @@ export function createAxios(opt?: Partial<CreateAxiosOptions>) {
   return new VAxios(
     deepMerge(
       {
-        authenticationScheme: '',
+        authenticationScheme: 'Bearer',
         timeout: 10 * 1000,
         headers: { 'Content-Type': ContentTypeEnum.JSON },
         // 关键：允许跨域携带 Cookie（若你保留会话接口）
