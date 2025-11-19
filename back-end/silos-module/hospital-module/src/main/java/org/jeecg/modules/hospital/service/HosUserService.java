@@ -1,6 +1,7 @@
 package org.jeecg.modules.hospital.service;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.jeecg.modules.hospital.common.BaseResponse;
 import org.jeecg.modules.hospital.dto.HosUserLoginResult;
 import org.jeecg.modules.hospital.entity.HosUser;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -19,7 +20,7 @@ public interface HosUserService extends IService<HosUser> {
      * @param checkPassword 确认密码
      * @return 新用户id
      */
-    int userRegister(String username, String password, String checkPassword);
+    BaseResponse<Long> userRegister(String username, String password, String checkPassword);
 
     /**
      *
