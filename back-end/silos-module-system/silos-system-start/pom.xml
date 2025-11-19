@@ -48,6 +48,12 @@
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>
         </dependency>
+        <!-- 引入 base-core，提供 JeecgCloudCondition / oConvertUtils 等 -->
+        <dependency>
+            <groupId>org.jeecgframework.boot</groupId>
+            <artifactId>silos-boot-base-core</artifactId>
+            <version>${jeecgboot.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

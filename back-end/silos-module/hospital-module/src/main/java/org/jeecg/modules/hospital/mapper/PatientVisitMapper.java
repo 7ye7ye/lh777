@@ -10,16 +10,20 @@ import org.jeecg.modules.hospital.vo.PatientBriefVO;
 import java.time.LocalDate;
 import java.util.List;
 
-@Mapper
-public interface PatientVisitMapper extends BaseMapper<PatientVisit> {
+// PatientVisitMapper 接口
+import com.baomidou.dynamic.datasource.annotation.DS;
 
-    @Select({
+@DS("hospital")
+@org.apache.ibatis.annotations.Mapper
+public interface PatientVisitMapper extends BaseMapper<org.jeecg.modules.hospital.entity.PatientVisit> {
+
+    @org.apache.ibatis.annotations.Select({
             "<script>",
             "SELECT ",
             " p.patient_id AS patientId,",
             " u.user_account AS name,",
             " p.gender AS gender,",
-            " u.phone AS phone,",
+            " p.phone AS phone,",
             " MAX(v.visit_date) AS lastVisitDate,",
             " MAX(v.status) AS lastVisitStatus,",
             " COUNT(v.visit_id) AS visitCount",
@@ -31,14 +35,14 @@ public interface PatientVisitMapper extends BaseMapper<PatientVisit> {
             "  <if test='keyword != null and keyword != \"\"'>",
             "    AND (",
             "      u.user_account LIKE CONCAT('%', #{keyword}, '%')",
-            "      OR u.phone LIKE CONCAT('%', #{keyword}, '%')",
+            "      OR p.phone LIKE CONCAT('%', #{keyword}, '%')",
             "    )",
             "  </if>",
             "  <if test='startDate != null'> AND v.visit_date &gt;= #{startDate} </if>",
             "  <if test='endDate != null'> AND v.visit_date &lt;= #{endDate} </if>",
             "  <if test='status != null'> AND v.status = #{status} </if>",
             " </where>",
-            " GROUP BY p.patient_id, u.user_account, p.gender, u.phone",
+            " GROUP BY p.patient_id, u.user_account, p.gender, p.phone",
             " ORDER BY MAX(v.visit_date) DESC",
             "</script>"
     })
@@ -49,4 +53,10 @@ public interface PatientVisitMapper extends BaseMapper<PatientVisit> {
             @Param("endDate") LocalDate endDate,
             @Param("status") Integer status
     );
+
+    @Select("SELECT * FROM patient_visit WHERE schedule_id = #{scheduleId} AND patient_id = #{patientId} LIMIT 1")
+    PatientVisit findByScheduleAndPatient(@Param("scheduleId") Long scheduleId, @Param("patientId") Long patientId);
+
+    @org.apache.ibatis.annotations.Update("UPDATE patient_visit SET status = #{status}, update_time = NOW() WHERE visit_id = #{visitId}")
+    int updateStatus(@Param("visitId") Long visitId, @Param("status") Integer status);
 }

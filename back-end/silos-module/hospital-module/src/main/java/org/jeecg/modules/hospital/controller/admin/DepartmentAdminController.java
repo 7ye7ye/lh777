@@ -18,15 +18,15 @@ import java.util.List;
 @Tag(name = "管理员-科室管理")
 public class DepartmentAdminController {
 
-//    @Autowired
-//    private DepartmentService departmentService;
-//
-//    @Operation(summary = "获取所有科室列表")
-//    @GetMapping("/list")
-//    public Result<List<Department>> getAllDepartments() {
-//        List<Department> list = departmentService.list();
-//        return Result.OK(list);
-//    }
+    @Autowired
+    private DepartmentService departmentService;
+
+    @Operation(summary = "获取所有科室列表")
+    @GetMapping("/list")
+    public Result<List<Department>> getAllDepartments() {
+        List<Department> list = departmentService.list();
+        return Result.OK(list);
+    }
 //
 //    @Operation(summary = "创建科室")
 //    @PostMapping("/create")

@@ -63,7 +63,13 @@ public class LowCodeModeInterceptor implements HandlerInterceptor {
         if (jeecgBaseConfig.getFirewall()!=null && LowCodeModeInterceptor.LOW_CODE_MODE_PROD.equals(jeecgBaseConfig.getFirewall().getLowCodeMode())) {
             String requestURI = request.getRequestURI().substring(request.getContextPath().length());
             log.info("低代码模式，拦截请求路径：" + requestURI);
-            LoginUser loginUser = (LoginUser) SecurityUtils.getSubject().getPrincipal();
+            LoginUser loginUser = null;
+            try {
+                Object principal = SecurityUtils.getSubject().getPrincipal();
+                if (principal instanceof LoginUser) {
+                    loginUser = (LoginUser) principal;
+                }
+            } catch (Exception ignored) {}
             Set<String> hasRoles = null;
             if (loginUser == null) {
                 loginUser = commonAPI.getUserByName(JwtUtil.getUserNameByToken(SpringContextUtils.getHttpServletRequest()));

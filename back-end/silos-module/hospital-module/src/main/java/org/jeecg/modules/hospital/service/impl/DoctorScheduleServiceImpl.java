@@ -38,6 +38,50 @@ public class DoctorScheduleServiceImpl
         return this.baseMapper.selectList(qw);
     }
 
+    // ------------------- 新增方法 -------------------
+
+    /**
+     * 根据医生ID和日期查询排班列表
+     */
+    @Override
+    public List<DoctorSchedule> listByDoctorAndDate(Long doctorId, java.time.LocalDate date) {
+        if (doctorId == null || date == null) {
+            return java.util.Collections.emptyList();
+        }
+        return this.lambdaQuery()
+                .eq(DoctorSchedule::getDoctorId, doctorId)
+                .eq(DoctorSchedule::getScheduleDate, date)
+                .eq(DoctorSchedule::getStatus, 1)
+                .list();
+    }
+
+    @Override
+    public List<DoctorSchedule> listByDoctorAndDateRange(Long doctorId, LocalDate start, LocalDate end) {
+        if (doctorId == null || start == null || end == null) {
+            return List.of();
+        }
+        return this.lambdaQuery()
+                .eq(DoctorSchedule::getDoctorId, doctorId)
+                .ge(DoctorSchedule::getScheduleDate, start)
+                .le(DoctorSchedule::getScheduleDate, end)
+                .eq(DoctorSchedule::getStatus, 1)
+                .list();
+    }
+
+    @Override
+    public boolean updateUsedQuota(Long scheduleId, Integer usedQuota) {
+        if (scheduleId == null || usedQuota == null) {
+            return false;
+        }
+        DoctorSchedule s = super.getById(scheduleId);
+        if (s == null) {
+            return false;
+        }
+        s.setUsedQuota(usedQuota);
+        s.setUpdateTime(java.time.LocalDateTime.now());
+        return super.updateById(s);
+    }
+
     // ------------------- 冗余方法已移除 -------------------
     // create, update, delete, getById 方法已删除，因为它们由 ServiceImpl 自动提供。
 
@@ -46,6 +90,7 @@ public class DoctorScheduleServiceImpl
         if (schedule == null) return null;
         if (schedule.getUsedQuota() == null) schedule.setUsedQuota(0);
         if (schedule.getStatus() == null) schedule.setStatus(1);
+        if (schedule.getMaxQuota() == null) schedule.setMaxQuota(50);
         schedule.setCreateTime(java.time.LocalDateTime.now());
         schedule.setUpdateTime(java.time.LocalDateTime.now());
         super.save(schedule);

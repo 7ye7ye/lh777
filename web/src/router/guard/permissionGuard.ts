@@ -55,6 +55,24 @@ export function createPermissionGuard(router: Router) {
 
     const token = userStore.getToken;
 
+    // 免登录访问管理员端：首次进入时动态构建路由与菜单
+    if (!token && to.path.startsWith('/admin')) {
+      if (!permissionStore.getIsDynamicAddedRoute) {
+        try {
+          const routes = await permissionStore.buildRoutesAction();
+          routes.forEach((route) => {
+            router.addRoute(route as unknown as RouteRecordRaw);
+          });
+          router.addRoute(PAGE_NOT_FOUND_ROUTE as unknown as RouteRecordRaw);
+          permissionStore.setDynamicAddedRoute(true);
+        } catch (error) {
+          console.error('未登录进入管理员端时构建路由失败:', error);
+        }
+      }
+      next();
+      return;
+    }
+
     // Whitelist can be directly entered
     if (whitePathList.includes(to.path as PageEnum)) {
       if (to.path === LOGIN_PATH && token) {
@@ -92,6 +110,19 @@ export function createPermissionGuard(router: Router) {
     if (!token) {
       // You can access without permission. You need to set the routing meta.ignoreAuth to true
       if (to.meta.ignoreAuth) {
+        // 未登录也构建一次菜单和动态路由，保证侧边栏显示
+        if (!permissionStore.getIsDynamicAddedRoute) {
+          try {
+            const routes = await permissionStore.buildRoutesAction();
+            routes.forEach((route) => {
+              router.addRoute(route as unknown as RouteRecordRaw);
+            });
+            router.addRoute(PAGE_NOT_FOUND_ROUTE as unknown as RouteRecordRaw);
+            permissionStore.setDynamicAddedRoute(true);
+          } catch (error) {
+            console.error('未登录构建路由失败:', error);
+          }
+        }
         next();
         return;
       }

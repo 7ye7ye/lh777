@@ -74,6 +74,18 @@
   async function handleRegister() {
     const data = await validForm();
     if (!data) return;
+
+    // 医生工号规则：10位，前6位数字 + 后4位 bjtu（不区分大小写）
+    const isDoctorId = /^\d{6}bjtu$/i.test(data.account);
+    if (!isDoctorId) {
+      notification.error({
+        message: '注册受限',
+        description: '仅允许医生工号注册：前6位数字 + 后4位 bjtu',
+        duration: 3,
+      });
+      return;
+    }
+
     try {
       loading.value = true;
       const resultInfo = await register(
@@ -81,7 +93,7 @@
           userAccount: data.account,
           userPassword: data.password,
           checkPassword: data.confirmPassword,
-          userType: '1', // 默认注册为患者
+          userType: '2', // 医生
         })
       );
       if (resultInfo && resultInfo.data) {

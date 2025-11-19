@@ -106,6 +106,7 @@ spring:
     exclude:
       - com.alibaba.druid.spring.boot3.autoconfigure.DruidDataSourceAutoConfigure
       - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+      - com.yomahub.liteflow.spring.boot.LiteflowAutoConfiguration
   datasource:
     druid:
       stat-view-servlet:
@@ -146,6 +147,11 @@ spring:
           slow-sql-millis: 5000
       datasource:
         master:
+          url: jdbc:postgresql://101.132.176.253:5432/silosboot_m2?currentSchema=public&useUnicode=true&characterEncoding=utf8&autoReconnect=true&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&sqlIdentifierCaseInsensitive=true
+          username: silosboot_m2
+          password: silosboot_m2+-*/
+          driver-class-name: org.postgresql.Driver
+        hospital:
           url: jdbc:postgresql://101.132.176.253:5432/silosboot_m2?currentSchema=public&useUnicode=true&characterEncoding=utf8&autoReconnect=true&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&sqlIdentifierCaseInsensitive=true
           username: silosboot_m2
           password: silosboot_m2+-*/
@@ -327,3 +333,8 @@ justauth:
     type: default
     prefix: 'demo::'
     timeout: 1h
+
+# Disable LiteFlow to prevent NoClassDefFoundError: Result
+liteflow:
+  enabled: false
+  parse-on-start: false

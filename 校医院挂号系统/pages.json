@@ -21,46 +21,7 @@
 				"navigationBarBackgroundColor": "#479fff"
 			}
 		},
-    {
-      "path": "pages/doctor/schedule/main",
-      "style": {
-        "navigationBarTitleText": "医生排班",
-        "navigationBarBackgroundColor": "#479fff",
-        "navigationBarTextStyle": "white"
-      }
-    },
-    {
-      "path": "pages/doctor/schedule/apply",
-      "style": {
-        "navigationBarTitleText": "申请调班",
-        "navigationBarBackgroundColor": "#479fff",
-        "navigationBarTextStyle": "white"
-      }
-    },
-    {
-      "path": "pages/doctor/patients/list",
-      "style": {
-        "navigationBarTitleText": "患者列表",
-        "navigationBarBackgroundColor": "#479fff",
-        "navigationBarTextStyle": "white"
-      }
-    },
-    {
-      "path": "pages/doctor/patients/detail",
-      "style": {
-        "navigationBarTitleText": "患者信息",
-        "navigationBarBackgroundColor": "#479fff",
-        "navigationBarTextStyle": "white"
-      }
-    },
-    {
-      "path": "pages/doctor/profile/index",
-      "style": {
-        "navigationBarTitleText": "医生个人信息",
-        "navigationBarBackgroundColor": "#479fff",
-        "navigationBarTextStyle": "white"
-      }
-    },
+		
 		{
 			"path": "pages/hospital/hospital",
 			"style": {
@@ -87,6 +48,51 @@
 		}
 	],
 	"subPackages": [
+		{
+			"root": "subpkg/doctor/",
+			"pages": [
+				{
+					"path": "schedule/main",
+					"style": {
+						"navigationBarTitleText": "医生排班",
+						"navigationBarBackgroundColor": "#479fff",
+						"navigationBarTextStyle": "white"
+					}
+				},
+				{
+					"path": "schedule/apply",
+					"style": {
+						"navigationBarTitleText": "申请调班",
+						"navigationBarBackgroundColor": "#479fff",
+						"navigationBarTextStyle": "white"
+					}
+				},
+				{
+					"path": "patients/list",
+					"style": {
+						"navigationBarTitleText": "患者列表",
+						"navigationBarBackgroundColor": "#479fff",
+						"navigationBarTextStyle": "white"
+					}
+				},
+				{
+					"path": "patients/detail",
+					"style": {
+						"navigationBarTitleText": "患者信息",
+						"navigationBarBackgroundColor": "#479fff",
+						"navigationBarTextStyle": "white"
+					}
+				},
+				{
+					"path": "profile/index",
+					"style": {
+						"navigationBarTitleText": "医生个人信息",
+						"navigationBarBackgroundColor": "#479fff",
+						"navigationBarTextStyle": "white"
+					}
+				}
+			]
+		},
 		{
 			"root": "subpkg/profile",
 			"pages": [
@@ -237,7 +243,7 @@
 			]
 		},
 		{
-			"root": "subpkg/hospital/",
+			"root": "subpkg/hospital",
 			"pages": [
 				{
 					"path": "departments",
@@ -250,11 +256,55 @@
 					"style": {
 						"navigationBarTitleText": "科室详情"
 					}
+				},
+				{
+					"path": "department-booking",
+					"style": {
+						"navigationBarTitleText": "科室挂号"
+					}
+				},
+				{
+					"path": "disease-guide",
+					"style": {
+						"navigationBarTitleText": "疾病指南"
+					}
+				},
+				{
+					"path": "doctors",
+					"style": {
+						"navigationBarTitleText": "医生列表"
+					}
+				},
+				{
+					"path": "doctor-detail",
+					"style": {
+						"navigationBarTitleText": "医生详情"
+					}
+				},
+				{
+					"path": "physical-exam-packages",
+					"style": {
+						"navigationBarTitleText": "体检套餐"
+					}
+				},
+				{
+					"path" : "appointment",
+					"style" : 
+					{
+						"navigationBarTitleText" : "预约挂号"
+					}
+				},
+				{
+					"path" : "payment",
+					"style" : 
+					{
+						"navigationBarTitleText" : ""
+					}
 				}
 			]
 		},
 		{
-			"root": "subpkg/messages/",
+			"root": "subpkg/messages",
 			"pages": [
 				{
 					"path" : "detail",
@@ -279,7 +329,7 @@
 			]
 		},
 		{
-			"root": "subpkg/auth/",
+			"root": "subpkg/auth",
 			"pages": [
 				{
 					"path": "login",
@@ -295,6 +345,45 @@
 						"navigationBarTitleText": "注册",
 						"navigationBarBackgroundColor": "#479fff",
 						"navigationBarTextStyle": "white"
+					}
+				}
+			]
+		},
+		{
+			"root": "subpkg/physical-exam",
+			"pages": [
+				{
+					"path": "individual-booking",
+					"style": {
+						"navigationBarTitleText": "个检预约",
+						"navigationBarBackgroundColor": "#479fff",
+						"navigationBarTextStyle": "white"
+					}
+				},
+				{
+					"path": "group-booking",
+					"style": {
+						"navigationBarTitleText": "团检预约",
+						"navigationBarBackgroundColor": "#479fff",
+						"navigationBarTextStyle": "white"
+					}
+				},
+				{
+					"path": "exam-report",
+					"style": {
+						"navigationBarTitleText": "体检报告"
+					}
+				},
+				{
+					"path": "exam-orders",
+					"style": {
+						"navigationBarTitleText": "体检订单"
+					}
+				},
+				{
+					"path": "exam-center",
+					"style": {
+						"navigationBarTitleText": "体检中心"
 					}
 				}
 			]
@@ -327,8 +416,8 @@
 			{
 				"pagePath": "pages/hospital/hospital",
 				"text": "医院信息",
-				"iconPath": "static/logo.png",
-				"selectedIconPath": "static/logo.png"
+				"iconPath": "static/navigation-message.png",
+				"selectedIconPath": "static/navigation-message.png"
 			},
 			{
 				"pagePath": "pages/profile/profile",

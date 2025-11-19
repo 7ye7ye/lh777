@@ -26,7 +26,15 @@ export function createApp() {
   const { useUserStore } = require('./store/user.js')
   const userStore = useUserStore()
   userStore.initFromStorage()
-  
+
+  // 强制设置后端地址与前缀（开发联调）
+  try {
+    uni.setStorageSync('BASE_URL', 'http://127.0.0.1:8095');
+    uni.setStorageSync('API_PREFIX', '/jeecg-boot');
+  } catch (e) {
+    console.warn('设置 BASE_URL/API_PREFIX 失败:', e);
+  }
+
   return {
     app
   }

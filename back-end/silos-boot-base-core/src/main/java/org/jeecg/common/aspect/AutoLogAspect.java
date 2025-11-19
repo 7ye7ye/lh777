@@ -99,12 +99,16 @@ public class AutoLogAspect {
         dto.setRequestParam(getReqestParams(request,joinPoint));
         //设置IP地址
         dto.setIp(IpUtils.getIpAddr(request));
-        //获取登录用户信息
-        LoginUser sysUser = (LoginUser) SecurityUtils.getSubject().getPrincipal();
-        if(sysUser!=null){
+        Object principal = null;
+        try { principal = SecurityUtils.getSubject().getPrincipal(); } catch (Exception ignored) {}
+        if (principal instanceof org.jeecg.common.system.vo.LoginUser) {
+            org.jeecg.common.system.vo.LoginUser sysUser = (org.jeecg.common.system.vo.LoginUser) principal;
             dto.setUserid(sysUser.getUsername());
             dto.setUsername(sysUser.getRealname());
-
+        } else if (principal instanceof org.jeecg.common.system.vo.HosUser) {
+            org.jeecg.common.system.vo.HosUser hosUser = (org.jeecg.common.system.vo.HosUser) principal;
+            dto.setUserid(hosUser.getUserAccount());
+            dto.setUsername(hosUser.getUserAccount());
         }
         //耗时
         dto.setCostTime(time);
