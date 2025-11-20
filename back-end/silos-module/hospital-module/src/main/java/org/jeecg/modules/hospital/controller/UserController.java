@@ -39,13 +39,14 @@ public class UserController {
         String userAccount=userRegisterRequest.getUserAccount();
         String userPassword=userRegisterRequest.getUserPassword();
         String checkPassword=userRegisterRequest.getCheckPassword();
+        int userType=userRegisterRequest.getUserType();
 
         if(StringUtils.isAnyBlank(userAccount,userPassword,checkPassword)){
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求体信息存在空值");
         }
         System.out.println("接收到用户注册："+userAccount+"<UNK>");
 
-        return userService.userRegister(userAccount,userPassword,checkPassword);
+        return userService.userRegister(userAccount,userPassword,checkPassword,userType);
     }
 
     @IgnoreAuth
