@@ -50,7 +50,7 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
     private RedisUtil redisUtil;
 
     @Override
-    public BaseResponse<Long> userRegister(String userAccount, String userPassword, String checkPassword) {
+    public BaseResponse<Long> userRegister(String userAccount, String userPassword, String checkPassword,int userType) {
         //一，校验
         //1.非空
         if(StringUtils.isAnyBlank(userAccount,userPassword,checkPassword)){
@@ -89,7 +89,7 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
         HosUser user=new HosUser();
         user.setUserAccount(userAccount);
         user.setUserPassword(newPassword);
-        user.setUserType(PATIENT);
+        user.setUserType(userType);
         user.setStatus(ACTIVE);
         // 设置创建时间为当前时间
         user.setCreateTime(LocalDateTime.now());
