@@ -1,9 +1,11 @@
 package org.jeecg.modules.hospital.service;
 
 import org.jeecg.common.api.vo.Result;
+import org.jeecg.modules.hospital.dto.RegistrationDetailDTO;
 import org.jeecg.modules.hospital.entity.RegistrationRecord;
 import org.jeecg.modules.hospital.entity.RegistrationType;
 import org.jeecg.modules.hospital.entity.WaitingQueue;
+import org.jeecg.modules.hospital.vo.RegistrationVO;
 
 import java.util.List;
 import java.util.Map;
@@ -54,4 +56,19 @@ public interface RegistrationService {
      * @return true 表示加入成功，false 表示失败
      */
     Result<String> addWaitingQueue(WaitingQueue queue);
+
+    /**
+     * 按科室获取挂号记录
+     */
+    List<RegistrationVO> listByDepartment(Long deptId);
+
+    /**
+     * 按疾病获取挂号记录
+     */
+    List<RegistrationVO> listByDisease(String disease);
+
+    /**
+     * 获取挂号详情（用于消息与回执页面）
+     */
+    RegistrationDetailDTO getRegistrationDetail(Long recordId);
 }

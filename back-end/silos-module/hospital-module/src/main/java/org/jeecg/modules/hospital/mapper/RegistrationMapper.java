@@ -3,10 +3,13 @@ package org.jeecg.modules.hospital.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.dynamic.datasource.annotation.DS;
 import org.apache.ibatis.annotations.*;
+import org.jeecg.modules.hospital.dto.RegistrationDetailDTO;
 import org.jeecg.modules.hospital.entity.DoctorSchedule;
 import org.jeecg.modules.hospital.entity.RegistrationRecord;
 import org.jeecg.modules.hospital.entity.RegistrationType;
+import org.jeecg.modules.hospital.vo.RegistrationVO;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -101,6 +104,7 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
             ") VALUES (" +
             "#{scheduleId}, #{patientId}, #{doctorId}, #{typeId}, #{registrationNo}, #{registerTime}, #{status}, #{priceOriginal}, #{actualPrice}, #{isAdd}" +
             ")")
+    @Options(useGeneratedKeys = true, keyProperty = "recordId", keyColumn = "record_id")
     void insertRegistration(RegistrationRecord record);
     /**
      * 检查患者是否对同一排班重复挂号（防止重复挂号）
@@ -116,5 +120,193 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
     Integer checkDuplicateBySchedule(@Param("patientId") Long patientId,
                                                  @Param("scheduleId") Long scheduleId);
 
+    /**
+     * 查询挂号详情（用于消息 / 回执）
+     */
+    @Select("""
+            SELECT
+                rr.record_id,
+                rr.registration_no,
+                rr.patient_id,
+                p.patient_name,
+                p.outpatient_number AS patient_card_no,
+                p.user_id AS patient_user_id,
+                rr.doctor_id,
+                d.doctor_name,
+                d.title AS doctor_title,
+                ds.dept_id,
+                dep.dept_name AS department_name,
+                dep.location AS dept_location,
+                ds.schedule_date,
+                ds.time_slot,
+                rr.register_time AS register_time,
+                rt.type_name,
+                COALESCE(rr.price_original, rt.price_original) AS price_original,
+                COALESCE(rr.actual_price, rt.price_original) AS actual_price,
+                rr.status
+            FROM registration_record rr
+            LEFT JOIN patient p ON rr.patient_id = p.patient_id
+            LEFT JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
+            LEFT JOIN department dep ON ds.dept_id = dep.dept_id
+            LEFT JOIN doctor d ON rr.doctor_id = d.doctor_id
+            LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
+            WHERE rr.record_id = #{recordId}
+            """)
+    RegistrationDetailDTO selectRegistrationDetail(@Param("recordId") Long recordId);
 
+    @Select("""
+            SELECT rr.record_id,
+                   rr.registration_no,
+                   p.patient_name,
+                   d.doctor_name,
+                   dep.dept_name AS department_name,
+                   rt.type_name,
+                   rr.actual_price,
+                   ds.schedule_date AS appointment_date,
+                   ds.time_slot,
+                   rr.consult_room,
+                   rr.status
+            FROM registration_record rr
+            LEFT JOIN patient p ON rr.patient_id = p.patient_id
+            LEFT JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
+            LEFT JOIN department dep ON ds.dept_id = dep.dept_id
+            LEFT JOIN doctor d ON rr.doctor_id = d.doctor_id
+            LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
+            WHERE ds.dept_id = #{deptId}
+            ORDER BY ds.schedule_date DESC, rr.record_id DESC
+            """)
+    List<RegistrationVO> getByDepartment(@Param("deptId") Long deptId);
+
+    @Select("""
+            SELECT rr.record_id,
+                   rr.registration_no,
+                   p.patient_name,
+                   d.doctor_name,
+                   dep.dept_name AS department_name,
+                   rt.type_name,
+                   rr.actual_price,
+                   ds.schedule_date AS appointment_date,
+                   ds.time_slot,
+                   rr.consult_room,
+                   rr.status
+            FROM registration_record rr
+            LEFT JOIN patient p ON rr.patient_id = p.patient_id
+            LEFT JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
+            LEFT JOIN department dep ON ds.dept_id = dep.dept_id
+            LEFT JOIN doctor d ON rr.doctor_id = d.doctor_id
+            LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
+            WHERE d.specialty LIKE CONCAT('%', #{disease}, '%')
+               OR rt.type_name LIKE CONCAT('%', #{disease}, '%')
+            ORDER BY ds.schedule_date DESC, rr.record_id DESC
+            """)
+    List<RegistrationVO> getByDisease(@Param("disease") String disease);
+
+    /**
+     * 查询指定日期的挂号记录
+     */
+    @Select("""
+            SELECT
+                rr.record_id,
+                rr.registration_no,
+                rr.patient_id,
+                p.patient_name,
+                p.outpatient_number AS patient_card_no,
+                p.user_id AS patient_user_id,
+                rr.doctor_id,
+                d.doctor_name,
+                d.title AS doctor_title,
+                ds.dept_id,
+                dep.dept_name AS department_name,
+                dep.location AS dept_location,
+                ds.schedule_date,
+                ds.time_slot,
+                rr.register_time AS register_time,
+                rt.type_name,
+                COALESCE(rr.price_original, rt.price_original) AS price_original,
+                COALESCE(rr.actual_price, rt.price_original) AS actual_price,
+                rr.status
+            FROM registration_record rr
+            LEFT JOIN patient p ON rr.patient_id = p.patient_id
+            LEFT JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
+            LEFT JOIN department dep ON ds.dept_id = dep.dept_id
+            LEFT JOIN doctor d ON rr.doctor_id = d.doctor_id
+            LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
+            WHERE ds.schedule_date = #{targetDate}
+              AND rr.status = 1
+            """)
+    List<RegistrationDetailDTO> listRegistrationsByDate(@Param("targetDate") LocalDate targetDate);
+
+    /**
+     * 查询下一小时内即将就诊的挂号记录
+     */
+    @Select("""
+            SELECT
+                rr.record_id,
+                rr.registration_no,
+                rr.patient_id,
+                p.patient_name,
+                p.outpatient_number AS patient_card_no,
+                p.user_id AS patient_user_id,
+                rr.doctor_id,
+                d.doctor_name,
+                d.title AS doctor_title,
+                ds.dept_id,
+                dep.dept_name AS department_name,
+                dep.location AS dept_location,
+                ds.schedule_date,
+                ds.time_slot,
+                rr.register_time AS register_time,
+                rt.type_name,
+                COALESCE(rr.price_original, rt.price_original) AS price_original,
+                COALESCE(rr.actual_price, rt.price_original) AS actual_price,
+                rr.status
+            FROM registration_record rr
+            LEFT JOIN patient p ON rr.patient_id = p.patient_id
+            LEFT JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
+            LEFT JOIN department dep ON ds.dept_id = dep.dept_id
+            LEFT JOIN doctor d ON rr.doctor_id = d.doctor_id
+            LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
+            WHERE ds.schedule_date = #{targetDate}
+              AND rr.status = 1
+              AND ds.time_slot = #{timeSlot}
+            """)
+    List<RegistrationDetailDTO> listRegistrationsByDateAndSlot(@Param("targetDate") LocalDate targetDate,
+                                                               @Param("timeSlot") Integer timeSlot);
+
+    /**
+     * 根据用户ID和预约日期查询挂号记录
+     */
+    @Select("""
+            SELECT
+                rr.record_id,
+                rr.registration_no,
+                rr.patient_id,
+                p.patient_name,
+                p.outpatient_number AS patient_card_no,
+                p.user_id AS patient_user_id,
+                rr.doctor_id,
+                d.doctor_name,
+                d.title AS doctor_title,
+                ds.dept_id,
+                dep.dept_name AS department_name,
+                dep.location AS dept_location,
+                ds.schedule_date,
+                ds.time_slot,
+                rr.register_time AS register_time,
+                rt.type_name,
+                COALESCE(rr.price_original, rt.price_original) AS price_original,
+                COALESCE(rr.actual_price, rt.price_original) AS actual_price,
+                rr.status
+            FROM registration_record rr
+            LEFT JOIN patient p ON rr.patient_id = p.patient_id
+            LEFT JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
+            LEFT JOIN department dep ON ds.dept_id = dep.dept_id
+            LEFT JOIN doctor d ON rr.doctor_id = d.doctor_id
+            LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
+            WHERE p.user_id = #{userId}
+              AND ds.schedule_date = #{targetDate}
+              AND rr.status = 1
+            """)
+    List<RegistrationDetailDTO> listRegistrationsByUserIdAndDate(@Param("userId") Long userId, 
+                                                                 @Param("targetDate") LocalDate targetDate);
 }

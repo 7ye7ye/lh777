@@ -12,7 +12,7 @@
 						</text>
 						<text class="card-time">{{ formatTime(message.createdTime) }}</text>
 					</view>
-					<view class="card-summary">{{ message.title }}</view>
+					<view class="card-summary">{{ getMessageSummary(message) }}</view>
 				</view>
 			</view>
 		</view>
@@ -91,6 +91,8 @@
 						return '/static/info_message.png';
 					case 'APPOINTMENT_REMINDER':
 						return '/static/info_message.png'; // 可以替换为专门的提醒图标
+					case 'APPOINTMENT_ONE_HOUR':
+						return '/static/info_message.png';
 					default:
 						return '/static/info_message.png';
 				}
@@ -105,9 +107,19 @@
 						return '预约挂号';
 					case 'APPOINTMENT_REMINDER':
 						return '就诊提醒';
+					case 'APPOINTMENT_ONE_HOUR':
+						return '就诊提醒';
 					default:
 						return '系统消息';
 				}
+			},
+			
+			getMessageSummary(message) {
+				if (!message) return '';
+				if (message.messageType === 'APPOINTMENT_ONE_HOUR') {
+					return '就诊前1小时提醒';
+				}
+				return message.title;
 			},
 			
 			// 根据消息类型返回标题样式类
@@ -115,6 +127,8 @@
 				switch(messageType) {
 					case 'APPOINTMENT_REMINDER':
 						return 'title-reminder';
+					case 'APPOINTMENT_ONE_HOUR':
+						return 'title-onehour';
 					case 'APPOINTMENT_CANCEL':
 						return 'title-cancel';
 					default:
@@ -250,6 +264,11 @@
 	/* 提醒消息标题样式 */
 	.card-title.title-reminder {
 		color: #ff9900;
+	}
+
+	/* 一小时前提醒标题样式 */
+	.card-title.title-onehour {
+		color: #ff4d4f;
 	}
 	
 	/* 取消消息标题样式 */
