@@ -179,6 +179,15 @@ const admin: AppRouteModule = {
       },
     },
     {
+      path: 'doctor-register',
+      name: 'AdminDoctorRegister',
+      component: () => import('/@/views/admin/doctor/DoctorRegister.vue'),
+      meta: {
+        title: t('routes.admin.doctorRegister'),
+        ignoreAuth: true,
+      },
+    },
+    {
       path: 'account-permission',
       name: 'AdminAccountPermission',
       component: () => import('/@/views/admin/access/AccountPermission.vue'),
@@ -193,6 +202,9 @@ const admin: AppRouteModule = {
       component: () => import('/@/views/admin/access/LeaveApproval.vue'),
       meta: {
         title: t('routes.admin.leaveApproval'),
+        ignoreAuth: true,
+      },
+    }
         ignoreAuth: true,
       },
     },

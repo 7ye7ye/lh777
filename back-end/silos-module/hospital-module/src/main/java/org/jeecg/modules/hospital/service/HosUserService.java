@@ -20,7 +20,7 @@ public interface HosUserService extends IService<HosUser> {
      * @param checkPassword 确认密码
      * @return 新用户id
      */
-    BaseResponse<Long> userRegister(String username, String password, String checkPassword);
+    BaseResponse<Long> userRegister(String username, String password, String checkPassword,int userType);
 
     /**
      *

@@ -4,6 +4,7 @@ enum Api {
   DoctorList = '/admin/doctor/list',
   DoctorDetail = '/admin/doctor',
   DoctorProfile = '/doctor/profile',
+  DoctorRegister = '/admin/doctor/register',
 }
 
 export interface Doctor {
@@ -19,6 +20,8 @@ export interface Doctor {
   isActive: number;
   // 追加：HosUser字段
   userAccount?: string;
+  userPassword?: string;
+  userType?: number;
   email?: string;
 }
 
@@ -88,14 +91,16 @@ export const getDoctorDetail = (doctorId: number) =>
  * 添加医生
  */
 export const addDoctor = (data: Omit<Doctor, 'doctorId' | 'userId' | 'avatar'>) => {
-  return defHttp.post<Record<string, any>>({ url: Api.DoctorDetail, data });
+  return defHttp.post<Record<string, any>>({ url: Api.DoctorDetail, data }, { isTransformResponse: false });
 }
 
 /**
  * 更新医生
  */
 export const updateDoctor = (data: Partial<Doctor> & { doctorId: number }) => {
-  return defHttp.put<Record<string, any>>({ url: `${Api.DoctorDetail}/update`, data });
+  console.log('Update doctor request data:', JSON.stringify(data));
+  console.log('Update doctor request URL:', `${Api.DoctorDetail}/update`);
+  return defHttp.put<Record<string, any>>({ url: `${Api.DoctorDetail}/update`, data }, { isTransformResponse: false });
 }
 
 /**
@@ -104,3 +109,34 @@ export const updateDoctor = (data: Partial<Doctor> & { doctorId: number }) => {
 export const deleteDoctor = (doctorId: number) => {
   return defHttp.delete<Record<string, any>>({ url: `${Api.DoctorDetail}/delete/${doctorId}` });
 }
+
+// 新增的医生注册相关接口
+export interface RegisterDoctorPayload {
+  userAccount: string;
+  userPassword: string;
+  userType?: number;
+  doctorName: string;
+  deptId: number;
+  title: string;
+  specialty: string;
+  doctorDesc?: string;
+  email?: string;
+  isActive?: number;
+}
+
+export const registerDoctorAccount = (data: RegisterDoctorPayload) => {
+  return defHttp.post<any>(
+    {
+      url: Api.DoctorRegister,
+      data: {
+        userType: 2,
+        isActive: 1,
+        ...data,
+      },
+    },
+    {
+      isTransformResponse: false,
+      errorMessageMode: 'none',
+    }
+  );
+};
