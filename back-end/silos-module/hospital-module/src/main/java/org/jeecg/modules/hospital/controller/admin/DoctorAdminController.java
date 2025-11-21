@@ -3,11 +3,16 @@ package org.jeecg.modules.hospital.controller.admin;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.jeecg.common.api.vo.Result;
+import org.jeecg.common.constant.CommonConstant;
 import org.jeecg.modules.hospital.entity.Doctor;
+import org.jeecg.modules.hospital.entity.Department;
 import org.jeecg.modules.hospital.entity.HosUser;
 import org.jeecg.modules.hospital.service.DoctorService;
+import org.jeecg.modules.hospital.service.DepartmentService;
 import org.jeecg.modules.hospital.service.HosUserService;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,6 +20,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +29,7 @@ import java.util.Map;
 /**
  * 医生管理控制器（管理员端）
  */
+@Slf4j
 @RestController
 @RequestMapping("/admin/doctor")
 @Tag(name = "管理员-医生管理")
@@ -31,6 +39,9 @@ public class DoctorAdminController {
     private DoctorService doctorService;
     
     @Resource
+    private DepartmentService departmentService;
+    
+    @Resource
     private HosUserService hosUserService;
 
     /**
@@ -38,7 +49,7 @@ public class DoctorAdminController {
      */
     @Operation(summary = "分页获取医生列表")
     @GetMapping("/list")
-    public Result<IPage<Doctor>> list(
+    public Result<IPage<Map<String, Object>>> list(
             @RequestParam(defaultValue = "1") Integer pageNo,
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) String keyword,
@@ -58,21 +69,63 @@ public class DoctorAdminController {
         queryWrapper.orderByDesc(Doctor::getDoctorId);
         
         IPage<Doctor> pageResult = doctorService.page(page, queryWrapper);
-        return Result.OK(pageResult);
+        
+        // 转换为带科室名称的Map列表
+        IPage<Map<String, Object>> resultPage = new Page<>(pageNo, pageSize);
+        resultPage.setTotal(pageResult.getTotal());
+        
+        List<Map<String, Object>> records = new ArrayList<>();
+        for (Doctor doctor : pageResult.getRecords()) {
+            Map<String, Object> doctorMap = convertDoctorToMap(doctor);
+            records.add(doctorMap);
+        }
+        
+        resultPage.setRecords(records);
+        return Result.OK(resultPage);
     }
-
+    
     /**
      * 获取医生详情
      */
     @Operation(summary = "获取医生详情")
     @GetMapping("/detail/{doctorId}")
-    public Result<Doctor> detail(@PathVariable Long doctorId) {
+    public Result<Map<String, Object>> detail(@PathVariable Long doctorId) {
         Doctor doctor = doctorService.getById(doctorId);
         if (doctor == null) {
             return Result.error("医生不存在");
         }
-        return Result.OK(doctor);
+        Map<String, Object> doctorMap = convertDoctorToMap(doctor);
+        return Result.OK(doctorMap);
     }
+    
+    /**
+     * 将Doctor对象转换为带科室名称的Map
+     */
+    private Map<String, Object> convertDoctorToMap(Doctor doctor) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("doctorId", doctor.getDoctorId());
+        map.put("userId", doctor.getUserId());
+        map.put("deptId", doctor.getDeptId());
+        map.put("title", doctor.getTitle());
+        map.put("specialty", doctor.getSpecialty());
+        map.put("doctorDesc", doctor.getDoctorDesc());
+        map.put("avatar", doctor.getAvatar());
+        map.put("isActive", doctor.getIsActive());
+        map.put("updateVerify", doctor.getUpdateVerify());
+        map.put("doctorName", doctor.getDoctorName());
+        
+        // 添加科室名称信息
+        if (doctor.getDeptId() != null) {
+            Department department = departmentService.getById(doctor.getDeptId());
+            if (department != null) {
+                map.put("deptName", department.getDeptName());
+            }
+        }
+        
+        return map;
+    }
+
+
 
     /**
      * 新增医生
@@ -111,30 +164,147 @@ public class DoctorAdminController {
      */
     @Operation(summary = "更新医生信息")
     @PutMapping("/update")
-    public Result<?> update(@RequestBody Doctor doctor) {
-        if (doctor.getDoctorId() == null) {
-            return Result.error("医生ID不能为空");
-        }
-        
-        // 检查医生是否存在
-        Doctor existing = doctorService.getById(doctor.getDoctorId());
-        if (existing == null) {
-            return Result.error("医生不存在");
-        }
-        
-        if (doctor.getUserId() != null) {
-            // 检查用户是否存在
-            HosUser user = hosUserService.getById(doctor.getUserId());
-            if (user == null) {
-                return Result.error("关联用户不存在");
+    @Transactional(rollbackFor = Exception.class)
+    public Result<?> update(@RequestBody Map<String, Object> data) {
+        log.info("开始更新医生信息: {}", data);
+        try {
+            // 获取医生ID
+            Long doctorId = null;
+            try {
+                doctorId = Long.valueOf(data.get("doctorId").toString());
+            } catch (Exception e) {
+                log.error("医生ID格式错误: {}", e.getMessage());
+            Result<HashMap<String, Object>> result = new Result<>();
+            result.setSuccess(false);
+            result.setCode(400); // SC_BAD_REQUEST_400
+            result.setMessage("医生ID不能为空且必须为数字");
+            result.setResult(new HashMap<String, Object>());
+            return result;
             }
-        }
-        
-        boolean success = doctorService.updateById(doctor);
-        if (success) {
-            return Result.OK("更新成功");
-        } else {
-            return Result.error("更新失败");
+            
+            if (doctorId == null) {
+                Result<HashMap<String, Object>> result = new Result<>();
+            result.setSuccess(false);
+            result.setCode(400); // SC_BAD_REQUEST_400
+            result.setMessage("医生ID不能为空");
+            result.setResult(new HashMap<String, Object>());
+            return result;
+            }
+            
+            // 检查医生是否存在
+            Doctor existing = doctorService.getById(doctorId);
+            if (existing == null) {
+                log.warn("医生不存在, doctorId: {}", doctorId);
+            Result<HashMap<String, Object>> result = new Result<>();
+            result.setSuccess(false);
+            result.setCode(CommonConstant.SC_INTERNAL_NOT_FOUND_404);
+            result.setMessage("医生不存在");
+            result.setResult(new HashMap<String, Object>());
+            return result;
+            }
+            
+            // 更新Doctor表信息
+            Doctor doctor = new Doctor();
+            doctor.setDoctorId(doctorId);
+            
+            // 设置Doctor相关字段
+            if (data.containsKey("doctorName")) {
+                doctor.setDoctorName(data.get("doctorName").toString());
+            }
+            if (data.containsKey("deptId")) {
+                doctor.setDeptId(Long.valueOf(data.get("deptId").toString()));
+            }
+            if (data.containsKey("title")) {
+                doctor.setTitle(data.get("title").toString());
+            }
+            if (data.containsKey("specialty")) {
+                doctor.setSpecialty(data.get("specialty").toString());
+            }
+            if (data.containsKey("doctorDesc")) {
+                doctor.setDoctorDesc(data.get("doctorDesc").toString());
+            }
+            if (data.containsKey("avatar")) {
+                doctor.setAvatar(data.get("avatar").toString());
+            }
+            if (data.containsKey("isActive")) {
+                doctor.setIsActive(Integer.valueOf(data.get("isActive").toString()));
+            }
+            if (data.containsKey("updateVerify")) {
+                doctor.setUpdateVerify(Integer.valueOf(data.get("updateVerify").toString()));
+            }
+            
+            // 处理用户ID变更
+            Long userId = null;
+            if (data.containsKey("userId")) {
+                userId = Long.valueOf(data.get("userId").toString());
+                doctor.setUserId(userId);
+            } else {
+                userId = existing.getUserId();
+            }
+            
+            // 检查用户是否存在
+            if (userId != null) {
+                HosUser user = hosUserService.getById(userId);
+                if (user == null) {
+                    log.warn("关联用户不存在, userId: {}", userId);
+                Result<HashMap<String, Object>> result = new Result<>();
+                result.setSuccess(false);
+                result.setCode(CommonConstant.SC_INTERNAL_NOT_FOUND_404);
+                result.setMessage("关联用户不存在");
+                result.setResult(new HashMap<String, Object>());
+                return result;
+                }
+                
+                // 更新HosUser表信息（如果有相关字段）
+                if (data.containsKey("userAccount") || data.containsKey("email")) {
+                    boolean hasUserUpdate = false;
+                    
+                    if (data.containsKey("userAccount")) {
+                        user.setUserAccount(data.get("userAccount").toString());
+                        hasUserUpdate = true;
+                    }
+                    if (data.containsKey("email")) {
+                        user.setEmail(data.get("email").toString());
+                        hasUserUpdate = true;
+                    }
+                    
+                    if (hasUserUpdate) {
+                        user.setUpdateTime(LocalDateTime.now());
+                        hosUserService.updateById(user);
+                        log.info("更新用户信息成功, userId: {}", userId);
+                    }
+                }
+            }
+            
+            // 执行Doctor表更新
+            boolean success = doctorService.updateById(doctor);
+            if (success) {
+                log.info("更新医生信息成功, doctorId: {}", doctorId);
+                Result<HashMap<String, Object>> result = new Result<>();
+                result.setSuccess(true);
+                result.setCode(CommonConstant.SC_OK_200);
+                result.setMessage("更新成功");
+                result.setResult(new HashMap<String, Object>());
+                return result;
+            } else {
+                log.error("更新医生信息失败, doctorId: {}", doctorId);
+                Result<HashMap<String, Object>> result = new Result<>();
+                result.setSuccess(false);
+                result.setCode(CommonConstant.SC_INTERNAL_SERVER_ERROR_500);
+                result.setMessage("更新失败");
+                result.setResult(new HashMap<String, Object>());
+                return result;
+            }
+        } catch (Exception e) {
+            log.error("更新医生信息异常: {}", e.getMessage(), e);
+            // 创建并返回一个标准格式的错误响应对象
+            Result<HashMap<String, Object>> result = new Result<>();
+            result.setSuccess(false);
+            result.setCode(CommonConstant.SC_INTERNAL_SERVER_ERROR_500);
+            result.setMessage("系统异常，请稍后重试");
+            // 避免返回空数据，提供一个空对象
+            result.setResult(new HashMap<String, Object>());
+            return result;
         }
     }
 

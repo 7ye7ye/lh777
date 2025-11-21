@@ -2,7 +2,7 @@ package org.jeecg.modules.hospital.controller.admin;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
-import org.jeecg.common.api.vo.Result;
+import org.jeecg.common.api.vo.Result; // Path confirmed, no change needed
 import org.jeecg.modules.hospital.dto.referral.ReferralListQuery;
 import org.jeecg.modules.hospital.dto.referral.ReferralReviewRequest;
 import org.jeecg.modules.hospital.entity.ReferralApplication;
@@ -40,4 +40,5 @@ public class ReferralAdminController {
         return Result.OK(referralService.loadOptions());
     }
 }
+
 

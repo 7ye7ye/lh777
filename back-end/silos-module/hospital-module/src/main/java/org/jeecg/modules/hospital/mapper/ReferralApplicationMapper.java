@@ -10,3 +10,4 @@ import org.jeecg.modules.hospital.entity.ReferralApplication;
 public interface ReferralApplicationMapper extends BaseMapper<ReferralApplication> {
 }
 
+

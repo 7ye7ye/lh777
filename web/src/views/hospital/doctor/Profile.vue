@@ -56,11 +56,7 @@
         <a-textarea v-model:value="profile.doctorDesc" rows="4" />
       </a-form-item>
 
-      <a-form-item label="信息修改审核状态">
-        <a-tag :color="verifyColor(profile.updateVerify)">
-          {{ verifyText(profile.updateVerify) }}
-        </a-tag>
-      </a-form-item>
+
 
       <div style="margin-top: 12px;">
         <a-button type="primary" @click="handleSubmit">保存</a-button>
@@ -93,7 +89,6 @@ export default defineComponent({
       doctorDesc: '',
       avatar: '',
       isActive: 1,
-      updateVerify: 0,
       userAccount: '',
       email: '',
     } as any);
@@ -107,22 +102,7 @@ export default defineComponent({
       },
     });
 
-    function verifyColor(v?: number) {
-      switch (v) {
-        case 1: return 'gold';
-        case 2: return 'green';
-        case 3: return 'red';
-        default: return 'default';
-      }
-    }
-    function verifyText(v?: number) {
-      switch (v) {
-        case 1: return '待审核';
-        case 2: return '已通过';
-        case 3: return '已驳回';
-        default: return '未提交';
-      }
-    }
+
 
     // 判断返回的医生数据是否属于当前登录用户
     function isProfileMatchesCurrentUser(p: Partial<Doctor> | null | undefined): boolean {
@@ -228,8 +208,6 @@ export default defineComponent({
     return {
       profile,
       activeChecked,
-      verifyColor,
-      verifyText,
       handleSubmit,
     };
   },

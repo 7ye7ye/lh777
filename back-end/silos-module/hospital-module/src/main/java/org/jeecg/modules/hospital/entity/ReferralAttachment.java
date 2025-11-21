@@ -12,3 +12,4 @@ public class ReferralAttachment {
     private String type;
 }
 
+

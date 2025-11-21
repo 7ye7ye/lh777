@@ -12,3 +12,4 @@ public class ReferralListQuery {
     private Integer pageSize = 10;
 }
 
+

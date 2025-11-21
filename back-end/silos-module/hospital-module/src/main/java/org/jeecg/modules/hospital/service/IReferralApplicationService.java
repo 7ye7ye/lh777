@@ -24,3 +24,4 @@ public interface IReferralApplicationService extends IService<ReferralApplicatio
     ReferralOptionsVO loadOptions();
 }
 
+

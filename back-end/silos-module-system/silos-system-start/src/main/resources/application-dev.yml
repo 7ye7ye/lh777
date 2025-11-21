@@ -109,7 +109,7 @@ spring:
     template_update_delay: 0
   # 设置静态文件路径，js,css等
   mvc:
-    static-path-pattern: /**
+    static-path-pattern: /static/**
     #Spring Boot 2.6+后映射匹配的默认策略已从AntPathMatcher更改为PathPatternParser,需要手动指定为ant-path-matcher
     pathmatch:
       matching-strategy: ant_path_matcher
