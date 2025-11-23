@@ -1,3 +1,4 @@
+
 import type { AppRouteModule } from '/@/router/types';
 
 import { LAYOUT } from '/@/router/constant';
@@ -15,6 +16,47 @@ const admin: AppRouteModule = {
     ignoreAuth: true,
   },
   children: [
+    {
+      path: 'management',
+      name: 'AdminManagement',
+      component: LAYOUT,
+      redirect: '/admin/management/department',
+      meta: {
+        orderNo: 8,
+        title: '管理中心',
+        ignoreAuth: true,
+      },
+      children: [
+        {
+          path: 'department',
+          name: 'AdminDepartmentManagement',
+          component: () => import('/@/views/admin/management/DepartmentManagement.vue'),
+          meta: {
+            title: '科室管理',
+            ignoreAuth: true,
+          },
+        },
+        {
+          path: 'department/detail/:deptId',
+          name: 'AdminDepartmentDetail',
+          component: () => import('/@/views/admin/management/DepartmentDetail.vue'),
+          meta: {
+            title: '科室详情',
+            ignoreAuth: true,
+            hideMenu: true,
+          },
+        },
+        {
+          path: 'doctor',
+          name: 'AdminDoctorManagement',
+          component: () => import('/@/views/admin/management/DoctorManagement.vue'),
+          meta: {
+            title: '医生管理',
+            ignoreAuth: true,
+          },
+        },
+      ],
+    },
     {
       path: 'schedule-today',
       name: 'AdminScheduleToday',

@@ -154,6 +154,10 @@ const titleOptions = [
   { label: '副主任医师', value: '副主任医师' },
   { label: '主治医师', value: '主治医师' },
   { label: '住院医师', value: '住院医师' },
+  { label: '主任护师', value: '主任护师' },
+  { label: '副主任护师', value: '副主任护师' },
+  { label: '主管护师', value: '主管护师' },
+  { label: '报销专员', value: '报销专员' },
 ];
 
 const rules: Record<string, Rule[]> = {
