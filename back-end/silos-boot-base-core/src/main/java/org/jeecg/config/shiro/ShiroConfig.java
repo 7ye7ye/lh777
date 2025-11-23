@@ -349,9 +349,8 @@ public class ShiroConfig {
             //(lettuceConnectionFactory.getPort());
             redisManager.setDatabase(lettuceConnectionFactory.getDatabase());
             redisManager.setTimeout(0);
-            String password = lettuceConnectionFactory.getPassword();
-            if (password != null && !password.isEmpty()) {
-                redisManager.setPassword(password);
+            if (!StringUtils.isEmpty(lettuceConnectionFactory.getPassword())) {
+                redisManager.setPassword(lettuceConnectionFactory.getPassword());
             }
             manager = redisManager;
         }else{

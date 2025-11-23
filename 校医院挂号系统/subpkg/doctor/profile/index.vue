@@ -174,6 +174,14 @@
           </view>
           <text class="menu-arrow">›</text>
         </view>
+
+        <view class="menu-item" @click="goToLeaveApplication">
+          <view class="menu-left">
+            <text class="menu-icon">📝</text>
+            <text class="menu-label">申请请假</text>
+          </view>
+          <text class="menu-arrow">›</text>
+        </view>
       </view>
     </view>
 
@@ -209,9 +217,11 @@ import { getDepartmentDetail } from '@/api/department'
 
 // 医生信息（示例数据，可通过接口替换）
 const doctorInfo = ref({
+  id: null,
   name: '张医生',
   title: '主治医师',
   department: '内科',
+  departmentId: null,
   avatar: '/static/doctor.svg',
   phone: '138****5678',
   email: 'zhang***@hospital.edu.cn',
@@ -250,9 +260,11 @@ async function loadDoctorProfile() {
     }
 
     doctorInfo.value = {
+      id: p.doctorId || p.id || null,
       name: p.doctorName || p.name || p.realName || '未知姓名',
       title: p.title || p.professionalTitle || '医师',
       department: p.deptName || p.departmentName || p.department || '未知科室',
+      departmentId: p.deptId || p.departmentId || null,
       avatar: p.avatar || p.avatarUrl || p.photo || '/static/doctor.svg',
       phone: p.phone || p.mobile || p.tel || '',
       email: p.email || p.mail || '',
@@ -291,23 +303,39 @@ function goBackToSchedule() {
   // if (pages.length > 1) {
   //   uni.navigateBack()
   // } else {
-    uniNavigateTo('/pages/doctor/schedule/main')
+    uniNavigateTo({ url: '/subpkg/doctor/schedule/main' })
   // }
 }
 
 // 功能菜单
 function goToScheduleManagement() {
-  uniNavigateTo('/pages/doctor/schedule/main')
+  uniNavigateTo({ url: '/subpkg/doctor/schedule/main' })
 }
 function goToStatistics() {
   uniShowToast('接诊统计功能开发中')
 }
 function goToSettings() {
   // 项目中存在 /pages/profile/profile.vue
-  uniNavigateTo('/pages/profile/profile')
+  uniNavigateTo({ url: '/pages/profile/profile' })
 }
 function changePassword() {
   uniShowToast('请前往系统设置中修改密码')
+}
+
+// 跳转到请假申请页面
+function goToLeaveApplication() {
+  // 传递医生信息到请假页面
+  const params = {
+    doctorId: doctorInfo.value.id,
+    doctorName: doctorInfo.value.name,
+    deptId: doctorInfo.value.departmentId,
+    deptName: doctorInfo.value.department
+  }
+  const query = Object.keys(params)
+    .filter(key => params[key] !== null && params[key] !== undefined)
+    .map(key => `${key}=${encodeURIComponent(params[key])}`)
+    .join('&')
+  uniNavigateTo({ url: `/subpkg/doctor/leave/apply${query ? '?' + query : ''}` })
 }
 
 // 编辑弹窗
