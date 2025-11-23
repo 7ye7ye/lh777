@@ -40,13 +40,19 @@ public class DoctorPatientQueryController {
     @GetMapping("/patients/by-date")
     public Result<List<PatientBriefVO>> getByDate(
             HttpServletRequest request,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+            @RequestParam String date
     ) {
         Long doctorId = resolveCurrentDoctorId(request);
         if (doctorId == null) {
             return Result.error("未登录或未绑定医生信息");
         }
-        List<PatientBriefVO> list = patientService.list(doctorId, null, date, date, null);
+        LocalDate d;
+        try {
+            d = LocalDate.parse(date.replace('/', '-'));
+        } catch (Exception e) {
+            return Result.error("日期格式错误");
+        }
+        List<PatientBriefVO> list = patientService.list(doctorId, null, d, d, null);
         return Result.OK(list);
     }
 

@@ -42,6 +42,9 @@ public class DoctorSchedule {
     @TableField("status")
     private Integer status;
 
+    @TableField("room_number")
+    private String roomNumber;
+
     // 兼容旧字段（非持久化别名）
     @TableField(exist = false)
     private LocalDate date;
@@ -88,6 +91,15 @@ public class DoctorSchedule {
 
     public Integer getStatus() { return status; }
     public void setStatus(Integer status) { this.status = status; }
+
+    public String getRoomNumber() { return roomNumber; }
+    public void setRoomNumber(String roomNumber) { this.roomNumber = roomNumber; }
+
+    @TableField("max_quota")
+    private Integer maxQuota;
+
+    public Integer getMaxQuota() { return maxQuota; }
+    public void setMaxQuota(Integer maxQuota) { this.maxQuota = maxQuota; }
 
     // 别名：date <-> scheduleDate
     public LocalDate getDate() { return scheduleDate; }

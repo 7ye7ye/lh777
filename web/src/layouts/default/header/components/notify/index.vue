@@ -121,12 +121,6 @@
       // 初始化 WebSocket
       function initWebSocket() {
         let token = getToken();
-        // 只有当token存在且用户信息已加载时才创建WebSocket连接
-        if (!token || !unref(userStore.getUserInfo)?.id) {
-          console.warn('WebSocket: 用户未登录或信息未加载，跳过连接');
-          return;
-        }
-        
         //将登录token生成一个短的标识
         let wsClientId = md5(token);
         let userId = unref(userStore.getUserInfo).id + "_" + wsClientId;

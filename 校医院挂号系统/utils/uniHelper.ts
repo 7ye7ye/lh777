@@ -36,8 +36,12 @@ export function uniHideLoading(): void {
 }
 
 // uni.navigateTo 的封装
-export function uniNavigateTo(options: { url: string }): void {
-  uni.navigateTo(options)
+export function uniNavigateTo(options: { url: string } | string): void {
+  const opt = typeof options === 'string' ? { url: options } : options
+  if (!opt || typeof opt.url !== 'string' || !opt.url) {
+    throw new Error('navigateTo: url is required')
+  }
+  uni.navigateTo(opt)
 }
 
 // uni.navigateBack 的封装
@@ -46,6 +50,10 @@ export function uniNavigateBack(options?: { delta?: number }): void {
 }
 
 // uni.switchTab 的封装
-export function uniSwitchTab(options: { url: string }): void {
-  uni.switchTab(options)
+export function uniSwitchTab(options: { url: string } | string): void {
+  const opt = typeof options === 'string' ? { url: options } : options
+  if (!opt || typeof opt.url !== 'string' || !opt.url) {
+    throw new Error('switchTab: url is required')
+  }
+  uni.switchTab(opt)
 }

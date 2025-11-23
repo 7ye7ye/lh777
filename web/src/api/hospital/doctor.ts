@@ -4,6 +4,7 @@ enum Api {
   DoctorList = '/admin/doctor/list',
   DoctorDetail = '/admin/doctor',
   DoctorProfile = '/doctor/profile',
+  DoctorRegister = '/admin/doctor/register',
 }
 
 export interface Doctor {
@@ -20,6 +21,8 @@ export interface Doctor {
   updateVerify: number;
   // 追加：HosUser字段
   userAccount?: string;
+  userPassword?: string;
+  userType?: number;
   email?: string;
 }
 
@@ -75,11 +78,45 @@ export interface DoctorListParams {
 /**
  * 获取医生列表
  */
-export const getDoctorList = (params?: DoctorListParams) =>
-  defHttp.get<Doctor[]>({ url: Api.DoctorList, params });
+export const getDoctorList = (params?: DoctorListParams) => {
+  if (params?.deptId) {
+    return defHttp.get<Doctor[]>({ url: `/applet/doctor/by-dept/${params.deptId}` });
+  }
+  return defHttp.get<Doctor[]>({ url: `/applet/doctor/list` });
+}
 
 /**
  * 获取医生详情
  */
 export const getDoctorDetail = (doctorId: number) =>
   defHttp.get<Doctor>({ url: `${Api.DoctorDetail}/${doctorId}` });
+
+export interface RegisterDoctorPayload {
+  userAccount: string;
+  userPassword: string;
+  userType?: number;
+  doctorName: string;
+  deptId: number;
+  title: string;
+  specialty: string;
+  doctorDesc?: string;
+  email?: string;
+  isActive?: number;
+}
+
+export const registerDoctorAccount = (data: RegisterDoctorPayload) => {
+  return defHttp.post<any>(
+    {
+      url: Api.DoctorRegister,
+      data: {
+        userType: 2,
+        isActive: 1,
+        ...data,
+      },
+    },
+    {
+      isTransformResponse: false,
+      errorMessageMode: 'none',
+    }
+  );
+};

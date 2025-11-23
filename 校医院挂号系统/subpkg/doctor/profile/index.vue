@@ -174,6 +174,14 @@
           </view>
           <text class="menu-arrow">›</text>
         </view>
+
+        <view class="menu-item" @click="goToLeaveApplication">
+          <view class="menu-left">
+            <text class="menu-icon">📝</text>
+            <text class="menu-label">申请请假</text>
+          </view>
+          <text class="menu-arrow">›</text>
+        </view>
       </view>
     </view>
 
@@ -201,14 +209,19 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { uniNavigateTo, uniShowToast } from '@/utils/uniHelper'
+import { useUserStore } from '@/store/user'
+import { doctorApi } from '@/api/doctor'
+import { getDepartmentDetail } from '@/api/department'
 
 // 医生信息（示例数据，可通过接口替换）
 const doctorInfo = ref({
+  id: null,
   name: '张医生',
   title: '主治医师',
   department: '内科',
+  departmentId: null,
   avatar: '/static/doctor.svg',
   phone: '138****5678',
   email: 'zhang***@hospital.edu.cn',
@@ -223,29 +236,106 @@ const stats = ref({
   rating: 4.8
 })
 
+const loadingProfile = ref(false)
+const userStore = useUserStore()
+
+async function loadDoctorProfile() {
+  if (loadingProfile.value) return
+  loadingProfile.value = true
+  try {
+    let p = await doctorApi.getMyProfile()
+    if (!p || (typeof p === 'object' && Object.keys(p).length === 0)) {
+      const uid =
+        userStore?.userInfo?.userId ??
+        userStore?.userInfo?.id ??
+        uni.getStorageSync('userInfo')?.userId ??
+        uni.getStorageSync('userInfo')?.id
+      if (uid) {
+        p = await doctorApi.getProfileByUserId(Number(uid))
+      }
+    }
+    if (!p || (typeof p === 'object' && Object.keys(p).length === 0)) {
+      await uniShowToast({ title: '未获取到医生资料', icon: 'none' })
+      return
+    }
+
+    doctorInfo.value = {
+      id: p.doctorId || p.id || null,
+      name: p.doctorName || p.name || p.realName || '未知姓名',
+      title: p.title || p.professionalTitle || '医师',
+      department: p.deptName || p.departmentName || p.department || '未知科室',
+      departmentId: p.deptId || p.departmentId || null,
+      avatar: p.avatar || p.avatarUrl || p.photo || '/static/doctor.svg',
+      phone: p.phone || p.mobile || p.tel || '',
+      email: p.email || p.mail || '',
+      licenseNumber: p.licenseNumber || p.license_no || p.license || '',
+      yearsOfPractice: p.yearsOfPractice ?? p.years ?? p.practiceYears ?? 0,
+      specialty: p.specialty || p.doctor_desc || p.description || ''
+    }
+
+    if (p.totalPatients || p.todayPatients || p.rating) {
+      stats.value = {
+        totalPatients: Number(p.totalPatients ?? stats.value.totalPatients),
+        todayPatients: Number(p.todayPatients ?? stats.value.todayPatients),
+        rating: Number(p.rating ?? stats.value.rating)
+      }
+    }
+  } catch (e) {
+    console.error('加载医生资料失败:', e)
+    await uniShowToast({ title: '加载医生资料失败', icon: 'none' })
+  } finally {
+    loadingProfile.value = false
+  }
+}
+
+onMounted(() => {
+  try {
+    if (!userStore.userInfo || !userStore.token) {
+      userStore.initFromStorage?.()
+    }
+  } catch (_) {}
+  loadDoctorProfile()
+})
+
 // 返回医生主界面
 function goBackToSchedule() {
   // const pages = getCurrentPages()
   // if (pages.length > 1) {
   //   uni.navigateBack()
   // } else {
-    uniNavigateTo('/pages/doctor/schedule/main')
+    uniNavigateTo({ url: '/subpkg/doctor/schedule/main' })
   // }
 }
 
 // 功能菜单
 function goToScheduleManagement() {
-  uniNavigateTo('/pages/doctor/schedule/main')
+  uniNavigateTo({ url: '/subpkg/doctor/schedule/main' })
 }
 function goToStatistics() {
   uniShowToast('接诊统计功能开发中')
 }
 function goToSettings() {
   // 项目中存在 /pages/profile/profile.vue
-  uniNavigateTo('/pages/profile/profile')
+  uniNavigateTo({ url: '/pages/profile/profile' })
 }
 function changePassword() {
   uniShowToast('请前往系统设置中修改密码')
+}
+
+// 跳转到请假申请页面
+function goToLeaveApplication() {
+  // 传递医生信息到请假页面
+  const params = {
+    doctorId: doctorInfo.value.id,
+    doctorName: doctorInfo.value.name,
+    deptId: doctorInfo.value.departmentId,
+    deptName: doctorInfo.value.department
+  }
+  const query = Object.keys(params)
+    .filter(key => params[key] !== null && params[key] !== undefined)
+    .map(key => `${key}=${encodeURIComponent(params[key])}`)
+    .join('&')
+  uniNavigateTo({ url: `/subpkg/doctor/leave/apply${query ? '?' + query : ''}` })
 }
 
 // 编辑弹窗

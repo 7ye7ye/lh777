@@ -285,7 +285,7 @@ function goBackToPatientList() {
   if (pages.length > 1) {
     uni.navigateBack()
   } else {
-    uniNavigateTo('/subpkg/doctor/patients/list')
+    uniNavigateTo({ url: '/subpkg/doctor/patients/list' })
   }
 }
 

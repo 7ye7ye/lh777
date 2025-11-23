@@ -1,146 +1,128 @@
 // noinspection JSUnusedGlobalSymbols
 
-import { unref } from 'vue';
-import { useWebSocket, WebSocketResult } from '@vueuse/core';
+import { useWebSocket } from '@vueuse/core';
 import { getToken } from '/@/utils/auth';
+import type { Ref } from 'vue';
 
-let result: WebSocketResult<any>;
-const listeners = new Map();
+// 自定义 WebSocket 返回类型接口
+interface MyWebSocketResult {
+  data: Ref<any>;
+  status: Ref<'OPEN' | 'CONNECTING' | 'CLOSED'>;
+  close: () => void;
+  send: (data: string | ArrayBuffer | Blob) => boolean;
+  open: () => void;
+  ws: Ref<WebSocket | undefined>;
+}
+
+let result: MyWebSocketResult;
+const listeners = new Map<(data: any) => void, null>();
 
 /**
  * 开启 WebSocket 链接，全局只需执行一次
- * @param url
+ * @param url WebSocket 服务器地址
  */
 export function connectWebSocket(url: string) {
-  //update-begin-author:taoyan date:2022-4-24 for: v2.4.6 的 websocket 服务端，存在性能和安全问题。 #3278
   const token = (getToken() || '') as string;
+
+  // 合并所有配置选项
   const options = {
     // 自动重连 (遇到错误最多重复连接10次)
     autoReconnect: {
-      retries : 10,
-      delay : 5000
+      retries: 10,
+      delay: 5000
     },
     // 心跳检测
     heartbeat: {
       message: "ping",
       interval: 55000
-    }
-  };
-  
-  // 只有当token存在时才设置protocols
-  if (token) {
-    options.protocols = [token];
-  }
-  
-  result = useWebSocket(url, options,
-    // update-begin--author:liaozhiyang---date:20240726---for：[issues/6662] 演示系统socket总断，换一个写法
-    onConnected: function (ws) {
-      console.log('[WebSocket] 连接成功', ws);
     },
-    onDisconnected: function (ws, event) {
-      console.log('[WebSocket] 连接断开：', ws, event);
+    // 连接事件处理
+    onConnected: () => {
+      console.log('[WebSocket] 连接成功');
     },
-    onError: function (ws, event) {
-      console.log('[WebSocket] 连接发生错误: ', ws, event);
+    onDisconnected: (_ws: WebSocket, event: CloseEvent) => {
+      console.log('[WebSocket] 连接断开：', event);
     },
-    onMessage: function (_ws, e) {
+    onError: (_ws: WebSocket, event: Event) => {
+      console.log('[WebSocket] 连接发生错误: ', event);
+    },
+    onMessage: (_ws: WebSocket, e: MessageEvent) => {
       console.debug('[WebSocket] -----接收消息-------', e.data);
-      try {
-        //update-begin---author:wangshuai---date:2024-05-07---for:【issues/1161】前端websocket因心跳导致监听不起作用---
-        if (e.data === 'ping') {
-          return;
-        }
-        //update-end---author:wangshuai---date:2024-05-07---for:【issues/1161】前端websocket因心跳导致监听不起作用---
-        const data = JSON.parse(e.data);
-        for (const callback of listeners.keys()) {
-          try {
-            callback(data);
-          } catch (err) {
-            console.error(err);
-          }
-        }
-      } catch (err) {
-        console.error('[WebSocket] data解析失败：', err);
-      }
+      handleWebSocketMessage(e);
     },
-    // update-end--author:liaozhiyang---date:20240726---for：[issues/6662] 演示系统socket总断，换一个写法
-  });
-  // update-begin--author:liaozhiyang---date:20240726---for：[issues/6662] 演示系统socket总断，换一个写法
-  //update-end-author:taoyan date:2022-4-24 for: v2.4.6 的 websocket 服务端，存在性能和安全问题。 #3278
-  // if (result) {
-  //   result.open = onOpen;
-  //   result.close = onClose;
+    // 只有当token存在时才设置protocols
+    protocols: token ? [token] : undefined
+  };
 
-  //   const ws = unref(result.ws);
-  //   if(ws!=null){
-  //     ws.onerror = onError;
-  //     ws.onmessage = onMessage;
-  //     //update-begin---author:wangshuai---date:2024-04-30---for:【issues/1217】发送测试消息后，铃铛数字没有变化---
-  //     ws.onopen = onOpen;
-  //     ws.onclose = onClose;
-  //     //update-end---author:wangshuai---date:2024-04-30---for:【issues/1217】发送测试消息后，铃铛数字没有变化---
-  //   }
-  // }
-  // update-end--author:liaozhiyang---date:20240726---for：[issues/6662] 演示系统socket总断，换一个写法
+  result = useWebSocket(url, options);
 }
 
-function onOpen() {
-  console.log('[WebSocket] 连接成功');
-}
-
-function onClose(e) {
-  console.log('[WebSocket] 连接断开：', e);
-}
-
-function onError(e) {
-  console.log('[WebSocket] 连接发生错误: ', e);
-}
-
-function onMessage(e) {
-  console.debug('[WebSocket] -----接收消息-------', e.data);
+/**
+ * 处理 WebSocket 消息
+ * @param e 消息事件
+ */
+function handleWebSocketMessage(e: MessageEvent) {
   try {
-    //update-begin---author:wangshuai---date:2024-05-07---for:【issues/1161】前端websocket因心跳导致监听不起作用---
-    if(e==='ping'){
+    // 过滤心跳消息
+    if (e.data === 'ping') {
       return;
     }
-    //update-end---author:wangshuai---date:2024-05-07---for:【issues/1161】前端websocket因心跳导致监听不起作用---
+
     const data = JSON.parse(e.data);
+
+    // 通知所有监听器
     for (const callback of listeners.keys()) {
       try {
         callback(data);
       } catch (err) {
-        console.error(err);
+        console.error('[WebSocket] 监听器执行错误：', err);
       }
     }
   } catch (err) {
-    console.error('[WebSocket] data解析失败：', err);
+    console.error('[WebSocket] data解析失败：', err, '原始数据：', e.data);
   }
 }
 
-
 /**
  * 添加 WebSocket 消息监听
- * @param callback
+ * @param callback 消息回调函数
  */
-export function onWebSocket(callback: (data: object) => any) {
+export function onWebSocket(callback: (data: any) => void) {
+  if (typeof callback !== 'function') {
+    console.warn('[WebSocket] 添加 WebSocket 消息监听失败：传入的参数不是一个方法');
+    return;
+  }
+
   if (!listeners.has(callback)) {
-    if (typeof callback === 'function') {
-      listeners.set(callback, null);
-    } else {
-      console.debug('[WebSocket] 添加 WebSocket 消息监听失败：传入的参数不是一个方法');
-    }
+    listeners.set(callback, null);
   }
 }
 
 /**
  * 解除 WebSocket 消息监听
- *
- * @param callback
+ * @param callback 要移除的回调函数
  */
-export function offWebSocket(callback: (data: object) => any) {
+export function offWebSocket(callback: (data: any) => void) {
   listeners.delete(callback);
 }
 
-export function useMyWebSocket() {
+/**
+ * 获取 WebSocket 实例
+ */
+export function useMyWebSocket(): MyWebSocketResult {
   return result;
+}
+
+/**
+ * 获取当前监听器数量（用于调试）
+ */
+export function getListenerCount(): number {
+  return listeners.size;
+}
+
+/**
+ * 清空所有监听器
+ */
+export function clearAllListeners(): void {
+  listeners.clear();
 }

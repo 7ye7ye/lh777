@@ -1,4 +1,4 @@
-import type { InjectionKey, Ref } from 'vue';
+import type { InjectionKey } from 'vue';
 import { createContext, useContext } from '/@/hooks/core/useContext';
 
 export interface BasicRootMenuContextProps {

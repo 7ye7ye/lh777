@@ -189,16 +189,26 @@ public class MybatisInterceptor implements Interceptor {
      * 获取登录用户
      * @return
      */
-	private LoginUser getLoginUser() {
-		LoginUser sysUser = null;
-		try {
-			sysUser = SecurityUtils.getSubject().getPrincipal() != null ? (LoginUser) SecurityUtils.getSubject().getPrincipal() : null;
-		} catch (Exception e) {
-			//e.printStackTrace();
-			sysUser = null;
-		}
-		return sysUser;
-	}
+    private LoginUser getLoginUser() {
+        try {
+            Object principal = SecurityUtils.getSubject().getPrincipal();
+            if (principal == null) {
+                return null;
+            }
+            if (principal instanceof LoginUser) {
+                return (LoginUser) principal;
+            }
+            if (principal instanceof org.jeecg.common.system.vo.HosUser) {
+                org.jeecg.common.system.vo.HosUser hosUser = (org.jeecg.common.system.vo.HosUser) principal;
+                LoginUser lu = new LoginUser();
+                lu.setUsername(hosUser.getUserAccount());
+                return lu;
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
 	//update-end--Author:scott  Date:20191213 for：关于使用Quzrtz 开启线程任务， #465
 
 }

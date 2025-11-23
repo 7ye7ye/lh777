@@ -51,7 +51,12 @@ public class JeecgController<T, S extends IService<T>> {
     protected ModelAndView exportXls(HttpServletRequest request, T object, Class<T> clazz, String title) {
         // Step.1 组装查询条件
         QueryWrapper<T> queryWrapper = QueryGenerator.initQueryWrapper(object, request.getParameterMap());
-        LoginUser sysUser = (LoginUser) SecurityUtils.getSubject().getPrincipal();
+        Object principal = null;
+        try { principal = SecurityUtils.getSubject().getPrincipal(); } catch (Exception ignored) {}
+        LoginUser sysUser = null;
+        if (principal instanceof LoginUser) {
+            sysUser = (LoginUser) principal;
+        }
 
         // 过滤选中数据
         String selections = request.getParameter("selections");
@@ -68,7 +73,8 @@ public class JeecgController<T, S extends IService<T>> {
         mv.addObject(NormalExcelConstants.FILE_NAME, title);
         mv.addObject(NormalExcelConstants.CLASS, clazz);
         //update-begin--Author:liusq  Date:20210126 for：图片导出报错，ImageBasePath未设置--------------------
-        ExportParams exportParams=new ExportParams(title + "报表", "导出人:" + sysUser.getRealname(), title);
+        String realname = sysUser != null ? sysUser.getRealname() : "";
+        ExportParams exportParams=new ExportParams(title + "报表", "导出人:" + realname, title);
         exportParams.setImageBasePath(jeecgBaseConfig.getPath().getUpload());
         //update-end--Author:liusq  Date:20210126 for：图片导出报错，ImageBasePath未设置----------------------
         mv.addObject(NormalExcelConstants.PARAMS,exportParams);
@@ -89,7 +95,12 @@ public class JeecgController<T, S extends IService<T>> {
     protected ModelAndView exportXlsSheet(HttpServletRequest request, T object, Class<T> clazz, String title,String exportFields,Integer pageNum) {
         // Step.1 组装查询条件
         QueryWrapper<T> queryWrapper = QueryGenerator.initQueryWrapper(object, request.getParameterMap());
-        LoginUser sysUser = (LoginUser) SecurityUtils.getSubject().getPrincipal();
+        Object principal2 = null;
+        try { principal2 = SecurityUtils.getSubject().getPrincipal(); } catch (Exception ignored) {}
+        LoginUser sysUser = null;
+        if (principal2 instanceof LoginUser) {
+            sysUser = (LoginUser) principal2;
+        }
         // Step.2 计算分页sheet数据
         double total = service.count();
         int count = (int)Math.ceil(total/pageNum);
@@ -108,7 +119,8 @@ public class JeecgController<T, S extends IService<T>> {
             IPage<T> pageList = service.page(page, queryWrapper);
             List<T> exportList = pageList.getRecords();
             Map<String, Object> map = new HashMap<>(5);
-            ExportParams exportParams=new ExportParams(title + "报表", "导出人:" + sysUser.getRealname(), title+i,jeecgBaseConfig.getPath().getUpload());
+            String realname2 = sysUser != null ? sysUser.getRealname() : "";
+            ExportParams exportParams=new ExportParams(title + "报表", "导出人:" + realname2, title+i,jeecgBaseConfig.getPath().getUpload());
             exportParams.setType(ExcelType.XSSF);
             //map.put("title",exportParams);
             //表格Title

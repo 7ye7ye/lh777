@@ -50,6 +50,19 @@ public class DoctorShiftChangeRequest {
     @TableField("new_schedule_id")
     private Long newScheduleId;
 
+    // ------------- 扩展展示字段（非持久化） -------------
+    @TableField(exist = false)
+    private String doctorName;
+
+    @TableField(exist = false)
+    private String deptName;
+
+    @TableField(exist = false)
+    private java.time.LocalDate originalDate;
+
+    @TableField(exist = false)
+    private Integer originalTimeSlot;
+
     // getters & setters
     public Long getAdjustmentId() { return adjustmentId; }
     public void setAdjustmentId(Long adjustmentId) { this.adjustmentId = adjustmentId; }
@@ -89,4 +102,16 @@ public class DoctorShiftChangeRequest {
 
     public Long getNewScheduleId() { return newScheduleId; }
     public void setNewScheduleId(Long newScheduleId) { this.newScheduleId = newScheduleId; }
+
+    public String getDoctorName() { return doctorName; }
+    public void setDoctorName(String doctorName) { this.doctorName = doctorName; }
+
+    public String getDeptName() { return deptName; }
+    public void setDeptName(String deptName) { this.deptName = deptName; }
+
+    public java.time.LocalDate getOriginalDate() { return originalDate; }
+    public void setOriginalDate(java.time.LocalDate originalDate) { this.originalDate = originalDate; }
+
+    public Integer getOriginalTimeSlot() { return originalTimeSlot; }
+    public void setOriginalTimeSlot(Integer originalTimeSlot) { this.originalTimeSlot = originalTimeSlot; }
 }

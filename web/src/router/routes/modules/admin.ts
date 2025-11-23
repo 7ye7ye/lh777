@@ -7,7 +7,7 @@ const admin: AppRouteModule = {
   path: '/admin',
   name: 'Admin',
   component: LAYOUT,
-  redirect: '/admin/schedule-rules',
+  redirect: '/admin/rules/schedule-rules',
   meta: {
     orderNo: 9,
     icon: 'ion:settings-outline',
@@ -16,13 +16,81 @@ const admin: AppRouteModule = {
   },
   children: [
     {
-      path: 'schedule-rules',
-      name: 'AdminScheduleRules',
-      component: () => import('/@/views/admin/schedule/RuleSetting.vue'),
+      path: 'schedule-today',
+      name: 'AdminScheduleToday',
+      component: () => import('/@/views/admin/schedule/ScheduleToday.vue'),
       meta: {
-        title: t('routes.admin.scheduleRule'),
+        title: t('routes.admin.scheduleToday'),
         ignoreAuth: true,
       },
+    },
+    {
+      path: 'schedule-calendar',
+      name: 'AdminScheduleCalendar',
+      component: () => import('/@/views/admin/schedule/ScheduleCalendar.vue'),
+      meta: {
+        title: t('routes.admin.scheduleCalendar'),
+        ignoreAuth: true,
+        hideMenu: true,
+      },
+    },
+    {
+      path: 'rules',
+      name: 'AdminRules',
+      component: LAYOUT,
+      redirect: '/admin/rules/schedule-rules',
+      meta: {
+        orderNo: 10,
+        title: t('routes.admin.ruleGroup'),
+        ignoreAuth: true,
+      },
+      children: [
+        {
+          path: 'schedule-rules',
+          name: 'AdminScheduleRules',
+          component: () => import('/@/views/admin/schedule/RuleSetting.vue'),
+          meta: {
+            title: t('routes.admin.scheduleRule'),
+            ignoreAuth: true,
+          },
+        },
+        {
+          path: 'number-type',
+          name: 'AdminNumberType',
+          component: () => import('/@/views/admin/schedule/NumberTypeSetting.vue'),
+          meta: {
+            title: t('routes.admin.numberType'),
+            ignoreAuth: true,
+          },
+        },
+        {
+          path: 'reservation-rule',
+          name: 'AdminReservationRule',
+          component: () => import('/@/views/admin/schedule/ReservationRule.vue'),
+          meta: {
+            title: t('routes.admin.reservationRule'),
+            ignoreAuth: true,
+          },
+        },
+        {
+          path: 'reg-rule',
+          name: 'AdminRegistrationRule',
+          component: () => import('/@/views/admin/business/RegistrationRule.vue'),
+          meta: {
+            title: t('routes.admin.registrationRule'),
+            ignoreAuth: true,
+          },
+        },
+        {
+          path: 'refund-rule',
+          name: 'AdminRefundRule',
+          component: () => import('/@/views/admin/business/RefundRule.vue'),
+          meta: {
+            title: t('routes.admin.refundRule'),
+            ignoreAuth: true,
+          },
+        },
+      ],
     },
     {
       path: 'schedule-adjustment',
@@ -34,39 +102,13 @@ const admin: AppRouteModule = {
       },
     },
     {
-      path: 'number-type',
-      name: 'AdminNumberType',
-      component: () => import('/@/views/admin/schedule/NumberTypeSetting.vue'),
+      path: 'schedule-adjustment/:id/change',
+      name: 'AdminScheduleAdjustmentChange',
+      component: () => import('/@/views/admin/schedule/AdjustmentChange.vue'),
       meta: {
-        title: t('routes.admin.numberType'),
+        title: '更改排班',
         ignoreAuth: true,
-      },
-    },
-    {
-      path: 'reservation-rule',
-      name: 'AdminReservationRule',
-      component: () => import('/@/views/admin/schedule/ReservationRule.vue'),
-      meta: {
-        title: t('routes.admin.reservationRule'),
-        ignoreAuth: true,
-      },
-    },
-    {
-      path: 'reg-rule',
-      name: 'AdminRegistrationRule',
-      component: () => import('/@/views/admin/business/RegistrationRule.vue'),
-      meta: {
-        title: t('routes.admin.registrationRule'),
-        ignoreAuth: true,
-      },
-    },
-    {
-      path: 'refund-rule',
-      name: 'AdminRefundRule',
-      component: () => import('/@/views/admin/business/RefundRule.vue'),
-      meta: {
-        title: t('routes.admin.refundRule'),
-        ignoreAuth: true,
+        hideMenu: true,
       },
     },
     {
@@ -93,6 +135,15 @@ const admin: AppRouteModule = {
       component: () => import('/@/views/admin/access/RoleManage.vue'),
       meta: {
         title: t('routes.admin.role'),
+        ignoreAuth: true,
+      },
+    },
+    {
+      path: 'doctor-register',
+      name: 'AdminDoctorRegister',
+      component: () => import('/@/views/admin/doctor/DoctorRegister.vue'),
+      meta: {
+        title: t('routes.admin.doctorRegister'),
         ignoreAuth: true,
       },
     },

@@ -8,6 +8,26 @@
     <view class="card">
       <view class="card-title">申请信息</view>
 
+      <view class="form-row">
+        <view class="label">医生姓名</view>
+        <input
+          class="input"
+          type="text"
+          v-model.trim="form.doctorName"
+          placeholder="请输入医生姓名"
+        />
+      </view>
+
+      <view class="form-row">
+        <view class="label">科室</view>
+        <input
+          class="input"
+          type="text"
+          v-model.trim="form.deptName"
+          placeholder="请输入科室名称"
+        />
+      </view>
+
       <!-- 新：原排班记录ID -->
       <view class="form-row">
         <view class="label">原排班记录ID</view>
@@ -115,7 +135,11 @@ import { useUserStore } from '@/store/user'
 import { doctorApi } from '@/api/doctor'
 
 const userStore = useUserStore()
-const doctorId = computed(() => userStore.userInfo?.id || 1)
+const toIntId = (v) => {
+  const n = Number(v)
+  return Number.isFinite(n) && n > 0 ? n : 1
+}
+const doctorId = computed(() => toIntId(userStore.userInfo?.doctorId ?? userStore.userInfo?.id ?? 1))
 
 const slots = [
   { value: 1, label: '上午' },
@@ -130,6 +154,8 @@ const form = ref({
   targetTimeSlot: 1,
   targetDeptId: undefined,
   targetDeptName: '', // 辅助展示
+  doctorName: '',
+  deptName: '',
   reason: ''
 })
 
@@ -167,11 +193,9 @@ const list = ref([])
 
 const loadList = async () => {
   try {
-    const userStore = useUserStore()
     await userStore.initFromStorage()
-    const doctorId = userStore.userInfo?.id || 1
-    const data = await doctorApi.listShiftChange(doctorId, statusFilter.value)
-    list.value = Array.isArray(data) ? data : []
+    const resp = await doctorApi.listShiftChange(doctorId.value, statusFilter.value)
+    list.value = Array.isArray(resp) ? resp : (resp?.records ?? [])
   } catch (e) {
     list.value = []
   }
@@ -184,12 +208,10 @@ const onSubmit = async () => {
   }
   loading.value = true
   try {
-    const userStore = useUserStore()
     await userStore.initFromStorage()
-    const doctorId = userStore.userInfo?.id || 1
 
     const payload = {
-      doctorId,
+      doctorId: doctorId.value,
       originalScheduleId: form.value.originalScheduleId,
       targetDate: form.value.targetDate,
       targetTimeSlot: form.value.targetTimeSlot,
@@ -210,6 +232,21 @@ const onSubmit = async () => {
 onMounted(() => {
   const userStore = useUserStore()
   userStore.initFromStorage()
+  ;(async () => {
+    try {
+      let p = await doctorApi.getMyProfile()
+      if (!p || (typeof p === 'object' && Object.keys(p).length === 0)) {
+        const uid = userStore.userInfo?.userId || userStore.userInfo?.id
+        if (uid) {
+          p = await doctorApi.getProfileByUserId(Number(uid))
+        }
+      }
+      if (p) {
+        form.value.doctorName = p.doctorName || p.name || p.realName || ''
+        form.value.deptName = p.deptName || p.departmentName || p.department || ''
+      }
+    } catch (_) {}
+  })()
   loadList()
 })
 
@@ -236,6 +273,7 @@ const statusClass = (s) => {
 .form-row { margin-bottom: 12rpx; }
 .label { font-size: 26rpx; color: #64748b; margin-bottom: 6rpx; }
 .picker { background: #f1f5f9; border-radius: 12rpx; padding: 12rpx; font-size: 28rpx; color: #334155; }
+.input { background: #f1f5f9; border-radius: 12rpx; padding: 12rpx; font-size: 28rpx; color: #334155; }
 
 .slots { display: flex; gap: 12rpx; }
 .slot { padding: 10rpx 16rpx; background: #f1f5f9; border-radius: 12rpx; font-size: 26rpx; color: #334155; }

@@ -1,13 +1,13 @@
 <template> 
   <view class="schedule-page"> 
-    <!-- 顶部医生信息 --> 
-    <view class="doctor-header"> 
-      <view class="doctor-info"> 
-        <text class="doctor-name">{{ doctorInfo.name || '张医生' }}</text> 
-        <text class="doctor-dept">{{ doctorInfo.department || '内科' }}</text> 
-      </view> 
-      <text class="today-date">{{ todayDate }}</text> 
-    </view> 
+    <!-- 顶部医生信息 -->
+    <view class="doctor-header">
+      <view class="doctor-info">
+        <text class="doctor-name">{{ doctorInfo.name || '加载中...' }}</text>
+        <text class="doctor-dept">{{ doctorInfo.department || '—' }}</text>
+      </view>
+      <text class="today-date">{{ todayDate }}</text>
+    </view>
 
     <!-- 日期选择器 --> 
     <view class="date-selector"> 
@@ -53,6 +53,10 @@
           </view> 
 
           <view class="schedule-info"> 
+            <view class="info-item"> 
+              <text class="info-label">排班ID：</text> 
+              <text class="info-value">{{ item.scheduleId }}</text> 
+            </view> 
             <view class="info-item"> 
               <text class="info-label">诊室号：</text> 
               <text class="info-value">{{ item.roomNumber }}</text> 
@@ -104,7 +108,13 @@
 import { ref, onMounted, computed } from 'vue' 
 import { uniNavigateTo, uniShowToast } from '../../../utils/uniHelper' 
 import { useUserStore } from '../../../store/user.js'
-import { doctorApi } from '../../../api/doctor_massage'
+import { doctorApi as doctorApiMassage } from '../../../api/doctor_massage'
+import { doctorApi as doctorApiMain } from '../../../api/doctor'
+
+// 使用有 getProfileByUserId 方法的 API
+const doctorApi = doctorApiMassage?.getProfileByUserId 
+  ? doctorApiMassage 
+  : doctorApiMain
 
 // 用接口数据填充页头信息与 doctorId
 const userStore = useUserStore()
@@ -114,22 +124,85 @@ const doctorInfo = ref({
 }) 
 // 修复：去掉 TS 泛型，使用纯 JS
 const doctorIdRef = ref(null)
-const doctorId = computed(() => doctorIdRef.value ?? userStore.userInfo?.doctorId ?? 1)
+const toIntId = (v) => {
+  const n = Number(v)
+  return Number.isFinite(n) && n > 0 ? n : 1
+}
+const doctorId = computed(() => toIntId(doctorIdRef.value ?? userStore.userInfo?.doctorId ?? 1))
 
 // 初始化页头的医生信息
 const initDoctorInfo = async () => {
   try {
     userStore.initFromStorage()
     const userId = userStore.userInfo?.userId
-    if (!userId) return
-    const profile = await doctorApi.getProfileByUserId(userId)
-    doctorInfo.value = {
-      name: profile?.doctorName || profile?.realname || '未命名',
-      department: profile?.deptName || '—'
+    console.log('initDoctorInfo: userId', userId)
+    console.log('initDoctorInfo: userStore.userInfo', userStore.userInfo)
+    
+    if (!userId) {
+      console.warn('initDoctorInfo: userId 为空')
+      // 如果 userId 为空，尝试使用 doctorId
+      const storedDoctorId = userStore.userInfo?.doctorId
+      if (storedDoctorId) {
+        console.log('initDoctorInfo: 使用存储的 doctorId', storedDoctorId)
+        doctorIdRef.value = toIntId(storedDoctorId)
+        // 尝试通过 doctorId 获取医生信息
+        try {
+          const doctorDetail = await doctorApi.getDoctorDetail(storedDoctorId)
+          doctorInfo.value = {
+            name: doctorDetail?.doctorName || doctorDetail?.name || doctorDetail?.realname || '未命名',
+            department: doctorDetail?.deptName || doctorDetail?.departmentName || doctorDetail?.department || '—'
+          }
+        } catch (e) {
+          console.error('initDoctorInfo: 通过 doctorId 获取医生信息失败', e)
+        }
+      }
+      return
     }
-    doctorIdRef.value = profile?.doctorId ?? null
+    
+    console.log('initDoctorInfo: 开始获取医生资料，userId:', userId)
+    console.log('initDoctorInfo: doctorApi 对象', doctorApi)
+    console.log('initDoctorInfo: doctorApi.getProfileByUserId 是否存在', typeof doctorApi?.getProfileByUserId)
+    
+    // 尝试使用 getProfileByUserId，如果不存在则使用 getMyProfile 或其他方法
+    let profile = null
+    if (typeof doctorApi?.getProfileByUserId === 'function') {
+      console.log('initDoctorInfo: 使用 getProfileByUserId 方法')
+      profile = await doctorApi.getProfileByUserId(userId)
+    } else if (typeof doctorApiMain?.getProfileByUserId === 'function') {
+      console.log('initDoctorInfo: 使用备用 API (doctor.ts) 的 getProfileByUserId')
+      profile = await doctorApiMain.getProfileByUserId(userId)
+    } else if (typeof doctorApi?.getMyProfile === 'function') {
+      console.log('initDoctorInfo: 使用 getMyProfile 方法')
+      profile = await doctorApi.getMyProfile()
+    } else if (typeof doctorApiMain?.getMyProfile === 'function') {
+      console.log('initDoctorInfo: 使用备用 API (doctor.ts) 的 getMyProfile')
+      profile = await doctorApiMain.getMyProfile()
+    } else {
+      console.error('initDoctorInfo: 无法找到获取医生信息的方法')
+      throw new Error('无法找到获取医生信息的方法')
+    }
+    console.log('initDoctorInfo: 获取到的医生资料', profile)
+    
+    if (profile) {
+      doctorInfo.value = {
+        name: profile?.doctorName || profile?.realname || profile?.name || '未命名',
+        department: profile?.deptName || profile?.departmentName || profile?.department || '—'
+      }
+      doctorIdRef.value = toIntId(profile?.doctorId ?? null)
+      console.log('initDoctorInfo: 设置医生信息', doctorInfo.value)
+      console.log('initDoctorInfo: 设置 doctorId', doctorIdRef.value)
+    } else {
+      console.warn('initDoctorInfo: 未获取到医生资料')
+    }
   } catch (e) {
-    // 保留占位信息即可
+    console.error('initDoctorInfo: 获取医生信息失败', e)
+    // 如果获取失败，至少显示占位信息
+    if (!doctorInfo.value.name) {
+      doctorInfo.value = {
+        name: '医生',
+        department: '—'
+      }
+    }
   }
 }
 
@@ -179,24 +252,72 @@ const labelFromRange = (range) => {
 
 const loadScheduleData = async () => { 
   try {
+    // 检查 doctorId 是否有效
+    if (!doctorId.value) {
+      console.warn('loadScheduleData: doctorId 为空，等待初始化...')
+      uniShowToast({ title: '正在获取医生信息...', icon: 'loading' })
+      return
+    }
+
     const sel = dateList.value[selectedDateIndex.value]
+    if (!sel || !sel.fullDate) {
+      console.warn('loadScheduleData: 日期选择无效')
+      return
+    }
+
     const startDate = fmtDate(sel.fullDate)
-    const resp = await doctorApi.getSchedules(doctorId.value, startDate, 1)
-    scheduleList.value = (resp || []).map(s => ({
-      timePeriod: labelFromRange(s.timeRange),
-      roomNumber: s.roomNo || 'A-101',
-      totalSlots: s.totalSlots || 0,
-      bookedSlots: s.bookedCount || 0,
-      remainingSlots: (s.totalSlots || 0) - (s.bookedCount || 0)
+    const doctorIdNum = Number(doctorId.value)
+    
+    console.log('loadScheduleData: 查询参数', {
+      doctorId: doctorIdNum,
+      startDate: startDate,
+      days: 1
+    })
+    
+    if (isNaN(doctorIdNum) || doctorIdNum <= 0) {
+      console.error('loadScheduleData: doctorId 无效', doctorId.value)
+      uniShowToast({ title: '医生ID无效，请重新登录', icon: 'none' })
+      return
+    }
+    
+    const resp = await doctorApi.getSchedules(doctorIdNum, startDate, 1)
+    console.log('loadScheduleData: API响应', resp)
+    console.log('loadScheduleData: 响应类型', typeof resp, '是否为数组', Array.isArray(resp))
+    
+    if (!resp || (Array.isArray(resp) && resp.length === 0)) {
+      console.warn('loadScheduleData: 未获取到排班数据')
+      console.warn('loadScheduleData: 可能的原因：')
+      console.warn('  1) 数据库中的 status 字段不是 1（后端只查询 status=1 的记录）')
+      console.warn('  2) 数据库中的 doctor_id 不匹配')
+      console.warn('  3) 数据库中的 schedule_date 格式不匹配')
+      console.warn('loadScheduleData: 请检查数据库：')
+      console.warn(`  SELECT * FROM doctor_schedule WHERE doctor_id = ${doctorIdNum} AND schedule_date = '${startDate}'`)
+      scheduleList.value = []
+      uniShowToast({ 
+        title: `该日期(${startDate})暂无排班\n请检查数据库status字段是否为1`, 
+        icon: 'none', 
+        duration: 4000 
+      })
+      return
+    }
+    
+    const schedules = Array.isArray(resp) ? resp : []
+    console.log('loadScheduleData: 解析到', schedules.length, '条排班数据')
+    
+    scheduleList.value = schedules.map(s => ({
+      scheduleId: s.id ?? s.scheduleId ?? 0,
+      timePeriod: labelFromRange(s.timeRange || s.time_range || ''),
+      roomNumber: s.roomNo || s.room_no || '',
+      totalSlots: s.totalSlots || s.total_slots || 0,
+      bookedSlots: s.bookedCount || s.booked_count || 0,
+      remainingSlots: (s.totalSlots || s.total_slots || 0) - (s.bookedCount || s.booked_count || 0)
     }))
+    
+    console.log('loadScheduleData: 处理后的排班列表', scheduleList.value)
   } catch (e) {
-    // 回退到本地模拟
-    const mockData = [ 
-      { timePeriod: '上午 08:00-12:00', roomNumber: '101', totalSlots: 20, bookedSlots: 15, remainingSlots: 5 }, 
-      { timePeriod: '下午 14:00-17:00', roomNumber: '101', totalSlots: 15, bookedSlots: 13, remainingSlots: 2 }, 
-      { timePeriod: '晚上 18:00-20:00', roomNumber: '102', totalSlots: 10, bookedSlots: 5, remainingSlots: 5 } 
-    ] 
-    scheduleList.value = mockData 
+    console.error('loadScheduleData: 获取排班数据失败', e)
+    scheduleList.value = []
+    uniShowToast({ title: '排班加载失败: ' + (e.message || '未知错误'), icon: 'none', duration: 3000 })
   }
 } 
 

@@ -151,6 +151,11 @@ spring:
           username: silosboot_m2
           password: silosboot_m2+-*/
           driver-class-name: org.postgresql.Driver
+        hospital:
+          url: jdbc:postgresql://101.132.176.253:5432/silosboot_m2?currentSchema=public&useUnicode=true&characterEncoding=utf8&autoReconnect=true&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&sqlIdentifierCaseInsensitive=true
+          username: silosboot_m2
+          password: silosboot_m2+-*/
+          driver-class-name: org.postgresql.Driver
           # 多数据源配置
           #multi-datasource1:
           #url: jdbc:mysql://localhost:3306/jeecg-boot2?useUnicode=true&characterEncoding=utf8&autoReconnect=true&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
