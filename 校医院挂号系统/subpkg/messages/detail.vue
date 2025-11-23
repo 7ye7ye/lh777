@@ -7,7 +7,7 @@
 				</view>
 				<view class="card-body">
 					<view class="body-title" :class="getTitleClass(messageDetail.messageType)">
-						{{ messageDetail.title }}
+						{{ getDisplayTitle(messageDetail) }}
 					</view>
 					<view class="info-row" v-if="messageDetail.content.patient_card_no">
 						<text class="label">用户就诊卡号：</text>
@@ -66,6 +66,8 @@
 				switch(messageType) {
 					case 'APPOINTMENT_REMINDER':
 						return 'card-reminder';
+					case 'APPOINTMENT_ONE_HOUR':
+						return 'card-onehour';
 					default:
 						return '';
 				}
@@ -78,9 +80,20 @@
 						return 'title-reminder';
 					case 'APPOINTMENT_CANCEL':
 						return 'title-cancel';
+					case 'APPOINTMENT_ONE_HOUR':
+						return 'title-onehour';
 					default:
 						return '';
 				}
+			},
+			
+			// 根据消息类型返回显示的标题
+			getDisplayTitle(message) {
+				if (!message) return '';
+				if (message.messageType === 'APPOINTMENT_ONE_HOUR') {
+					return '就诊前一小时提醒';
+				}
+				return message.title;
 			},
 			
 			fetchMessageDetail() {
@@ -181,9 +194,19 @@
 		color: #999;
 	}
 	
+	/* 一小时前提醒标题样式 */
+	.body-title.title-onehour {
+		color: #ff4d4f;
+	}
+	
 	/* 提醒消息卡片样式 */
 	.detail-card.card-reminder {
 		border-left: 4rpx solid #ff9900;
+	}
+	
+	/* 一小时前提醒消息卡片样式 */
+	.detail-card.card-onehour {
+		border-left: 4rpx solid #ff4d4f;
 	}
 	.info-row {
 		display: flex;
