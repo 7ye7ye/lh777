@@ -90,6 +90,14 @@
 						"navigationBarBackgroundColor": "#479fff",
 						"navigationBarTextStyle": "white"
 					}
+				},
+				{
+					"path": "leave/apply",
+					"style": {
+						"navigationBarTitleText": "申请请假",
+						"navigationBarBackgroundColor": "#479fff",
+						"navigationBarTextStyle": "white"
+					}
 				}
 			]
 		},

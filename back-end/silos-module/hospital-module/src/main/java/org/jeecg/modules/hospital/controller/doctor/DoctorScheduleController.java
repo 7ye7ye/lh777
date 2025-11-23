@@ -2,6 +2,7 @@ package org.jeecg.modules.hospital.controller.doctor;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import jakarta.annotation.Resource;
 import org.jeecg.common.api.vo.Result; // 使用 Jeecg 统一返回类
 import org.jeecg.modules.hospital.entity.DoctorSchedule;
@@ -27,6 +28,7 @@ import java.util.List;
 @RequestMapping("/doctor")
 @Tag(name = "医生端-排班")
 // 建议类名遵循 Jeecg 规范，改为 ScheduleController
+@Slf4j
 public class DoctorScheduleController {
 
     @Resource
@@ -56,6 +58,7 @@ public class DoctorScheduleController {
         LocalDate today = LocalDate.now();
         // 更明确的单日查询
         List<DoctorSchedule> list = scheduleService.listByDoctorAndDate(resolvedDoctorId, today);
+        try { log.info("[DoctorSchedule] today doctorId={}, size={}", resolvedDoctorId, (list == null ? 0 : list.size())); } catch (Exception ignored) {}
         return Result.ok(toDTOList(list));
     }
 
@@ -79,6 +82,7 @@ public class DoctorScheduleController {
             LocalDate end = start.plusDays(Math.max(1, days) - 1);
             // 使用区间查询，避免内存过滤
             List<DoctorSchedule> list = scheduleService.listByDoctorAndDateRange(resolvedDoctorId, start, end);
+            try { log.info("[DoctorSchedule] range doctorId={}, start={}, end={}, size={}", resolvedDoctorId, start, end, (list == null ? 0 : list.size())); } catch (Exception ignored) {}
             return Result.ok(toDTOList(list));
         } catch (Exception e) {
             return Result.error("查询排班失败：" + e.getMessage());
@@ -111,6 +115,51 @@ public class DoctorScheduleController {
         }
     }
 
+    @Operation(summary = "初始化/补充指定时间段的排班数据（测试/演示用）")
+    @PostMapping("/schedule/seed")
+    public Result<Integer> seedSchedules(
+            @RequestParam Long doctorId,
+            @RequestParam Long deptId,
+            @RequestParam String startDate,
+            @RequestParam(defaultValue = "1") Integer days,
+            @RequestParam(defaultValue = "1") Integer typeId
+    ) {
+        int created = 0;
+        try {
+            LocalDate start = LocalDate.parse(startDate, DateTimeFormatter.ISO_DATE);
+            LocalDate end = start.plusDays(Math.max(1, days) - 1);
+            for (LocalDate d = start; !d.isAfter(end); d = d.plusDays(1)) {
+                for (int slot = 1; slot <= 3; slot++) {
+                    boolean exists = scheduleService.lambdaQuery()
+                            .eq(DoctorSchedule::getDoctorId, doctorId)
+                            .eq(DoctorSchedule::getDeptId, deptId)
+                            .eq(DoctorSchedule::getScheduleDate, d)
+                            .eq(DoctorSchedule::getTimeSlot, slot)
+                            .one() != null;
+                    if (exists) continue;
+
+                    DoctorSchedule s = new DoctorSchedule();
+                    s.setDoctorId(doctorId);
+                    s.setDeptId(deptId);
+                    s.setTypeId(typeId);
+                    s.setScheduleDate(d);
+                    s.setTimeSlot(slot);
+                    s.setUsedQuota(0);
+                    s.setStatus(1);
+                    s.setRoomNumber(mapSlotToRoomNo(slot));
+                    s.setMaxQuota(defaultTotalSlots(slot));
+                    s.setCreateTime(java.time.LocalDateTime.now());
+                    s.setUpdateTime(java.time.LocalDateTime.now());
+                    boolean ok = scheduleService.save(s);
+                    if (ok) created++;
+                }
+            }
+            return Result.OK(created);
+        } catch (Exception e) {
+            return Result.error("排班种子初始化失败：" + e.getMessage());
+        }
+    }
+
     // ------------------- 辅助方法 -------------------
 
     // DoctorScheduleController.toDTOList 辅助方法
@@ -121,8 +170,8 @@ public class DoctorScheduleController {
             dto.setId(s.getScheduleId() == null ? 0L : s.getScheduleId());
             dto.setDate(s.getScheduleDate() == null ? "" : s.getScheduleDate().toString());
             dto.setTimeRange(mapSlotToTimeRange(s.getTimeSlot()));
-            dto.setRoomNo(s.getRoomNumber());
-            int total = s.getMaxQuota() == null ? 0 : s.getMaxQuota();
+            dto.setRoomNo(s.getRoomNumber() == null ? mapSlotToRoomNo(s.getTimeSlot()) : s.getRoomNumber());
+            int total = (s.getMaxQuota() == null ? defaultTotalSlots(s.getTimeSlot()) : s.getMaxQuota());
             // 安全统计：云库异常时回退 usedQuota，避免前端全挂
             int booked;
             try {
