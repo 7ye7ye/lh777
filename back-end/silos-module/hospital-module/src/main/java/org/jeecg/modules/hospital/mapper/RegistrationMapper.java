@@ -116,5 +116,19 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
     Integer checkDuplicateBySchedule(@Param("patientId") Long patientId,
                                                  @Param("scheduleId") Long scheduleId);
 
+    /**
+     * 取消挂号（患者主动取消）
+     * @param recordId 挂号记录ID
+     * @param reason 取消原因
+     */
+    @Update("UPDATE registration_record " +
+            "SET status = 3, cancel_time = NOW(), cancel_reason = #{reason} " +
+            "WHERE record_id = #{recordId}")
+    int cancelRegistration(@Param("recordId") Long recordId,
+                           @Param("reason") String reason);
+
+
+
+
 
 }

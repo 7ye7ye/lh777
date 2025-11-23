@@ -83,4 +83,24 @@ public class RegistrationAppletController {
         }
     }
 
+    @Operation(summary = "取消挂号记录")
+    @PostMapping("/cancel")
+    public Result<String> cancelRegistration(
+            @RequestParam Long recordId,
+            @RequestParam(required = false, defaultValue = "患者主动取消") String cancelReason
+    ) {
+        try {
+            boolean ok = registrationService.cancelRegistration(recordId, cancelReason);
+            if (ok) {
+                return Result.OK("取消成功");
+            } else {
+                return Result.error("取消失败：记录不存在或已被取消");
+            }
+        } catch (Exception e) {
+            return Result.error("取消挂号异常：" + e.getMessage());
+        }
+    }
+
+
+
 }

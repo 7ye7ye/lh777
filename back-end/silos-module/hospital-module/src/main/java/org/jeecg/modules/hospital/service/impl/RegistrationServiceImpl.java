@@ -173,8 +173,86 @@ public class RegistrationServiceImpl implements RegistrationService {
         }
     }
 
+    @Override
+    public boolean cancelRegistration(Long recordId, String cancelReason) {
+
+        // 1. 校验记录是否存在
+        RegistrationRecord record = registrationMapper.selectById(recordId);
+        if (record == null) {
+            return false;
+        }
+
+        // 若状态不是已预约(1)，不允许重复取消
+        if (record.getStatus() != 1) {
+            return false;
+        }
+
+        // 2. 设置取消状态与信息（status = 3）
+        record.setStatus(3); // 3 = 已退号
+        record.setCancelTime(LocalDateTime.now());
+        record.setCancelReason(cancelReason);
+
+        // 3. 更新挂号记录
+        int updated = registrationMapper.updateById(record);
+        if (updated <= 0) {
+            return false;
+        }
+
+        // 4. 退号成功 → 排班号源 +1（即 usedQuota -1）
+        DoctorSchedule schedule = registrationMapper.selectScheduleById(record.getScheduleId());
+        if (schedule != null) {
+            Integer used = schedule.getUsedQuota() != null ? schedule.getUsedQuota() : 0;
+
+            // 防止出现负数
+            schedule.setUsedQuota(Math.max(0, used - 1));
+            registrationMapper.updateScheduleUsedQuota(schedule);
+        }
+// ⭐⭐⭐ 4. 自动候补补位
+        autoFillFromQueue(record.getScheduleId());
+
+        return true;
+    }
+    /**
+     * 若有人退号 → 自动补候补队列
+     */
+    private void autoFillFromQueue(Long scheduleId) {
+
+        // 1. 读取候补队列中排第一的人
+        WaitingQueue first = waitingQueueMapper.selectFirstWaiting(scheduleId); // 需要写 mapper
+        if (first == null) {
+            return; // 没有人候补
+        }
+
+        // 2. 获取排班
+        DoctorSchedule schedule = registrationMapper.selectScheduleById(scheduleId);
+        RegistrationType type = registrationMapper.selectTypeById(schedule.getTypeId().longValue());
 
 
+        // 3. 构建新的挂号记录
+        RegistrationRecord newRecord = new RegistrationRecord();
+        newRecord.setScheduleId(scheduleId);
+        newRecord.setPatientId(first.getPatientId());
+        newRecord.setDoctorId(schedule.getDoctorId());
+        newRecord.setTypeId(type.getTypeId());
+        newRecord.setRegisterTime(LocalDateTime.now());
+        newRecord.setStatus(0); // 自动补位 = 已预约
+        newRecord.setPriceOriginal(type.getPriceOriginal());
+        newRecord.setActualPrice(type.getPriceOriginal());
+        newRecord.setIsAdd(0);
 
+        // 生成新挂号单号
+        newRecord.setRegistrationNo(System.currentTimeMillis() + "" + (int)(Math.random()*1000));
+
+        // 4. 插入挂号记录
+        registrationMapper.insertRegistration(newRecord);
+
+        // 5. 更新排班 usedQuota +1
+        schedule.setUsedQuota(schedule.getUsedQuota() + 1);
+        registrationMapper.updateScheduleUsedQuota(schedule);
+
+        first.setStatus(1); // 已转正
+        waitingQueueMapper.updateById(first); // 注意这里是 WaitingQueueMapper
+
+    }
 
 }

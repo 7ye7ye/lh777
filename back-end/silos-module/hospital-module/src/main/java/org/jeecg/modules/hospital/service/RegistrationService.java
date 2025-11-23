@@ -54,4 +54,12 @@ public interface RegistrationService {
      * @return true 表示加入成功，false 表示失败
      */
     Result<String> addWaitingQueue(WaitingQueue queue);
+
+    /**
+     * 取消挂号（退号）
+     * @param recordId 挂号记录ID
+     * @param cancelReason 取消原因
+     */
+    boolean cancelRegistration(Long recordId, String cancelReason);
+
 }
