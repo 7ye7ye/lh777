@@ -4,6 +4,7 @@ enum Api {
   DoctorList = '/admin/doctor/list',
   DoctorDetail = '/admin/doctor',
   DoctorProfile = '/doctor/profile',
+  DoctorRegister = '/admin/doctor/register',
 }
 
 export interface Doctor {
@@ -20,6 +21,8 @@ export interface Doctor {
   updateVerify: number;
   // 追加：HosUser字段
   userAccount?: string;
+  userPassword?: string;
+  userType?: number;
   email?: string;
 }
 
@@ -87,3 +90,33 @@ export const getDoctorList = (params?: DoctorListParams) => {
  */
 export const getDoctorDetail = (doctorId: number) =>
   defHttp.get<Doctor>({ url: `${Api.DoctorDetail}/${doctorId}` });
+
+export interface RegisterDoctorPayload {
+  userAccount: string;
+  userPassword: string;
+  userType?: number;
+  doctorName: string;
+  deptId: number;
+  title: string;
+  specialty: string;
+  doctorDesc?: string;
+  email?: string;
+  isActive?: number;
+}
+
+export const registerDoctorAccount = (data: RegisterDoctorPayload) => {
+  return defHttp.post<any>(
+    {
+      url: Api.DoctorRegister,
+      data: {
+        userType: 2,
+        isActive: 1,
+        ...data,
+      },
+    },
+    {
+      isTransformResponse: false,
+      errorMessageMode: 'none',
+    }
+  );
+};

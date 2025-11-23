@@ -5,18 +5,6 @@
       <FormItem name="account" class="enter-x">
         <Input class="fix-auto-fill" size="large" v-model:value="formData.account" :placeholder="t('sys.login.userName')" />
       </FormItem>
-      <FormItem name="mobile" class="enter-x">
-        <Input size="large" v-model:value="formData.mobile" :placeholder="t('sys.login.mobile')" class="fix-auto-fill" />
-      </FormItem>
-      <FormItem name="sms" class="enter-x">
-        <CountdownInput
-          size="large"
-          class="fix-auto-fill"
-          v-model:value="formData.sms"
-          :placeholder="t('sys.login.smsCode')"
-          :sendCodeApi="sendCodeApi"
-        />
-      </FormItem>
       <FormItem name="password" class="enter-x">
         <StrengthMeter size="large" v-model:value="formData.password" :placeholder="t('sys.login.password')" />
       </FormItem>
@@ -75,17 +63,6 @@
     const data = await validForm();
     if (!data) return;
 
-    // 医生工号规则：10位，前6位数字 + 后4位 bjtu（不区分大小写）
-    const isDoctorId = /^\d{6}bjtu$/i.test(data.account);
-    if (!isDoctorId) {
-      notification.error({
-        message: '注册受限',
-        description: '仅允许医生工号注册：前6位数字 + 后4位 bjtu',
-        duration: 3,
-      });
-      return;
-    }
-
     try {
       loading.value = true;
       const resultInfo = await register(
@@ -93,27 +70,34 @@
           userAccount: data.account,
           userPassword: data.password,
           checkPassword: data.confirmPassword,
-          userType: '2', // 医生
+          // 移除 userType 医生相关配置
         })
       );
-      if (resultInfo && resultInfo.data) {
+      console.log("lala:",resultInfo);
+      if (resultInfo.data.code===20000) {
+        // 注册成功时优先取后端返回的 description，无则用默认文案
+        const successDesc =resultInfo?.data?.description || resultInfo?.data?.message || t('sys.api.registerMsg');
         notification.success({
           message: t('sys.login.registerSuccessTitle'),
-          description: t('sys.api.registerMsg'),
+          description: successDesc,
           duration: 3,
         });
         handleBackLogin();
       } else {
+        // 优先取 description 作为错误描述，无则取 message 或默认提示
+        const errorDesc = resultInfo?.data?.description || resultInfo?.data?.message || t('sys.api.networkExceptionMsg');
         notification.warning({
           message: t('sys.api.errorTip'),
-          description: resultInfo.data?.message || t('sys.api.networkExceptionMsg'),
+          description: errorDesc,
           duration: 3,
         });
       }
     } catch (error) {
+      // 捕获请求异常时，优先取后端返回的 description
+      const errorDesc = error?.response?.data?.description || error?.message || t('sys.api.networkExceptionMsg');
       notification.error({
         message: t('sys.api.errorTip'),
-        description: error.message || t('sys.api.networkExceptionMsg'),
+        description: errorDesc,
         duration: 3,
       });
     } finally {

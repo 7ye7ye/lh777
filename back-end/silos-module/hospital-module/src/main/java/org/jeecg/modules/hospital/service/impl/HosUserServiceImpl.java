@@ -4,10 +4,14 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.ss.formula.functions.T;
+import org.jeecg.common.api.vo.Result;
 import org.jeecg.common.constant.CommonConstant;
 import org.jeecg.common.system.util.JwtUtil;
 import org.jeecg.common.util.RedisUtil;
+import org.jeecg.modules.hospital.common.BaseResponse;
 import org.jeecg.modules.hospital.common.ErrorCode;
+import org.jeecg.modules.hospital.common.ResultUtils;
 import org.jeecg.modules.hospital.dto.HosUserLoginResult;
 import org.jeecg.modules.hospital.entity.HosUser;
 import org.jeecg.modules.hospital.exception.BusinessException;
@@ -46,7 +50,7 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
     private RedisUtil redisUtil;
 
     @Override
-    public int userRegister(String userAccount, String userPassword, String checkPassword) {
+    public BaseResponse<Long> userRegister(String userAccount, String userPassword, String checkPassword,int userType) {
         //一，校验
         //1.非空
         if(StringUtils.isAnyBlank(userAccount,userPassword,checkPassword)){
@@ -85,7 +89,7 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
         HosUser user=new HosUser();
         user.setUserAccount(userAccount);
         user.setUserPassword(newPassword);
-        user.setUserType(PATIENT);
+        user.setUserType(userType);
         user.setStatus(ACTIVE);
         // 设置创建时间为当前时间
         user.setCreateTime(LocalDateTime.now());
@@ -94,11 +98,11 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
 
         boolean saveResult=this.save(user);//service的方法，userMapper.insert(user)返回Int类型
         if(!saveResult){
-            return -1;
+            throw new BusinessException(ErrorCode.DATABASE_ERROR, "数据库错误");
         }
 
-        return user.getUserId().intValue();
-
+// 使用成功状态码构建返回结果
+        return ResultUtils.success(user.getUserId()); // 返回BaseResponse<Integer>
     }
 
     @Override
@@ -216,7 +220,7 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
 
     /**
      * 根据账户查找用户
-     * 
+     *
      * @param account
      * @return
      */

@@ -140,26 +140,14 @@
 
   const getShow = computed(() => unref(getLoginState) === LoginStateEnum.LOGIN);
 
-  // 登录提交逻辑（方法名以你现有为准，这里示例 handleLogin）
-  // 假设这是原有的提交函数，名称以你当前文件为准
+  // 登录提交逻辑
   async function handleLogin(values: any) {
     const data = await validForm();
     if (!data) return;
   
-    // 医生工号规则：10位，前6位数字 + 后4位 bjtu（不区分大小写）
-    const isDoctorId = /^\d{6}bjtu$/i.test(data.account);
-    if (!isDoctorId) {
-      notification.error({
-        message: '工号不符合医生端规则',
-        description: '仅允许医生工号登录：前6位数字 + 后4位 bjtu',
-        duration: 3,
-      });
-      return;
-    }
-  
     try {
       loading.value = true;
-      const result = await userStore.login(
+      const resultInfo = await userStore.login(
         toRaw({
           userPassword: data.password,
           userAccount: data.account,
@@ -168,36 +156,22 @@
           mode: 'none',
         })
       );
-      if (result) {
-        const userType = result?.userInfo?.userType ?? result?.userInfo?.user?.userType;
-        if (userType !== 2) {
-          notification.error({
-            message: '仅医生账户可登录医生端',
-            description: '当前账号非医生类型（type_id ≠ 2），请使用医生账号登录',
-            duration: 3,
-          });
-          loading.value = false;
-          return;
-        }
-  
+      if (resultInfo?.data?.code==20000) {
         notification.success({
           message: t('sys.login.loginSuccessTitle'),
-          description: `${t('sys.login.loginSuccessDesc')}: ${result.userInfo?.userAccount || result.userInfo?.username || '用户'}`,
+          description: resultInfo?.data?.description || resultInfo?.data?.message || t('sys.api.loginMsg'),
           duration: 3,
         });
   
-        // 登录后跳转：优先获取个人档案，失败则回退到医生档案页
-        try {
-          const { getMyDoctorProfile } = await import('/@/api/hospital/doctor');
-          const doctorProfile = await getMyDoctorProfile();
-          const doctorId = doctorProfile?.doctorId;
-          await router.push({ path: '/hospital/doctor/profile', query: doctorId ? { doctorId } : {} });
-        } catch (e) {
-          await router.push({ path: '/hospital/doctor/profile' });
-        } finally {
-          loading.value = false;
-        }
+        // 登录后默认跳转首页或指定页面
+        await router.push({ path: '/' });
       } else {
+        const errorDesc = resultInfo?.data?.description || resultInfo?.data?.message || t('sys.api.networkExceptionMsg');
+        notification.warning({
+          message: t('sys.api.errorTip'),
+          description: errorDesc,
+          duration: 3,
+        });
         loading.value = false;
       }
     } catch (error) {
@@ -210,6 +184,7 @@
       handleChangeCheckCode();
     }
   }
+  
   function handleChangeCheckCode() {
     formData.inputCode = '';
     //TODO 兼容mock和接口，暂时这样处理
