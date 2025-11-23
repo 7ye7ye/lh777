@@ -15,7 +15,10 @@ import java.util.List;
 /**
  * 医生服务实现类
  */
+import com.baomidou.dynamic.datasource.annotation.DS;
+
 @Service
+@DS("hospital")
 public class DoctorServiceImpl extends ServiceImpl<DoctorMapper, Doctor> implements DoctorService {
 
     @Autowired
@@ -85,9 +88,30 @@ public class DoctorServiceImpl extends ServiceImpl<DoctorMapper, Doctor> impleme
     @Override
     public List<Doctor> getDoctorsByDeptId(Long deptId) {
         QueryWrapper<Doctor> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("dept_id", deptId)
-                .eq("is_active", 1)  // 只返回正常出诊的医生
-                .orderByDesc("doctor_id");  // 修复：使用 doctor_id 排序
+        
+        // 查询科室信息，判断是否为一级科室
+        Department department = departmentService.getById(deptId);
+        if (department != null && department.getDeptLevel() == 1) {
+            // 如果是一级科室，查询该科室下所有二级科室
+            List<Department> subDepartments = departmentService.getSecondLevelByParentId(deptId);
+            if (subDepartments != null && !subDepartments.isEmpty()) {
+                // 提取所有二级科室ID
+                List<Long> subDeptIds = new ArrayList<>();
+                for (Department subDept : subDepartments) {
+                    subDeptIds.add(subDept.getDeptId());
+                }
+                // 查询所有二级科室的医生
+                queryWrapper.in("dept_id", subDeptIds);
+            }
+        } else {
+            // 如果是二级科室或找不到科室信息，使用原有的精确查询
+            queryWrapper.eq("dept_id", deptId);
+        }
+        
+        // 只返回正常出诊的医生并排序
+        queryWrapper.eq("is_active", 1)
+                .orderByDesc("doctor_id");
+        
         List<Doctor> doctors = this.list(queryWrapper);
         // 关联科室信息
         return associateDepartmentInfo(doctors);

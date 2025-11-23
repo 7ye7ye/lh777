@@ -4,155 +4,191 @@
       <h2>医生管理</h2>
     </div>
 
-    <a-card class="search-card" bordered>
-      <a-form layout="inline" :model="searchFormData">
-        <a-form-item label="医生姓名">
-          <a-input v-model:value="searchFormData.doctorName" allow-clear placeholder="请输入医生姓名" />
-        </a-form-item>
-        <a-form-item label="所属科室">
-          <a-select
-              v-model:value="searchFormData.deptId"
-              allow-clear
-              placeholder="请选择科室"
-              style="width: 200px"
-            >
-              <template v-for="(dept, index) in departmentOptions" :key="dept?.value || index">
-                <a-select-opt-group v-if="dept && dept.children && dept.children.length > 0" :label="dept.label">
-                  <a-select-option
-                    v-for="child in dept.children"
-                    :key="child.value"
-                    :value="child.value"
-                  >
-                    {{ child.label }}
-                  </a-select-option>
-                </a-select-opt-group>
-                <a-select-option v-else-if="dept" :key="dept.value" :value="dept.value">
-                  {{ dept.label }}
+    <a-card class="content-card">
+      <!-- 搜索和操作区域 -->
+      <div class="search-operate-area">
+        <div class="search-form">
+          <a-row :gutter="[16, 16]">
+            <a-col :span="6">
+              <a-input
+                v-model:value="searchForm.doctorName"
+                placeholder="医生姓名"
+                prefix-icon="user"
+              />
+            </a-col>
+            <a-col :span="6">
+              <a-select
+                v-model:value="searchForm.deptId"
+                placeholder="选择科室"
+                allow-clear
+                disabled
+              >
+                <a-select-option
+                  v-for="dept in departmentOptions"
+                  :key="dept.deptId"
+                  :value="dept.deptId"
+                >
+                  {{ dept.deptName }}
                 </a-select-option>
-              </template>
-            </a-select>
-        </a-form-item>
-        <a-form-item label="职称">
-          <a-input v-model:value="searchFormData.title" allow-clear placeholder="请输入职称" />
-        </a-form-item>
-        <a-form-item>
-          <a-space>
-            <a-button type="primary" @click="handleSearch">搜索</a-button>
-            <a-button @click="handleReset">重置</a-button>
-          </a-space>
-        </a-form-item>
-      </a-form>
-    </a-card>
-
-    <a-card bordered>
-      <div class="toolbar">
-        <a-button type="primary" @click="handleAdd">添加医生</a-button>
+              </a-select>
+            </a-col>
+            <a-col :span="6">
+              <a-select
+                v-model:value="searchForm.title"
+                placeholder="医生职称"
+                allow-clear
+                disabled
+              >
+                <a-select-option value="主任医师">主任医师</a-select-option>
+                <a-select-option value="副主任医师">副主任医师</a-select-option>
+                <a-select-option value="主治医师">主治医师</a-select-option>
+                <a-select-option value="住院医师">住院医师</a-select-option>
+                <a-select-option value="主任护师">主任护师</a-select-option>
+                <a-select-option value="副主任护师">副主任护师</a-select-option>
+                <a-select-option value="主管护师">主管护师</a-select-option>
+                <a-select-option value="报销专员">报销专员</a-select-option>
+              </a-select>
+            </a-col>
+            <a-col :span="6">
+              <a-select
+                v-model:value="searchForm.isActive"
+                placeholder="出诊状态"
+                allow-clear
+                disabled
+              >
+                <a-select-option value="1">正常出诊</a-select-option>
+                <a-select-option value="0">暂停出诊</a-select-option>
+              </a-select>
+            </a-col>
+          </a-row>
+          <a-row :gutter="[16, 16]" style="margin-top: 16px;">
+            <a-col :span="6">
+              <a-button type="primary" @click="handleSearch">
+                <template #icon>
+                  <icon-park-outline:search />
+                </template>
+                搜索
+              </a-button>
+              <a-button style="margin-left: 8px" @click="resetSearch">
+                <template #icon>
+                  <icon-park-outline:reset />
+                </template>
+                重置
+              </a-button>
+            </a-col>
+          </a-row>
+        </div>
+        
+        <div class="operate-buttons">
+          <a-button type="primary" @click="showAddModal" disabled>
+            <template #icon>
+              <icon-park-outline:add />
+            </template>
+            添加医生
+          </a-button>
+        </div>
       </div>
-      <a-table
-        :columns="columns"
-        :data-source="tableData"
-        :loading="loading"
-        :pagination="pagination"
-        row-key="doctorId"
-        @change="handleTableChange"
-      >
-        <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'status'">
-            <a-tag :color="record.isActive === 1 ? 'green' : 'red'">
-              {{ record.isActive === 1 ? '启用' : '禁用' }}
-            </a-tag>
+
+      <!-- 医生列表表格 -->
+      <div class="table-container">
+        <a-table
+          :columns="columns"
+          :data-source="doctorList"
+          :loading="loading"
+          :pagination="pagination"
+          row-key="doctorId"
+          @change="handleTableChange"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'avatar'">
+              <a-avatar :src="record.avatar" :alt="record.doctorName" size="small" />
+            </template>
+            <template v-else-if="column.key === 'action'">
+              <div class="action-buttons">
+                <a-button type="link" size="small" @click="handleEdit(record)">
+                  编辑
+                </a-button>
+                <a-button type="link" size="small" danger @click="handleDelete(record)">
+                  删除
+                </a-button>
+              </div>
+            </template>
           </template>
-          <template v-else-if="column.key === 'action'">
-            <a-space size="middle">
-              <a @click="handleEdit(record)">编辑</a>
-              <a class="danger-link" @click="handleDelete(record)">删除</a>
-            </a-space>
-          </template>
-        </template>
-      </a-table>
+        </a-table>
+      </div>
     </a-card>
 
+    <!-- 添加/编辑医生模态框 -->
     <a-modal
-      v-model:visible="modalVisible"
+      v-model:visible="doctorModalVisible"
       :title="modalTitle"
-      destroy-on-close
-      width="800px"
-      @ok="handleModalOk"
+      @ok="handleModalSubmit"
       @cancel="handleModalCancel"
+      cancelText="取消"
+      okText="确定"
     >
-      <a-form ref="formRef" layout="vertical" :model="formData" :rules="formRules">
-        <a-row :gutter="16">
-          <a-col :span="12">
-            <a-form-item label="医生姓名" name="doctorName">
-              <a-input v-model:value="formData.doctorName" placeholder="请输入医生姓名" />
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
-            <a-form-item label="所属科室" name="deptId">
-              <div style="display: flex; gap: 16px;">
-                <!-- 左侧一级科室选择器 -->
-                <a-select
-                  v-model:value="selectedFirstLevelDept"
-                  placeholder="请选择一级科室"
-                  style="width: 180px"
-                  @change="handleFirstLevelDeptChange"
-                >
-                  <!-- 确保departmentOptions是数组 -->
-                  <a-select-option
-                    v-for="(item, index) in (departmentOptions || [])"
-                    :key="item?.value || `dept-${index}`"
-                    :value="item?.value"
-                  >
-                    <!-- 只显示一级科室（parentId为null或不存在） -->
-                    {{ item?.label || '未知科室' }}
-                  </a-select-option>
-                </a-select>
-                
-                <!-- 右侧二级科室选择器 -->
-                <a-select
-                  v-model:value="selectedSecondLevelDept"
-                  placeholder="请选择二级科室"
-                  style="width: 180px"
-                  :disabled="!selectedFirstLevelDept"
-                  @change="handleSecondLevelDeptChange"
-                >
-                  <a-select-option
-                    v-for="child in currentSecondLevelDepts"
-                    :key="child.value"
-                    :value="child.value"
-                  >
-                    {{ child.label }}
-                  </a-select-option>
-                </a-select>
-              </div>
-              <!-- 隐藏的输入框，用于表单验证 -->
-              <input type="hidden" v-model="formData.deptId" />
-            </a-form-item>
-          </a-col>
-        </a-row>
-        <a-row :gutter="16">
-          <a-col :span="12">
-            <a-form-item label="医生职称" name="title">
-              <a-input v-model:value="formData.title" placeholder="请输入职称" />
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
-            <a-form-item label="联系方式" name="contact">
-              <a-input v-model:value="formData.contact" placeholder="请输入联系方式" />
-            </a-form-item>
-          </a-col>
-        </a-row>
-        <a-form-item label="专长" name="specialty">
-          <a-input v-model:value="formData.specialty" placeholder="请输入医生专长" />
+      <a-form
+        :model="doctorForm"
+        :rules="formRules"
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 18 }"
+        ref="formRef"
+      >
+        <a-form-item label="医生姓名" name="doctorName">
+          <a-input v-model:value="doctorForm.doctorName" placeholder="请输入医生姓名" />
+        </a-form-item>
+        <a-form-item label="所属科室" name="deptId">
+          <a-select v-model:value="doctorForm.deptId" placeholder="请选择科室">
+            <a-select-option
+              v-for="dept in departmentOptions"
+              :key="dept.deptId"
+              :value="dept.deptId"
+            >
+              {{ dept.deptName }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="医生职称" name="title">
+          <a-select v-model:value="doctorForm.title" placeholder="请选择职称">
+            <a-select-option value="主任医师">主任医师</a-select-option>
+            <a-select-option value="副主任医师">副主任医师</a-select-option>
+            <a-select-option value="主治医师">主治医师</a-select-option>
+            <a-select-option value="住院医师">住院医师</a-select-option>
+            <a-select-option value="主任护师">主任护师</a-select-option>
+            <a-select-option value="副主任护师">副主任护师</a-select-option>
+            <a-select-option value="主管护师">主管护师</a-select-option>
+            <a-select-option value="报销专员">报销专员</a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="擅长领域" name="specialty">
+          <a-input v-model:value="doctorForm.specialty" placeholder="请输入擅长领域" />
         </a-form-item>
         <a-form-item label="医生简介" name="doctorDesc">
-          <a-textarea v-model:value="formData.doctorDesc" :rows="4" placeholder="请输入医生简介" />
+            <a-textarea
+              v-model:value="doctorForm.doctorDesc"
+              placeholder="请输入医生简介"
+              :rows="4"
+            />
+          </a-form-item>
+        <a-form-item label="医生头像">
+          <a-upload
+            list-type="picture-card"
+            :file-list="fileList"
+            :before-upload="beforeUpload"
+            :custom-request="customRequest"
+            @change="handleUploadChange"
+          >
+            <div v-if="fileList.length < 1">
+              <plus-outlined />
+              <div style="margin-top: 8px">上传头像</div>
+            </div>
+          </a-upload>
         </a-form-item>
-        <a-form-item label="是否启用" name="isActive">
-          <a-radio-group v-model:value="formData.isActive">
-            <a-radio :value="1">启用</a-radio>
-            <a-radio :value="0">禁用</a-radio>
-          </a-radio-group>
+        <a-form-item label="出诊状态" name="isActive">
+          <a-select v-model:value="doctorForm.isActive" placeholder="请选择出诊状态">
+            <a-select-option value="1">正常出诊</a-select-option>
+            <a-select-option value="0">暂停出诊</a-select-option>
+          </a-select>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -160,697 +196,301 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted, nextTick, computed } from 'vue';
-import { Modal, message } from 'ant-design-vue';
-import type { FormInstance } from 'ant-design-vue';
-import { getDoctorList, addDoctor, updateDoctor, deleteDoctor, type Doctor } from '/@/api/hospital/doctor';
-import { getAllDepartments } from '/@/api/hospital/department';
-import { getToken } from '/@/utils/auth';
+import { ref, reactive, onMounted, computed } from 'vue';
+import { message, Upload, Modal } from 'ant-design-vue';
+import type { PaginationProps } from 'ant-design-vue';
+import type { ColumnsType } from 'ant-design-vue/es/table';
+import { PlusOutlined, DownOutlined, DeleteOutlined, UserOutlined } from '@ant-design/icons-vue';
+import { getDepartmentList } from '/@/api/hospital/department';
+import type { Department } from '/@/api/hospital/department';
+import { getDoctorList, createDoctor, updateDoctor, deleteDoctor, batchDeleteDoctors, getDoctorDetail, registerDoctorAccount } from '/@/api/hospital/doctor';
+import type { Doctor, RegisterDoctorParams } from '/@/api/hospital/doctor';
 
-interface PaginationState {
-  current: number;
-  pageSize: number;
-  total: number;
-  showSizeChanger: boolean;
-  showQuickJumper: boolean;
-}
-
-interface DoctorSearchForm {
-  doctorName: string;
-  deptId?: number;
-  title: string;
-}
-
-interface DoctorFormModel {
-  doctorId?: number;
-  doctorName: string;
-  deptId?: number;
-  title: string;
-  contact?: string;
-  specialty: string;
-  doctorDesc: string;
-  isActive: number;
-}
-
-type DepartmentOption = { label: string; value: number; parentId?: number | null; children?: Array<{ value: number; label: string; parentId?: number }> };
-
+// 表格数据
+const doctorList = ref<Doctor[]>([]);
 const loading = ref(false);
-const tableData = ref<Doctor[]>([]);
-const pagination = reactive<PaginationState>({
+
+// 分页配置
+const pagination = reactive<PaginationProps>({
   current: 1,
   pageSize: 10,
   total: 0,
   showSizeChanger: true,
   showQuickJumper: true,
+  showTotal: (total) => `共 ${total} 条数据`,
 });
 
-// 备用科室数据 - 已经按照树形结构格式化
-const guestDepartmentOptions: DepartmentOption[] = [
-  { label: '内科', value: 1, parentId: null, children: [
-    { label: '心内科', value: 101, parentId: 1 },
-    { label: '消化内科', value: 102, parentId: 1 },
-    { label: '呼吸内科', value: 103, parentId: 1 }
-  ]},
-  { label: '外科', value: 2, parentId: null, children: [
-    { label: '普外科', value: 201, parentId: 2 },
-    { label: '骨科', value: 202, parentId: 2 },
-    { label: '神经外科', value: 203, parentId: 2 }
-  ]},
-  { label: '儿科', value: 3, parentId: null, children: [
-    { label: '小儿内科', value: 301, parentId: 3 },
-    { label: '小儿外科', value: 302, parentId: 3 }
-  ]}
-];
-
-// 初始化科室选项数据
-const departmentOptions = ref<DepartmentOption[]>([...guestDepartmentOptions]);
-const selectedFirstLevelDept = ref<number | null>(null);
-const selectedSecondLevelDept = ref<number | null>(null);
-
-// 计算属性：获取当前一级科室对应的二级科室列表
-const currentSecondLevelDepts = computed(() => {
-  console.log('计算二级科室列表，selectedFirstLevelDept:', selectedFirstLevelDept.value);
-  
-  if (!selectedFirstLevelDept.value || !departmentOptions.value || departmentOptions.value.length === 0) {
-    console.log('未选择一级科室或科室数据为空');
-    return [];
-  }
-  
-  // 查找选中的一级科室
-  const selectedDept = departmentOptions.value.find(dept => dept.value === selectedFirstLevelDept.value);
-  console.log('找到的一级科室:', selectedDept);
-  
-  // 确保children是数组类型
-  const children = selectedDept?.children;
-  const result = Array.isArray(children) ? children : [];
-  console.log('二级科室数量:', result.length);
-  
-  return result;
+// 搜索表单
+const searchForm = reactive({
+  doctorName: '',
+  deptId: undefined,
+  title: undefined,
+  isActive: undefined,
 });
 
-// 加载科室选项
-async function loadDepartmentOptions() {
-  try {
-    console.log('开始加载真实科室数据...');
-    
-    // 检查API是否可用
-    console.log('getAllDepartments函数:', typeof getAllDepartments);
-    
-    // 调用真实API获取科室数据 - 注意：getAllDepartments直接返回Department[]数组
-    const departments = await getAllDepartments();
-    console.log('科室API返回结果类型:', typeof departments);
-    console.log('是否为数组:', Array.isArray(departments));
-    console.log('科室数据数量:', Array.isArray(departments) ? departments.length : '不是数组');
-    console.log('科室数据详细信息:', JSON.stringify(departments, null, 2));
-    
-    // 确保返回的数据是数组
-    if (Array.isArray(departments)) {
-      // 如果数据为空或构建后为空，使用增强的测试数据确保科室正确显示
-      if (departments.length === 0) {
-        console.warn('科室数据为空，使用增强的测试数据');
-        // 增强的测试数据，确保能正确显示
-        const testDepartments = [
-          { deptId: 1, deptName: '内科', deptLevel: 1, parentDeptId: null },
-          { deptId: 2, deptName: '外科', deptLevel: 1, parentDeptId: null },
-          { deptId: 3, deptName: '儿科', deptLevel: 1, parentDeptId: null },
-          { deptId: 4, deptName: '心内科', deptLevel: 2, parentDeptId: 1 },
-          { deptId: 5, deptName: '消化内科', deptLevel: 2, parentDeptId: 1 },
-          { deptId: 6, deptName: '普外科', deptLevel: 2, parentDeptId: 2 },
-          { deptId: 7, deptName: '神经外科', deptLevel: 2, parentDeptId: 2 },
-          { deptId: 8, deptName: '小儿内科', deptLevel: 2, parentDeptId: 3 },
-          { deptId: 9, deptName: '小儿外科', deptLevel: 2, parentDeptId: 3 }
-        ];
-        departmentOptions.value = buildDepartmentTree(testDepartments);
-      } else {
-        console.log('获取到科室数据，开始构建树形结构');
-        // 构建树形结构
-        departmentOptions.value = buildDepartmentTree(departments);
-        console.log('构建后的科室树形结构数量:', departmentOptions.value.length);
-        
-        // 如果构建后的数据为空，使用增强的测试数据
-        if (departmentOptions.value.length === 0) {
-          console.warn('构建后的科室数据为空，使用增强的测试数据');
-          const testDepartments = [
-            { deptId: 1, deptName: '内科', deptLevel: 1, parentDeptId: null },
-            { deptId: 2, deptName: '外科', deptLevel: 1, parentDeptId: null },
-            { deptId: 3, deptName: '儿科', deptLevel: 1, parentDeptId: null },
-            { deptId: 4, deptName: '心内科', deptLevel: 2, parentDeptId: 1 },
-            { deptId: 5, deptName: '消化内科', deptLevel: 2, parentDeptId: 1 },
-            { deptId: 6, deptName: '普外科', deptLevel: 2, parentDeptId: 2 },
-            { deptId: 7, deptName: '神经外科', deptLevel: 2, parentDeptId: 2 },
-            { deptId: 8, deptName: '小儿内科', deptLevel: 2, parentDeptId: 3 },
-            { deptId: 9, deptName: '小儿外科', deptLevel: 2, parentDeptId: 3 }
-          ];
-          departmentOptions.value = buildDepartmentTree(testDepartments);
-        }
-      }
-    } else {
-      console.warn('科室API返回不是数组，使用增强的测试数据');
-      const testDepartments = [
-        { deptId: 1, deptName: '内科', deptLevel: 1, parentDeptId: null },
-        { deptId: 2, deptName: '外科', deptLevel: 1, parentDeptId: null },
-        { deptId: 3, deptName: '儿科', deptLevel: 1, parentDeptId: null },
-        { deptId: 4, deptName: '心内科', deptLevel: 2, parentDeptId: 1 },
-        { deptId: 5, deptName: '消化内科', deptLevel: 2, parentDeptId: 1 },
-        { deptId: 6, deptName: '普外科', deptLevel: 2, parentDeptId: 2 },
-        { deptId: 7, deptName: '神经外科', deptLevel: 2, parentDeptId: 2 },
-        { deptId: 8, deptName: '小儿内科', deptLevel: 2, parentDeptId: 3 },
-        { deptId: 9, deptName: '小儿外科', deptLevel: 2, parentDeptId: 3 }
-      ];
-      departmentOptions.value = buildDepartmentTree(testDepartments);
-    }
-  } catch (error: any) {
-    console.error('加载科室选项失败:', error);
-    console.error('错误详情:', error.message);
-    console.error('错误堆栈:', error.stack);
-    
-    // 错误情况下，使用增强的测试数据
-    console.log('使用增强的测试科室数据');
-    const testDepartments = [
-      { deptId: 1, deptName: '内科', deptLevel: 1, parentDeptId: null },
-      { deptId: 2, deptName: '外科', deptLevel: 1, parentDeptId: null },
-      { deptId: 3, deptName: '儿科', deptLevel: 1, parentDeptId: null },
-      { deptId: 4, deptName: '心内科', deptLevel: 2, parentDeptId: 1 },
-      { deptId: 5, deptName: '消化内科', deptLevel: 2, parentDeptId: 1 },
-      { deptId: 6, deptName: '普外科', deptLevel: 2, parentDeptId: 2 },
-      { deptId: 7, deptName: '神经外科', deptLevel: 2, parentDeptId: 2 },
-      { deptId: 8, deptName: '小儿内科', deptLevel: 2, parentDeptId: 3 },
-      { deptId: 9, deptName: '小儿外科', deptLevel: 2, parentDeptId: 3 }
-    ];
-    departmentOptions.value = buildDepartmentTree(testDepartments);
-  }
-  
-  // 最终验证数据状态
-  console.log('loadDepartmentOptions完成，departmentOptions状态:', {
-    length: departmentOptions.value.length,
-    firstItem: departmentOptions.value[0] ? { ...departmentOptions.value[0] } : 'empty'
-  });
-}
+// 科室选项
+const departmentOptions = ref<Department[]>([]);
 
-// 构建科室树形结构（只显示二级）
-function buildDepartmentTree(departments: any[]): any[] {
-  console.log('开始构建科室树形结构，输入数据:', JSON.stringify(departments.slice(0, 5), null, 2));
-  const tree: any[] = [];
-  const map = new Map<any, any>();
-  
-  // 先创建所有节点并放入map，适配真实的Department数据结构
-  departments.forEach(dept => {
-    // 将真实的deptId映射为value，deptName映射为label
-    const node = {
-      value: dept.deptId !== undefined ? dept.deptId : (dept.value || null),
-      label: dept.deptName || dept.label || '',
-      deptId: dept.deptId,
-      deptName: dept.deptName,
-      deptLevel: dept.deptLevel,
-      children: []
-    };
-    // 确保值不为undefined时才添加到map
-    if (node.value !== null && node.value !== undefined) {
-      map.set(node.value, node);
-    }
-  });
-  
-  // 构建父子关系
-  departments.forEach(dept => {
-    const currentNode = map.get(dept.deptId || dept.value);
-    if (!currentNode) return;
-    
-    const parentId = dept.parentDeptId || dept.parentId;
-    
-    // 增强逻辑：特别处理内科科室（deptId为1的情况）
-    if (currentNode.value === 1 && currentNode.label === '内科') {
-      // 确保内科科室被添加到树形结构中
-      if (!tree.find(item => item.value === 1)) {
-        tree.push(currentNode);
-        console.log('特别添加内科科室:', currentNode);
-      }
-    } else if (!parentId || parentId === 0 || parentId === null || parentId === '') {
-      // 一级科室
-      // 避免重复添加
-      if (!tree.find(item => item.value === currentNode.value)) {
-        tree.push(currentNode);
-        console.log('添加一级科室:', currentNode);
-      }
-    } else {
-      // 二级科室，添加到父科室的children中
-      const parent = map.get(parentId);
-      if (parent) {
-        // 避免重复添加
-        if (!parent.children.find((child: any) => child.value === currentNode.value)) {
-          parent.children.push(currentNode);
-          console.log('添加二级科室:', currentNode, '到父科室:', parent.label);
-        }
-      } else {
-        console.warn('找不到父科室，将科室作为一级科室添加:', currentNode);
-        // 避免重复添加
-        if (!tree.find(item => item.value === currentNode.value)) {
-          tree.push(currentNode);
-        }
-      }
-    }
-  });
-  
-  // 确保内科科室一定在树形结构中
-  if (!tree.find(item => item.value === 1 && item.label === '内科')) {
-    // 创建内科科室节点并添加
-    const internalMedicineDept = {
-      value: 1,
-      label: '内科',
-      deptId: 1,
-      deptName: '内科',
-      deptLevel: 1,
-      children: []
-    };
-    tree.push(internalMedicineDept);
-    console.log('强制添加内科科室到树形结构中:', internalMedicineDept);
-  }
-  
-  console.log('构建完成的科室树形结构:', JSON.stringify(tree, null, 2));
-  return tree;
-}
+// 模态框相关
+const doctorModalVisible = ref(false);
+const isEditMode = ref(false);
+const currentDoctorId = ref<number | null>(null);
+const formRef = ref<any>();
 
-const searchFormData = reactive<DoctorSearchForm>({
+// 医生表单
+const doctorForm = reactive({
   doctorName: '',
   deptId: undefined,
   title: '',
-});
-
-const fallbackDoctors: Doctor[] = [
-  {
-    doctorId: 1001,
-    doctorName: '李医生',
-    userId: 1,
-    deptId: 1,
-    deptName: '内科',
-    title: '主任医师',
-    specialty: '心血管',
-    doctorDesc: '从业 15 年，擅长心血管疾病诊疗',
-    avatar: '',
-    isActive: 1,
-  },
-  {
-    doctorId: 1002,
-    doctorName: '王医生',
-    userId: 2,
-    deptId: 2,
-    deptName: '外科',
-    title: '副主任医师',
-    specialty: '微创外科',
-    doctorDesc: '擅长腹腔镜微创手术',
-    avatar: '',
-    isActive: 1,
-  },
-];
-
-const guestDoctors = ref<Doctor[]>([...fallbackDoctors]);
-// 删除重复的科室数据定义
-const columns = [
-  { title: '医生ID', dataIndex: 'doctorId', key: 'doctorId', width: 90 },
-  { title: '医生姓名', dataIndex: 'doctorName', key: 'doctorName', width: 120 },
-  { title: '所属科室', dataIndex: 'deptName', key: 'deptName', width: 160 },
-  { title: '职称', dataIndex: 'title', key: 'title', width: 120 },
-  { title: '专长', dataIndex: 'specialty', key: 'specialty' },
-  { title: '简介', dataIndex: 'doctorDesc', key: 'doctorDesc' },
-  { title: '状态', dataIndex: 'isActive', key: 'status', width: 100 },
-  { title: '操作', key: 'action', width: 160 },
-];
-
-const modalVisible = ref(false);
-const modalTitle = ref('添加医生');
-const isEdit = ref(false);
-const formRef = ref<FormInstance | null>(null);
-
-const formData = reactive<DoctorFormModel>({
-  doctorId: undefined,
-  doctorName: '',
-  deptId: undefined,
-  title: '',
-  contact: '',
   specialty: '',
   doctorDesc: '',
-  isActive: 1,
+  avatar: '',
+  isActive: 1, // 默认正常出诊
 });
 
+// 文件上传相关
+const fileList = ref<any[]>([]);
+
+// 表单验证规则
 const formRules = {
-  doctorName: [{ required: true, message: '请输入医生姓名' }],
-  deptId: [
-    { required: true, message: '请选择所属科室' },
-    {
-      validator: (_, value) => {
-        console.log('验证科室ID:', value);
-        // 验证是否选择了二级科室
-        if (!value) return Promise.reject(new Error('请选择所属科室'));
-        
-        // 检查是否为有效科室ID
-        let isValidDepartment = false;
-        for (const dept of departmentOptions.value) {
-          if (dept.children && dept.children.some(child => child.value === value)) {
-            isValidDepartment = true;
-            break;
-          }
-        }
-        
-        return isValidDepartment ? Promise.resolve() : Promise.reject(new Error('请选择有效的二级科室'));
-      }
-    }
+  doctorName: [
+    { required: true, message: '请输入医生姓名', trigger: 'blur' },
+    { min: 2, max: 10, message: '姓名长度在 2-10 个字符', trigger: 'blur' },
   ],
-  title: [{ required: true, message: '请输入医生职称' }],
-  specialty: [{ required: true, message: '请输入医生专长' }],
+  deptId: [{ required: true, message: '请选择所属科室', trigger: 'change' }],
+  title: [{ required: true, message: '请选择医生职称', trigger: 'change' }],
+  specialty: [{ required: true, message: '请输入擅长领域', trigger: 'blur' }],
+  doctorDesc: [{ required: false, message: '请输入医生简介', trigger: 'blur' }],
+  isActive: [{ required: true, message: '请选择出诊状态', trigger: 'change' }],
 };
 
-// 科室ID到科室名称的缓存，提高性能
-const deptCache = new Map<string, string>();
+// 模态框标题
+const modalTitle = computed(() => (isEditMode.value ? '编辑医生' : '添加医生'));
 
-// 查找科室名称，支持树形结构查找（包括一级和二级科室）
-function findDepartmentName(deptId: any): string {
-  // 先尝试在一级科室中查找
-  let deptName = '待分配科室';
-  
-  // 数据验证
-  if (!deptId || departmentOptions.value.length === 0) {
-    return deptName;
-  }
-  
-  // 确保deptId是字符串类型进行比较（避免类型不匹配）
-  const targetId = String(deptId).trim();
-  
-  // 检查缓存
-  if (deptCache.has(targetId)) {
-    return deptCache.get(targetId)!;
-  }
-  
-  // 特别处理内科科室（deptId为1的情况）
-  if (targetId === '1' || targetId === '内科') {
-    deptName = '内科';
-    deptCache.set(targetId, deptName);
-    return deptName;
-  }
-  
-  // 遍历所有科室（一级和二级）
-  for (const dept of departmentOptions.value) {
-    // 检查是否是一级科室，使用字符串比较避免类型问题
-    const deptValue = String(dept.value).trim();
-    const deptLabel = dept.label || '';
-    
-    if (deptValue === targetId || deptLabel === targetId) {
-      deptName = deptLabel;
-      deptCache.set(targetId, deptName);
-      break;
-    }
-    
-    // 检查是否在二级科室中
-    if (dept.children && Array.isArray(dept.children)) {
-      const childDept = dept.children.find(child => {
-        const childValue = String(child.value || '').trim();
-        const childLabel = child.label || '';
-        return childValue === targetId || childLabel === targetId;
-      });
-      if (childDept) {
-        deptName = childDept.label || '';
-        deptCache.set(targetId, deptName);
-        break;
-      }
-    }
-  }
-  
-  // 增强处理：如果还是没找到，尝试直接从所有可能的科室名称中查找
-  if (deptName === '待分配科室' && targetId.includes('内科')) {
-    // 如果目标ID包含"内科"关键词，尝试匹配
-    for (const dept of departmentOptions.value) {
-      if (dept.label && dept.label.includes('内科')) {
-        deptName = dept.label;
-        deptCache.set(targetId, deptName);
-        break;
-      }
-      // 检查子科室
-      if (dept.children && Array.isArray(dept.children)) {
-        const childDept = dept.children.find(child => child.label && child.label.includes('内科'));
-        if (childDept) {
-          deptName = childDept.label;
-          deptCache.set(targetId, deptName);
-          break;
-        }
-      }
-    }
-  }
-  
-  // 缓存未找到的科室结果
-  if (!deptCache.has(targetId)) {
-    deptCache.set(targetId, deptName);
-  }
-  
-  return deptName;
+// 获取出诊状态文本
+function getActiveStatusText(status: number): string {
+  return status === 1 ? '正常出诊' : '暂停出诊';
 }
 
-function normalizeDoctorList(res: unknown): { items: Doctor[]; total: number } {
-  if (res && typeof res === 'object') {
-    // 处理后端返回的Result格式
-    if ('result' in res && res.result && typeof res.result === 'object') {
-      const result = res.result as { records?: any[]; total?: number };
-      const records = result.records ?? [];
-      const total = result.total ?? records.length;
-      return { 
-        items: records.map((item: any) => ({
-          ...item,
-          deptName: item.deptName || findDepartmentName(item.deptId) || '未分配'
-        })), 
-        total 
-      };
+// 表格列配置
+const columns: ColumnsType<Doctor> = [
+  {
+    title: '医生ID',
+    key: 'doctorId',
+    dataIndex: 'doctorId',
+    width: 80,
+    sorter: (a, b) => a.doctorId - b.doctorId,
+  },
+  {
+    title: '头像',
+    key: 'avatar',
+    dataIndex: 'avatar',
+    width: 60,
+  },
+  {
+    title: '医生姓名',
+    key: 'doctorName',
+    dataIndex: 'doctorName',
+    sorter: (a, b) => a.doctorName.localeCompare(b.doctorName),
+  },
+  {
+    title: '所属科室',
+    key: 'deptId',
+    dataIndex: 'deptId',
+    customRender: ({ text }) => {
+      // 确保text是数字类型进行比较
+      const dept = departmentOptions.value.find(d => d.deptId === Number(text));
+      return dept?.deptName || '未分配科室';
+    },
+  },
+  {
+    title: '职称',
+    key: 'title',
+    dataIndex: 'title',
+  },
+  {
+    title: '擅长领域',
+    key: 'specialty',
+    dataIndex: 'specialty',
+    ellipsis: true,
+  },
+  {
+    title: '出诊状态',
+    key: 'isActive',
+    dataIndex: 'isActive',
+    customRender: ({ text }) => getActiveStatusText(text),
+    filters: [
+      { text: '正常出诊', value: 1 },
+      { text: '暂停出诊', value: 0 },
+    ],
+    onFilter: (value, record) => record.isActive === value,
+  },
+  {
+    title: '医生简介',
+    key: 'doctorDesc',
+    dataIndex: 'doctorDesc',
+    ellipsis: true,
+    width: 200,
+  },
+  {
+    title: '操作',
+    key: 'action',
+    width: 120,
+  },
+];
+
+// 获取科室列表
+async function fetchDepartments() {
+  try {
+    const response = await getDepartmentList();
+    let departments: Department[] = [];
+    
+    // 处理不同格式的响应
+    if (Array.isArray(response)) {
+      departments = response;
+    } else if (response?.records && Array.isArray(response.records)) {
+      departments = response.records;
     }
-    // 处理直接返回的分页对象
-    const records = (res as any).records ?? [];
-    const total = (res as any).total ?? records.length;
-    return { 
-      items: records.map((item: any) => ({
-        ...item,
-        deptName: item.deptName || findDepartmentName(item.deptId) || '未分配'
-      })), 
-      total 
-    };
+    
+    // 对科室数据进行类型转换和验证
+    departmentOptions.value = departments.map(dept => ({
+      ...dept,
+      deptId: Number(dept.deptId),
+      deptName: dept.deptName || '未知科室'
+    }));
+  } catch (error) {
+    console.error('获取科室列表失败:', error);
+    message.error('获取科室列表失败');
+    departmentOptions.value = [];
   }
-  if (Array.isArray(res)) {
-    return { 
-      items: res.map((item: any) => ({
-        ...item,
-        deptName: item.deptName || findDepartmentName(item.deptId) || '未分配'
-      })), 
-      total: res.length 
-    };
-  }
-  return { items: [], total: 0 };
 }
 
-function applyGuestDoctorView() {
-  const filtered = guestDoctors.value.filter((doctor) => {
-    const matchName = searchFormData.doctorName ? doctor.doctorName.includes(searchFormData.doctorName) : true;
-    const matchDept = searchFormData.deptId ? doctor.deptId === searchFormData.deptId : true;
-    return matchName && matchDept;
+// 重置搜索表单
+function resetSearch() {
+  Object.assign(searchForm, {
+    doctorName: '',
+    deptId: undefined,
+    title: undefined,
+    isActive: undefined,
   });
-  pagination.total = filtered.length;
-  const start = (pagination.current - 1) * pagination.pageSize;
-  tableData.value = filtered.slice(start, start + pagination.pageSize);
 }
 
+// 获取医生列表
 async function fetchDoctorList() {
   loading.value = true;
-  const token = getToken();
-  if (!token) {
-    applyGuestDoctorView();
-    loading.value = false;
-    return;
-  }
   try {
-    const res = await getDoctorList({
-      pageNo: pagination.current,
-      pageSize: pagination.pageSize,
-      keyword: searchFormData.doctorName || undefined,
-      deptId: searchFormData.deptId,
-    } as any);
-    const { items, total } = normalizeDoctorList(res);
-    tableData.value = items;
-    pagination.total = total;
+    // 调整参数映射，确保与后端API期望的参数名匹配
+    const params = {
+      keyword: searchForm.doctorName,  // 后端期望使用keyword参数进行搜索
+      deptId: searchForm.deptId,
+      title: searchForm.title,
+      isActive: searchForm.isActive,
+      pageNo: pagination.current,     // 后端期望使用pageNo参数而非pageNum
+      pageSize: pagination.pageSize
+    };
+    const response = await getDoctorList(params);
+    
+    // 安全地处理API响应，确保数据结构正确
+    if (response?.records && Array.isArray(response.records)) {
+      // 对每个医生数据进行类型转换，确保字段类型正确
+      doctorList.value = response.records.map(doctor => ({
+        ...doctor,
+        doctorId: Number(doctor.doctorId),
+        deptId: Number(doctor.deptId),
+        isActive: Number(doctor.isActive),
+        // 确保其他字段有合理的默认值
+        doctorName: doctor.doctorName || '',
+        title: doctor.title || '',
+        specialty: doctor.specialty || '',
+        doctorDesc: doctor.doctorDesc || '',
+        avatar: doctor.avatar || ''
+      }));
+      pagination.total = Number(response.total) || 0;
+    } else {
+      console.warn('API响应格式不符合预期:', response);
+      doctorList.value = [];
+      pagination.total = 0;
+    }
   } catch (error) {
     console.error('获取医生列表失败:', error);
     message.error('获取医生列表失败');
-    tableData.value = [];
+    doctorList.value = [];
     pagination.total = 0;
   } finally {
     loading.value = false;
   }
 }
 
-function handleTableChange(pag: any) {
-  pagination.current = pag.current;
-  pagination.pageSize = pag.pageSize;
-  fetchDoctorList();
-}
-
-onMounted(async () => {
-  console.log('组件挂载，开始加载科室数据');
-  // 加载科室数据
-  try {
-    await loadDepartmentOptions();
-    console.log('科室数据加载完成');
-  } catch (error) {
-    console.error('科室数据加载失败:', error);
-  }
-  
-  // 加载医生列表
-  try {
-    await fetchDoctorList();
-  } catch (error) {
-    console.error('医生列表加载失败:', error);
-    tableData.value = guestDoctors.value;
-  }
-});
-
+// 搜索医生
 function handleSearch() {
   pagination.current = 1;
   fetchDoctorList();
 }
 
-function handleReset() {
-  searchFormData.doctorName = '';
-  searchFormData.deptId = undefined;
-  searchFormData.title = '';
-  pagination.current = 1;
+// 表格变化处理
+function handleTableChange(newPagination: any) {
+  // 正确更新分页信息
+  Object.assign(pagination, newPagination);
+  // 直接调用fetchDoctorList获取最新数据
   fetchDoctorList();
 }
 
-function resetFormData() {
-  formData.doctorId = undefined;
-  formData.doctorName = '';
-  formData.deptId = undefined;
-  formData.title = '';
-  formData.contact = '';
-  formData.specialty = '';
-  formData.doctorDesc = '';
-  formData.isActive = 1;
-  selectedFirstLevelDept.value = null;
-  selectedSecondLevelDept.value = null;
+// 显示添加医生模态框
+function showAddModal() {
+  isEditMode.value = false;
+  currentDoctorId.value = null;
+  resetDoctorForm();
+  doctorModalVisible.value = true;
 }
 
-function handleAdd() {
-  isEdit.value = false;
-  modalTitle.value = '添加医生';
-  resetFormData();
-  modalVisible.value = true;
-  nextTick(() => formRef.value?.clearValidate());
-}
-
-// 处理一级科室选择变化
-function handleFirstLevelDeptChange(value: number | null) {
-  selectedFirstLevelDept.value = value;
-  // 重置二级科室选择
-  selectedSecondLevelDept.value = null;
-  formData.deptId = undefined;
+// 编辑医生
+async function handleEdit(record: Doctor) {
+  isEditMode.value = true;
+  currentDoctorId.value = record.doctorId;
   
-  console.log('选择的一级科室ID:', value);
-  
-  // 确保表单验证状态更新
-  nextTick(() => {
-    if (formRef.value && typeof formRef.value.validate === 'function') {
-      formRef.value.validate();
-    }
-  });
-}
-
-// 处理二级科室选择变化
-function handleSecondLevelDeptChange(value: number | null) {
-  selectedSecondLevelDept.value = value;
-  
-  if (value) {
-    formData.deptId = value;
-    console.log('选择的二级科室ID:', value);
-  } else {
-    formData.deptId = undefined;
-    console.log('未选择有效二级科室');
-  }
-  
-  // 确保表单验证状态更新
-  nextTick(() => {
-    if (formRef.value && typeof formRef.value.validate === 'function') {
-      formRef.value.validate();
-    }
-  });
-}
-
-// 初始化科室选择器的值
-function initCascaderValue(deptId?: number) {
-  console.log('初始化科室值，deptId:', deptId, 'departmentOptions:', departmentOptions.value?.length);
-  
-  // 参数校验
-  if (!deptId || typeof deptId !== 'number') {
-    selectedFirstLevelDept.value = null;
-    selectedSecondLevelDept.value = null;
-    formData.deptId = undefined;
-    return;
-  }
-  
-  // 确保departmentOptions存在且不为空
-  if (!departmentOptions.value || departmentOptions.value.length === 0) {
-    console.warn('科室选项尚未加载，无法初始化科室选择器');
-    // 临时保存deptId，等待科室数据加载完成后再处理
-    formData.deptId = deptId;
-    selectedFirstLevelDept.value = null;
-    selectedSecondLevelDept.value = null;
-    return;
-  }
-  
-  // 查找科室在层级结构中的位置
-  for (const dept of departmentOptions.value) {
-    if (!dept || !dept.children || !Array.isArray(dept.children)) continue;
+  try {
+    // 获取医生详情
+    const doctorDetail = await getDoctorDetail(record.doctorId);
     
-    for (const child of dept.children) {
-      if (!child) continue;
-      
-      if (child.value === deptId) {
-        selectedFirstLevelDept.value = dept.value;
-        selectedSecondLevelDept.value = child.value;
-        formData.deptId = deptId;
-        console.log('找到科室，设置一级科室ID:', selectedFirstLevelDept.value, '二级科室ID:', selectedSecondLevelDept.value);
-        return;
-      }
+    // 检查返回数据是否存在且格式正确
+    if (!doctorDetail || typeof doctorDetail !== 'object') {
+      console.error('获取的医生详情数据格式不正确:', doctorDetail);
+      message.error('获取医生详情失败：数据格式错误');
+      return;
     }
+    
+    // 填充表单数据
+    Object.assign(doctorForm, {
+      doctorName: doctorDetail.doctorName || '',
+      deptId: doctorDetail.deptId || null,
+      title: doctorDetail.title || '',
+      specialty: doctorDetail.specialty || '',
+      doctorDesc: doctorDetail.doctorDesc || '',
+      avatar: doctorDetail.avatar || '',
+      isActive: doctorDetail.isActive !== undefined ? doctorDetail.isActive : 1,
+    });
+    
+    // 设置文件列表
+    if (doctorDetail.avatar) {
+      fileList.value = [{
+        uid: '-1',
+        name: 'avatar.jpg',
+        status: 'done',
+        url: doctorDetail.avatar,
+      }];
+    } else {
+      fileList.value = [];
+    }
+    
+    doctorModalVisible.value = true;
+  } catch (error) {
+    console.error('获取医生详情失败:', error);
+    message.error('获取医生详情失败');
   }
-  
-  console.warn('未找到对应的科室信息，deptId:', deptId);
-  selectedFirstLevelDept.value = null;
-  selectedSecondLevelDept.value = null;
-  formData.deptId = undefined;
 }
 
-function handleEdit(record: Doctor) {
-  isEdit.value = true;
-  modalTitle.value = '编辑医生';
-  formData.doctorId = record.doctorId;
-  formData.doctorName = record.doctorName;
-  // 先设置deptId，然后通过initCascaderValue处理级联选择器的值
-  formData.deptId = record.deptId;
-  // 使用nextTick确保departmentOptions已加载
-  nextTick(() => {
-    initCascaderValue(record.deptId);
-  });
-  formData.title = record.title;
-  formData.specialty = record.specialty;
-  formData.doctorDesc = record.doctorDesc;
-  formData.isActive = record.isActive;
-  modalVisible.value = true;
-  // 初始化级联选择器的值
-  nextTick(() => {
-    initCascaderValue(record.deptId);
-    formRef.value?.clearValidate();
-  });
-}
-
+// 删除医生
 function handleDelete(record: Doctor) {
-  const token = getToken();
-  if (!token) {
-    guestDoctors.value = guestDoctors.value.filter((doctor) => doctor.doctorId !== record.doctorId);
-    applyGuestDoctorView();
-    message.success('删除医生成功（演示）');
-    return;
-  }
   Modal.confirm({
     title: '确认删除',
     content: `确定要删除医生「${record.doctorName}」吗？`,
@@ -858,225 +498,158 @@ function handleDelete(record: Doctor) {
     cancelText: '取消',
     onOk: async () => {
       try {
-        const res = await deleteDoctor(record.doctorId!);
-        if (res?.success || res?.code === 200) {
-          message.success('删除医生成功');
-          fetchDoctorList();
-        } else {
-          message.error(res?.message || '删除医生失败');
-        }
+        await deleteDoctor(record.doctorId);
+        message.success('删除成功');
+        fetchDoctorList();
       } catch (error) {
         console.error('删除医生失败:', error);
-        message.error('删除医生失败');
+        message.error('删除失败');
       }
     },
   });
 }
 
-async function handleModalOk() {
-    try {
-      // 先进行表单验证
-      if (formRef.value && typeof formRef.value.validate === 'function') {
-        const validateResult = await formRef.value.validate();
-        if (!validateResult) {
-          console.warn('表单验证未通过');
-          return;
-        }
-      }
-      
-      // 二次检查科室ID是否有效（额外保障）
-      if (!formData.deptId) {
-        console.error('科室ID无效:', formData.deptId);
-        message.error('请选择所属科室');
-        return;
-      }
-      
-      const token = getToken();
-      if (!token) {
-        // 演示模式处理
-        if (isEdit.value && formData.doctorId) {
-          guestDoctors.value = guestDoctors.value.map((doctor) =>
-            doctor.doctorId === formData.doctorId ? { ...doctor, ...formData } : doctor
-          );
-          message.success('编辑医生成功（演示）');
-        } else {
-          const newRecord: Doctor = {
-            doctorId: Date.now(),
-            doctorName: formData.doctorName,
-            deptId: formData.deptId || 0,
-            deptName: getDepartmentName(formData.deptId!),
-            title: formData.title,
-            specialty: formData.specialty,
-            doctorDesc: formData.doctorDesc,
-            userId: 0,
-            avatar: '',
-            isActive: formData.isActive,
-          };
-          guestDoctors.value.unshift(newRecord);
-          message.success('添加医生成功（演示）');
-        }
-        modalVisible.value = false;
-        applyGuestDoctorView();
-        return;
-      }
-
-      // 准备提交数据，确保所有字段类型正确且非空字段有效
-      let submitData;
-      try {
-        submitData = {
-          doctorId: formData.doctorId ? Number(formData.doctorId) : undefined,
-          doctorName: formData.doctorName.trim(),
-          deptId: Number(formData.deptId), // 确保deptId是数字类型
-          title: formData.title.trim(),
-          specialty: formData.specialty.trim(),
-          doctorDesc: formData.doctorDesc?.trim() || '',
-          isActive: formData.isActive ? Number(formData.isActive) : 1
-        };
-        console.log('准备提交的数据:', JSON.stringify(submitData));
-      } catch (dataError) {
-        console.error('数据转换错误:', dataError);
-        message.error('数据格式错误，请检查输入');
-        return;
-      }
-      
-      // 数据完整性检查
-      if (!submitData.doctorName || !submitData.deptId || !submitData.title || !submitData.specialty) {
-        message.error('请填写完整的医生信息');
-        return;
-      }
-      
-      // 初始化res为默认错误对象，确保不会出现undefined
-      let res = { success: false, message: '系统异常，服务器返回格式错误' };
-      try {
-        // 直接调用API函数，不再使用Promise.race避免复杂逻辑
-        const apiResult = await (isEdit.value ? updateDoctor(submitData) : addDoctor(submitData));
-        
-        console.log('API请求原始结果:', apiResult);
-        
-        // 安全地赋值，确保res始终是对象
-        if (apiResult !== undefined && apiResult !== null) {
-          res = typeof apiResult === 'object' ? apiResult : 
-                { success: false, message: String(apiResult) };
-          
-          // 检查返回的对象是否为空或不包含预期字段
-          const isEmptyObject = Object.keys(res).length === 0;
-          const hasNoUsefulInfo = !res.success && !res.message && !res.code;
-          
-          if (isEmptyObject || hasNoUsefulInfo) {
-            res = {
-              success: false,
-              message: '服务器返回数据格式异常，请联系管理员'
-            };
-          }
-        } else {
-          // 如果API返回undefined或null，设置更明确的错误信息
-          res = {
-            success: false,
-            message: 'API未返回数据，请检查服务器连接'
-          };
-        }
-        
-        console.log('安全后的res:', res);
-      } catch (requestError) {
-        console.error('API请求失败:', requestError);
-        // 捕获任何意外错误，更新res对象
-        res = { 
-          success: false, 
-          message: requestError instanceof Error ? 
-                   (requestError.message === '请求超时' ? '请求超时，请稍后再试' : 
-                    requestError.message || '网络错误，请检查网络连接') : 
-                   String(requestError) || '系统异常，请稍后再试'
-        };
-        
-        console.log('捕获到异常后的res:', res);
-      } finally {
-        // 确保无论成功失败都关闭加载状态
-        loading.value = false;
-        // 关闭加载提示
-        message.destroy();
-      }
-
-      // 详细的响应日志 - 确保res始终存在
-      console.log('API响应结果:', res);
-      
-      // 进一步确保res是有效的对象 - 这是双保险，因为res已经初始化过了
-      const safeRes = Object.assign({}, res); // 复制res对象，避免直接修改
-      
-      console.log('API响应详情(safeRes):', safeRes);
-      
-      // 简化的成功判断逻辑，专注于最常见的响应格式
-      const isSuccess = 
-        safeRes.success === true || 
-        safeRes.code === 200 || 
-        safeRes.code === '200' ||
-        safeRes.code === 20000;
-      
-    if (isSuccess) {
-        // 成功处理 - 优先使用响应中的消息
-        message.success(safeRes.message || (isEdit.value ? '编辑医生成功' : '添加医生成功'));
-        
-        // 确保在关闭模态框前有足够时间让用户看到成功提示
-        setTimeout(() => {
-          nextTick(() => {
-            modalVisible.value = false;
-            // 重置表单数据
-            resetFormData();
-          });
-        }, 300);
-        
-        // 刷新医生列表，确保数据同步
-        try {
-          await fetchDoctorList();
-        } catch (listError) {
-          console.error('获取医生列表失败:', listError);
-          // 这里不显示错误，因为主操作已经成功
-        }
-      } else {
-        // 失败处理 - 全面的错误信息获取
-        const errorMessage = 
-          safeRes.message || 
-          safeRes.error || 
-          safeRes.msg || 
-          (typeof safeRes === 'string' ? safeRes : 
-           (isEdit.value ? '编辑医生失败' : '添加医生失败'));
-          
-        console.error('API返回失败:', safeRes, '错误信息:', errorMessage);
-        message.error(errorMessage);
-      }
-  } catch (error: any) {
-    // 捕获意外错误
-    console.error('保存医生信息时发生未预期的错误:', error);
-    // 避免显示"系统异常"这样的泛化错误
-    message.error('保存失败，请稍后重试或联系管理员');
-    // 确保加载状态被关闭
-    loading.value = false;
-    message.destroy();
-  }
-}
-
-// 获取科室名称（支持树形结构）
-function getDepartmentName(deptId: number): string {
-  // 递归查找科室名称
-  function findInTree(nodes: any[]): string | undefined {
-    for (const node of nodes) {
-      if (node.value === deptId) {
-        return node.label;
-      }
-      if (node.children && node.children.length > 0) {
-        const found = findInTree(node.children);
-        if (found) return found;
-      }
-    }
-    return undefined;
+// 批量删除
+function handleBatchDelete() {
+  if (selectedRowKeys.value.length === 0) {
+    message.warning('请选择要删除的医生');
+    return;
   }
   
-  return findInTree(departmentOptions.value) || '未分配';
+  Modal.confirm({
+    title: '确认批量删除',
+    content: `确定要删除选中的 ${selectedRowKeys.value.length} 位医生吗？`,
+    okText: '确定',
+    cancelText: '取消',
+    onOk: async () => {
+      try {
+        // 将字符串ID转换为数字
+        const doctorIds = selectedRowKeys.value.map(id => parseInt(id));
+        await batchDeleteDoctors(doctorIds);
+        message.success('批量删除成功');
+        fetchDoctorList();
+        selectedRowKeys.value = [];
+      } catch (error) {
+        console.error('批量删除医生失败:', error);
+        message.error('批量删除失败');
+      }
+    },
+  });
 }
 
-function handleModalCancel() {
-  modalVisible.value = false;
+// 重置医生表单
+function resetDoctorForm() {
+  Object.assign(doctorForm, {
+    doctorName: '',
+    deptId: undefined,
+    title: '',
+    specialty: '',
+    doctorDesc: '',
+    avatar: '',
+    isActive: 1,
+  });
+  fileList.value = [];
+  formRef.value?.resetFields();
 }
-// 移除重复的onMounted钩子
+
+// 模态框提交
+async function handleModalSubmit() {
+  if (!formRef.value) return;
+  
+  try {
+    await formRef.value.validate();
+    
+    const doctorData = {
+        doctorId: currentDoctorId.value,
+        doctorName: doctorForm.doctorName,
+        deptId: Number(doctorForm.deptId),
+        title: doctorForm.title,
+        specialty: doctorForm.specialty,
+        doctorDesc: doctorForm.doctorDesc,
+        avatar: doctorForm.avatar,
+        isActive: Number(doctorForm.isActive),
+      };
+    
+    if (isEditMode.value && currentDoctorId.value) {
+      // 编辑操作
+      await updateDoctor(doctorData);
+      message.success('编辑成功');
+    } else {
+      // 添加操作 - 使用registerDoctorAccount来创建医生和用户账号
+      // 生成临时账号和密码
+      const userAccount = `doctor_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      const password = Math.random().toString(36).substring(2, 10);
+      
+      // 简化参数传递，只传递必要字段
+      const registerParams: RegisterDoctorParams = {
+        doctorName: doctorForm.doctorName,
+        userAccount: userAccount,
+        userPassword: password,
+        deptId: Number(doctorForm.deptId),
+        title: doctorForm.title,
+        specialty: doctorForm.specialty,
+        isActive: true // 设置默认值
+      };
+      
+      await registerDoctorAccount(registerParams);
+      message.success('添加成功');
+      message.info(`医生账号已创建，账号: ${userAccount}, 初始密码: ${password}`);
+    }
+    
+    doctorModalVisible.value = false;
+    fetchDoctorList();
+  } catch (error) {
+    console.error('保存医生数据失败:', error);
+    message.error('保存失败');
+  }
+}
+
+// 关闭模态框
+function handleModalCancel() {
+  doctorModalVisible.value = false;
+  resetDoctorForm();
+}
+
+// 文件上传相关处理
+function beforeUpload(file: File) {
+  const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
+  if (!isJpgOrPng) {
+    message.error('只能上传 JPG/PNG 格式的图片!');
+    return Upload.LIST_IGNORE;
+  }
+  const isLt2M = file.size / 1024 / 1024 < 2;
+  if (!isLt2M) {
+    message.error('图片大小不能超过 2MB!');
+    return Upload.LIST_IGNORE;
+  }
+  return false; // 阻止默认上传，使用自定义上传
+}
+
+function customRequest({ onSuccess, file }: any) {
+  // 模拟上传成功
+  setTimeout(() => {
+    // 使用文件名生成模拟的图片URL
+    const fileName = doctorForm.doctorName || '医生';
+    const mockUrl = `https://via.placeholder.com/150?text=${fileName}`;
+    onSuccess({ url: mockUrl });
+  }, 500);
+}
+
+function handleUploadChange({ file }: any) {
+  if (file.status === 'done') {
+    // 使用模拟的上传URL
+    doctorForm.avatar = file.response?.url || `https://via.placeholder.com/150?text=${doctorForm.doctorName || '医生'}`;
+    message.success('上传成功');
+  } else if (file.status === 'error') {
+    message.error('上传失败');
+  }
+}
+
+// 页面加载时获取数据
+onMounted(() => {
+  fetchDepartments();
+  fetchDoctorList();
+});
 </script>
 
 <style scoped>
@@ -1088,17 +661,45 @@ function handleModalCancel() {
   margin-bottom: 16px;
 }
 
-.search-card {
+.page-header h2 {
+  margin: 0;
+}
+
+.content-card {
+  margin-bottom: 24px;
+}
+
+.search-operate-area {
+  margin-bottom: 20px;
+}
+
+.search-form {
   margin-bottom: 16px;
 }
 
-.toolbar {
+.operate-buttons {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 16px;
 }
 
-.danger-link {
+.action-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+/* 为了确保删除按钮显示为红色 */
+:deep(.ant-btn-danger) {
   color: #ff4d4f;
+}
+
+:deep(.ant-btn-danger:hover) {
+  color: #ff7875;
 }
 </style>

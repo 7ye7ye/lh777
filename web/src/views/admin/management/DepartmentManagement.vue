@@ -38,25 +38,30 @@
       </div>
 
       <a-table
-        :columns="columns"
-        :data-source="tableData"
-        :loading="loading"
-        :pagination="pagination"
-        row-key="deptId"
-        @change="handleTableChange"
-      >
-        <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'deptLevel'">
-            <span>{{ formatDeptLevel(record.deptLevel) }}</span>
-          </template>
-          <template v-else-if="column.key === 'action'">
-            <a-space size="middle">
-              <a @click="handleEdit(record)">编辑</a>
-              <a class="danger-link" @click="handleDelete(record)">删除</a>
-            </a-space>
-          </template>
+      :columns="columns"
+      :data-source="tableData"
+      :loading="loading"
+      :pagination="pagination"
+      row-key="deptId"
+      @change="handleTableChange"
+    >
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.key === 'deptLevel'">
+          <span>{{ formatDeptLevel(record.deptLevel) }}</span>
         </template>
-      </a-table>
+        <template v-else-if="column.key === 'action'">
+          <a-space size="middle">
+            <a @click="handleEdit(record)">编辑</a>
+            <a class="danger-link" @click="handleDelete(record)">删除</a>
+          </a-space>
+        </template>
+      </template>
+      <template #deptName="{ record }">
+        <a class="dept-name-link" @click="handleViewDetail(record.deptId)">
+          {{ record.deptName }}
+        </a>
+      </template>
+    </a-table>
     </a-card>
 
     <a-modal
@@ -102,6 +107,7 @@ import { reactive, ref, onMounted, nextTick } from 'vue';
 import { Modal, message } from 'ant-design-vue';
 import type { FormInstance } from 'ant-design-vue';
 import { getDepartmentList, createDepartment, updateDepartment, deleteDepartment, type Department } from '/@/api/hospital/department';
+import { useRouter } from 'vue-router';
 
 type DepartmentRecord = Department & { createTime?: string };
 
@@ -137,9 +143,18 @@ const searchFormData = reactive({
   deptLevel: undefined as number | undefined,
 });
 
+const router = useRouter();
+
 const columns = [
   { title: '科室ID', dataIndex: 'deptId', key: 'deptId', width: 100 },
-  { title: '科室名称', dataIndex: 'deptName', key: 'deptName', width: 180 },
+  { title: '科室名称',
+      dataIndex: 'deptName',
+      key: 'deptName',
+      width: 180,
+      slots: {
+        customRender: 'deptName'
+      },
+  },
   { title: '科室级别', dataIndex: 'deptLevel', key: 'deptLevel', width: 120 },
   { title: '科室简介', dataIndex: 'deptDesc', key: 'deptDesc' },
   { title: '位置', dataIndex: 'location', key: 'location', width: 160 },
@@ -170,6 +185,10 @@ function formatDeptLevel(level?: number) {
     return '-';
   }
   return `第${level}级`;
+}
+
+function handleViewDetail(deptId: string) {
+  router.push(`/admin/management/department/detail/${deptId}`);
 }
 
 function normalizeList(res: unknown): { items: DepartmentRecord[]; total: number } {
@@ -333,5 +352,15 @@ onMounted(() => {
 
 .danger-link {
   color: #ff4d4f;
+}
+
+.dept-name-link {
+  color: #1890ff;
+  text-decoration: none;
+}
+
+.dept-name-link:hover {
+  color: #40a9ff;
+  text-decoration: underline;
 }
 </style>

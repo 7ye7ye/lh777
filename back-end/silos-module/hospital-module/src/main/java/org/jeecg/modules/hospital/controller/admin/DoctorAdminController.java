@@ -15,6 +15,7 @@ import org.jeecg.modules.hospital.service.HosUserService;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import com.baomidou.dynamic.datasource.annotation.DS;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -29,6 +30,7 @@ import java.util.Map;
 /**
  * 医生管理控制器（管理员端）
  */
+@DS("hospital")
 @Slf4j
 @RestController
 @RequestMapping("/admin/doctor")
@@ -53,7 +55,9 @@ public class DoctorAdminController {
             @RequestParam(defaultValue = "1") Integer pageNo,
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Long deptId) {
+            @RequestParam(required = false) Long deptId,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) Integer isActive) {
         
         Page<Doctor> page = new Page<>(pageNo, pageSize);
         LambdaQueryWrapper<Doctor> queryWrapper = new LambdaQueryWrapper<>();
@@ -63,10 +67,36 @@ public class DoctorAdminController {
         }
         
         if (deptId != null) {
-            queryWrapper.eq(Doctor::getDeptId, deptId);
+            // 检查是否为一级科室
+            Department department = departmentService.getById(deptId);
+            if (department != null && department.getDeptLevel() == 1) {
+                // 如果是一级科室，查询该科室下所有二级科室
+                List<Department> subDepartments = departmentService.getSecondLevelByParentId(deptId);
+                if (subDepartments != null && !subDepartments.isEmpty()) {
+                    // 提取所有二级科室ID
+                    List<Long> subDeptIds = new ArrayList<>();
+                    for (Department subDept : subDepartments) {
+                        subDeptIds.add(subDept.getDeptId());
+                    }
+                    // 查询所有二级科室的医生
+                    queryWrapper.in(Doctor::getDeptId, subDeptIds);
+                }
+            } else {
+                // 如果是二级科室或找不到科室信息，使用原有的精确查询
+                queryWrapper.eq(Doctor::getDeptId, deptId);
+            }
+        }
+        
+        if (StringUtils.hasText(title)) {
+            queryWrapper.eq(Doctor::getTitle, title);
+        }
+        
+        if (isActive != null) {
+            queryWrapper.eq(Doctor::getIsActive, isActive);
         }
         
         queryWrapper.orderByDesc(Doctor::getDoctorId);
+
         
         IPage<Doctor> pageResult = doctorService.page(page, queryWrapper);
         
