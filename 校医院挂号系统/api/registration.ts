@@ -91,6 +91,15 @@ export const addWaitingQueue = async (data: {
   }
 };
 
+/**
+ * 取消挂号
+ * @param recordId 挂号记录ID
+ */
+export const cancelRegistration = async (recordId: number) => {
+  return request.post(`/cancel?recordId=${recordId}`);
+};
+
+
 
 
 

@@ -24,6 +24,7 @@ import java.util.Map;
 */
 @Slf4j
 @Service
+@DS("hospital")
 public class DepartmentServiceImpl extends ServiceImpl<DepartmentMapper, Department>
     implements DepartmentService{
     

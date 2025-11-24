@@ -183,6 +183,10 @@ export default {
         } else if (res?.success) {
           this.departmentList = res.result || []
           this.total = (res.result || []).length
+        } else if (res?.records && Array.isArray(res.records)) {
+          // 处理后端返回的包含records和total字段的对象
+          this.departmentList = res.records
+          this.total = res.total || 0
         } else {
           this.departmentList = []
           this.total = 0
@@ -199,6 +203,9 @@ export default {
           this.firstLevelDepartments = res
         } else if (res?.success) {
           this.firstLevelDepartments = res.result || []
+        } else if (res?.records && Array.isArray(res.records)) {
+          // 处理后端返回的包含records和total字段的对象，并筛选一级科室
+          this.firstLevelDepartments = res.records.filter((d) => d.deptLevel === 1)
         } else {
           this.firstLevelDepartments = []
         }

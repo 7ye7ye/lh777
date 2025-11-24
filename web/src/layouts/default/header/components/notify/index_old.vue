@@ -98,15 +98,23 @@
       // 获取系统消息
       async function loadData() {
         try {
-          let { anntMsgList, sysMsgList, anntMsgTotal, sysMsgTotal } = await listCementByUser({
+          const response = await listCementByUser({
             pageSize: 5,
           });
+          // 添加返回值检查，避免解构undefined对象
+          const { anntMsgList = [], sysMsgList = [], anntMsgTotal = 0, sysMsgTotal = 0 } = response || {};
+          
           listData.value[0].list = anntMsgList.map(mapAnnouncement);
           listData.value[1].list = sysMsgList.map(mapAnnouncement);
           listData.value[0].count = anntMsgTotal;
           listData.value[1].count = sysMsgTotal;
         } catch (e) {
           console.warn('系统消息通知异常：', e);
+          // 出错时设置默认空数据，避免显示问题
+          listData.value[0].list = [];
+          listData.value[1].list = [];
+          listData.value[0].count = 0;
+          listData.value[1].count = 0;
         }
       }
 
