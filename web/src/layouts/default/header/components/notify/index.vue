@@ -125,7 +125,14 @@
         let wsClientId = md5(token);
         let userId = unref(userStore.getUserInfo).id + "_" + wsClientId;
         // WebSocket与普通的请求所用协议有所不同，ws等同于http，wss等同于https
-        let url = glob.domainUrl?.replace('https://', 'wss://').replace('http://', 'ws://') + '/websocket/' + userId;
+        // 使用 domainUrl，如果不存在则使用 apiUrl，再不存在则使用当前域名
+        let baseUrl = glob.domainUrl || glob.apiUrl || window.location.origin;
+        if (!baseUrl) {
+          console.warn('[WebSocket] 无法获取基础URL，使用默认值');
+          baseUrl = 'http://127.0.0.1:8095';
+        }
+        let url = baseUrl.replace('https://', 'wss://').replace('http://', 'ws://') + '/jeecg-boot/websocket/' + userId;
+        console.log('[WebSocket] 连接URL:', url);
         connectWebSocket(url);
         onWebSocket(onWebSocketMessage);
       }

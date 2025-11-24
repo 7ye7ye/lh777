@@ -7,7 +7,7 @@ const admin: AppRouteModule = {
   path: '/admin',
   name: 'Admin',
   component: LAYOUT,
-  redirect: '/admin/rules/schedule-rules',
+  redirect: '/admin/schedule-rules',
   meta: {
     orderNo: 9,
     icon: 'ion:settings-outline',
@@ -15,15 +15,6 @@ const admin: AppRouteModule = {
     ignoreAuth: true,
   },
   children: [
-    {
-      path: 'schedule-today',
-      name: 'AdminScheduleToday',
-      component: () => import('/@/views/admin/schedule/ScheduleToday.vue'),
-      meta: {
-        title: t('routes.admin.scheduleToday'),
-        ignoreAuth: true,
-      },
-    },
     {
       path: 'schedule-calendar',
       name: 'AdminScheduleCalendar',
@@ -35,62 +26,13 @@ const admin: AppRouteModule = {
       },
     },
     {
-      path: 'rules',
-      name: 'AdminRules',
-      component: LAYOUT,
-      redirect: '/admin/rules/schedule-rules',
+      path: 'schedule-rules',
+      name: 'AdminScheduleRules',
+      component: () => import('/@/views/admin/schedule/RuleSetting.vue'),
       meta: {
-        orderNo: 10,
-        title: t('routes.admin.ruleGroup'),
+        title: t('routes.admin.scheduleRule'),
         ignoreAuth: true,
       },
-      children: [
-        {
-          path: 'schedule-rules',
-          name: 'AdminScheduleRules',
-          component: () => import('/@/views/admin/schedule/RuleSetting.vue'),
-          meta: {
-            title: t('routes.admin.scheduleRule'),
-            ignoreAuth: true,
-          },
-        },
-        {
-          path: 'number-type',
-          name: 'AdminNumberType',
-          component: () => import('/@/views/admin/schedule/NumberTypeSetting.vue'),
-          meta: {
-            title: t('routes.admin.numberType'),
-            ignoreAuth: true,
-          },
-        },
-        {
-          path: 'reservation-rule',
-          name: 'AdminReservationRule',
-          component: () => import('/@/views/admin/schedule/ReservationRule.vue'),
-          meta: {
-            title: t('routes.admin.reservationRule'),
-            ignoreAuth: true,
-          },
-        },
-        {
-          path: 'reg-rule',
-          name: 'AdminRegistrationRule',
-          component: () => import('/@/views/admin/business/RegistrationRule.vue'),
-          meta: {
-            title: t('routes.admin.registrationRule'),
-            ignoreAuth: true,
-          },
-        },
-        {
-          path: 'refund-rule',
-          name: 'AdminRefundRule',
-          component: () => import('/@/views/admin/business/RefundRule.vue'),
-          meta: {
-            title: t('routes.admin.refundRule'),
-            ignoreAuth: true,
-          },
-        },
-      ],
     },
     {
       path: 'schedule-adjustment',

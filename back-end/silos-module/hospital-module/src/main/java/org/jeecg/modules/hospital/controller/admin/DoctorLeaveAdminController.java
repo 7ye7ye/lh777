@@ -6,12 +6,15 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.jeecg.common.api.vo.Result;
 import org.jeecg.common.constant.CommonConstant;
 import org.jeecg.common.system.util.JwtUtil;
 import org.jeecg.modules.hospital.entity.DoctorLeaveRequest;
 import org.jeecg.modules.hospital.entity.DoctorSchedule;
 import org.jeecg.modules.hospital.entity.HosUser;
+import org.jeecg.modules.hospital.entity.RegistrationRecord;
+import org.jeecg.modules.hospital.mapper.RegistrationRecordMapper;
 import org.jeecg.modules.hospital.service.DoctorLeaveRequestService;
 import org.jeecg.modules.hospital.service.DoctorScheduleService;
 import org.jeecg.modules.hospital.service.HosUserService;
@@ -26,6 +29,7 @@ import java.util.List;
 /**
  * 管理员-医生请假审批控制器
  */
+@Slf4j
 @RestController
 @RequestMapping("/admin/leave")
 @Tag(name = "管理员-医生请假审批")
@@ -39,6 +43,9 @@ public class DoctorLeaveAdminController {
 
     @Resource
     private HosUserService hosUserService;
+
+    @Resource
+    private RegistrationRecordMapper registrationRecordMapper;
 
     @Operation(summary = "获取请假申请列表")
     @GetMapping("/list")
@@ -136,12 +143,16 @@ public class DoctorLeaveAdminController {
                     doctorId, startDate, endDate
                 );
                 
-                // 禁用这些排班（将状态设为0）
+                // 禁用这些排班（将状态设为0）并更新相关挂号记录
                 for (DoctorSchedule schedule : schedules) {
                     if (schedule.getStatus() == 1) { // 只处理有效状态的排班
                         schedule.setStatus(0); // 0表示已禁用
                         schedule.setUpdateTime(LocalDateTime.now());
                         scheduleService.updateById(schedule);
+                        
+                        // 更新该排班相关的挂号记录状态为3（已退号）
+                        updateRegistrationRecordsForSchedule(schedule.getScheduleId(), 
+                            "请假申请已同意，排班已取消");
                     }
                 }
             }
@@ -189,6 +200,47 @@ public class DoctorLeaveAdminController {
 
         public String getRejectReason() { return rejectReason; }
         public void setRejectReason(String rejectReason) { this.rejectReason = rejectReason; }
+    }
+    
+    /**
+     * 更新指定排班相关的挂号记录状态为3（已退号）
+     * @param scheduleId 排班ID
+     * @param reason 退号原因
+     */
+    private void updateRegistrationRecordsForSchedule(Long scheduleId, String reason) {
+        if (scheduleId == null) {
+            log.warn("updateRegistrationRecordsForSchedule: scheduleId为null，跳过更新");
+            return;
+        }
+        
+        try {
+            // 先查询该排班的所有有效挂号记录，用于日志记录
+            LambdaQueryWrapper<RegistrationRecord> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(RegistrationRecord::getScheduleId, scheduleId)
+                       .in(RegistrationRecord::getStatus, 0, 1, 2); // 只更新有效状态的挂号记录
+            
+            List<RegistrationRecord> records = registrationRecordMapper.selectList(queryWrapper);
+            log.info("找到排班ID {} 相关的挂号记录 {} 条", scheduleId, records.size());
+            
+            if (records.isEmpty()) {
+                log.info("排班ID {} 没有需要更新的挂号记录", scheduleId);
+                return;
+            }
+            
+            // 使用批量SQL更新，更高效且可靠
+            LocalDateTime now = LocalDateTime.now();
+            int updateCount = registrationRecordMapper.updateStatusByScheduleId(scheduleId, now, reason);
+            log.info("排班ID {} 的挂号记录批量更新完成，成功更新 {} 条记录", scheduleId, updateCount);
+            
+            // 验证更新结果
+            if (updateCount != records.size()) {
+                log.warn("更新数量不匹配：查询到 {} 条记录，但只更新了 {} 条", records.size(), updateCount);
+            }
+        } catch (Exception e) {
+            // 记录错误但不影响审批流程
+            log.error("更新挂号记录状态失败，排班ID：{}", scheduleId, e);
+            e.printStackTrace();
+        }
     }
 }
 
