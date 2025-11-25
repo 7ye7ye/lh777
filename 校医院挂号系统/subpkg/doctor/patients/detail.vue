@@ -127,13 +127,20 @@
       >
         开始接诊
       </button>
-      <button
-        v-else-if="patient.status === '接诊中'"
-        class="action-btn complete-btn"
-        @click="completePatient"
-      >
-        完成接诊
-      </button>
+      <view v-else-if="patient.status === '接诊中'" class="action-buttons-group">
+        <button
+          class="action-btn referral-btn"
+          @click="showReferralModal"
+        >
+          转诊
+        </button>
+        <button
+          class="action-btn complete-btn"
+          @click="completePatient"
+        >
+          完成接诊
+        </button>
+      </view>
     </view>
 
     <!-- 备注输入区域 -->
@@ -152,6 +159,93 @@
         <button class="save-note-btn" @click="saveNote">保存备注</button>
       </view>
     </view>
+    <!-- 转诊意见弹窗 -->
+    <view v-if="referralData.showReferral" class="modal-overlay">
+      <view class="modal-content">
+        <view class="modal-header">
+          <text class="modal-title">添加转诊意见</text>
+          <text class="modal-close" @click="hideReferralModal">×</text>
+        </view>
+        
+        <view class="modal-body">
+          <!-- 转诊类型选择 -->
+          <view class="form-section">
+            <text class="form-label">转诊类型</text>
+            <view class="type-selector">
+              <view 
+                class="type-option" 
+                :class="{ active: referralData.targetType === 'internal' }"
+                @click="changeReferralType('internal')"
+              >
+                <text>院内转诊</text>
+              </view>
+              <view 
+                class="type-option" 
+                :class="{ active: referralData.targetType === 'external' }"
+                @click="changeReferralType('external')"
+              >
+                <text>院外转诊</text>
+              </view>
+            </view>
+          </view>
+          
+          <!-- 院内转诊 - 目标科室 -->
+          <view v-if="referralData.targetType === 'internal'" class="form-section">
+            <text class="form-label">目标科室</text>
+            <picker 
+              mode="selector" 
+              :range="departments" 
+              range-key="name"
+              @change="(e) => referralData.targetDepartment = departments[e.detail.value].name"
+            >
+              <view class="picker-text">
+                {{ referralData.targetDepartment || '请选择科室' }}
+              </view>
+            </picker>
+          </view>
+          
+          <!-- 院外转诊 - 目标医院和科室 -->
+          <view v-else class="form-section">
+            <text class="form-label">目标医院</text>
+            <picker 
+              mode="selector" 
+              :range="hospitals" 
+              range-key="name"
+              @change="(e) => referralData.targetHospital = hospitals[e.detail.value].name"
+            >
+              <view class="picker-text">
+                {{ referralData.targetHospital || '请选择医院' }}
+              </view>
+            </picker>
+            
+            <text class="form-label">目标科室</text>
+            <input 
+              type="text" 
+              v-model="referralData.targetDepartment"
+              placeholder="请输入目标科室"
+              class="text-input"
+            />
+          </view>
+          
+          <!-- 转诊原因 -->
+          <view class="form-section">
+            <text class="form-label">转诊原因</text>
+            <textarea 
+              v-model="referralData.reason"
+              placeholder="请输入详细的转诊原因..."
+              class="textarea-input"
+              maxlength="500"
+            />
+            <text class="char-count">{{ referralData.reason.length }}/500</text>
+          </view>
+        </view>
+        
+        <view class="modal-footer">
+          <button class="modal-btn cancel-btn" @click="hideReferralModal">取消</button>
+          <button class="modal-btn confirm-btn" @click="submitReferral">提交</button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -160,9 +254,11 @@ import { ref, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { uniNavigateTo, uniShowToast } from '@/utils/uniHelper'
 import { doctorApi } from '@/api/doctor'
+import { doctorGenerateReferralAdvice } from '@/api/referral'
 
 // 患者详情数据（加载后会用后端数据覆盖）
 const patient = ref({
+  patientId: '', // 增加患者ID字段
   name: '张**',
   gender: '男',
   age: 22,
@@ -184,6 +280,38 @@ const patient = ref({
 })
 
 const visitNote = ref('')
+
+// 转诊相关数据
+const referralData = ref({
+  showReferral: false,
+  reason: '',
+  targetType: 'internal', // internal: 院内, external: 院外
+  targetDepartment: '',
+  targetHospital: ''
+})
+
+// 院内科室列表（模拟数据，实际应从API获取）
+const departments = ref([
+  { id: '1', name: '内科' },
+  { id: '2', name: '外科' },
+  { id: '3', name: '儿科' },
+  { id: '4', name: '妇产科' },
+  { id: '5', name: '皮肤科' },
+  { id: '6', name: '眼科' },
+  { id: '7', name: '耳鼻喉科' },
+  { id: '8', name: '口腔科' },
+  { id: '9', name: '神经内科' },
+  { id: '10', name: '心血管内科' }
+])
+
+// 目标医院列表（模拟数据，实际应从API获取）
+const hospitals = ref([
+  { id: '1', name: '北京协和医院' },
+  { id: '2', name: '北京天坛医院' },
+  { id: '3', name: '北京同仁医院' },
+  { id: '4', name: '北京大学第一医院' },
+  { id: '5', name: '中国医学科学院肿瘤医院' }
+])
 
 const getStatusClass = (status) => {
   if (status === '待接诊') return 'status-pending'
@@ -241,6 +369,7 @@ async function loadPatientDetail(id) {
     if (p.allergyHistory && p.allergyHistory !== '无') mh.push({ type: '过敏史', description: p.allergyHistory })
 
     Object.assign(patient.value, {
+      patientId: p.patientId || p.id || '',
       name: p.patientName || '',
       gender: p.gender || '',
       age: calcAge(p.birthDate),
@@ -325,6 +454,78 @@ function saveNote() {
     return
   }
   uniShowToast({ title: '备注已保存', icon: 'success' })
+}
+
+// 显示转诊意见弹窗
+function showReferralModal() {
+  referralData.value.showReferral = true
+}
+
+// 隐藏转诊意见弹窗
+function hideReferralModal() {
+  referralData.value.showReferral = false
+}
+
+// 切换转诊类型
+function changeReferralType(type) {
+  referralData.value.targetType = type
+  // 切换类型时清空目标选择
+  if (type === 'internal') {
+    referralData.value.targetHospital = ''
+  } else {
+    referralData.value.targetDepartment = ''
+  }
+}
+
+// 提交转诊意见
+async function submitReferral() {
+  // 表单验证
+  if (!referralData.value.reason) {
+    uniShowToast({ title: '请输入转诊原因', icon: 'none' })
+    return
+  }
+  
+  if (referralData.value.targetType === 'internal') {
+    if (!referralData.value.targetDepartment) {
+      uniShowToast({ title: '请选择目标科室', icon: 'none' })
+      return
+    }
+  } else {
+    if (!referralData.value.targetHospital || !referralData.value.targetDepartment) {
+      uniShowToast({ title: '请选择目标医院和科室', icon: 'none' })
+      return
+    }
+  }
+  
+  try {
+    // 构建转诊数据
+    const data = {
+      patientId: patient.value.patientId,
+      appointmentId: appointmentIdRef.value,
+      reason: referralData.value.reason,
+      targetType: referralData.value.targetType,
+      targetDepartment: referralData.value.targetDepartment,
+      targetHospital: referralData.value.targetType === 'external' ? referralData.value.targetHospital : '本校医院',
+      doctorGenerated: true // 标识为医生生成的转诊
+    }
+    
+    // 调用转诊API
+    await doctorGenerateReferralAdvice(data)
+    
+    uniShowToast({ title: '转诊意见已提交', icon: 'success' })
+    hideReferralModal()
+    
+    // 重置转诊表单
+    referralData.value = {
+      showReferral: false,
+      reason: '',
+      targetType: 'internal',
+      targetDepartment: '',
+      targetHospital: ''
+    }
+  } catch (error) {
+    uniShowToast({ title: '提交失败，请重试', icon: 'none' })
+  }
 }
 
 function viewVisitDetail(visit) {
@@ -590,6 +791,11 @@ onMounted(async () => {
   display: flex;
   gap: 16rpx;
 }
+.action-buttons-group {
+  display: flex;
+  gap: 16rpx;
+  width: 100%;
+}
 .action-btn {
   flex: 1;
   border: none;
@@ -607,8 +813,150 @@ onMounted(async () => {
   background: linear-gradient(90deg, #00c853, #52e176);
   box-shadow: 0 12rpx 20rpx rgba(0, 200, 83, 0.24);
 }
-
-/* 备注区 */
+.referral-btn {
+    background: linear-gradient(90deg, #ff9800, #ffb74d);
+    box-shadow: 0 12rpx 20rpx rgba(255, 152, 0, 0.24);
+  }
+  
+  /* 弹窗样式 */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+  }
+  
+  .modal-content {
+    background: #fff;
+    border-radius: 20rpx;
+    width: 90%;
+    max-width: 700rpx;
+    max-height: 80vh;
+    overflow: hidden;
+  }
+  
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24rpx 32rpx;
+    border-bottom: 2rpx solid #e8e8e8;
+  }
+  
+  .modal-title {
+    font-size: 32rpx;
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+  
+  .modal-close {
+    font-size: 48rpx;
+    color: #7a8aa0;
+    padding: 0 16rpx;
+  }
+  
+  .modal-body {
+    padding: 32rpx;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  
+  .form-section {
+    margin-bottom: 32rpx;
+  }
+  
+  .form-label {
+    display: block;
+    font-size: 28rpx;
+    font-weight: 600;
+    color: #2f3b52;
+    margin-bottom: 16rpx;
+  }
+  
+  .type-selector {
+    display: flex;
+    gap: 16rpx;
+  }
+  
+  .type-option {
+    flex: 1;
+    padding: 20rpx;
+    text-align: center;
+    border: 2rpx solid #e8e8e8;
+    border-radius: 12rpx;
+    font-size: 26rpx;
+    color: #7a8aa0;
+  }
+  
+  .type-option.active {
+    border-color: #ff9800;
+    color: #ff9800;
+    background-color: #fff8e1;
+  }
+  
+  .picker-text {
+    padding: 20rpx;
+    background: #f8fafc;
+    border-radius: 12rpx;
+    font-size: 26rpx;
+    color: #2f3b52;
+  }
+  
+  .text-input {
+    width: 100%;
+    padding: 20rpx;
+    background: #f8fafc;
+    border-radius: 12rpx;
+    font-size: 26rpx;
+    color: #2f3b52;
+    box-sizing: border-box;
+  }
+  
+  .textarea-input {
+    width: 100%;
+    min-height: 200rpx;
+    padding: 20rpx;
+    background: #f8fafc;
+    border-radius: 12rpx;
+    font-size: 26rpx;
+    color: #2f3b52;
+    box-sizing: border-box;
+  }
+  
+  .modal-footer {
+    display: flex;
+    padding: 24rpx 32rpx;
+    border-top: 2rpx solid #e8e8e8;
+    gap: 16rpx;
+  }
+  
+  .modal-btn {
+    flex: 1;
+    padding: 20rpx;
+    border-radius: 12rpx;
+    font-size: 28rpx;
+    font-weight: 600;
+  }
+  
+  .cancel-btn {
+    background: #f8fafc;
+    color: #7a8aa0;
+    border: 2rpx solid #e8e8e8;
+  }
+  
+  .confirm-btn {
+    background: linear-gradient(90deg, #ff9800, #ffb74d);
+    color: #fff;
+    border: none;
+  }
+  
+  /* 备注区 */
 .note-section {
   background: #fff;
   border-radius: 16rpx;

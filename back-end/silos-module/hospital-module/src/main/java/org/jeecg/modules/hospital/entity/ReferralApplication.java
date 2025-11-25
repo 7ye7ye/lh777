@@ -46,6 +46,12 @@ public class ReferralApplication {
     private Long targetDeptId;
     private String targetDeptName;
     private String targetHospitalName;
+    
+    /** 关联的挂号记录ID */
+    private Long registrationRecordId;
+    
+    /** 自动挂号状态：0-未处理，1-成功，2-失败 */
+    private Integer autoRegisterStatus;
 
     /** 号源处理策略 */
     private String quotaAction;
