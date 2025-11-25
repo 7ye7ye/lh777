@@ -1,5 +1,8 @@
 <template>
 	<view class="container" v-if="receiptDetail">
+		<view class="cancel-banner" v-if="isCancelled">
+			<text>已退号</text>
+		</view>
 		<view class="receipt-card">
             <view class="qr-code-section">
                 <canvas id="qrcode" type="2d" style="width: 300rpx; height: 300rpx;"></canvas>
@@ -46,7 +49,7 @@
 				</view>
 				<view class="info-row">
 					<text class="label">业务状态</text>
-					<text class="value status-success">{{ receiptDetail.status }}</text>
+					<text class="value" :class="isCancelled ? 'status-cancel' : 'status-success'">{{ receiptDetail.status }}</text>
 				</view>
 				<view class="info-row">
 					<text class="label">商户订单号</text>
@@ -84,6 +87,11 @@
 				]
 			};
 		},
+	computed: {
+		isCancelled() {
+			return this.receiptDetail && this.receiptDetail.status === '退号成功';
+		}
+	},
 		onLoad(options) {
 			if (options.id) {
 				this.appointmentId = options.id;
@@ -184,6 +192,15 @@
 		padding: 24rpx;
 		min-height: 100vh;
 	}
+	.cancel-banner {
+		background-color: #e9e9e9;
+		color: #666;
+		padding: 20rpx 32rpx;
+		border-radius: 12rpx;
+		text-align: center;
+		margin-bottom: 16rpx;
+		font-size: 28rpx;
+	}
 	.receipt-card {
 		background-color: #fff;
 		border-radius: 16rpx;
@@ -251,5 +268,8 @@
 	}
 	.status-success {
 		color: #67c23a;
+	}
+	.status-cancel {
+		color: #909399;
 	}
 </style>

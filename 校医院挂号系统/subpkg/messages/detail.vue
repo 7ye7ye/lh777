@@ -41,6 +41,14 @@
 						<text class="label">转正时间：</text>
 						<text class="value">{{ messageDetail.content.promote_time }}</text>
 					</view>
+					<view class="info-row" v-if="isCancelMessage(messageDetail) && messageDetail.content.cancel_time">
+						<text class="label">退号时间：</text>
+						<text class="value">{{ messageDetail.content.cancel_time }}</text>
+					</view>
+					<view class="info-row" v-if="isCancelMessage(messageDetail) && messageDetail.content.cancel_reason">
+						<text class="label">退号原因：</text>
+						<text class="value">{{ messageDetail.content.cancel_reason }}</text>
+					</view>
 					<view class="info-row" v-if="messageDetail.content.hospital_remark">
 						<text class="label">医院备注：</text>
 						<text class="value remark">{{ messageDetail.content.hospital_remark }}</text>
@@ -83,6 +91,8 @@
 					case 'APPOINTMENT_WAITING_SUCCESS':
 					case 'APPOINTMENT_WAITING_JOIN':
 						return 'card-waiting';
+					case 'APPOINTMENT_CANCEL':
+						return 'card-cancel';
 					default:
 						return '';
 				}
@@ -108,6 +118,9 @@
 			// 根据消息类型返回显示的标题
 			getDisplayTitle(message) {
 				if (!message) return '';
+				if (message.messageType === 'APPOINTMENT_CANCEL') {
+					return '退号成功';
+				}
 				if (message.messageType === 'APPOINTMENT_ONE_HOUR') {
 					return '就诊前一小时提醒';
 				}
@@ -130,6 +143,10 @@
 			
 			isWaitingMessage(message) {
 				return this.isWaitingSuccess(message) || this.isWaitingJoin(message);
+			},
+			
+			isCancelMessage(message) {
+				return message && message.messageType === 'APPOINTMENT_CANCEL';
 			},
 			
 			shouldShowReceipt(message) {
@@ -261,6 +278,12 @@
 	/* 候补成功卡片样式 */
 	.detail-card.card-waiting {
 		border-left: 4rpx solid #2f8df6;
+	}
+	
+	/* 退号卡片样式 */
+	.detail-card.card-cancel {
+		border-left: 4rpx solid #dcdfe6;
+		background-color: #f8f8f8;
 	}
 	.info-row {
 		display: flex;
