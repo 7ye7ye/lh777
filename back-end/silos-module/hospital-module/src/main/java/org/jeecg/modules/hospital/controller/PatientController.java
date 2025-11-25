@@ -1,10 +1,15 @@
 package org.jeecg.modules.hospital.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import jakarta.annotation.Resource;
+import org.apache.commons.lang3.StringUtils;
+import org.jeecg.modules.hospital.common.ErrorCode;
 import org.jeecg.modules.hospital.controller.request.PatientListRequest;
 import org.jeecg.modules.hospital.entity.Patient;
+import org.jeecg.modules.hospital.exception.BusinessException;
 import org.jeecg.modules.hospital.service.PatientService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,11 +28,80 @@ public class PatientController {
 
     @PostMapping("/create")
     public ResponseEntity<HashMap<String, Object>> create(@RequestBody Patient patient) {
-        patientService.save(patient);
-        return ResponseEntity.ok().body(new HashMap<String, Object>() {{
-            put("code", 200);
-            put("message", "创建就诊卡成功");
-        }});
+        try {
+            // 1. 参数校验
+            if (StringUtils.isBlank(patient.getPatientName())) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "患者姓名不能为空");
+            }
+            if (StringUtils.isBlank(patient.getIdCard())) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "证件号码不能为空");
+            }
+            if (StringUtils.isBlank(patient.getPhone())) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "手机号不能为空");
+            }
+
+            // 2. 检查是否已存在相同的身份证号
+            boolean exists_idcard= patientService.lambdaQuery()
+                .eq(Patient::getIdCard, patient.getIdCard())
+                .exists();
+            if (exists_idcard) {
+                throw new BusinessException(ErrorCode.DATABASE_ERROR, "该证件号码已注册");
+            }
+
+            if(!StringUtils.isBlank(patient.getStudentId())){
+                // 3. 检查是否已存在相同的学号
+                boolean exists_stuId = patientService.lambdaQuery()
+                        .eq(Patient::getStudentId, patient.getStudentId())
+                        .exists();
+                if (exists_stuId) {
+                    throw new BusinessException(ErrorCode.DATABASE_ERROR, "该学号已注册");
+                }
+            }
+
+            if(!StringUtils.isBlank(patient.getStaffId())){
+                // 4. 检查是否已存在相同的教职工号
+                boolean exists_teaId = patientService.lambdaQuery()
+                        .eq(Patient::getStaffId, patient.getStaffId())
+                        .exists();
+                if (exists_teaId) {
+                    throw new BusinessException(ErrorCode.DATABASE_ERROR, "该教职工号已注册");
+                }
+            }
+
+            // 5. 检查是否已存在相同的手机号
+            boolean exists_phone = patientService.lambdaQuery()
+                    .eq(Patient::getPhone, patient.getPhone())
+                    .exists();
+            if (exists_phone) {
+                throw new BusinessException(ErrorCode.DATABASE_ERROR, "该手机号已注册");
+            }
+
+            // 6. 保存就诊卡信息
+            boolean saved = patientService.save(patient);
+            if (!saved) {
+                throw new BusinessException(ErrorCode.DATABASE_ERROR, "创建就诊卡失败，请稍后重试");
+            }
+
+            // 6. 返回成功响应
+            return ResponseEntity.ok(new HashMap<String, Object>() {{
+                put("code", 200);
+                put("message", "创建就诊卡成功");
+                put("data", patient.getPatientId());
+            }});
+        } catch (BusinessException e) {
+            // 业务异常
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new HashMap<String, Object>() {{
+                put("code", e.getCode());
+                put("message", e.getMessage());
+                put("description", e.getDescription());
+            }});
+        } catch (Exception e) {
+            // 系统异常
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new HashMap<String, Object>() {{
+                put("code", 500);
+                put("message", "系统异常，请稍后重试");
+            }});
+        }
     }
 
     @PostMapping("/update")
@@ -60,17 +134,19 @@ public class PatientController {
 
     @PostMapping("/cardInfo")
     public ResponseEntity<HashMap<String, Object>> cardInfo(@RequestBody Patient patient ) {
-        // 1. 根据 userId 查询患者信息（userId 是关联字段，用条件构造器匹配）
+        // 根据userId查询第一条患者信息，查询所有字段
         Patient patientInfo = patientService.lambdaQuery()
-                .eq(Patient::getUserId, patient.getUserId()) // 匹配 patient 表的 userId 字段
-                .one(); // 查询一条（确保 userId 唯一，避免多结果）
+                .eq(Patient::getUserId, patient.getUserId())
+                .list() // 查询列表
+                .stream()
+                .findFirst()
+                .orElse(null); // 取第一条或 null
 
-        // 2. 封装返回结果
         HashMap<String, Object> result = new HashMap<>();
         if (patientInfo != null) {
             result.put("code", 200);
             result.put("message", "查询成功");
-            result.put("data", patientInfo); // 存入查询到的就诊卡信息
+            result.put("data", patientInfo);
         } else {
             result.put("code", 404);
             result.put("message", "未找到该用户的就诊卡");
