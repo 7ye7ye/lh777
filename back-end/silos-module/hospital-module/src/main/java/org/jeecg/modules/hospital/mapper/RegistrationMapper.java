@@ -154,6 +154,19 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
             """)
     RegistrationDetailDTO selectRegistrationDetail(@Param("recordId") Long recordId);
 
+    /**
+     * 取消挂号（患者主动取消）
+     * @param recordId 挂号记录ID
+     * @param reason 取消原因
+     */
+    @Update("UPDATE registration_record " +
+            "SET status = 3, cancel_time = NOW(), cancel_reason = #{reason} " +
+            "WHERE record_id = #{recordId}")
+    int cancelRegistration(@Param("recordId") Long recordId,
+                           @Param("reason") String reason);
+
+
+
     @Select("""
             SELECT rr.record_id,
                    rr.registration_no,

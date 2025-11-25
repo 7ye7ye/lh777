@@ -1,12 +1,7 @@
 import { defHttp } from '/@/utils/http/axios';
 
-enum Api {
-  DoctorList = '/admin/doctor/list',
-  DoctorDetail = '/admin/doctor',
-  DoctorProfile = '/doctor/profile',
-}
-
-export interface Doctor {
+// 医生类型定义
+export type Doctor = {
   doctorId: number;
   doctorName: string;
   userId: number;
@@ -17,73 +12,107 @@ export interface Doctor {
   doctorDesc: string;
   avatar: string;
   isActive: number;
-  updateVerify: number;
-  // 追加：HosUser字段
-  userAccount?: string;
+  userAccount: string;
+  email: string;
+  createTime?: string;
+  updateTime?: string;
+};
+
+// 创建/更新医生参数接口
+export interface DoctorForm {
+  doctorId?: number;
+  doctorName: string;
+  deptId: number;
+  title: string;
+  specialty: string;
+  doctorDesc?: string;
+  avatar?: string;
+}
+
+// 注册医生账号参数接口
+export interface RegisterDoctorParams {
+  doctorName: string;
+  userAccount: string;
+  userPassword: string; // 与后端API保持一致
+  deptId: number;
+  title: string;
+  specialty: string;
+  isActive?: boolean; // 修改为boolean类型以匹配DoctorRegister.vue中的使用方式
   email?: string;
+  doctorDesc?: string;
+  avatar?: string;
 }
 
-// 方法：规范化服务端返回，空数组→空对象，数组→首元素
-function normalizeOne<T>(data: T | T[]): T {
-  if (Array.isArray(data)) {
-    return (data[0] ?? ({} as T)) as T;
+// 医生相关API接口
+export const getDoctorProfile = (doctorId: number) =>
+  defHttp.get<Doctor>({ url: `${Api.DoctorDetail}/profile/${doctorId}` });
+
+export const updateDoctorProfile = (doctor: Partial<Doctor>) =>
+  defHttp.put<boolean>({ url: `${Api.DoctorDetail}/profile`, data: doctor });
+
+export const getMyDoctorProfile = () =>
+  defHttp.get<Doctor>({ url: `${Api.DoctorDetail}/my-profile` });
+
+export const getDoctorByAccount = (account: string) =>
+  defHttp.get<Doctor | null>({ url: `${Api.DoctorDetail}/by-account/${account}` });
+
+export const getDoctorByUserId = (userId: number) =>
+  defHttp.get<Doctor | null>({ url: `${Api.DoctorDetail}/by-user/${userId}` });
+
+// 注册医生账号函数
+export const registerDoctorAccount = (params: RegisterDoctorParams) =>
+  defHttp.post<{ success: boolean; message: string; data: { userId: number; doctorId: number } }>({
+    url: '/admin/doctor/register',
+    data: params,
+  });
+
+// 创建医生
+export const createDoctor = (params: DoctorForm) =>
+  // 根据后端API实现，正确的添加路径是/add
+  defHttp.post<boolean>({ url: `${Api.DoctorDetail}/add`, data: params });
+
+// 更新医生
+export const updateDoctor = (params: DoctorForm) => {
+  if (!params.doctorId) {
+    throw new Error('doctorId is required for update');
   }
-  return data as T;
-}
+  // 修改为不将doctorId添加到URL路径中，而是包含在请求体中
+  return defHttp.put<boolean>({ url: Api.DoctorUpdate, data: params });
+};
 
-export async function getMyDoctorProfile() {
-  // 原实现：直接返回 result
-  // return defHttp.get<Doctor>({ url: `${Api.DoctorProfile}/me` });
-  const res = await defHttp.get<Doctor | Doctor[]>({ url: `${Api.DoctorProfile}/me` });
-  return normalizeOne<Doctor>(res);
-}
+// 删除医生
+export const deleteDoctor = (doctorId: number) =>
+  defHttp.delete<boolean>({ url: `${Api.DoctorDelete}/${doctorId}` });
 
-export async function getDoctorProfile(params: { doctorId: number }) {
-  // 原实现：直接返回 result
-  // return defHttp.get<Doctor>({ url: Api.DoctorProfile, params });
-  const res = await defHttp.get<Doctor | Doctor[]>({ url: Api.DoctorProfile, params });
-  return normalizeOne<Doctor>(res);
-}
+// 批量删除医生
+export const batchDeleteDoctors = (doctorIds: number[]) =>
+  defHttp.delete<boolean>({ url: Api.BatchDeleteDoctors, data: doctorIds });
 
-// 新增：按 userId 查询医生
-export async function getDoctorByUserId(userId: number) {
-  // 原实现：直接返回 result
-  // return defHttp.get<Doctor>({ url: `${Api.DoctorProfile}/byUserId`, params: { userId } });
-  const res = await defHttp.get<Doctor | Doctor[]>({ url: `${Api.DoctorProfile}/byUserId`, params: { userId } });
-  return normalizeOne<Doctor>(res);
-}
-
-export async function getDoctorByAccount(account: string) {
-  // 原实现：直接返回 result
-  // return defHttp.get<Doctor>({ url: `${Api.DoctorProfile}/byAccount`, params: { account } });
-  const res = await defHttp.get<Doctor | Doctor[]>({ url: `${Api.DoctorProfile}/byAccount`, params: { account } });
-  return normalizeOne<Doctor>(res);
-}
-export function updateDoctorProfile(data: Partial<Doctor> & { doctorId: number }) {
-  // 后端允许同时更新 doctor + hos_user 的字段
-  return defHttp.put<boolean>({ url: Api.DoctorProfile, data });
-}
-
-export interface DoctorListParams {
-  current?: number;
-  size?: number;
-  doctorName?: string;
-  deptId?: number;
-  isActive?: number;
-}
-
-/**
- * 获取医生列表
- */
-export const getDoctorList = (params?: DoctorListParams) => {
-  if (params?.deptId) {
-    return defHttp.get<Doctor[]>({ url: `/applet/doctor/by-dept/${params.deptId}` });
-  }
-  return defHttp.get<Doctor[]>({ url: `/applet/doctor/list` });
-}
-
-/**
- * 获取医生详情
- */
+// 获取医生详情
 export const getDoctorDetail = (doctorId: number) =>
-  defHttp.get<Doctor>({ url: `${Api.DoctorDetail}/${doctorId}` });
+  defHttp.get<Doctor>({ url: `${Api.DoctorDetail}/detail/${doctorId}` });
+
+// 定义医生相关API路径
+enum Api {
+  DoctorList = '/admin/doctor/list',
+  DoctorDetail = '/admin/doctor',
+  DoctorCreate = '/admin/doctor/create',
+  DoctorUpdate = '/admin/doctor/update',
+  DoctorDelete = '/admin/doctor/delete',
+  BatchDeleteDoctors = '/admin/doctor/batch-delete',
+}
+
+// 获取医生列表函数
+export const getDoctorList = (params?: {
+  doctorName?: string;
+  deptId?: number | undefined;
+  title?: string | undefined;
+  isActive?: number | undefined;
+  pageNum?: number;
+  pageSize?: number;
+}) => {
+  return defHttp.get<any>({
+    url: Api.DoctorList,
+    params
+  });
+};

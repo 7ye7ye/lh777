@@ -58,17 +58,24 @@ public interface RegistrationService {
     Result<String> addWaitingQueue(WaitingQueue queue);
 
     /**
-     * 按科室获取挂号记录
+     * 取消挂号（退号）
+     * @param recordId 挂号记录ID
+     * @param cancelReason 取消原因
      */
-    List<RegistrationVO> listByDepartment(Long deptId);
+    boolean cancelRegistration(Long recordId, String cancelReason);
 
     /**
-     * 按疾病获取挂号记录
+     * 按疾病名称查询挂号信息
+     * @param disease 疾病名称
+     * @return 挂号视图列表
      */
     List<RegistrationVO> listByDisease(String disease);
 
     /**
-     * 获取挂号详情（用于消息与回执页面）
+     * 根据挂号记录ID获取详情
+     * @param recordId 挂号记录ID
+     * @return 挂号详情
      */
     RegistrationDetailDTO getRegistrationDetail(Long recordId);
+
 }

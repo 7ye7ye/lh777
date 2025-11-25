@@ -1,7 +1,6 @@
 export default {
   moduleName: 'Admin Portal',
   scheduleRule: 'Schedule Rules',
-  scheduleAdjustment: 'Schedule Adjustment',
   scheduleToday: 'Schedule Today',
   scheduleCalendar: 'Schedule Calendar',
   ruleGroup: 'Rules',
@@ -14,6 +13,7 @@ export default {
   role: 'Role Management',
   accountPermission: 'Account Permission',
   leaveApproval: 'Leave Approval',
+  doctorRegister: 'Doctor Registration',
 };
 
 

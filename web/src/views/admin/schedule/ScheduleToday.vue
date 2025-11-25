@@ -116,6 +116,16 @@
                 <div class="card-title">
                   <span>筛选条件</span>
                   <a-space>
+                    <a-upload
+                      name="file"
+                      accept=".xlsx,.xls"
+                      :showUploadList="false"
+                      :beforeUpload="handleExcelUpload"
+                    >
+                      <a-button type="primary" size="small" preIcon="ant-design:upload-outlined">
+                        上传Excel排班
+                      </a-button>
+                    </a-upload>
                     <a-button size="small" @click="handleSearch">刷新</a-button>
                   </a-space>
                 </div>
@@ -217,6 +227,7 @@ import { defineComponent, reactive, ref, onMounted, computed, watch, h } from 'v
 import { PageWrapper } from '/@/components/Page';
 import { message, Modal } from 'ant-design-vue';
 import dayjs from 'dayjs';
+import * as XLSX from 'xlsx';
 import { getDepartmentList } from '/@/api/hospital/department';
 import { listSchedulesByDate, type TodayScheduleItem } from '/@/api/hospital/scheduleView';
 import { useGo } from '/@/hooks/web/usePage';
@@ -274,7 +285,7 @@ export default defineComponent({
     ];
     const deptOptions = ref<{ label: string; value: number }[]>([]);
     const doctorOptions = ref<{ label: string; value: number }[]>([]);
-    const rows = ref<TodayScheduleItem[]>([]);
+    const rows = ref<(TodayScheduleItem & { doctorName?: string; deptName?: string })[]>([]);
 
     // 调班申请表格列
     const requestColumns = [
@@ -540,6 +551,185 @@ export default defineComponent({
       message.warning('请先选择医生或科室后再查看月排班');
     }
 
+    // 处理Excel文件上传
+    async function handleExcelUpload(file: File) {
+      const fileExtension = file.name.split('.').pop()?.toLowerCase();
+      if (fileExtension !== 'xlsx' && fileExtension !== 'xls') {
+        message.error('请上传Excel文件（.xlsx或.xls格式）');
+        return false;
+      }
+
+      try {
+        // 读取Excel文件
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        
+        // 获取第一个工作表
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        
+        // 将工作表转换为JSON数组
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+        
+        if (jsonData.length < 2) {
+          message.error('Excel文件至少需要包含表头和数据行');
+          return false;
+        }
+
+        // 解析表头（第一行）
+        const headers = jsonData[0].map((h: any) => String(h || '').trim().toLowerCase());
+        
+        // 查找列索引
+        const dateIndex = findColumnIndex(headers, ['日期', 'date', '排班日期', 'scheduleDate']);
+        const doctorNameIndex = findColumnIndex(headers, ['医生', 'doctor', '医生姓名', 'doctorName', '姓名']);
+        const deptNameIndex = findColumnIndex(headers, ['科室', 'dept', '科室名称', 'deptName', '部门']);
+        const timeSlotIndex = findColumnIndex(headers, ['时段', 'timeslot', 'timeSlot', '时间段', '班次']);
+        const roomIndex = findColumnIndex(headers, ['诊室', 'room', 'roomNumber', '诊室号', '房间']);
+
+        if (dateIndex === -1 || doctorNameIndex === -1) {
+          message.error('Excel文件必须包含"日期"和"医生"列');
+          return false;
+        }
+
+        // 解析数据行
+        const parsedSchedules: TodayScheduleItem[] = [];
+        const errors: string[] = [];
+
+        for (let i = 1; i < jsonData.length; i++) {
+          const row = jsonData[i];
+          if (!row || row.length === 0) continue;
+
+          try {
+            // 解析日期
+            let scheduleDate = '';
+            const dateValue = row[dateIndex];
+            if (dateValue) {
+              if (typeof dateValue === 'string') {
+                scheduleDate = dayjs(dateValue).format('YYYY-MM-DD');
+              } else if (dateValue instanceof Date) {
+                scheduleDate = dayjs(dateValue).format('YYYY-MM-DD');
+              } else if (typeof dateValue === 'number') {
+                // Excel日期序列号
+                const excelDate = XLSX.SSF.parse_date_code(dateValue);
+                scheduleDate = dayjs(`${excelDate.y}-${excelDate.m}-${excelDate.d}`).format('YYYY-MM-DD');
+              }
+            }
+
+            if (!scheduleDate || scheduleDate === 'Invalid Date') {
+              errors.push(`第${i + 1}行：日期格式错误`);
+              continue;
+            }
+
+            // 解析医生姓名
+            const doctorName = String(row[doctorNameIndex] || '').trim();
+            if (!doctorName) {
+              errors.push(`第${i + 1}行：医生姓名不能为空`);
+              continue;
+            }
+
+            // 解析科室名称
+            const deptName = deptNameIndex !== -1 ? String(row[deptNameIndex] || '').trim() : '';
+
+            // 解析时段（1-上午，2-下午，3-晚上）
+            let timeSlot = 1;
+            if (timeSlotIndex !== -1) {
+              const timeSlotValue = String(row[timeSlotIndex] || '').trim().toLowerCase();
+              if (timeSlotValue.includes('上午') || timeSlotValue.includes('am') || timeSlotValue === '1') {
+                timeSlot = 1;
+              } else if (timeSlotValue.includes('下午') || timeSlotValue.includes('pm') || timeSlotValue === '2') {
+                timeSlot = 2;
+              } else if (timeSlotValue.includes('晚上') || timeSlotValue.includes('night') || timeSlotValue === '3') {
+                timeSlot = 3;
+              } else if (!isNaN(Number(timeSlotValue))) {
+                timeSlot = Number(timeSlotValue);
+              }
+            }
+
+            // 解析诊室
+            const roomNumber = roomIndex !== -1 ? String(row[roomIndex] || '').trim() : '';
+
+            // 查找医生ID和科室ID
+            let doctorId = 0;
+            let deptId = 0;
+
+            // 从医生列表中找到匹配的医生
+            const doctor = doctorOptions.value.find(d => d.label === doctorName);
+            if (doctor) {
+              doctorId = doctor.value;
+            }
+
+            // 从科室列表中找到匹配的科室
+            if (deptName) {
+              const dept = deptOptions.value.find(d => d.label === deptName);
+              if (dept) {
+                deptId = dept.value;
+              }
+            }
+
+            // 创建排班记录（扩展TodayScheduleItem以包含显示字段）
+            const schedule: TodayScheduleItem & { doctorName?: string; deptName?: string } = {
+              scheduleId: Date.now() + i, // 临时ID
+              doctorId: doctorId || 0,
+              deptId: deptId || 0,
+              scheduleDate: scheduleDate,
+              timeSlot: timeSlot,
+              roomNumber: roomNumber || undefined,
+              status: 1, // 默认有效
+              doctorName: doctorName,
+              deptName: deptName || '未知科室',
+            };
+
+            parsedSchedules.push(schedule);
+          } catch (error: any) {
+            errors.push(`第${i + 1}行：${error.message || '解析失败'}`);
+          }
+        }
+
+        if (parsedSchedules.length === 0) {
+          message.error('未能解析出有效的排班数据');
+          if (errors.length > 0) {
+            console.error('解析错误：', errors);
+          }
+          return false;
+        }
+
+        // 合并到现有排班列表（去重：基于日期+医生+时段）
+        const existingKeys = new Set(
+          rows.value.map(r => `${r.scheduleDate}-${r.doctorName}-${r.timeSlot}`)
+        );
+
+        const newSchedules = parsedSchedules.filter(s => {
+          const key = `${s.scheduleDate}-${s.doctorName}-${s.timeSlot}`;
+          return !existingKeys.has(key);
+        });
+
+        // 添加到列表
+        rows.value = [...rows.value, ...newSchedules];
+
+        message.success(`成功导入 ${newSchedules.length} 条排班记录${parsedSchedules.length - newSchedules.length > 0 ? `，${parsedSchedules.length - newSchedules.length} 条重复记录已跳过` : ''}`);
+
+        if (errors.length > 0) {
+          console.warn('部分数据解析失败：', errors);
+          message.warning(`有 ${errors.length} 行数据解析失败，请查看控制台`);
+        }
+
+        return false; // 阻止默认上传行为
+      } catch (error: any) {
+        console.error('Excel解析失败：', error);
+        message.error('Excel文件解析失败：' + (error.message || '未知错误'));
+        return false;
+      }
+    }
+
+    // 查找列索引（支持多个可能的列名）
+    function findColumnIndex(headers: string[], possibleNames: string[]): number {
+      for (const name of possibleNames) {
+        const index = headers.findIndex(h => h.includes(name.toLowerCase()));
+        if (index !== -1) return index;
+      }
+      return -1;
+    }
+
     onMounted(async () => {
       await loadDeptOptions();
       await loadDoctorOptions();
@@ -574,6 +764,7 @@ export default defineComponent({
       showRejectModal,
       handleViewDetail,
       handleTabChange,
+      handleExcelUpload,
       slotLabel,
       slotClass,
       getStatusColor,

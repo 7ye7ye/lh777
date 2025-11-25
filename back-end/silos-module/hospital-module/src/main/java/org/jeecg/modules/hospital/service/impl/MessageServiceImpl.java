@@ -246,7 +246,13 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
                 .eq(Message::getAppointmentId, String.valueOf(detail.getRecordId()))
                 .eq(Message::getMessageType, "APPOINTMENT_SUCCESS")
                 .last("limit 1"));
-        return successMsg != null && userId.equals(successMsg.getUserId());
+        if (successMsg != null && userId.equals(successMsg.getUserId())) {
+            return true;
+        }
+        if (detail.getPatientUserId() != null) {
+            return userId.equals(String.valueOf(detail.getPatientUserId()));
+        }
+        return false;
     }
 
     private LocalTime slotStartTime(Integer slot) {

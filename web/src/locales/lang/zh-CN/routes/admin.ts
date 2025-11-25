@@ -13,6 +13,7 @@ export default {
   role: '角色管理',
   accountPermission: '账号权限设置',
   leaveApproval: '请假审批',
+  doctorRegister: '医生注册',
 };
 
 

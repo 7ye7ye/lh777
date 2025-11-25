@@ -14,10 +14,7 @@ import org.jeecg.common.util.SpringContextUtils;
 import org.jeecg.common.util.TokenUtils;
 import org.jeecg.modules.hospital.dto.RegistrationDetailDTO;
 import org.jeecg.modules.hospital.entity.*;
-import org.jeecg.modules.hospital.mapper.HosUserMapper;
-import org.jeecg.modules.hospital.mapper.PatientMapper;
-import org.jeecg.modules.hospital.mapper.RegistrationMapper;
-import org.jeecg.modules.hospital.mapper.WaitingQueueMapper;
+import org.jeecg.modules.hospital.mapper.*;
 import org.jeecg.modules.hospital.service.MessageService;
 import org.jeecg.modules.hospital.service.RegistrationService;
 import org.jeecg.modules.hospital.task.AppointmentReminderTask;
@@ -27,6 +24,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +37,9 @@ import java.util.Map;
 public class RegistrationServiceImpl implements RegistrationService {
 
     private static final String DEFAULT_HOSPITAL_ADDRESS = "北京市西直门外上园村3号 · 北京交通大学社区卫生服务中心";
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final String MESSAGE_TYPE_WAITING_JOIN = "APPOINTMENT_WAITING_JOIN";
+    private static final String MESSAGE_TYPE_WAITING_SUCCESS = "APPOINTMENT_WAITING_SUCCESS";
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Resource
@@ -51,6 +52,10 @@ public class RegistrationServiceImpl implements RegistrationService {
     private HosUserMapper hosUserMapper;
     @Resource
     private MessageService messageService;
+    @Resource
+    private DoctorMapper doctorMapper;
+    @Resource
+    private DepartmentMapper departmentMapper;
     @Resource
     private AppointmentReminderTask appointmentReminderTask;
 
@@ -113,7 +118,7 @@ public class RegistrationServiceImpl implements RegistrationService {
                 if (!joinWaitingQueue) {
                     return Result.error("该号源已满，是否加入候补？");
                 }
-                return addToWaitingQueue(schedule.getScheduleId(), patientId);
+                return addToWaitingQueue(schedule.getScheduleId(), actualPatientId);
             }
 
             Patient patient = patientMapper.selectById(patientId);
@@ -169,6 +174,8 @@ public class RegistrationServiceImpl implements RegistrationService {
         queue.setQueueRank(maxRank != null ? maxRank + 1 : 1);
         queue.setStatus(0);
         waitingQueueMapper.insert(queue);
+        createWaitingJoinMessage(scheduleId, patientId, queue);
+
         return Result.OK("已加入候补队列");
     }
 
@@ -192,6 +199,19 @@ public class RegistrationServiceImpl implements RegistrationService {
             return Result.error("缺少必要信息");
         }
         try {
+            Long resolvedPatientId = queue.getPatientId();
+            String currentUserId = resolveCurrentUserId();
+            if (currentUserId != null) {
+                Patient patientByUserId = patientMapper.selectOne(
+                        new LambdaQueryWrapper<Patient>().eq(Patient::getUserId, Long.valueOf(currentUserId)));
+                if (patientByUserId != null && patientByUserId.getPatientId() != null) {
+                    resolvedPatientId = patientByUserId.getPatientId();
+                }
+            }
+            if (resolvedPatientId == null) {
+                return Result.error("未找到对应患者信息，请重新登录后再试");
+            }
+            queue.setPatientId(resolvedPatientId);
             int existing = waitingQueueMapper.countExistingQueue(queue.getScheduleId(), queue.getPatientId());
             if (existing > 0) {
                 return Result.error("您已在该排班的候补队列中");
@@ -201,6 +221,7 @@ public class RegistrationServiceImpl implements RegistrationService {
             queue.setQueueTime(LocalDateTime.now());
             queue.setStatus(0);
             waitingQueueMapper.insert(queue);
+            createWaitingJoinMessage(queue.getScheduleId(), queue.getPatientId(), queue);
             return Result.OK("已加入候补队列");
         } catch (Exception e) {
             log.error("addWaitingQueue error", e);
@@ -209,8 +230,113 @@ public class RegistrationServiceImpl implements RegistrationService {
     }
 
     @Override
-    public List<RegistrationVO> listByDepartment(Long deptId) {
-        return registrationMapper.getByDepartment(deptId);
+    public boolean cancelRegistration(Long recordId, String cancelReason) {
+
+        // 1. 校验记录是否存在
+        RegistrationRecord record = registrationMapper.selectById(recordId);
+        if (record == null) {
+            return false;
+        }
+
+        // 若状态不是已预约(1)，不允许重复取消
+        if (record.getStatus() != 1) {
+            return false;
+        }
+
+        // 2. 设置取消状态与信息（status = 3）
+        record.setStatus(3); // 3 = 已退号
+        record.setCancelTime(LocalDateTime.now());
+        record.setCancelReason(cancelReason);
+
+        // 3. 更新挂号记录
+        int updated = registrationMapper.updateById(record);
+        if (updated <= 0) {
+            return false;
+        }
+
+        // 4. 退号成功 → 排班号源 +1（即 usedQuota -1）
+        DoctorSchedule schedule = registrationMapper.selectScheduleById(record.getScheduleId());
+        if (schedule != null) {
+            Integer used = schedule.getUsedQuota() != null ? schedule.getUsedQuota() : 0;
+
+            // 防止出现负数
+            schedule.setUsedQuota(Math.max(0, used - 1));
+            registrationMapper.updateScheduleUsedQuota(schedule);
+        }
+// ⭐⭐⭐ 4. 自动候补补位
+        autoFillFromQueue(record.getScheduleId());
+
+        return true;
+    }
+    /**
+     * 若有人退号 → 自动补候补队列
+     */
+    private void autoFillFromQueue(Long scheduleId) {
+
+        // 1. 读取候补队列中排第一的人
+        WaitingQueue first = waitingQueueMapper.selectFirstWaiting(scheduleId); // 需要写 mapper
+        if (first == null) {
+            return; // 没有人候补
+        }
+
+        // 2. 获取排班
+        DoctorSchedule schedule = registrationMapper.selectScheduleById(scheduleId);
+        if (schedule == null) {
+            return;
+        }
+        RegistrationType type = registrationMapper.selectTypeById(schedule.getTypeId().longValue());
+        if (type == null) {
+            return;
+        }
+
+        // 3. 构建新的挂号记录
+        RegistrationRecord newRecord = new RegistrationRecord();
+        newRecord.setScheduleId(scheduleId);
+        newRecord.setPatientId(first.getPatientId());
+        newRecord.setDoctorId(schedule.getDoctorId());
+        newRecord.setTypeId(type.getTypeId());
+        newRecord.setRegisterTime(LocalDateTime.now());
+        newRecord.setStatus(1); // 保持与正常挂号一致，标记为“已预约”
+        newRecord.setPriceOriginal(type.getPriceOriginal());
+        Patient promotedPatient = patientMapper.selectById(first.getPatientId());
+        if (promotedPatient != null) {
+            newRecord.setActualPrice(switch (promotedPatient.getPatientType()) {
+                case 1 -> type.getStudentPrice();
+                case 2, 3 -> type.getStaffPrice();
+                default -> type.getPriceOriginal();
+            });
+        } else {
+            newRecord.setActualPrice(type.getPriceOriginal());
+        }
+        newRecord.setIsAdd(0);
+
+        // 生成新挂号单号
+        newRecord.setRegistrationNo(System.currentTimeMillis() + "" + (int)(Math.random()*1000));
+
+        // 4. 插入挂号记录
+        registrationMapper.insertRegistration(newRecord);
+
+        // 5. 更新排班 usedQuota +1
+        schedule.setUsedQuota(schedule.getUsedQuota() + 1);
+        registrationMapper.updateScheduleUsedQuota(schedule);
+
+        first.setStatus(1); // 已转正
+        first.setRecordId(newRecord.getRecordId());
+        first.setTransferTime(LocalDateTime.now());
+        waitingQueueMapper.updateById(first); // 注意这里是 WaitingQueueMapper
+
+        RegistrationDetailDTO detail = registrationMapper.selectRegistrationDetail(newRecord.getRecordId());
+        String waitingUserId = resolveUserIdForDetail(detail, promotedPatient);
+        if (detail != null) {
+            // 补位成功视为一次正式挂号，补发预约成功通知
+            createSuccessMessage(detail, waitingUserId);
+            createWaitingSuccessMessage(detail, first, waitingUserId);
+            // 候补转正后同样需要补建提醒，沿用正常挂号的判断逻辑
+            appointmentReminderTask.checkAndCreateImmediateReminder(detail);
+            if (StringUtils.isNotBlank(waitingUserId)) {
+                appointmentReminderTask.createOneHourReminderWithUserIdAndTime(detail, waitingUserId, null);
+            }
+        }
     }
 
     @Override
@@ -220,20 +346,27 @@ public class RegistrationServiceImpl implements RegistrationService {
 
     @Override
     public RegistrationDetailDTO getRegistrationDetail(Long recordId) {
+        if (recordId == null) {
+            return null;
+        }
         return registrationMapper.selectRegistrationDetail(recordId);
     }
 
     private void createSuccessMessage(RegistrationDetailDTO detail) {
+        createSuccessMessage(detail, null);
+    }
+
+    private void createSuccessMessage(RegistrationDetailDTO detail, String overrideUserId) {
+        if (detail == null) {
+            return;
+        }
         try {
-            if (detail == null || detail.getRecordId() == null) {
+            Message message = new Message();
+            String userId = resolveUserIdForMessages(detail, overrideUserId);
+            if (StringUtils.isBlank(userId)) {
+                log.warn("createSuccessMessage skip due to empty userId, recordId={}", detail.getRecordId());
                 return;
             }
-            log.info("createSuccessMessage detail={}", detail);
-
-            Message message = new Message();
-            String currentUserId = resolveCurrentUserId();
-            String userId = currentUserId != null ? currentUserId :
-                    (detail.getPatientUserId() != null ? String.valueOf(detail.getPatientUserId()) : "262");
             message.setUserId(userId);
             message.setAppointmentId(String.valueOf(detail.getRecordId()));
             message.setMessageType("APPOINTMENT_SUCCESS");
@@ -259,8 +392,114 @@ public class RegistrationServiceImpl implements RegistrationService {
             boolean saved = messageService.save(message);
             log.info("message saved={}, userId={}, appointmentId={}", saved, userId, detail.getRecordId());
         } catch (Exception e) {
-            log.error("createSuccessMessage error, recordId={}", detail != null ? detail.getRecordId() : null, e);
+            log.error("createSuccessMessage error, recordId={}", detail.getRecordId(), e);
         }
+    }
+
+    private void createWaitingSuccessMessage(RegistrationDetailDTO detail, WaitingQueue queue, String overrideUserId) {
+        try {
+            Message message = new Message();
+            String userId = resolveUserIdForMessages(detail, overrideUserId);
+            if (StringUtils.isBlank(userId)) {
+                log.warn("createWaitingSuccessMessage skip due to empty userId, recordId={}", detail != null ? detail.getRecordId() : null);
+                return;
+            }
+            message.setUserId(userId);
+            message.setAppointmentId(String.valueOf(detail.getRecordId()));
+            message.setMessageType(MESSAGE_TYPE_WAITING_SUCCESS);
+            message.setTitle("候补挂号成功提醒");
+            message.setCreatedTime(LocalDateTime.now());
+            message.setIsRead(false);
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("patient_card_no", detail.getPatientCardNo());
+            payload.put("patient_name", detail.getPatientName());
+            payload.put("doctor_name", detail.getDoctorName());
+            payload.put("department_name", detail.getDepartmentName());
+            payload.put("appointment_time", buildAppointmentTime(detail.getScheduleDate(), detail.getTimeSlot()));
+            payload.put("waiting_rank", queue != null ? queue.getQueueRank() : null);
+            payload.put("waiting_join_time", queue != null && queue.getQueueTime() != null ? DATE_TIME_FORMATTER.format(queue.getQueueTime()) : null);
+            payload.put("promote_time", DATE_TIME_FORMATTER.format(LocalDateTime.now()));
+            payload.put("hospital_remark", "候补已转为正式号，请按时就诊");
+
+            message.setContent(objectMapper.writeValueAsString(payload));
+
+            boolean saved = messageService.save(message);
+            log.info("waiting message saved={}, userId={}, appointmentId={}", saved, userId, detail.getRecordId());
+        } catch (Exception e) {
+            log.error("createWaitingSuccessMessage error, recordId={}", detail != null ? detail.getRecordId() : null, e);
+        }
+    }
+
+    private void createWaitingJoinMessage(Long scheduleId, Long patientId, WaitingQueue queue) {
+        try {
+            DoctorSchedule schedule = registrationMapper.selectScheduleById(scheduleId);
+            if (schedule == null) {
+                return;
+            }
+            Patient patient = patientMapper.selectById(patientId);
+            Doctor doctor = schedule.getDoctorId() != null ? doctorMapper.selectById(schedule.getDoctorId()) : null;
+            Department department = schedule.getDeptId() != null ? departmentMapper.selectById(schedule.getDeptId()) : null;
+
+            Message message = new Message();
+            String currentUserId = resolveCurrentUserId();
+            String userId = currentUserId;
+            if (StringUtils.isBlank(userId) && patient != null && patient.getUserId() != null) {
+                userId = String.valueOf(patient.getUserId());
+            }
+            if (StringUtils.isBlank(userId)) {
+                userId = "262";
+            }
+            message.setUserId(userId);
+            message.setAppointmentId("WAITING_" + (queue != null && queue.getQueueId() != null ? queue.getQueueId() : scheduleId));
+            message.setMessageType(MESSAGE_TYPE_WAITING_JOIN);
+            message.setTitle("候补排队成功提醒");
+            message.setCreatedTime(LocalDateTime.now());
+            message.setIsRead(false);
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("patient_card_no", patient != null ? patient.getOutpatientNumber() : null);
+            payload.put("patient_name", patient != null ? patient.getPatientName() : null);
+            payload.put("doctor_name", doctor != null ? doctor.getDoctorName() : null);
+            payload.put("department_name", department != null ? department.getDeptName() : null);
+            payload.put("appointment_time", buildAppointmentTime(schedule.getScheduleDate(), schedule.getTimeSlot()));
+            payload.put("waiting_rank", queue != null ? queue.getQueueRank() : null);
+            payload.put("waiting_join_time", queue != null && queue.getQueueTime() != null ? DATE_TIME_FORMATTER.format(queue.getQueueTime()) : null);
+            payload.put("hospital_remark", "您已成功加入候补队列，系统将在有号源时自动通知");
+
+            message.setContent(objectMapper.writeValueAsString(payload));
+            boolean saved = messageService.save(message);
+            log.info("waiting join message saved={}, userId={}, scheduleId={}", saved, userId, scheduleId);
+        } catch (Exception e) {
+            log.error("createWaitingJoinMessage error, scheduleId={}, patientId={}", scheduleId, patientId, e);
+        }
+    }
+
+    private String resolveUserIdForDetail(RegistrationDetailDTO detail, Patient fallbackPatient) {
+        if (detail != null && detail.getPatientUserId() != null) {
+            return String.valueOf(detail.getPatientUserId());
+        }
+        if (detail != null && detail.getPatientId() != null) {
+            Patient patient = patientMapper.selectById(detail.getPatientId());
+            if (patient != null && patient.getUserId() != null) {
+                return String.valueOf(patient.getUserId());
+            }
+        }
+        if (fallbackPatient != null && fallbackPatient.getUserId() != null) {
+            return String.valueOf(fallbackPatient.getUserId());
+        }
+        return null;
+    }
+
+    private String resolveUserIdForMessages(RegistrationDetailDTO detail, String overrideUserId) {
+        if (StringUtils.isNotBlank(overrideUserId)) {
+            return overrideUserId;
+        }
+        String currentUserId = resolveCurrentUserId();
+        if (StringUtils.isNotBlank(currentUserId)) {
+            return currentUserId;
+        }
+        return resolveUserIdForDetail(detail, null);
     }
 
     private String resolveCurrentUserId() {

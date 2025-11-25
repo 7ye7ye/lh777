@@ -135,7 +135,11 @@ import { useUserStore } from '@/store/user'
 import { doctorApi } from '@/api/doctor'
 
 const userStore = useUserStore()
-const doctorId = computed(() => userStore.userInfo?.doctorId ?? userStore.userInfo?.id ?? 1)
+const toIntId = (v) => {
+  const n = Number(v)
+  return Number.isFinite(n) && n > 0 ? n : 1
+}
+const doctorId = computed(() => toIntId(userStore.userInfo?.doctorId ?? userStore.userInfo?.id ?? 1))
 
 const slots = [
   { value: 1, label: '上午' },
