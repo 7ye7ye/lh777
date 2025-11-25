@@ -62,8 +62,14 @@
           <image class="icon" src="/static/check.svg" />
           <text>检查预约记录</text>
         </view>
-        <view class="profile-item"></view>
-        <view class="profile-item"></view>
+        <view class="profile-item" @click="goToTransfer">
+          <image class="icon" src="/static/referral.svg" />
+          <text>转诊申请</text>
+        </view>
+        <view class="profile-item" @click="goToTransferHistory">
+          <image class="icon" src="/static/referral-record.svg" />
+          <text>转诊记录</text>
+        </view>
       </view>
     </view>
 
@@ -210,6 +216,16 @@ const goToUnbind = createAuthHandler(
   AUTH_REQUIRED_FEATURES.PROFILE.SETTINGS,
   '/subpkg/profile/settings/unbind'
 )
+
+const goToTransfer = () => {
+  console.log('直接导航到: /subpkg/hospital/referral-application')
+  uniNavigateTo({ url: '/subpkg/hospital/referral-application' })
+}
+
+const goToTransferHistory = () => {
+  console.log('直接导航到: /subpkg/hospital/referral-records')
+  uniNavigateTo({ url: '/subpkg/hospital/referral-records' })
+}
 
 const goLogin = () => {
   uni.navigateTo({ url: '/subpkg/auth/login' })

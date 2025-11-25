@@ -214,7 +214,21 @@ export function createAuthHandler(
         if (typeof target === 'function') {
           target()
         } else {
-          uniNavigateTo({ url: target })
+          console.log('Attempting to navigate to:', target)
+          uniNavigateTo({
+            url: target,
+            success: (res) => {
+              console.log('Navigation successful:', res)
+            },
+            fail: (err) => {
+              console.error('Navigation failed:', err)
+              uni.showToast({
+                title: '跳转失败: ' + JSON.stringify(err),
+                icon: 'none',
+                duration: 3000
+              })
+            }
+          })
         }
       },
       customMessage: options.customMessage

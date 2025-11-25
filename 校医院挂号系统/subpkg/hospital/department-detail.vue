@@ -66,14 +66,62 @@ import { getDepartmentDetail } from '../../api/department'
 import { getDoctorsByDeptId } from '../../api/doctor_massage'
 
 const deptId = ref('')
-const department = ref({})
+const department = ref({ deptName: '加载中...', deptDesc: '', location: '' })
 const doctorList = ref([])
 
 // 加载科室详情
 const loadDepartmentDetail = async () => {
   try {
+    // 重置department状态为初始值
+    department.value = { deptName: '加载中...', deptDesc: '', location: '' }
+    
+    // 验证deptId的有效性
+    if (!deptId.value || (typeof deptId.value === 'string' && deptId.value.trim() === '')) {
+      console.error('无效的科室ID:', deptId.value)
+      department.value = { 
+        deptName: '科室ID无效', 
+        deptDesc: '请检查科室ID是否正确', 
+        location: '' 
+      }
+      uni.showToast({
+        title: '科室ID无效',
+        icon: 'none'
+      })
+      return
+    }
+    
+    console.log(`正在获取科室详情，deptId: ${deptId.value}`)
     const res = await getDepartmentDetail(deptId.value)
-    console.log('科室详情数据:', res)
+    console.log('科室详情API响应:', res)
+    
+    // 增强的空值检查和错误处理
+    if (res === null) {
+      console.warn('API返回null数据，科室可能不存在或未设置详细信息')
+      department.value = { 
+        deptName: '科室信息未设置', 
+        deptDesc: '该科室尚未完善详细信息', 
+        location: '' 
+      }
+      uni.showToast({
+        title: '科室信息未完善',
+        icon: 'none'
+      })
+      return
+    }
+    
+    if (res === undefined) {
+      console.error('API返回undefined，可能是请求失败或无响应')
+      department.value = { 
+        deptName: '加载异常', 
+        deptDesc: '获取科室信息时出现未知异常', 
+        location: '' 
+      }
+      uni.showToast({
+        title: '加载异常，请重试',
+        icon: 'none'
+      })
+      return
+    }
     
     // 处理不同的响应格式
     let data = res
@@ -83,29 +131,75 @@ const loadDepartmentDetail = async () => {
       data = res.result
     }
     
-    if (data) {
-      department.value = data
-    } else {
-      console.warn('科室详情数据格式异常:', res)
+    // 检查data是否为有效对象
+    if (!data || typeof data !== 'object') {
+      console.warn('科室详情数据不是有效对象:', res)
+      department.value = { 
+        deptName: '数据格式异常', 
+        deptDesc: '返回的数据格式不符合预期', 
+        location: '' 
+      }
       uni.showToast({
         title: '数据格式异常',
         icon: 'none'
       })
+      return
     }
+    
+    // 最终数据处理，确保即使缺少某些字段也能正常显示
+    department.value = {
+      deptName: data.deptName || '科室名称未知',
+      deptDesc: data.deptDesc || '暂无科室介绍',
+      location: data.location || '位置信息未提供',
+      ...data
+    }
+    
   } catch (error) {
     console.error('加载科室详情失败:', error)
+    // 更详细的错误提示
+    let errorMessage = '获取科室信息时出错'
+    if (error.message && error.message.includes('404')) {
+      errorMessage = '未找到该科室信息'
+    } else if (error.message && error.message.includes('网络')) {
+      errorMessage = '网络连接异常，请检查网络'
+    }
+    
+    department.value = { 
+      deptName: '加载失败', 
+      deptDesc: errorMessage,
+      location: '' 
+    }
+    
     uni.showToast({
-      title: '加载失败',
-      icon: 'none'
+      title: errorMessage,
+      icon: 'none',
+      duration: 2000
     })
   }
 }
 
-// 加载科室医生
+// 加载科室医生列表
 const loadDoctorsByDeptId = async () => {
   try {
-    // 使用医生API获取科室医生列表
+    // 重置医生列表为空数组
+    doctorList.value = []
+    
+    // 验证deptId的有效性
+    if (!deptId.value || (typeof deptId.value === 'string' && deptId.value.trim() === '')) {
+      console.error('无效的科室ID，无法加载医生列表:', deptId.value)
+      return
+    }
+    
+    console.log(`正在获取科室医生列表，deptId: ${deptId.value}`)
     const res = await getDoctorsByDeptId(deptId.value)
+    console.log('医生列表API响应:', res)
+    
+    // 增强的空值检查和错误处理
+    if (res === null || res === undefined) {
+      console.warn(`API返回${res === null ? 'null' : 'undefined'}数据，医生列表可能为空或获取失败`)
+      doctorList.value = []
+      return
+    }
     
     // 处理不同的响应格式
     let data = res
@@ -115,15 +209,19 @@ const loadDoctorsByDeptId = async () => {
       data = res.result
     }
     
-    if (data && Array.isArray(data)) {
-      doctorList.value = data
-    } else if (Array.isArray(res)) {
-      doctorList.value = res
-    } else {
-      console.warn('医生列表数据格式异常:', res)
+    // 验证数据是否为有效数组
+    if (!data || !Array.isArray(data)) {
+      console.warn('医生列表数据不是有效数组:', res)
+      doctorList.value = []
+      return
     }
+    
+    // 确保即使是空数组也能正常显示
+    doctorList.value = data
   } catch (error) {
     console.error('加载科室医生列表失败:', error)
+    doctorList.value = []
+    // 可以根据需要添加错误提示
   }
 }
 
@@ -142,10 +240,24 @@ const goToPackages = () => {
 }
 
 onLoad((query) => {
+  // 确保deptId有值且是有效的
   deptId.value = query?.deptId || ''
+  console.log('加载科室详情，deptId:', deptId.value)
+  
   if (deptId.value) {
     loadDepartmentDetail()
     loadDoctorsByDeptId()
+  } else {
+    console.warn('无效的科室ID')
+    department.value = { 
+      deptName: '科室ID无效', 
+      deptDesc: '请检查科室ID是否正确', 
+      location: '' 
+    }
+    uni.showToast({
+      title: '科室ID无效',
+      icon: 'none'
+    })
   }
 })
 </script>

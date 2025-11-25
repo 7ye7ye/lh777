@@ -181,7 +181,21 @@ const handleConsult = () => {
 }
 
 onLoad((query) => {
-  doctorId.value = query?.doctorId || ''
+  // 优先使用id参数（从department-booking页面传递），其次使用doctorId
+  doctorId.value = query?.id || query?.doctorId || ''
+  
+  // 如果直接传递了医生信息，先显示基本信息
+  if (query?.name || query?.title || query?.specialty) {
+    doctor.value = {
+      doctorId: doctorId.value,
+      doctorName: query?.name || '未知医生',
+      title: query?.title || '',
+      specialty: query?.specialty || '',
+      doctorDesc: '医生详情加载中...'
+    }
+  }
+  
+  // 无论是否有初始信息，都尝试加载完整详情
   if (doctorId.value) {
     loadDoctorDetail()
   }

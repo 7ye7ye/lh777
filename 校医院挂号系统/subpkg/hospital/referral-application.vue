@@ -71,20 +71,37 @@
         </view>
       </view>
 
-      <!-- 目标医院选择 -->
+      <!-- 目标医院/科室选择（根据转诊类型显示） -->
       <view class="form-section">
-        <view class="section-title">目标医院</view>
-        <view class="form-item">
-          <view class="label">选择医院</view>
-          <picker @change="onHospitalChange" :value="hospitalIndex" :range="hospitals" range-key="name" class="picker" :disabled="loading">
-            <view class="picker-text">{{ hospitals[hospitalIndex]?.name || '请选择目标医院' }}</view>
-          </picker>
-        </view>
+        <view class="section-title">{{ isInternalReferral ? '院内科室' : '目标医院' }}</view>
         
-        <view class="form-item">
-          <view class="label">目标科室</view>
-          <input type="text" v-model="formData.targetDepartment" placeholder="请输入目标科室" class="input" />
-        </view>
+        <!-- 院内转诊：显示目标科室 -->
+        <template v-if="isInternalReferral">
+          <view class="form-item">
+            <view class="label">目标科室</view>
+            <view class="form-value">{{ formData.targetDepartment }}</view>
+            <view class="change-tip" @click="changeReferralType">修改科室</view>
+          </view>
+          <view class="form-item">
+            <view class="label">目标医院</view>
+            <view class="form-value">本校医院</view>
+          </view>
+        </template>
+        
+        <!-- 院外转诊：显示医院和科室选择 -->
+        <template v-else>
+          <view class="form-item">
+            <view class="label">选择医院</view>
+            <picker @change="onHospitalChange" :value="hospitalIndex" :range="hospitals" range-key="name" class="picker" :disabled="loading">
+              <view class="picker-text">{{ hospitals[hospitalIndex]?.name || '请选择目标医院' }}</view>
+            </picker>
+          </view>
+          
+          <view class="form-item">
+            <view class="label">目标科室</view>
+            <input type="text" v-model="formData.targetDepartment" placeholder="请输入目标科室" class="input" />
+          </view>
+        </template>
       </view>
 
       <!-- 上传资料 -->
@@ -115,7 +132,9 @@
 
       <!-- 提交按钮 -->
       <view class="submit-section">
-        <button class="submit-btn" @click="submitApplication" :disabled="loading">{{ loading ? '提交中...' : '提交转诊申请' }}</button>
+        <button class="submit-btn" @click="submitApplication" :disabled="loading">
+          {{ loading ? '提交中...' : (isInternalReferral ? '提交院内转诊申请' : '提交院外转诊申请') }}
+        </button>
       </view>
     </scroll-view>
   </view>
@@ -123,7 +142,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { submitReferralApplication, getReferralHospitals } from '../../api/referral'
+import { submitReferralApplication, getReferralOptions } from '../../api/referral'
 
 // 表单数据
 const formData = ref({
@@ -136,18 +155,36 @@ const formData = ref({
   reason: '',
   targetHospital: '',
   targetDepartment: '',
-  attachments: []
+  attachments: [],
+  referralType: '', // 'internal' 或 'external'
+  visitRecordId: '' // 关联的就诊记录ID
 })
+
+// 转诊信息
+const referralInfo = ref({})
+const selectedVisitRecord = ref({})
 
 // 可选医院列表
 const hospitals = ref([])
 const hospitalIndex = ref(0)
 const loading = ref(false)
+const isInternalReferral = ref(false)
 
 // 选择医院
 const onHospitalChange = (e) => {
   hospitalIndex.value = e.detail.value
   formData.value.targetHospital = hospitals.value[hospitalIndex.value].name
+}
+
+// 获取当前用户信息（实际项目中可能从全局状态获取）
+const getCurrentUserInfo = () => {
+  // 模拟获取用户信息
+  return {
+    name: '当前用户',
+    phone: '13800138000',
+    gender: '男',
+    age: '25'
+  }
 }
 
 // 处理性别选择
@@ -184,13 +221,18 @@ const deleteAttachment = (index) => {
   })
 }
 
+// 返回修改转诊类型
+const changeReferralType = () => {
+  uni.navigateBack()
+}
+
 // 加载医院列表
 const loadHospitals = async () => {
   try {
     loading.value = true
-    const res = await getReferralHospitals()
+    const res = await getReferralOptions()
     if (res.code === 200 && res.data) {
-      hospitals.value = res.data
+      hospitals.value = res.data.hospitals || res.data
     }
   } catch (error) {
     console.error('加载医院列表失败:', error)
@@ -200,6 +242,42 @@ const loadHospitals = async () => {
     })
   } finally {
     loading.value = false
+  }
+}
+
+// 预填表单数据
+const prefillFormData = () => {
+  // 获取用户信息
+  const userInfo = getCurrentUserInfo()
+  
+  // 预填患者信息
+  formData.value.patientName = userInfo.name
+  formData.value.gender = userInfo.gender
+  formData.value.age = userInfo.age
+  formData.value.phone = userInfo.phone
+  
+  // 如果有选择的就诊记录，预填相关信息
+  if (selectedVisitRecord.value) {
+    // 可以从就诊记录中提取症状、诊断等信息
+    if (selectedVisitRecord.value.symptoms) {
+      formData.value.symptoms = selectedVisitRecord.value.symptoms
+    }
+    if (selectedVisitRecord.value.diagnosis) {
+      formData.value.medicalHistory = selectedVisitRecord.value.diagnosis
+    }
+    formData.value.visitRecordId = selectedVisitRecord.value.id || selectedVisitRecord.value.registrationNo
+  }
+  
+  // 如果有转诊信息，设置目标科室或医院
+  if (referralInfo.value) {
+    formData.value.referralType = referralInfo.value.type
+    isInternalReferral.value = referralInfo.value.type === 'internal'
+    
+    if (referralInfo.value.type === 'internal') {
+      // 院内转诊：设置目标科室
+      formData.value.targetDepartment = referralInfo.value.targetDepartment || ''
+      formData.value.targetHospital = '本校医院' // 院内转诊的目标医院固定为本院
+    }
   }
 }
 
@@ -226,14 +304,36 @@ const submitApplication = async () => {
     uni.showToast({ title: '请说明转诊原因', icon: 'none' })
     return
   }
-  if (!formData.value.targetHospital) {
-    uni.showToast({ title: '请选择目标医院', icon: 'none' })
-    return
+  
+  // 根据转诊类型进行不同的验证
+  if (isInternalReferral.value) {
+    // 院内转诊：验证目标科室
+    if (!formData.value.targetDepartment) {
+      uni.showToast({ title: '请选择目标科室', icon: 'none' })
+      return
+    }
+  } else {
+    // 院外转诊：验证目标医院
+    if (!formData.value.targetHospital) {
+      uni.showToast({ title: '请选择目标医院', icon: 'none' })
+      return
+    }
+    if (!formData.value.targetDepartment) {
+      uni.showToast({ title: '请输入目标科室', icon: 'none' })
+      return
+    }
   }
   
   try {
     loading.value = true
-    const res = await submitReferralApplication(formData)
+    
+    // 准备提交数据
+    const submitData = {
+      ...formData.value,
+      referralType: formData.value.referralType || (isInternalReferral.value ? 'internal' : 'external')
+    }
+    
+    const res = await submitReferralApplication(submitData)
     if (res.code === 200) {
       uni.showToast({
         title: '提交成功',
@@ -279,9 +379,22 @@ const submitApplication = async () => {
   }
 }
 
-// 页面加载时获取医院列表
+// 页面加载时初始化数据
 onMounted(() => {
-  loadHospitals()
+  // 获取转诊信息
+  const info = uni.getStorageSync('referralInfo')
+  if (info) {
+    referralInfo.value = info
+    selectedVisitRecord.value = info.visitRecord || {}
+  }
+  
+  // 预填表单数据
+  prefillFormData()
+  
+  // 加载医院列表（仅在院外转诊时需要）
+  if (!isInternalReferral.value) {
+    loadHospitals()
+  }
 })
 </script>
 

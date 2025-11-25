@@ -128,6 +128,13 @@
                 :disabled="submitting">
           {{ submitting ? '处理中...' : '取消申请' }}
         </button>
+        <!-- 院内转诊自动挂号按钮 -->
+        <button v-if="referralDetail.status === '已审核' && referralDetail.targetHospital === '校医院' && referralDetail.type === '院内转诊'" 
+                class="register-btn" 
+                @click="autoRegister"
+                :disabled="submitting">
+          {{ submitting ? '处理中...' : '自动挂号' }}
+        </button>
         <button class="secondary-btn" @click="createNewReferral">创建新申请</button>
       </view>
     </scroll-view>
@@ -136,7 +143,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { getReferralDetail, cancelReferralApplication } from '../../api/referral'
+import { getPatientReferralDetail, cancelPatientReferral, autoRegisterInternalReferral } from '../../api/referral'
 
 // 转诊详情数据
 const referralDetail = ref({
@@ -156,7 +163,9 @@ const referralDetail = ref({
   reviewDoctor: '',
   reviewComments: '',
   rejectReason: '',
-  attachments: []
+  attachments: [],
+  type: '院内转诊', // 默认院内转诊，后端返回时会覆盖
+  visitRecordId: '' // 关联的就诊记录ID
 })
 const loading = ref(true)
 const submitting = ref(false)
@@ -238,7 +247,7 @@ const cancelReferral = async () => {
       if (res.confirm) {
         try {
           submitting.value = true
-          await cancelReferralApplication(referralId.value)
+          await cancelPatientReferral({id: referralId.value, reason: '患者主动取消'})
           uni.showToast({
             title: '取消成功',
             icon: 'success'
@@ -275,11 +284,59 @@ const createNewReferral = () => {
   })
 }
 
+// 院内转诊自动挂号
+const autoRegister = async () => {
+  if (referralDetail.value.status !== '已审核') {
+    uni.showToast({
+      title: '只有已审核的申请可以进行自动挂号',
+      icon: 'none'
+    })
+    return
+  }
+  
+  uni.showModal({
+    title: '提示',
+    content: `确定要为患者${referralDetail.value.patientName}在${referralDetail.value.targetDepartment}自动挂号吗？`,
+    success: async (res) => {
+      if (res.confirm) {
+        try {
+          submitting.value = true
+          const result = await autoRegisterInternalReferral(referralDetail.value.id)
+          
+          if (result.code === 200) {
+            uni.showToast({
+              title: '自动挂号成功！',
+              icon: 'success'
+            })
+            // 可以在这里更新转诊状态为已挂号
+            setTimeout(() => {
+              loadReferralDetail() // 重新加载详情，更新状态
+            }, 1500)
+          } else {
+            uni.showToast({
+              title: result.message || '自动挂号失败',
+              icon: 'none'
+            })
+          }
+        } catch (error) {
+          console.error('自动挂号失败:', error)
+          uni.showToast({
+            title: '自动挂号失败，请稍后重试',
+            icon: 'none'
+          })
+        } finally {
+          submitting.value = false
+        }
+      }
+    }
+  })
+}
+
 // 加载转诊详情
 const loadReferralDetail = async () => {
   try {
     loading.value = true
-    const res = await getReferralDetail(referralId.value)
+    const res = await getPatientReferralDetail(referralId.value)
     
     if (res.code === 200 && res.data) {
       referralDetail.value = res.data
@@ -518,14 +575,24 @@ onMounted(() => {
 }
 
 .secondary-btn {
-  flex: 1;
-  height: 44px;
-  background-color: #fff;
-  color: #1989fa;
-  border: 1px solid #1989fa;
-  border-radius: 22px;
-  font-size: 16px;
-}
+    flex: 1;
+    height: 44px;
+    background-color: #fff;
+    color: #1989fa;
+    border: 1px solid #1989fa;
+    border-radius: 22px;
+    font-size: 16px;
+  }
+  
+  .register-btn {
+    flex: 1;
+    height: 44px;
+    background: linear-gradient(90deg, #4caf50, #66bb6a);
+    color: #fff;
+    border: none;
+    border-radius: 22px;
+    font-size: 16px;
+  }
 
 .cancel-btn {
   flex: 1;

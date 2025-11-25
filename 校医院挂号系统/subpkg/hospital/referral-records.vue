@@ -106,6 +106,19 @@ const filteredRecords = computed(() => {
 // 切换筛选
 const changeFilter = (index) => {
   currentFilter.value = index
+  // 重置分页并重新加载数据
+  currentPage.value = 1
+  referralRecords.value = []
+  hasMore.value = true
+  
+  // 更新筛选条件
+  if (index === 0) {
+    filterStatus.value = 'all'
+  } else {
+    filterStatus.value = filterOptions[index]
+  }
+  
+  loadReferralRecords()
 }
 
 // 获取状态对应的样式类
@@ -149,59 +162,108 @@ const goToHospital = (record) => {
 
 // 创建新转诊申请
 const createNewReferral = () => {
+  console.log('Attempting to navigate to: /subpkg/hospital/referral-application')
   uni.navigateTo({
-    url: '/subpkg/hospital/referral-application'
+    url: '/subpkg/hospital/referral-application',
+    success: (res) => {
+      console.log('Navigation successful:', res)
+    },
+    fail: (err) => {
+      console.error('Navigation failed:', err)
+      uni.showToast({
+        title: '跳转失败: ' + JSON.stringify(err),
+        icon: 'none',
+        duration: 3000
+      })
+    }
   })
 }
 
-// 加载模拟数据
-const loadMockData = () => {
-  referralRecords.value = [
-    {
-      id: '1',
-      patientName: '张三',
-      targetHospital: '北京协和医院',
-      targetDepartment: '心内科',
-      symptoms: '胸闷气短，活动后加重，伴有咳嗽',
-      applyTime: '2024-01-15 09:30',
-      status: '已审核',
-      reviewTime: '2024-01-15 11:20'
-    },
-    {
-      id: '2', 
-      patientName: '李四',
-      targetHospital: '北京大学第一医院',
-      targetDepartment: '骨科',
-      symptoms: '膝关节疼痛，行走困难，上下楼梯加剧',
-      applyTime: '2024-01-14 14:20',
-      status: '已拒绝',
-      rejectReason: '建议先在本院进行保守治疗观察'
-    },
-    {
-      id: '3',
-      patientName: '王五',
-      targetHospital: '北京301医院',
-      targetDepartment: '神经内科',
-      symptoms: '头痛反复发作，伴有恶心呕吐，最近加重',
-      applyTime: '2024-01-15 16:45',
-      status: '待审核'
-    },
-    {
-      id: '4',
-      patientName: '赵六',
-      targetHospital: '北京同仁医院',
-      targetDepartment: '眼科',
-      symptoms: '视力下降，眼睛干涩，有异物感',
-      applyTime: '2024-01-13 10:15',
-      status: '已审核',
-      reviewTime: '2024-01-13 14:30'
+// 分页相关状态
+const loading = ref(false)
+const currentPage = ref(1)
+const pageSize = ref(10)
+const hasMore = ref(true)
+const filterStatus = ref('all')
+const filterType = ref('all')
+
+// 加载转诊记录数据
+const loadReferralRecords = async () => {
+  if (loading.value || !hasMore.value) return
+  
+  loading.value = true
+  try {
+    // 调用API获取转诊记录
+    const params = {
+      page: currentPage.value,
+      pageSize: pageSize.value,
+      status: filterStatus.value !== 'all' ? filterStatus.value : '',
+      type: filterType.value !== 'all' ? filterType.value : ''
     }
-  ]
+    
+    const res = await getPatientReferralList(params)
+    
+    if (res.code === 200 && res.data) {
+      // 格式化记录，确保数据结构一致
+      let records = res.data.records || res.data.list || []
+      records = records.map(record => ({
+        id: record.id || '',
+        patientName: record.patientName || '',
+        targetHospital: record.targetHospital || '',
+        targetDepartment: record.targetDepartment || '',
+        symptoms: record.symptoms || '',
+        applyTime: record.applyTime || record.createTime || '',
+        status: record.status || '',
+        reviewTime: record.reviewTime || '',
+        rejectReason: record.rejectReason || '',
+        type: record.type || '院内转诊'
+      }))
+      
+      // 处理分页
+      if (currentPage.value === 1) {
+        referralRecords.value = records
+      } else {
+        referralRecords.value = [...referralRecords.value, ...records]
+      }
+      
+      // 判断是否还有更多数据
+      hasMore.value = res.data.hasMore || referralRecords.value.length < (res.data.total || res.data.totalCount || 0)
+    } else {
+      uni.showToast({
+        title: res.message || '加载失败',
+        icon: 'none'
+      })
+    }
+  } catch (error) {
+    console.error('加载转诊记录失败:', error)
+    uni.showToast({
+      title: '网络错误，请稍后重试',
+      icon: 'none'
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+// 刷新数据
+const onRefresh = () => {
+  currentPage.value = 1
+  referralRecords.value = []
+  hasMore.value = true
+  loadReferralRecords()
+}
+
+// 加载更多
+const onLoadMore = () => {
+  if (!loading.value && hasMore.value) {
+    currentPage.value++
+    loadReferralRecords()
+  }
 }
 
 // 页面加载时初始化数据
 onMounted(() => {
-  loadMockData()
+  loadReferralRecords()
 })
 </script>
 

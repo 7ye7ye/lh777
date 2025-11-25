@@ -135,14 +135,14 @@ const diseaseData = ref([
     icon: '😷',
     title: '常见症状',
     items: [
-      { name: '发热、发烧', desc: '体温超过37.3℃', dept: '呼吸内科', deptId: 14, keywords: ['发热', '发烧', '高烧', '体温'] },
-      { name: '头痛、头晕', desc: '头部疼痛或眩晕感', dept: '神经内科', deptId: 12, keywords: ['头痛', '头晕', '眩晕', '偏头痛'] },
-      { name: '咳嗽、咳痰', desc: '持续咳嗽或有痰', dept: '呼吸内科', deptId: 14, keywords: ['咳嗽', '咳痰', '干咳', '咳血'] },
+      { name: '发热、发烧', desc: '体温超过37.3℃', dept: '神经内科', deptId: 14, keywords: ['发热', '发烧', '高烧', '体温'] },
+      { name: '头痛、头晕', desc: '头部疼痛或眩晕感', dept: '神经内科', deptId: 14, keywords: ['头痛', '头晕', '眩晕', '偏头痛'] },
+      { name: '咳嗽、咳痰', desc: '持续咳嗽或有痰', dept: '呼吸内科', deptId: 11, keywords: ['咳嗽', '咳痰', '干咳', '咳血'] },
       { name: '腹痛、腹泻', desc: '腹部疼痛或腹泻', dept: '消化内科', deptId: 13, keywords: ['腹痛', '腹泻', '肚子疼', '拉肚子'] },
-      { name: '胸痛、胸闷', desc: '胸部疼痛或闷胀', dept: '心内科', deptId: 11, keywords: ['胸痛', '胸闷', '心慌', '心悸'] },
+      { name: '胸痛、胸闷', desc: '胸部疼痛或闷胀', dept: '心内科', deptId: 12, keywords: ['胸痛', '胸闷', '心慌', '心悸'] },
       { name: '恶心、呕吐', desc: '恶心或呕吐症状', dept: '消化内科', deptId: 13, keywords: ['恶心', '呕吐', '想吐', '反胃'] },
       { name: '乏力、疲劳', desc: '全身无力、疲劳', dept: '内分泌科', deptId: 15, keywords: ['乏力', '疲劳', '无力', '困倦'] },
-      { name: '失眠、多梦', desc: '睡眠质量差', dept: '神经内科', deptId: 12, keywords: ['失眠', '多梦', '睡不着', '睡眠障碍'] }
+      { name: '失眠、多梦', desc: '睡眠质量差', dept: '神经内科', deptId: 14, keywords: ['失眠', '多梦', '睡不着', '睡眠障碍'] }
     ]
   },
   {
@@ -150,10 +150,10 @@ const diseaseData = ref([
     icon: '🫁',
     title: '呼吸系统疾病',
     items: [
-      { name: '感冒、流感', desc: '上呼吸道感染', dept: '呼吸内科', deptId: 14, keywords: ['感冒', '流感', '鼻塞', '流鼻涕'] },
-      { name: '支气管炎', desc: '支气管黏膜炎症', dept: '呼吸内科', deptId: 14, keywords: ['支气管炎', '气管炎', '慢性咳嗽'] },
-      { name: '肺炎', desc: '肺部感染性疾病', dept: '呼吸内科', deptId: 14, keywords: ['肺炎', '肺部感染', '呼吸困难'] },
-      { name: '哮喘', desc: '慢性气道炎症', dept: '呼吸内科', deptId: 14, keywords: ['哮喘', '气喘', '喘息', '呼吸急促'] },
+      { name: '感冒、流感', desc: '上呼吸道感染', dept: '呼吸内科', deptId: 11, keywords: ['感冒', '流感', '鼻塞', '流鼻涕'] },
+      { name: '支气管炎', desc: '支气管黏膜炎症', dept: '呼吸内科', deptId: 11, keywords: ['支气管炎', '气管炎', '慢性咳嗽'] },
+      { name: '肺炎', desc: '肺部感染性疾病', dept: '呼吸内科', deptId: 11, keywords: ['肺炎', '肺部感染', '呼吸困难'] },
+      { name: '哮喘', desc: '慢性气道炎症', dept: '呼吸内科', deptId: 11, keywords: ['哮喘', '气喘', '喘息', '呼吸急促'] },
       { name: '咽喉炎', desc: '咽喉部炎症', dept: '口腔科', deptId: 51, keywords: ['咽喉炎', '嗓子疼', '咽痛', '喉咙痛'] },
       { name: '扁桃体炎', desc: '扁桃体发炎', dept: '口腔科', deptId: 51, keywords: ['扁桃体炎', '扁桃体发炎', '咽扁桃体'] }
     ]
@@ -188,11 +188,11 @@ const diseaseData = ref([
     icon: '🧠',
     title: '神经系统疾病',
     items: [
-      { name: '偏头痛', desc: '反复发作的头痛', dept: '神经内科', deptId: 12, keywords: ['偏头痛', '头痛', '太阳穴痛'] },
-      { name: '神经衰弱', desc: '精神易兴奋易疲劳', dept: '神经内科', deptId: 12, keywords: ['神经衰弱', '失眠', '健忘'] },
-      { name: '面神经麻痹', desc: '面部表情肌瘫痪', dept: '神经内科', deptId: 12, keywords: ['面瘫', '面神经麻痹', '口眼歪斜'] },
-      { name: '焦虑症', desc: '焦虑情绪障碍', dept: '神经内科', deptId: 12, keywords: ['焦虑', '紧张', '心慌', '恐惧'] },
-      { name: '抑郁症', desc: '情绪低落症候群', dept: '神经内科', deptId: 12, keywords: ['抑郁', '情绪低落', '兴趣减退'] }
+      { name: '偏头痛', desc: '反复发作的头痛', dept: '神经内科', deptId: 14, keywords: ['偏头痛', '头痛', '太阳穴痛'] },
+      { name: '神经衰弱', desc: '精神易兴奋易疲劳', dept: '神经内科', deptId: 14, keywords: ['神经衰弱', '失眠', '健忘'] },
+      { name: '面神经麻痹', desc: '面部表情肌瘫痪', dept: '神经内科', deptId: 14, keywords: ['面瘫', '面神经麻痹', '口眼歪斜'] },
+      { name: '焦虑症', desc: '焦虑情绪障碍', dept: '神经内科', deptId: 14, keywords: ['焦虑', '紧张', '心慌', '恐惧'] },
+      { name: '抑郁症', desc: '情绪低落症候群', dept: '神经内科', deptId: 14, keywords: ['抑郁', '情绪低落', '兴趣减退'] }
     ]
   },
   {
