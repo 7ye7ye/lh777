@@ -325,6 +325,36 @@
 						"navigationBarBackgroundColor": "#479fff",
 						"navigationBarTextStyle": "white"
 					}
+				},
+				{
+					"path": "referral-application",
+					"style": {
+						"navigationBarTitleText": "转诊申请"
+					}
+				},
+				{
+					"path": "referral-records",
+					"style": {
+						"navigationBarTitleText": "转诊记录"
+					}
+				},
+				{
+					"path": "referral-detail",
+					"style": {
+						"navigationBarTitleText": "转诊详情"
+					}
+				},
+				{
+					"path": "visit-records",
+					"style": {
+						"navigationBarTitleText": "就诊记录"
+					}
+				},
+				{
+					"path": "referral-type-selection",
+					"style": {
+						"navigationBarTitleText": "选择转诊类型"
+					}
 				}
 			]
 		},
