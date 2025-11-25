@@ -190,6 +190,15 @@ const admin: AppRouteModule = {
       },
     },
     {
+      path: 'doctor-profile-update-approval',
+      name: 'AdminDoctorProfileUpdateApproval',
+      component: () => import('/@/views/admin/doctor/DoctorProfileUpdateApproval.vue'),
+      meta: {
+        title: t('routes.admin.doctorProfileUpdateApproval'),
+        ignoreAuth: true,
+      },
+    },
+    {
       path: 'account-permission',
       name: 'AdminAccountPermission',
       component: () => import('/@/views/admin/access/AccountPermission.vue'),

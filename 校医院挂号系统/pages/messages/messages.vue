@@ -21,9 +21,6 @@
 			<image class="empty-icon" src="/static/empty_message.png" mode="aspectFit"></image>
 			<text class="empty-text">暂无任何消息</text>
 		</view>
-
-		<!-- 医生端入口按钮 -->
-		<button class="doctor-entry-btn" @click="goDoctorMain">进入医生端</button>
 	</view>
 </template>
 
@@ -210,13 +207,6 @@
 			goToDetail(messageId) {
 				uni.navigateTo({
 					url: `/subpkg/messages/detail?messageId=${messageId}`
-				});
-			},
-			
-			// 跳转到医生端主页面
-			goDoctorMain() {
-				uni.navigateTo({
-					url: '/subpkg/doctor/schedule/main'
 				});
 			},
 			

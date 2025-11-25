@@ -43,11 +43,16 @@
         </view>
       </view>
     </view>
+
+    <!-- 医生端底部导航 -->
+    <DoctorTabBar active="patients" />
   </view>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import DoctorTabBar from '@/components/DoctorTabBar.vue'
+
 import { uniNavigateTo, uniShowToast } from '../../../utils/uniHelper'
 import { useUserStore } from '../../../store/user.js'
 import { doctorApi } from '../../../api/doctor_massage'
@@ -100,7 +105,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.patients-page { min-height: 100vh; background: #f7faff; }
+.patients-page { min-height: 100vh; background: #f7faff; padding-bottom: 120rpx; }
 .header { display: flex; justify-content: space-between; align-items: center; padding: 24rpx; background: linear-gradient(90deg, #479fff 0%, #2176ff 100%); }
 .title { color: #fff; font-size: 32rpx; font-weight: 700; }
 .back { background: #fff; color: #2176ff; border-radius: 999rpx; padding: 8rpx 18rpx; }

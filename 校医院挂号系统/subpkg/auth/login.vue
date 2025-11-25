@@ -57,7 +57,7 @@
 import { ref, computed } from 'vue'
 import { useUserStore } from '@/store/user'
 import { userApi } from '@/api/user'
-import { uniShowToast, uniSwitchTab } from '@/utils/uniHelper'
+import { uniShowToast, uniSwitchTab, uniNavigateTo } from '@/utils/uniHelper'
 
 const form = ref({
   userAccount: '',
@@ -108,7 +108,8 @@ const onSubmit = async () => {
     if (userInfo.userType == 1) {
       await uniSwitchTab({ url: '/pages/home/home' })
     } else if (userInfo.userType == 2) {
-      await uniNavigateTo({ url: '/subpkg/doctor/profile/index' })
+      // 医生端直接重启到排班首页，避免出现返回上一页按钮
+      await uni.reLaunch({ url: '/subpkg/doctor/schedule/main' })
     } else {
       // 默认跳转到首页
       await uniSwitchTab({ url: '/pages/home/home' })
@@ -125,8 +126,6 @@ const onSubmit = async () => {
     loading.value = false
   }
 }
-
-import { uniNavigateTo } from '@/utils/uniHelper'
 
 const goRegister = () => {
   uniNavigateTo({ url: '/subpkg/auth/register' })

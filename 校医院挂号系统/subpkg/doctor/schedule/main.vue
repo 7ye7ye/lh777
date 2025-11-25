@@ -90,22 +90,15 @@
       </button> 
     </view> 
 
-    <!-- 底部导航 --> 
-    <view class="bottom-nav"> 
-      <view class="nav-item" @click="goToPatients"> 
-        <text class="nav-icon">👥</text> 
-        <text class="nav-text">患者详情</text> 
-      </view> 
-      <view class="nav-item" @click="goToProfile"> 
-        <text class="nav-icon">👤</text> 
-        <text class="nav-text">个人信息</text> 
-      </view> 
-    </view> 
+    <!-- 医生端底部导航 -->
+    <DoctorTabBar active="schedule" />
   </view> 
 </template> 
 
 <script setup> 
 import { ref, onMounted, computed } from 'vue' 
+import DoctorTabBar from '@/components/DoctorTabBar.vue'
+
 import { uniNavigateTo, uniShowToast } from '../../../utils/uniHelper' 
 import { useUserStore } from '../../../store/user.js'
 import { doctorApi as doctorApiMassage } from '../../../api/doctor_massage'

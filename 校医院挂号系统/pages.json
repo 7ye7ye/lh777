@@ -92,6 +92,22 @@
 					}
 				},
 				{
+					"path": "profile/edit",
+					"style": {
+						"navigationBarTitleText": "编辑个人信息",
+						"navigationBarBackgroundColor": "#479fff",
+						"navigationBarTextStyle": "white"
+					}
+				},
+				{
+					"path": "profile/requests",
+					"style": {
+						"navigationBarTitleText": "我的资料修改申请",
+						"navigationBarBackgroundColor": "#479fff",
+						"navigationBarTextStyle": "white"
+					}
+				},
+				{
 					"path": "leave/apply",
 					"style": {
 						"navigationBarTitleText": "申请请假",
