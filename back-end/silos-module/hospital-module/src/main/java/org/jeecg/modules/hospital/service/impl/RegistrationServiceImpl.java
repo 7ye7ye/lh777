@@ -105,7 +105,7 @@ public class RegistrationServiceImpl implements RegistrationService {
             }
             record.setDoctorId(schedule.getDoctorId());
 
-            if (checkDuplicateBySchedule(patientId, schedule.getScheduleId())) {
+            if (checkDuplicateBySchedule(actualPatientId, schedule.getScheduleId())) {
                 return Result.error("您已预约过该时段，请勿重复挂号");
             }
 
@@ -122,7 +122,7 @@ public class RegistrationServiceImpl implements RegistrationService {
                 return addToWaitingQueue(schedule.getScheduleId(), actualPatientId);
             }
 
-            Patient patient = patientMapper.selectById(patientId);
+            Patient patient = patientMapper.selectById(actualPatientId);
             if (patient == null) {
                 return Result.error("患者信息未找到");
             }
@@ -137,7 +137,7 @@ public class RegistrationServiceImpl implements RegistrationService {
                 default -> type.getPriceOriginal();
             });
             if (record.getRegistrationNo() == null) {
-                record.setRegistrationNo(generateRegistrationNo(patientId));
+                record.setRegistrationNo(generateRegistrationNo(actualPatientId));
             }
             if (record.getIsAdd() == null) {
                 record.setIsAdd(0);

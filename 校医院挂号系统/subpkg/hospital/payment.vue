@@ -47,6 +47,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { createRegistration } from '../../api/registration' // 挂号接口
+import { ensurePatientCard } from '@/utils/patientHelper'
 
 // ------------------ 挂号信息 ------------------
 const dept = ref('')
@@ -56,6 +57,7 @@ const fee = ref(20)
 const doctorId = ref(null)
 const typeId = ref(null)
 const scheduleId = ref(null)
+const currentPatient = ref(null)
 
 // ------------------ 支付方式 ------------------
 const paymentMethods = ref([
@@ -66,6 +68,38 @@ const paymentMethods = ref([
 const selectedMethod = ref(null)
 
 // ------------------ 页面加载 ------------------
+const loadPatientInfo = async () => {
+  const info = await ensurePatientCard()
+  if (info && info.patientId) {
+    currentPatient.value = info
+  } else {
+    currentPatient.value = null
+  }
+}
+
+const ensurePatientId = async () => {
+  if (currentPatient.value?.patientId) {
+    return currentPatient.value.patientId
+  }
+  await loadPatientInfo()
+  if (currentPatient.value?.patientId) {
+    return currentPatient.value.patientId
+  }
+  uni.showModal({
+    title: '未找到就诊卡',
+    content: '请先创建并绑定就诊卡后再进行挂号支付',
+    confirmText: '去创建',
+    success: (res) => {
+      if (res.confirm) {
+        uni.navigateTo({
+          url: '/subpkg/profile/personal/create-card'
+        })
+      }
+    }
+  })
+  return null
+}
+
 onMounted(() => {
   const pages = getCurrentPages()
   const currentPage = pages[pages.length - 1]
@@ -81,6 +115,7 @@ onMounted(() => {
   deptId.value = Number(options.deptId || 0)
   
   console.log('支付页接收参数:', { dept: options.dept, doctor: options.doctor, time: options.time, doctorId: options.doctorId, typeId: options.typeId, scheduleId: options.scheduleId, deptId: options.deptId })
+  loadPatientInfo()
 })
 
   
@@ -113,7 +148,10 @@ const onPay = async () => {
     uni.showToast({ title: '支付成功！', icon: 'success', duration: 1500 })
 
     // 支付成功后写入挂号表
-    const patientId = uni.getStorageSync('patientId') || 1
+    const patientId = await ensurePatientId()
+    if (!patientId) {
+      return
+    }
 
     // 构建挂号记录对象
     const record = {
