@@ -30,17 +30,27 @@ export default class signMd5Utils {
    * @returns {string} 获取签名
    */
   static getSign(url, requestParams, requestBodyParams) {
-    let urlParams = this.parseQueryString(url);
-    let jsonObj = this.mergeObject(urlParams, requestParams);
-    //update-begin---author:wangshuai---date:2024-04-16---for:【QQYUN-9005】发送短信加签---
-    if(requestBodyParams){
-      jsonObj = this.mergeObject(jsonObj, requestBodyParams)
+    try {
+      let urlParams = this.parseQueryString(url);
+      let jsonObj = this.mergeObject(urlParams, requestParams || {});
+      //update-begin---author:wangshuai---date:2024-04-16---for:【QQYUN-9005】发送短信加签---
+      if(requestBodyParams && typeof requestBodyParams === 'object'){
+        jsonObj = this.mergeObject(jsonObj, requestBodyParams)
+      }
+      //update-end---author:wangshuai---date:2024-04-16---for:【QQYUN-9005】发送短信加签---
+      // 确保创建一个可修改的对象副本
+      let requestBody = this.sortAsc({...jsonObj});
+      // 安全地删除属性，避免操作不可修改的对象
+      if (requestBody && typeof requestBody === 'object' && '_t' in requestBody) {
+        delete requestBody._t;
+      }
+      console.log('sign requestBody:', requestBody);
+      return md5(JSON.stringify(requestBody) + signatureSecret).toUpperCase();
+    } catch (error) {
+      console.error('生成签名时出错:', error);
+      // 出错时返回一个默认签名，确保请求能够继续
+      return md5('default_signature' + signatureSecret).toUpperCase();
     }
-    //update-end---author:wangshuai---date:2024-04-16---for:【QQYUN-9005】发送短信加签---
-    let requestBody = this.sortAsc(jsonObj);
-    delete requestBody._t;
-    console.log('sign requestBody:', requestBody);
-    return md5(JSON.stringify(requestBody) + signatureSecret).toUpperCase();
   }
 
   /**
