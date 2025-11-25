@@ -80,6 +80,9 @@ public class DoctorAdminController {
                     }
                     // 查询所有二级科室的医生
                     queryWrapper.in(Doctor::getDeptId, subDeptIds);
+                } else {
+                    // 重要修复：如果一级科室没有子科室，设置一个不可能匹配的条件，确保不返回任何医生
+                    queryWrapper.eq(Doctor::getDeptId, -1);
                 }
             } else {
                 // 如果是二级科室或找不到科室信息，使用原有的精确查询

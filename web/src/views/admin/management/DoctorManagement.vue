@@ -21,7 +21,6 @@
                 v-model:value="searchForm.deptId"
                 placeholder="选择科室"
                 allow-clear
-                disabled
               >
                 <a-select-option
                   v-for="dept in departmentOptions"
@@ -37,7 +36,6 @@
                 v-model:value="searchForm.title"
                 placeholder="医生职称"
                 allow-clear
-                disabled
               >
                 <a-select-option value="主任医师">主任医师</a-select-option>
                 <a-select-option value="副主任医师">副主任医师</a-select-option>
@@ -54,7 +52,6 @@
                 v-model:value="searchForm.isActive"
                 placeholder="出诊状态"
                 allow-clear
-                disabled
               >
                 <a-select-option value="1">正常出诊</a-select-option>
                 <a-select-option value="0">暂停出诊</a-select-option>
@@ -65,13 +62,13 @@
             <a-col :span="6">
               <a-button type="primary" @click="handleSearch">
                 <template #icon>
-                  <icon-park-outline:search />
+                  <SearchOutlined />
                 </template>
                 搜索
               </a-button>
               <a-button style="margin-left: 8px" @click="resetSearch">
                 <template #icon>
-                  <icon-park-outline:reset />
+                  <ReloadOutlined />
                 </template>
                 重置
               </a-button>
@@ -81,11 +78,11 @@
         
         <div class="operate-buttons">
           <a-button type="primary" @click="showAddModal" disabled>
-            <template #icon>
-              <icon-park-outline:add />
-            </template>
-            添加医生
-          </a-button>
+              <template #icon>
+                <PlusOutlined />
+              </template>
+              添加医生
+            </a-button>
         </div>
       </div>
 
@@ -179,7 +176,7 @@
             @change="handleUploadChange"
           >
             <div v-if="fileList.length < 1">
-              <plus-outlined />
+              <PlusOutlined />
               <div style="margin-top: 8px">上传头像</div>
             </div>
           </a-upload>
@@ -200,7 +197,7 @@ import { ref, reactive, onMounted, computed } from 'vue';
 import { message, Upload, Modal } from 'ant-design-vue';
 import type { PaginationProps } from 'ant-design-vue';
 import type { ColumnsType } from 'ant-design-vue/es/table';
-import { PlusOutlined, DownOutlined, DeleteOutlined, UserOutlined } from '@ant-design/icons-vue';
+import { PlusOutlined, SearchOutlined, ReloadOutlined, DownOutlined, DeleteOutlined, UserOutlined } from '@ant-design/icons-vue';
 import { getDepartmentList } from '/@/api/hospital/department';
 import type { Department } from '/@/api/hospital/department';
 import { getDoctorList, createDoctor, updateDoctor, deleteDoctor, batchDeleteDoctors, getDoctorDetail, registerDoctorAccount } from '/@/api/hospital/doctor';
@@ -379,21 +376,22 @@ function resetSearch() {
 async function fetchDoctorList() {
   loading.value = true;
   try {
-    // 调整参数映射，确保与后端API期望的参数名匹配
+    // 构建查询参数，确保使用正确的字段名
     const params = {
-      keyword: searchForm.doctorName,  // 后端期望使用keyword参数进行搜索
-      deptId: searchForm.deptId,
-      title: searchForm.title,
-      isActive: searchForm.isActive,
-      pageNo: pagination.current,     // 后端期望使用pageNo参数而非pageNum
-      pageSize: pagination.pageSize
+      pageNum: pagination.current,
+      pageSize: pagination.pageSize,
+      // 支持所有四个搜索条件
+      doctorName: searchForm.doctorName || undefined,
+      deptId: searchForm.deptId || undefined,
+      title: searchForm.title || undefined,
+      isActive: searchForm.isActive !== undefined ? Number(searchForm.isActive) : undefined,
     };
     const response = await getDoctorList(params);
     
     // 安全地处理API响应，确保数据结构正确
     if (response?.records && Array.isArray(response.records)) {
       // 对每个医生数据进行类型转换，确保字段类型正确
-      doctorList.value = response.records.map(doctor => ({
+      let records = response.records.map(doctor => ({
         ...doctor,
         doctorId: Number(doctor.doctorId),
         deptId: Number(doctor.deptId),
@@ -405,7 +403,55 @@ async function fetchDoctorList() {
         doctorDesc: doctor.doctorDesc || '',
         avatar: doctor.avatar || ''
       }));
-      pagination.total = Number(response.total) || 0;
+      
+      // 在客户端进行多条件筛选，确保符合所有条件
+      if (searchForm.doctorName || searchForm.deptId || searchForm.title || searchForm.isActive !== undefined) {
+        records = records.filter(doctor => {
+          // 医生姓名筛选
+          if (searchForm.doctorName && !doctor.doctorName.toLowerCase().includes(searchForm.doctorName.toLowerCase())) {
+            return false;
+          }
+          // 科室级联筛选：选择一级科室时显示其下所有二级科室的医生
+          if (searchForm.deptId) {
+            const selectedDept = departmentOptions.value.find(dept => dept.deptId === Number(searchForm.deptId));
+            if (selectedDept) {
+              // 如果选择的是一级科室(deptLevel=1)，则检查医生所在科室是否为该一级科室或其下的二级科室
+              if (selectedDept.deptLevel === 1) {
+                const doctorDept = departmentOptions.value.find(dept => dept.deptId === doctor.deptId);
+                // 医生所在科室是一级科室本身或其下二级科室
+                if (!doctorDept || 
+                    (doctorDept.deptLevel === 1 && doctorDept.deptId !== selectedDept.deptId) || 
+                    (doctorDept.deptLevel === 2 && doctorDept.parentDeptId !== selectedDept.deptId)) {
+                  return false;
+                }
+              } else {
+                // 如果选择的是二级科室，只检查精确匹配
+                if (String(doctor.deptId) !== String(searchForm.deptId)) {
+                  return false;
+                }
+              }
+            } else {
+              // 未找到对应的科室信息，进行精确匹配
+              if (String(doctor.deptId) !== String(searchForm.deptId)) {
+                return false;
+              }
+            }
+          }
+          // 职称筛选
+          if (searchForm.title && doctor.title !== searchForm.title) {
+            return false;
+          }
+          // 出诊状态筛选
+          if (searchForm.isActive !== undefined && String(doctor.isActive) !== String(searchForm.isActive)) {
+            return false;
+          }
+          // 所有条件都匹配
+          return true;
+        });
+      }
+      
+      doctorList.value = records;
+      pagination.total = records.length;
     } else {
       console.warn('API响应格式不符合预期:', response);
       doctorList.value = [];
@@ -612,14 +658,16 @@ function handleModalCancel() {
 
 // 文件上传相关处理
 function beforeUpload(file: File) {
-  const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
-  if (!isJpgOrPng) {
-    message.error('只能上传 JPG/PNG 格式的图片!');
+  // 支持SVG格式图像
+  const isSvg = file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg');
+  if (!isSvg) {
+    message.error('只能上传 SVG 格式的图像!');
     return Upload.LIST_IGNORE;
   }
-  const isLt2M = file.size / 1024 / 1024 < 2;
-  if (!isLt2M) {
-    message.error('图片大小不能超过 2MB!');
+  // SVG文件通常很小，可以适当放宽大小限制
+  const isLt500K = file.size / 1024 < 500; // 500KB限制
+  if (!isLt500K) {
+    message.error('SVG图像大小不能超过 500KB!');
     return Upload.LIST_IGNORE;
   }
   return false; // 阻止默认上传，使用自定义上传
