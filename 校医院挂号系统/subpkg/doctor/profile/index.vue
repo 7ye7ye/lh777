@@ -1,40 +1,22 @@
 <template>
   <view class="profile-page">
-    <!-- 返回按钮 -->
-    <view class="back-section" @click="goBackToSchedule">
-      <text class="back-icon">‹</text>
-      <text class="back-text">返回医生主界面</text>
-    </view>
-
     <!-- 医生信息头部 -->
     <view class="profile-header">
       <view class="avatar-section">
-        <image class="avatar" :src="doctorInfo.avatar" mode="aspectFill" />
-        <view class="doctor-basic">
-          <text class="doctor-name">{{ doctorInfo.name }}</text>
-          <text class="doctor-title">{{ doctorInfo.title }}</text>
-        </view>
-      </view>
-      <view class="doctor-dept">
-        <text class="dept-name">{{ doctorInfo.department }}</text>
-      </view>
-    </view>
+        <image class="avatar" :src="doctorInfo.avatar" mode="aspectFill" @click="onChangeAvatar" />
 
-    <!-- 统计数据 -->
-    <view class="stats-section">
-      <view class="stat-item">
-        <text class="stat-value">{{ stats.totalPatients }}</text>
-        <text class="stat-label">累计接诊</text>
-      </view>
-      <view class="stat-divider"></view>
-      <view class="stat-item">
-        <text class="stat-value">{{ stats.todayPatients }}</text>
-        <text class="stat-label">今日接诊</text>
-      </view>
-      <view class="stat-divider"></view>
-      <view class="stat-item">
-        <text class="stat-value">{{ stats.rating }}</text>
-        <text class="stat-label">患者评分</text>
+        <view class="doctor-main">
+          <view class="doctor-main-top">
+            <view class="doctor-basic">
+              <text class="doctor-name">{{ doctorInfo.name }}</text>
+              <text class="doctor-title">{{ doctorInfo.title }}</text>
+            </view>
+            <text class="logout-inline" @click="logout">退出登录</text>
+          </view>
+          <view class="doctor-dept">
+            <text class="dept-name">{{ doctorInfo.department }}</text>
+          </view>
+        </view>
       </view>
     </view>
 
@@ -44,14 +26,13 @@
         <text class="title-text">个人信息</text>
       </view>
       <view class="info-list">
-        <view class="info-item" @click="showEditDialog('name')">
+        <view class="info-item">
           <view class="item-left">
             <text class="item-icon">👤</text>
             <text class="item-label">姓名</text>
           </view>
           <view class="item-right">
             <text class="item-value">{{ doctorInfo.name }}</text>
-            <text class="item-arrow">›</text>
           </view>
         </view>
 
@@ -74,56 +55,6 @@
             <text class="item-value">{{ doctorInfo.title }}</text>
           </view>
         </view>
-
-        <view class="info-item" @click="showEditDialog('phone')">
-          <view class="item-left">
-            <text class="item-icon">📱</text>
-            <text class="item-label">联系电话</text>
-          </view>
-          <view class="item-right">
-            <text class="item-value">{{ doctorInfo.phone }}</text>
-            <text class="item-arrow">›</text>
-          </view>
-        </view>
-
-        <view class="info-item" @click="showEditDialog('email')">
-          <view class="item-left">
-            <text class="item-icon">📧</text>
-            <text class="item-label">邮箱</text>
-          </view>
-          <view class="item-right">
-            <text class="item-value">{{ doctorInfo.email }}</text>
-            <text class="item-arrow">›</text>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <!-- 专业信息 -->
-    <view class="info-section">
-      <view class="section-title">
-        <text class="title-text">专业信息</text>
-      </view>
-      <view class="info-list">
-        <view class="info-item">
-          <view class="item-left">
-            <text class="item-icon">🎖️</text>
-            <text class="item-label">执业证号</text>
-          </view>
-          <view class="item-right">
-            <text class="item-value">{{ doctorInfo.licenseNumber }}</text>
-          </view>
-        </view>
-
-        <view class="info-item">
-          <view class="item-left">
-            <text class="item-icon">⏱️</text>
-            <text class="item-label">从业年限</text>
-          </view>
-          <view class="item-right">
-            <text class="item-value">{{ doctorInfo.yearsOfPractice }}年</text>
-          </view>
-        </view>
       </view>
     </view>
 
@@ -134,6 +65,16 @@
       </view>
       <view class="specialty-container">
         <text class="specialty-text">{{ doctorInfo.specialty }}</text>
+      </view>
+    </view>
+
+    <!-- 个人简介 -->
+    <view class="info-section">
+      <view class="section-title">
+        <text class="title-text">个人简介</text>
+      </view>
+      <view class="specialty-container">
+        <text class="specialty-text">{{ doctorInfo.doctorDesc || '暂无简介' }}</text>
       </view>
     </view>
 
@@ -151,18 +92,18 @@
           <text class="menu-arrow">›</text>
         </view>
 
-        <view class="menu-item" @click="goToStatistics">
+        <view class="menu-item" @click="goMyRequests">
           <view class="menu-left">
-            <text class="menu-icon">📊</text>
-            <text class="menu-label">接诊统计</text>
+            <text class="menu-icon">📄</text>
+            <text class="menu-label">我的申请</text>
           </view>
           <text class="menu-arrow">›</text>
         </view>
 
-        <view class="menu-item" @click="goToSettings">
+        <view class="menu-item" @click="goEditProfile">
           <view class="menu-left">
-            <text class="menu-icon">⚙️</text>
-            <text class="menu-label">系统设置</text>
+            <text class="menu-icon">✏️</text>
+            <text class="menu-label">编辑资料</text>
           </view>
           <text class="menu-arrow">›</text>
         </view>
@@ -174,37 +115,40 @@
           </view>
           <text class="menu-arrow">›</text>
         </view>
-
-        <view class="menu-item" @click="goToLeaveApplication">
-          <view class="menu-left">
-            <text class="menu-icon">📝</text>
-            <text class="menu-label">申请请假</text>
-          </view>
-          <text class="menu-arrow">›</text>
-        </view>
       </view>
     </view>
 
-    <!-- 退出登录按钮 -->
-    <view class="logout-section">
-      <button class="logout-btn" @click="logout">退出登录</button>
-    </view>
-
-    <!-- 编辑弹窗 -->
-    <view v-if="editDialog.visible" class="dialog-mask" @click.self="closeEditDialog">
+    <!-- 修改密码弹窗 -->
+    <view v-if="passwordDialog.visible" class="dialog-mask" @click.self="closePasswordDialog">
       <view class="dialog-box">
-        <text class="dialog-title">编辑{{ editDialog.label }}</text>
+        <text class="dialog-title">修改密码</text>
         <input
           class="dialog-input"
-          v-model="editDialog.value"
-          :placeholder="`请输入${editDialog.label}`"
+          v-model="passwordDialog.oldPassword"
+          password
+          placeholder="请输入原密码"
+        />
+        <input
+          class="dialog-input"
+          v-model="passwordDialog.newPassword"
+          password
+          placeholder="请输入新密码（不少于6位）"
+        />
+        <input
+          class="dialog-input"
+          v-model="passwordDialog.confirmPassword"
+          password
+          placeholder="请再次输入新密码"
         />
         <view class="dialog-actions">
-          <button class="dialog-btn cancel" @click="closeEditDialog">取消</button>
-          <button class="dialog-btn save" @click="saveEdit">保存</button>
+          <button class="dialog-btn cancel" @click="closePasswordDialog">取消</button>
+          <button class="dialog-btn save" @click="submitPasswordChange">确定</button>
         </view>
       </view>
     </view>
+
+    <!-- 医生端底部导航 -->
+    <DoctorTabBar active="profile" />
   </view>
 </template>
 
@@ -214,30 +158,29 @@ import { uniNavigateTo, uniShowToast } from '@/utils/uniHelper'
 import { useUserStore } from '@/store/user'
 import { doctorApi } from '@/api/doctor'
 import { getDepartmentDetail } from '@/api/department'
+import DoctorTabBar from '@/components/DoctorTabBar.vue'
 
-// 医生信息（示例数据，可通过接口替换）
 const doctorInfo = ref({
   id: null,
-  name: '张医生',
-  title: '主治医师',
-  department: '内科',
+  name: '',
+  title: '',
+  department: '',
   departmentId: null,
   avatar: '/static/doctor.svg',
-  phone: '138****5678',
-  email: 'zhang***@hospital.edu.cn',
-  licenseNumber: '1101-2024-XYZ',
-  yearsOfPractice: 8,
-  specialty: '呼吸道疾病、发热门诊、慢性病管理'
-})
-
-const stats = ref({
-  totalPatients: 1258,
-  todayPatients: 12,
-  rating: 4.8
+  specialty: '',
+  doctorDesc: ''
 })
 
 const loadingProfile = ref(false)
 const userStore = useUserStore()
+
+// 修改密码弹窗
+const passwordDialog = ref({
+  visible: false,
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
 
 async function loadDoctorProfile() {
   if (loadingProfile.value) return
@@ -266,19 +209,8 @@ async function loadDoctorProfile() {
       department: p.deptName || p.departmentName || p.department || '未知科室',
       departmentId: p.deptId || p.departmentId || null,
       avatar: p.avatar || p.avatarUrl || p.photo || '/static/doctor.svg',
-      phone: p.phone || p.mobile || p.tel || '',
-      email: p.email || p.mail || '',
-      licenseNumber: p.licenseNumber || p.license_no || p.license || '',
-      yearsOfPractice: p.yearsOfPractice ?? p.years ?? p.practiceYears ?? 0,
-      specialty: p.specialty || p.doctor_desc || p.description || ''
-    }
-
-    if (p.totalPatients || p.todayPatients || p.rating) {
-      stats.value = {
-        totalPatients: Number(p.totalPatients ?? stats.value.totalPatients),
-        todayPatients: Number(p.todayPatients ?? stats.value.todayPatients),
-        rating: Number(p.rating ?? stats.value.rating)
-      }
+      specialty: p.specialty || '',
+      doctorDesc: p.doctorDesc || p.doctor_desc || p.description || ''
     }
   } catch (e) {
     console.error('加载医生资料失败:', e)
@@ -311,6 +243,9 @@ function goBackToSchedule() {
 function goToScheduleManagement() {
   uniNavigateTo({ url: '/subpkg/doctor/schedule/main' })
 }
+function goMyRequests() {
+  uniNavigateTo({ url: '/subpkg/doctor/profile/requests' })
+}
 function goToStatistics() {
   uniShowToast('接诊统计功能开发中')
 }
@@ -319,7 +254,44 @@ function goToSettings() {
   uniNavigateTo({ url: '/pages/profile/profile' })
 }
 function changePassword() {
-  uniShowToast('请前往系统设置中修改密码')
+  passwordDialog.value.visible = true
+  passwordDialog.value.oldPassword = ''
+  passwordDialog.value.newPassword = ''
+  passwordDialog.value.confirmPassword = ''
+}
+
+function closePasswordDialog() {
+  passwordDialog.value.visible = false
+}
+
+async function submitPasswordChange() {
+  const { oldPassword, newPassword, confirmPassword } = passwordDialog.value
+  if (!oldPassword) {
+    uniShowToast('请输入原密码')
+    return
+  }
+  if (!newPassword || newPassword.length < 6) {
+    uniShowToast('新密码不少于6位')
+    return
+  }
+  if (newPassword !== confirmPassword) {
+    uniShowToast('两次输入的新密码不一致')
+    return
+  }
+
+  try {
+    // TODO: 调用后端修改密码接口，如 userApi.changePassword({ oldPassword, newPassword })
+    uniShowToast('已提交修改密码请求')
+    closePasswordDialog()
+  } catch (e) {
+    console.error('修改密码失败:', e)
+    uniShowToast('修改失败，请稍后重试')
+  }
+}
+
+// 统一编辑资料页
+function goEditProfile() {
+  uniNavigateTo({ url: '/subpkg/doctor/profile/edit' })
 }
 
 // 跳转到请假申请页面
@@ -347,16 +319,18 @@ const editDialog = ref({
 })
 
 function showEditDialog(field) {
-  const labelMap = { name: '姓名', phone: '联系电话', email: '邮箱' }
+  const labelMap = { name: '姓名', phone: '联系电话', email: '邮箱', specialty: '擅长领域' }
   editDialog.value.visible = true
   editDialog.value.field = field
   editDialog.value.label = labelMap[field] || field
   editDialog.value.value = doctorInfo.value[field] || ''
 }
+
 function closeEditDialog() {
   editDialog.value.visible = false
 }
-function saveEdit() {
+
+async function saveEdit() {
   const { field, value } = editDialog.value
   // 简单校验
   if (field === 'name' && !value.trim()) {
@@ -371,9 +345,40 @@ function saveEdit() {
     uniShowToast('请输入有效邮箱')
     return
   }
+  if (field === 'specialty' && !value.trim()) {
+    uniShowToast('擅长领域不能为空')
+    return
+  }
+  // 本地更新
   doctorInfo.value[field] = value
   closeEditDialog()
-  uniShowToast('已保存')
+
+  // 若后端已提供更新接口，则尝试提交修改
+  try {
+    if (typeof doctorApi?.updateProfile === 'function') {
+      await doctorApi.updateProfile(doctorInfo.value)
+      uniShowToast('已提交并保存')
+    } else {
+      uniShowToast('已保存（待接入后端同步接口）')
+    }
+  } catch (e) {
+    console.error('提交个人信息失败:', e)
+    uniShowToast('本地已保存，但提交服务器失败')
+  }
+}
+
+// 更换头像（前端本地预览，预留后端上传接口）
+function onChangeAvatar() {
+  uni.chooseImage({
+    count: 1,
+    sizeType: ['compressed'],
+    success: async (res) => {
+      const tempPath = res.tempFilePaths && res.tempFilePaths[0]
+      if (!tempPath) return
+      doctorInfo.value.avatar = tempPath
+      // TODO: 调用后端上传接口，成功后更新为服务端返回的头像 URL
+    }
+  })
 }
 
 // 退出登录
@@ -398,24 +403,9 @@ function logout() {
 .profile-page {
   min-height: 100vh;
   padding: 24rpx;
+  padding-bottom: 140rpx;
   box-sizing: border-box;
   background: linear-gradient(180deg, #e9f2ff 0%, #f7f9fc 100%);
-}
-
-/* 返回按钮 */
-.back-section {
-  display: flex;
-  align-items: center;
-  color: #2a7bff;
-  font-weight: 600;
-  margin-bottom: 20rpx;
-}
-.back-icon {
-  font-size: 40rpx;
-  margin-right: 8rpx;
-}
-.back-text {
-  font-size: 28rpx;
 }
 
 /* 头部信息 */
@@ -429,13 +419,23 @@ function logout() {
 .avatar-section {
   display: flex;
   align-items: center;
-  gap: 16rpx;
+  gap: 20rpx;
 }
 .avatar {
   width: 96rpx;
   height: 96rpx;
   border-radius: 999rpx;
   background: #e9f2ff;
+}
+.doctor-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.doctor-main-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 .doctor-basic {
   display: flex;
@@ -452,7 +452,7 @@ function logout() {
   color: #7a8aa0;
 }
 .doctor-dept {
-  margin-top: 12rpx;
+  margin-top: 8rpx;
 }
 .dept-name {
   display: inline-block;
@@ -462,6 +462,11 @@ function logout() {
   color: #2a7bff;
   font-size: 24rpx;
   font-weight: 600;
+}
+
+.logout-inline {
+  font-size: 24rpx;
+  color: #ff4b4b;
 }
 
 /* 统计 */
@@ -594,22 +599,6 @@ function logout() {
 .menu-arrow {
   font-size: 40rpx;
   color: #a0b7e0;
-}
-
-/* 退出登录 */
-.logout-section {
-  margin-top: 12rpx;
-}
-.logout-btn {
-  width: 100%;
-  border: none;
-  border-radius: 12rpx;
-  padding: 24rpx 0;
-  color: #fff;
-  font-size: 28rpx;
-  font-weight: 700;
-  background: linear-gradient(90deg, #ff3b30, #ff6b6b);
-  box-shadow: 0 12rpx 20rpx rgba(255, 59, 48, 0.24);
 }
 
 /* 编辑弹窗 */

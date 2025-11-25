@@ -28,7 +28,7 @@
         </view>
         <view class="profile-item" @click="goToMyDoctor">
           <image class="icon icon-lg" src="/static/doctor.svg" />
-          <text>我的医生</text>
+          <text>医生端</text>
         </view>
       </view>
     </view>
@@ -133,10 +133,28 @@ const goToMyPatient = createAuthHandler(
   '/subpkg/profile/personal/mypatient'
 )
 
-const goToMyDoctor = createAuthHandler(
-  AUTH_REQUIRED_FEATURES.PROFILE.MY_DOCTOR,
-  '/subpkg/profile/personal/mydoctor'
-)
+// 进入医生端
+const goToMyDoctor = () => {
+  const stored = uni.getStorageSync('userInfo') || {}
+  const userType = stored.userType
+  // 2 表示医生账号，其它类型无权限
+  if (userType !== 2) {
+    uni.showModal({
+      title: '无权限',
+      content: '当前账号无权限进入医生端，请使用医生账号登录',
+      confirmText: '去登录',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          uni.reLaunch({ url: '/subpkg/auth/login' })
+        }
+      }
+    })
+    return
+  }
+  // 医生账号：重启到医生端排班首页
+  uni.reLaunch({ url: '/subpkg/doctor/schedule/main' })
+}
 
 const goToRegisterRecord = createAuthHandler(
   AUTH_REQUIRED_FEATURES.PROFILE.RECORDS,

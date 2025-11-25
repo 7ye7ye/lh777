@@ -14,6 +14,7 @@ export default {
   accountPermission: 'Account Permission',
   leaveApproval: 'Leave Approval',
   doctorRegister: 'Doctor Registration',
+  doctorProfileUpdateApproval: 'Doctor Profile Update Approval',
 };
 
 
