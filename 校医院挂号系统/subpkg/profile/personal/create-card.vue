@@ -387,24 +387,23 @@ const handleCreate = async () => {
     
     const response = await patientApi.createCard(requestData)
     
-    // 处理成功响应
-    if (response.code === 200) {
+    console.log("到底是啥："+response)
+    // 处理成功响应（由于响应拦截器，所以只有个就诊卡id返回了）
+    if (response) {
       uni.showToast({ 
         title: response.message || '就诊卡创建成功',
         icon: 'success',
         duration: 1500
       })
       
-      // 更新用户状态
-      userStore.updateUserInfo({ hasPatientCard: true })
-      
       // 延迟返回上一页
       setTimeout(() => {
         uni.navigateBack()
       }, 1500)
     } else {
-      // 处理业务错误
-      throw new Error(response.message || '创建就诊卡失败')
+      // 处理业务错误（仅非200才认为失败）
+      const errorMsg = (response && response.message) || '创建就诊卡失败'
+      throw new Error(errorMsg)
     }
   } catch (error) {
     console.error('创建就诊卡失败:', error)
@@ -413,11 +412,13 @@ const handleCreate = async () => {
     let errorMessage = '创建失败，请稍后重试'
     
     // 根据错误类型显示不同的提示信息
-    if (error.description) {
+    if (error && error.description) {
       errorMessage = error.description
-    } else if (error.errMsg && error.errMsg.includes('timeout')) {
+    } else if (error && error.message) {
+      errorMessage = error.message
+    } else if (error && error.errMsg && error.errMsg.includes('timeout')) {
       errorMessage = '网络请求超时，请检查网络后重试'
-    } else if (!navigator.onLine) {
+    } else if (typeof navigator !== 'undefined' && !navigator.onLine) {
       errorMessage = '网络连接已断开，请检查网络设置'
     }
     

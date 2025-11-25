@@ -4,7 +4,7 @@ export const useUserStore = defineStore('user', {
     state: () => ({
         token: '',
         userInfo: null,
-        isLoggedIn: false
+        isLoggedIn: false,
     }),
     actions: {
         setToken(token) {
@@ -46,8 +46,9 @@ export const useUserStore = defineStore('user', {
             // 清除本地存储
             uni.removeStorageSync('token')
             uni.removeStorageSync('userInfo')
-        }
+        },
     }
+    
 })
 
 
