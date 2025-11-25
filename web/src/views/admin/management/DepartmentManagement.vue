@@ -18,7 +18,6 @@
           >
             <a-select-option :value="1">一级科室</a-select-option>
             <a-select-option :value="2">二级科室</a-select-option>
-            <a-select-option :value="3">三级科室</a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item>
@@ -49,6 +48,9 @@
         <template v-if="column.key === 'deptLevel'">
           <span>{{ formatDeptLevel(record.deptLevel) }}</span>
         </template>
+        <template v-else-if="column.key === 'parentDeptName'">
+          <span>{{ getParentDeptName(record.parentDeptId) }}</span>
+        </template>
         <template v-else-if="column.key === 'action'">
           <a-space size="middle">
             <a @click="handleEdit(record)">编辑</a>
@@ -77,19 +79,31 @@
           <a-input v-model:value="formData.deptName" placeholder="请输入科室名称" />
         </a-form-item>
         <a-form-item label="科室级别" name="deptLevel">
-          <a-select v-model:value="formData.deptLevel" placeholder="请选择科室级别">
+          <a-select 
+    v-model:value="formData.deptLevel" 
+    placeholder="请选择科室级别"
+    @change="handleDeptLevelChange"
+  >
             <a-select-option :value="1">一级科室</a-select-option>
             <a-select-option :value="2">二级科室</a-select-option>
-            <a-select-option :value="3">三级科室</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="上级科室ID" name="parentDeptId">
-          <a-input-number
+        <a-form-item label="上级科室" name="parentDeptId">
+          <a-select
             style="width: 100%"
-            :min="0"
             v-model:value="formData.parentDeptId"
-            placeholder="请输入上级科室ID"
-          />
+            allow-clear
+            :disabled="formData.deptLevel === 1"
+            placeholder="请选择上级科室"
+          >
+            <a-select-option 
+              v-for="dept in parentDepartmentList.filter(item => !isEdit.value || item.deptId !== formData.deptId)" 
+              :key="dept.deptId" 
+              :value="dept.deptId"
+            >
+              {{ dept.deptName }}
+            </a-select-option>
+          </a-select>
         </a-form-item>
         <a-form-item label="科室位置" name="location">
           <a-input v-model:value="formData.location" placeholder="请输入科室位置" />
@@ -109,7 +123,7 @@ import type { FormInstance } from 'ant-design-vue';
 import { getDepartmentList, createDepartment, updateDepartment, deleteDepartment, type Department } from '/@/api/hospital/department';
 import { useRouter } from 'vue-router';
 
-type DepartmentRecord = Department & { createTime?: string };
+type DepartmentRecord = Department & { createTime?: string; updateTime?: string };
 
 interface PaginationState {
   current: number;
@@ -130,6 +144,7 @@ interface DepartmentFormModel {
 
 const loading = ref(false);
 const tableData = ref<DepartmentRecord[]>([]);
+const parentDepartmentList = ref<DepartmentRecord[]>([]);
 const pagination = reactive<PaginationState>({
   current: 1,
   pageSize: 10,
@@ -155,9 +170,12 @@ const columns = [
         customRender: 'deptName'
       },
   },
-  { title: '科室级别', dataIndex: 'deptLevel', key: 'deptLevel', width: 120 },
-  { title: '科室简介', dataIndex: 'deptDesc', key: 'deptDesc' },
+  { title: '科室级别', dataIndex: 'deptLevel', key: 'deptLevel', width: 100 },
+  { title: '上一级科室', dataIndex: 'parentDeptId', key: 'parentDeptName', width: 160 },
+  { title: '科室简介', dataIndex: 'deptDesc', key: 'deptDesc', width: 240 },
   { title: '位置', dataIndex: 'location', key: 'location', width: 160 },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 180 },
+  { title: '更新时间', dataIndex: 'updateTime', key: 'updateTime', width: 180 },
   { title: '操作', key: 'action', width: 160 },
 ];
 
@@ -187,6 +205,14 @@ function formatDeptLevel(level?: number) {
   return `第${level}级`;
 }
 
+function getParentDeptName(parentDeptId?: number): string {
+  if (!parentDeptId) {
+    return '-';
+  }
+  const dept = tableData.value.find(item => item.deptId === parentDeptId);
+  return dept ? dept.deptName : '-';
+}
+
 function handleViewDetail(deptId: string) {
   router.push(`/admin/management/department/detail/${deptId}`);
 }
@@ -201,6 +227,17 @@ function normalizeList(res: unknown): { items: DepartmentRecord[]; total: number
     return { items: records, total };
   }
   return { items: [], total: 0 };
+}
+
+async function fetchParentDepartmentList() {
+  try {
+    const res = await getDepartmentList({ deptLevel: 1 } as any);
+    const { items } = normalizeList(res);
+    parentDepartmentList.value = items.filter(item => item.deptLevel === 1);
+  } catch (error) {
+    console.error('获取一级科室列表失败:', error);
+    parentDepartmentList.value = [];
+  }
 }
 
 async function fetchDepartmentList() {
@@ -256,8 +293,15 @@ function handleAdd() {
   isEdit.value = false;
   modalTitle.value = '添加科室';
   resetFormData();
+  fetchParentDepartmentList();
   modalVisible.value = true;
   nextTick(() => formRef.value?.clearValidate());
+}
+
+function handleDeptLevelChange(value: number) {
+  if (value === 1) {
+    formData.parentDeptId = undefined;
+  }
 }
 
 function handleEdit(record: DepartmentRecord) {
@@ -269,6 +313,7 @@ function handleEdit(record: DepartmentRecord) {
   formData.parentDeptId = record.parentDeptId;
   formData.deptDesc = record.deptDesc;
   formData.location = record.location;
+  fetchParentDepartmentList();
   modalVisible.value = true;
   nextTick(() => formRef.value?.clearValidate());
 }

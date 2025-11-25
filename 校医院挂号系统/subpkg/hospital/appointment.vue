@@ -1,117 +1,117 @@
 <template>
-	<view class="detail-bg">
-		<!-- 医生基本信息 -->
-		<view class="doctor-card" v-if="doctor && doctor.doctorName">
-			<image :src="doctor.avatar || '/static/doctor.svg'" mode="aspectFill" class="avatar"></image>
-			<view class="doctor-info">
-				<view class="name-title">
-					<text class="name">{{ doctor.doctorName }}</text>
-					<text class="title">{{ doctor.title }}</text>
+	<view class="appointment-page-wrapper">
+		<view class="detail-bg">
+			<!-- 医生基本信息 -->
+			<view class="doctor-card" v-if="doctor && doctor.doctorName">
+				<image :src="doctor.avatar || '/static/doctor.svg'" mode="aspectFill" class="avatar"></image>
+				<view class="doctor-info">
+					<view class="name-title">
+						<text class="name">{{ doctor.doctorName }}</text>
+						<text class="title">{{ doctor.title }}</text>
+					</view>
+					<view class="specialty">擅长：{{ doctor.specialty }}</view>
 				</view>
-				<view class="specialty">擅长：{{ doctor.specialty }}</view>
 			</view>
-		</view>
 
-		<!-- 科室信息 -->
-		<view class="section-card" v-if="department && department.deptName">
-			<view class="section-title">所属科室</view>
-			<view class="section-content">{{ department.deptName }}</view>
-		</view>
+			<!-- 科室信息 -->
+			<view class="section-card" v-if="department && department.deptName">
+				<view class="section-title">所属科室</view>
+				<view class="section-content">{{ department.deptName }}</view>
+			</view>
 
-		<!-- 选择挂号类型 -->
-		<view class="section-card">
-			<view class="section-title">挂号类型</view>
-			<picker mode="selector" :range="registrationTypes" range-key="typeName" @change="onTypeChange">
-				<view class="picker-display">
-					{{ selectedType ? selectedType.typeName : '请选择挂号类型' }}
-					<text v-if="selectedType" class="price-hint">
-						¥{{ selectedType.priceOriginal }}
-					</text>
-				</view>
-			</picker>
-		</view>
-		<view class="appointment-page">
-			<!-- 选择预约日期 -->
+			<!-- 选择挂号类型 -->
 			<view class="section-card">
-				<view class="section-title">预约日期</view>
-				<!-- 提示可预约范围 -->
-				<view class="date-hint">可预约时间：七天之内</view>
-
-				<picker mode="date" :start="today" :end="maxDate" @change="onDateChange">
+				<view class="section-title">挂号类型</view>
+				<picker mode="selector" :range="registrationTypes" range-key="typeName" @change="onTypeChange">
 					<view class="picker-display">
-						{{ appointmentDate || '请选择预约日期' }}
+						{{ selectedType ? selectedType.typeName : '请选择挂号类型' }}
+						<text v-if="selectedType" class="price-hint">
+							¥{{ selectedType.priceOriginal }}
+						</text>
 					</view>
 				</picker>
 			</view>
 
-			<!-- 选择预约时段 -->
-			<view class="section-card" v-if="appointmentDate && selectedType">
-				<view class="section-title">选择时段</view>
-				<view v-if="loadingSchedules" class="loading-text">加载中...</view>
-				<view v-else class="time-slots">
-					<view v-for="slot in timeSlots" :key="slot.key" class="time-slot-item" :class="{ 
-					    selected: selectedSlot === slot.key,
-					    disabled: !slotStatus[slot.key]?.exists,
-					    full: slotStatus[slot.key]?.exists && slotStatus[slot.key]?.remaining === 0
-					  }" @click="selectTimeSlot(slot)">
-						<view class="slot-info">
-							<text class="slot-time">{{ slot.label }} ({{ slot.timeRange }})</text>
-							<text v-if="slotStatus[slot.key]?.exists && slotStatus[slot.key]?.remaining > 0"
-								class="slot-quota">
-								剩余 {{ slotStatus[slot.key].remaining }}
-							</text>
-						</view>
+			<view class="appointment-page">
+				<!-- 选择预约日期 -->
+				<view class="section-card">
+					<view class="section-title">预约日期</view>
+					<!-- 提示可预约范围 -->
+					<view class="date-hint">可预约时间：七天之内</view>
 
-						<!-- 状态显示 -->
-						<view v-if="!slotStatus[slot.key]?.exists" class="slot-status none">
-							无号
+					<picker mode="date" :start="today" :end="maxDate" @change="onDateChange">
+						<view class="picker-display">
+							{{ appointmentDate || '请选择预约日期' }}
 						</view>
-						<view v-else-if="slotStatus[slot.key]?.remaining === 0" class="slot-status full">
-							已满
-						</view>
-						<view v-else-if="selectedSlot === slot.key" class="slot-status selected">
-							已选择
+					</picker>
+				</view>
+
+				<!-- 选择预约时段 -->
+				<view class="section-card" v-if="appointmentDate && selectedType">
+					<view class="section-title">选择时段</view>
+					<view v-if="loadingSchedules" class="loading-text">加载中...</view>
+					<view v-else class="time-slots">
+						<view v-for="slot in timeSlots" :key="slot.key" class="time-slot-item" :class="{ 
+						    selected: selectedSlot === slot.key,
+						    disabled: !slotStatus[slot.key]?.exists,
+						    full: slotStatus[slot.key]?.exists && slotStatus[slot.key]?.remaining === 0
+						  }" @click="selectTimeSlot(slot)">
+							<view class="slot-info">
+								<text class="slot-time">{{ slot.label }} ({{ slot.timeRange }})</text>
+								<text v-if="slotStatus[slot.key]?.exists && slotStatus[slot.key]?.remaining > 0"
+									class="slot-quota">
+									剩余 {{ slotStatus[slot.key].remaining }}
+								</text>
+							</view>
+
+							<!-- 状态显示 -->
+							<view v-if="!slotStatus[slot.key]?.exists" class="slot-status none">
+								无号
+							</view>
+							<view v-else-if="slotStatus[slot.key]?.remaining === 0" class="slot-status full">
+								已满
+							</view>
+							<view v-else-if="selectedSlot === slot.key" class="slot-status selected">
+								已选择
+							</view>
 						</view>
 					</view>
-
-
 				</view>
 			</view>
 		</view>
-	</view>
 
-	<!-- 预约信息摘要 -->
-	<view class="section-card summary-card" v-if="selectedSchedule && selectedType">
-		<view class="section-title">预约信息</view>
-		<view class="summary-item">
-			<text class="summary-label">挂号类型：</text>
-			<text class="summary-value">{{ selectedType.typeName }}</text>
-		</view>
-		<view class="summary-item">
-			<text class="summary-label">预约日期：</text>
-			<text class="summary-value">{{ appointmentDate }}</text>
-		</view>
-		<view class="summary-item">
-			<text class="summary-label">预约时段：</text>
-			<text class="summary-value">
-				{{ selectedSchedule?.time_range || selectedSchedule?.timeRange || '' }}
-			</text>
+		<!-- 预约信息摘要 -->
+		<view class="section-card summary-card" v-if="selectedSchedule && selectedType">
+			<view class="section-title">预约信息</view>
+			<view class="summary-item">
+				<text class="summary-label">挂号类型：</text>
+				<text class="summary-value">{{ selectedType.typeName }}</text>
+			</view>
+			<view class="summary-item">
+				<text class="summary-label">预约日期：</text>
+				<text class="summary-value">{{ appointmentDate }}</text>
+			</view>
+			<view class="summary-item">
+				<text class="summary-label">预约时段：</text>
+				<text class="summary-value">
+					{{ selectedSchedule?.time_range || selectedSchedule?.timeRange || '' }}
+				</text>
+			</view>
+
+			<view class="summary-item">
+				<text class="summary-label">费用：</text>
+				<text class="summary-value price">¥{{ selectedType.priceOriginal }}</text>
+			</view>
 		</view>
 
-		<view class="summary-item">
-			<text class="summary-label">费用：</text>
-			<text class="summary-value price">¥{{ selectedType.priceOriginal }}</text>
+		<!-- 预约按钮 -->
+		<view class="action-buttons">
+			<view class="action-btn primary" :class="{ 'disabled': !canSubmit }" @click="confirmAppointment">
+				<text>确认预约</text>
+			</view>
 		</view>
-	</view>
 
-	<!-- 预约按钮 -->
-	<view class="action-buttons">
-		<view class="action-btn primary" :class="{ 'disabled': !canSubmit }" @click="confirmAppointment">
-			<text>确认预约</text>
-		</view>
-	</view>
-
-	<view class="tabbar-placeholder">
+		<view class="tabbar-placeholder"></view>
 	</view>
 </template>
 
@@ -540,6 +540,11 @@
 </script>
 
 <style scoped>
+	.appointment-page-wrapper {
+		background: #f8faff;
+		min-height: 100vh;
+	}
+
 	.detail-bg {
 		background: #f8faff;
 		min-height: 100vh;

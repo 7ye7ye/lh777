@@ -7,7 +7,7 @@
 				</view>
 				<view class="card-body">
 					<view class="body-title" :class="getTitleClass(messageDetail.messageType)">
-						{{ messageDetail.title }}
+						{{ getDisplayTitle(messageDetail) }}
 					</view>
 					<view class="info-row" v-if="messageDetail.content.patient_card_no">
 						<text class="label">用户就诊卡号：</text>
@@ -29,12 +29,24 @@
 						<text class="label">预约时间：</text>
 						<text class="value">{{ messageDetail.content.appointment_time }}</text>
 					</view>
+					<view class="info-row" v-if="isWaitingMessage(messageDetail) && messageDetail.content.waiting_rank">
+						<text class="label">候补序号：</text>
+						<text class="value">{{ messageDetail.content.waiting_rank }}</text>
+					</view>
+					<view class="info-row" v-if="isWaitingMessage(messageDetail) && messageDetail.content.waiting_join_time">
+						<text class="label">加入候补时间：</text>
+						<text class="value">{{ messageDetail.content.waiting_join_time }}</text>
+					</view>
+					<view class="info-row" v-if="isWaitingSuccess(messageDetail) && messageDetail.content.promote_time">
+						<text class="label">转正时间：</text>
+						<text class="value">{{ messageDetail.content.promote_time }}</text>
+					</view>
 					<view class="info-row" v-if="messageDetail.content.hospital_remark">
 						<text class="label">医院备注：</text>
 						<text class="value remark">{{ messageDetail.content.hospital_remark }}</text>
 					</view>
 				</view>
-				<view class="card-footer" @click="goToReceipt(messageDetail.appointmentId)">
+				<view class="card-footer" v-if="shouldShowReceipt(messageDetail)" @click="goToReceipt(messageDetail.appointmentId)">
 					<text>查看详情</text>
 					<image class="arrow-icon" src="/static/icon_arrow_right.png" mode="aspectFit"></image>
 				</view>
@@ -66,6 +78,11 @@
 				switch(messageType) {
 					case 'APPOINTMENT_REMINDER':
 						return 'card-reminder';
+					case 'APPOINTMENT_ONE_HOUR':
+						return 'card-onehour';
+					case 'APPOINTMENT_WAITING_SUCCESS':
+					case 'APPOINTMENT_WAITING_JOIN':
+						return 'card-waiting';
 					default:
 						return '';
 				}
@@ -78,9 +95,49 @@
 						return 'title-reminder';
 					case 'APPOINTMENT_CANCEL':
 						return 'title-cancel';
+					case 'APPOINTMENT_ONE_HOUR':
+						return 'title-onehour';
+					case 'APPOINTMENT_WAITING_SUCCESS':
+					case 'APPOINTMENT_WAITING_JOIN':
+						return 'title-waiting';
 					default:
 						return '';
 				}
+			},
+			
+			// 根据消息类型返回显示的标题
+			getDisplayTitle(message) {
+				if (!message) return '';
+				if (message.messageType === 'APPOINTMENT_ONE_HOUR') {
+					return '就诊前一小时提醒';
+				}
+				if (message.messageType === 'APPOINTMENT_WAITING_SUCCESS') {
+					return '候补挂号成功';
+				}
+				if (message.messageType === 'APPOINTMENT_WAITING_JOIN') {
+					return '已加入候补队列';
+				}
+				return message.title;
+			},
+			
+			isWaitingSuccess(message) {
+				return message && message.messageType === 'APPOINTMENT_WAITING_SUCCESS';
+			},
+			
+			isWaitingJoin(message) {
+				return message && message.messageType === 'APPOINTMENT_WAITING_JOIN';
+			},
+			
+			isWaitingMessage(message) {
+				return this.isWaitingSuccess(message) || this.isWaitingJoin(message);
+			},
+			
+			shouldShowReceipt(message) {
+				if (!message) return false;
+				if (this.isWaitingJoin(message)) {
+					return false;
+				}
+				return !!message.appointmentId;
 			},
 			
 			fetchMessageDetail() {
@@ -181,9 +238,29 @@
 		color: #999;
 	}
 	
+	/* 一小时前提醒标题样式 */
+	.body-title.title-onehour {
+		color: #ff4d4f;
+	}
+	
+	/* 候补成功标题样式 */
+	.body-title.title-waiting {
+		color: #2f8df6;
+	}
+	
 	/* 提醒消息卡片样式 */
 	.detail-card.card-reminder {
 		border-left: 4rpx solid #ff9900;
+	}
+	
+	/* 一小时前提醒消息卡片样式 */
+	.detail-card.card-onehour {
+		border-left: 4rpx solid #ff4d4f;
+	}
+	
+	/* 候补成功卡片样式 */
+	.detail-card.card-waiting {
+		border-left: 4rpx solid #2f8df6;
 	}
 	.info-row {
 		display: flex;

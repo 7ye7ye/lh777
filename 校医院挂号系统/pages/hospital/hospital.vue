@@ -42,9 +42,9 @@
           <image src="/static/logo.png" class="icon" @tap="goDoctors" />
           <text @tap="goDoctors">专家介绍</text>
         </view>
-        <view class="hospital-item">
-          <image src="/static/inhospital_navigation.svg" class="icon" />
-          <text>院内导航</text>
+        <view class="hospital-item" @tap="goNavigation">
+          <image src="/static/inhospital_navigation.svg" class="icon" @tap="goNavigation" />
+          <text @tap="goNavigation">院内导航</text>
         </view>
         <view class="hospital-item">
           <image src="/static/medical_guide.svg" class="icon" />
@@ -104,6 +104,10 @@ const goDepartments = () => {
 
 const goDoctors = () => {
   uni.navigateTo({ url: '/subpkg/hospital/doctors' })
+}
+
+const goNavigation = () => {
+  uni.navigateTo({ url: '/subpkg/hospital/navigation' })
 }
 
 const openMap = () => {

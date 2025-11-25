@@ -2,15 +2,18 @@ package org.jeecg.modules.hospital.controller;
 
 import com.baomidou.dynamic.datasource.annotation.DS;
 import lombok.extern.slf4j.Slf4j;
+import org.jeecg.modules.hospital.dto.RegistrationDetailDTO;
 import org.jeecg.modules.hospital.entity.Appointment;
 import org.jeecg.modules.hospital.entity.Message;
 import org.jeecg.modules.hospital.service.AppointmentService;
 import org.jeecg.modules.hospital.service.MessageService;
+import org.jeecg.modules.hospital.service.RegistrationService;
 import org.jeecg.modules.hospital.task.AppointmentReminderTask;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Slf4j
 @RestController
@@ -27,12 +30,27 @@ public class AppointmentController {
     @Autowired
     private AppointmentReminderTask appointmentReminderTask;
 
+    @Autowired
+    private RegistrationService registrationService;
+
     /**
      * 根据ID获取预约详情（回执单）
      */
     @GetMapping("/detail")
     public Appointment getAppointmentDetail(@RequestParam String id) {
-        return appointmentService.getById(id);
+        Appointment appointment = appointmentService.getById(id);
+        if (appointment != null) {
+            return appointment;
+        }
+        try {
+            Long recordId = Long.valueOf(id);
+            RegistrationDetailDTO detail = registrationService.getRegistrationDetail(recordId);
+            if (detail != null) {
+                return convertToAppointment(detail);
+            }
+        } catch (NumberFormatException ignored) {
+        }
+        return null;
     }
     
     /**
@@ -78,7 +96,7 @@ public class AppointmentController {
             
             // 3. ⭐ 自动判断是否需要立即发送就诊提醒
             //    条件：预约日期 == 明天 && 当前时间 >= 08:00
-            appointmentReminderTask.checkAndCreateImmediateReminder(appointment.getId());
+            appointmentReminderTask.checkAndCreateImmediateReminder(convertToDetail(appointment));
             log.info("[createAppointment] 已检查是否需要立即提醒");
             
             return "success";
@@ -102,5 +120,77 @@ public class AppointmentController {
         
         // 临时方案：从患者姓名推断（仅示例，生产环境需改进）
         return "262"; // 这里暂时返回固定值，实际应该动态获取
+    }
+
+    private Appointment convertToAppointment(RegistrationDetailDTO detail) {
+        Appointment appointment = new Appointment();
+        appointment.setId(String.valueOf(detail.getRecordId()));
+        appointment.setQrCodeData(detail.getRegistrationNo());
+        appointment.setSerialNumber(detail.getRegistrationNo());
+        appointment.setPatientName(detail.getPatientName());
+        appointment.setHospitalAddress("北京市西直门外上园村3号");
+        appointment.setDepartmentName(detail.getDepartmentName());
+        appointment.setVisitLocation(detail.getDeptLocation() != null ? detail.getDeptLocation() : "门诊楼一层");
+        appointment.setDoctorName(detail.getDoctorName());
+        appointment.setAppointmentDate(detail.getScheduleDate());
+        appointment.setAppointmentTime(slotToTime(detail.getTimeSlot()));
+        appointment.setConsultationFee(detail.getActualPrice());
+        appointment.setStatus("预约成功");
+        appointment.setOrderNumber(detail.getRegistrationNo());
+        return appointment;
+    }
+
+    private LocalTime slotToTime(Integer slot) {
+        return switch (slot != null ? slot : 0) {
+            case 1 -> LocalTime.of(8, 0);
+            case 2 -> LocalTime.of(14, 0);
+            case 3 -> LocalTime.of(18, 0);
+            default -> LocalTime.of(9, 0);
+        };
+    }
+
+    private RegistrationDetailDTO convertToDetail(Appointment appointment) {
+        RegistrationDetailDTO detail = new RegistrationDetailDTO();
+        if (appointment == null) {
+            return detail;
+        }
+        try {
+            if (appointment.getId() != null) {
+                detail.setRecordId(Long.valueOf(appointment.getId()));
+            }
+        } catch (NumberFormatException ignored) {}
+        detail.setRegistrationNo(appointment.getSerialNumber());
+        detail.setPatientName(appointment.getPatientName());
+        detail.setDoctorName(appointment.getDoctorName());
+        detail.setDepartmentName(appointment.getDepartmentName());
+        detail.setScheduleDate(appointment.getAppointmentDate());
+        detail.setTimeSlot(timeToSlot(appointment.getAppointmentTime()));
+        detail.setPatientCardNo(appointment.getQrCodeData());
+        detail.setActualPrice(appointment.getConsultationFee());
+        return detail;
+    }
+
+    private Integer timeToSlot(LocalTime time) {
+        if (time == null) return null;
+        int hour = time.getHour();
+        if (hour < 12) return 1;
+        if (hour < 18) return 2;
+        return 3;
+    }
+
+    /**
+     * 手动触发"提前一天提醒"任务（用于测试）
+     * 访问地址：GET http://localhost:8080/api/appointment/trigger-reminder
+     */
+    @GetMapping("/trigger-reminder")
+    public String triggerReminder() {
+        try {
+            log.info("[triggerReminder] 手动触发提前一天提醒任务");
+            appointmentReminderTask.generateTomorrowReminders();
+            return "success: 提醒任务已执行，请查看日志";
+        } catch (Exception e) {
+            log.error("[triggerReminder] 执行失败", e);
+            return "error: " + e.getMessage();
+        }
     }
 }

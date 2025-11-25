@@ -11,9 +11,14 @@
 					<text class="label">就诊人</text>
 					<text class="value">{{ receiptDetail.patientName }}</text>
 				</view>
-				<view class="info-row">
+				<view class="info-row address-row">
 					<text class="label">医院地址</text>
-					<text class="value">{{ receiptDetail.hospitalAddress }}</text>
+					<view class="address-value">
+						<text class="value">{{ receiptDetail.hospitalAddress }}</text>
+						<view class="location-btn" @tap="handleOpenMap">
+							<image class="location-icon" src="/static/navigation.svg" mode="aspectFit" />
+						</view>
+					</view>
 				</view>
 				<view class="info-row">
 					<text class="label">就诊科室</text>
@@ -61,6 +66,22 @@
 			return {
 				appointmentId: null,
 				receiptDetail: null, // 存储回执单详情
+				locationConfigs: [
+					{
+						keywords: ['西直门外上园村', '社区卫生服务中心', '主校区', '东校区'],
+						name: '北京交通大学社区卫生服务中心',
+						address: '北京市西直门外上园村3号',
+						latitude: 39.9479,
+						longitude: 116.3487
+					},
+					{
+						keywords: ['威海', '文登区', '现代路', '威海校区'],
+						name: '北京交通大学威海校区校医院',
+						address: '山东省威海市文登区现代路69号（金海路东）',
+						latitude: 37.1964,
+						longitude: 122.0513
+					}
+				]
 			};
 		},
 		onLoad(options) {
@@ -124,6 +145,34 @@
 			                });
 			            }
 			        });
+			},
+			handleOpenMap() {
+				if (!this.receiptDetail) {
+					return;
+				}
+				const location = this.resolveLocationFromAddress(this.receiptDetail.hospitalAddress);
+				if (!location) {
+					uni.showToast({
+						title: '暂无法获取该地址位置',
+						icon: 'none'
+					});
+					return;
+				}
+				uni.openLocation({
+					latitude: location.latitude,
+					longitude: location.longitude,
+					name: location.name,
+					address: location.address
+				});
+			},
+			resolveLocationFromAddress(address) {
+				if (!address) {
+					return null;
+				}
+				const matched = this.locationConfigs.find((item) =>
+					item.keywords.some((keyword) => address.includes(keyword))
+				);
+				return matched || this.locationConfigs[0];
 			}
 		}
 	}
@@ -162,6 +211,29 @@
 		align-items: center;
 		padding: 16rpx 0;
 		font-size: 28rpx;
+	}
+	.address-row {
+		align-items: flex-start;
+	}
+	.address-value {
+		display: flex;
+		align-items: center;
+		gap: 12rpx;
+		flex: 1;
+		justify-content: flex-end;
+	}
+	.location-btn {
+		width: 48rpx;
+		height: 48rpx;
+		border-radius: 50%;
+		background-color: #e9f3ff;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.location-icon {
+		width: 32rpx;
+		height: 32rpx;
 	}
 	.label {
 		color: #999;
