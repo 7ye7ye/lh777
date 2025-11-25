@@ -1,9 +1,11 @@
 package org.jeecg.modules.hospital.service;
 
 import org.jeecg.common.api.vo.Result;
+import org.jeecg.modules.hospital.dto.RegistrationDetailDTO;
 import org.jeecg.modules.hospital.entity.RegistrationRecord;
 import org.jeecg.modules.hospital.entity.RegistrationType;
 import org.jeecg.modules.hospital.entity.WaitingQueue;
+import org.jeecg.modules.hospital.vo.RegistrationVO;
 
 import java.util.List;
 import java.util.Map;
@@ -61,5 +63,19 @@ public interface RegistrationService {
      * @param cancelReason 取消原因
      */
     boolean cancelRegistration(Long recordId, String cancelReason);
+
+    /**
+     * 按疾病名称查询挂号信息
+     * @param disease 疾病名称
+     * @return 挂号视图列表
+     */
+    List<RegistrationVO> listByDisease(String disease);
+
+    /**
+     * 根据挂号记录ID获取详情
+     * @param recordId 挂号记录ID
+     * @return 挂号详情
+     */
+    RegistrationDetailDTO getRegistrationDetail(Long recordId);
 
 }

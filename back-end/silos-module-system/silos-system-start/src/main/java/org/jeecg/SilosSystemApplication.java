@@ -31,6 +31,7 @@ import java.util.Map;
 @ComponentScan(basePackages = "org.jeecg")
 @ImportAutoConfiguration(JustAuthAutoConfiguration.class)
 @MapperScan("org.jeecg.modules.hospital.mapper")
+@EnableScheduling
 public class SilosSystemApplication extends SpringBootServletInitializer {
 
     @Override

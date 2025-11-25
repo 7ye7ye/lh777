@@ -12,7 +12,7 @@
 						</text>
 						<text class="card-time">{{ formatTime(message.createdTime) }}</text>
 					</view>
-					<view class="card-summary">{{ message.title }}</view>
+					<view class="card-summary">{{ getMessageSummary(message) }}</view>
 				</view>
 			</view>
 		</view>
@@ -91,6 +91,12 @@
 						return '/static/info_message.png';
 					case 'APPOINTMENT_REMINDER':
 						return '/static/info_message.png'; // 可以替换为专门的提醒图标
+					case 'APPOINTMENT_ONE_HOUR':
+						return '/static/info_message.png';
+					case 'APPOINTMENT_WAITING_SUCCESS':
+						return '/static/info_message.png';
+					case 'APPOINTMENT_WAITING_JOIN':
+						return '/static/info_message.png';
 					default:
 						return '/static/info_message.png';
 				}
@@ -105,8 +111,28 @@
 						return '预约挂号';
 					case 'APPOINTMENT_REMINDER':
 						return '就诊提醒';
+					case 'APPOINTMENT_ONE_HOUR':
+						return '就诊提醒';
+					case 'APPOINTMENT_WAITING_SUCCESS':
+						return '候补挂号';
+					case 'APPOINTMENT_WAITING_JOIN':
+						return '候补挂号';
 					default:
 						return '系统消息';
+				}
+			},
+			
+			getMessageSummary(message) {
+				if (!message) return '';
+				switch(message.messageType) {
+					case 'APPOINTMENT_ONE_HOUR':
+						return '就诊前1小时提醒';
+					case 'APPOINTMENT_WAITING_SUCCESS':
+						return '候补挂号成功';
+					case 'APPOINTMENT_WAITING_JOIN':
+						return '已加入候补队列';
+					default:
+						return message.title;
 				}
 			},
 			
@@ -115,6 +141,12 @@
 				switch(messageType) {
 					case 'APPOINTMENT_REMINDER':
 						return 'title-reminder';
+					case 'APPOINTMENT_ONE_HOUR':
+						return 'title-onehour';
+					case 'APPOINTMENT_WAITING_SUCCESS':
+						return 'title-waiting';
+					case 'APPOINTMENT_WAITING_JOIN':
+						return 'title-waiting';
 					case 'APPOINTMENT_CANCEL':
 						return 'title-cancel';
 					default:
@@ -250,6 +282,16 @@
 	/* 提醒消息标题样式 */
 	.card-title.title-reminder {
 		color: #ff9900;
+	}
+
+	/* 一小时前提醒标题样式 */
+	.card-title.title-onehour {
+		color: #ff4d4f;
+	}
+	
+	/* 候补成功标题样式 */
+	.card-title.title-waiting {
+		color: #2f8df6;
 	}
 	
 	/* 取消消息标题样式 */
