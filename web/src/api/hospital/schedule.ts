@@ -82,3 +82,33 @@ export const deleteSchedule = (scheduleId: number) =>
   defHttp.delete<boolean>({
     url: `/admin/schedule/${scheduleId}`,
   });
+
+// Excel导入排班数据
+export const importScheduleExcel = (file: File, durationMinutes: number, timeSlotType?: string, maxWorkDays?: number) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('durationMinutes', durationMinutes.toString());
+  if (timeSlotType) {
+    formData.append('timeSlotType', timeSlotType);
+  }
+  if (maxWorkDays !== undefined) {
+    formData.append('maxWorkDays', maxWorkDays.toString());
+  }
+  return defHttp.post<{
+    success: boolean;
+    message: string;
+  }>({
+    url: '/admin/schedule/importExcel',
+    data: formData,
+    // 不要手动设置Content-Type，让axios自动添加boundary参数
+  }, {
+    isTransformResponse: false,
+  }).then((res: any) => {
+    // 处理后端返回格式
+    if (res.success) {
+      return { success: true, message: res.message || '导入成功' };
+    } else {
+      return { success: false, message: res.message || '导入失败' };
+    }
+  });
+};

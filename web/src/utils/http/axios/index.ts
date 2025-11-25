@@ -110,7 +110,18 @@ const transform: AxiosTransform = {
     
     const params = config.params || {};
     const data = config.data || false;
-    formatDate && data && !isString(data) && formatRequestDate(data);
+    
+    // 如果是 FormData，不要格式化日期，也不要设置 Content-Type
+    const isFormData = data instanceof FormData;
+    if (isFormData) {
+      // 确保删除可能存在的 Content-Type，让 axios 自动设置
+      if (config.headers) {
+        delete config.headers['Content-Type'];
+        delete config.headers['content-type'];
+      }
+    } else {
+      formatDate && data && !isString(data) && formatRequestDate(data);
+    }
     if (config.method?.toUpperCase() === RequestEnum.GET) {
       if (!isString(params)) {
         // 给 get 请求加上时间戳参数，避免从缓存中拿数据。
@@ -121,7 +132,12 @@ const transform: AxiosTransform = {
         config.params = undefined;
       }
     } else {
-      if (!isString(params)) {
+      // 如果是 FormData，不要进行参数处理
+      if (isFormData) {
+        // FormData 已经包含了所有数据，不需要额外处理
+        config.data = data;
+        config.params = params;
+      } else if (!isString(params)) {
         formatDate && formatRequestDate(params);
         if (Reflect.has(config, 'data') && config.data && Object.keys(config.data).length > 0) {
           config.data = data;
@@ -159,6 +175,12 @@ const transform: AxiosTransform = {
     // 请求之前处理config
     const token = getToken();
     let tenantId: string | number = getTenantId();
+    
+    // 如果是 FormData，删除 Content-Type 让 axios 自动设置（包括 boundary）
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+      delete config.headers['content-type'];
+    }
     
     //update-begin---author:wangshuai---date:2024-04-16---for:【QQYUN-9005】发送短信加签。解决没有token无法加签---
     // 将签名和时间戳，添加在请求接口 Header
