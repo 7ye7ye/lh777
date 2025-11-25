@@ -135,8 +135,10 @@ public class AppointmentController {
         appointment.setAppointmentDate(detail.getScheduleDate());
         appointment.setAppointmentTime(slotToTime(detail.getTimeSlot()));
         appointment.setConsultationFee(detail.getActualPrice());
-        appointment.setStatus("预约成功");
+        boolean cancelled = detail.getStatus() != null && detail.getStatus() == 3;
+        appointment.setStatus(cancelled ? "退号成功" : "预约成功");
         appointment.setOrderNumber(detail.getRegistrationNo());
+        appointment.setCancelled(cancelled);
         return appointment;
     }
 

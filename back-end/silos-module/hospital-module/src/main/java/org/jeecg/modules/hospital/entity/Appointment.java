@@ -1,6 +1,7 @@
 package org.jeecg.modules.hospital.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
 import lombok.Data;
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -23,4 +24,6 @@ public class Appointment implements Serializable {
     private BigDecimal consultationFee; // 诊查费
     private String status; // 业务状态 (例如：预约成功, 已取消)
     private String orderNumber; // 商户订单号
+    @TableField(exist = false)
+    private Boolean cancelled; // 非持久化字段，前端用于区分退号态
 }

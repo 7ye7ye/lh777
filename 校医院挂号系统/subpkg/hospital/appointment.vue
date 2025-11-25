@@ -130,6 +130,7 @@
 		checkDuplicateBySchedule,
 		addWaitingQueue
 	} from '../../api/registration'
+	import { ensurePatientCard } from '@/utils/patientHelper'
 
 	const selectedSlot = ref(null)
 	const doctor = ref({})
@@ -139,6 +140,7 @@
 	const appointmentDate = ref('')
 	const schedules = ref([])
 	const selectedSchedule = ref(null)
+	const currentPatient = ref(null)
 	const loadingSchedules = ref(false)
 	const today = new Date().toISOString().split('T')[0]
 	const maxDate = new Date(new Date().setDate(new Date().getDate() + 6)).toISOString().split('T')[0] // 当前日期 + 6 天 = 一周
@@ -203,8 +205,42 @@
 	})
 
 
+	const loadPatientInfo = async () => {
+		const info = await ensurePatientCard()
+		if (info && info.patientId) {
+			currentPatient.value = info
+		} else {
+			currentPatient.value = null
+		}
+		return currentPatient.value
+	}
+
+	const ensurePatientId = async () => {
+		if (currentPatient.value?.patientId) {
+			return currentPatient.value.patientId
+		}
+		const info = await loadPatientInfo()
+		if (info && info.patientId) {
+			return info.patientId
+		}
+		uni.showModal({
+			title: '未找到就诊卡',
+			content: '请先创建并绑定就诊卡后再进行挂号操作',
+			confirmText: '去创建',
+			success: (res) => {
+				if (res.confirm) {
+					uni.navigateTo({
+						url: '/subpkg/profile/personal/create-card'
+					})
+				}
+			}
+		})
+		return null
+	}
+
 	// 页面加载
 	onLoad(async (query) => {
+		await loadPatientInfo()
 		doctor.value = {
 			doctorId: query.doctorId ? Number(query.doctorId) : null,
 			doctorName: query.doctorName ? decodeURIComponent(query.doctorName) : '',
@@ -414,7 +450,10 @@
 		            try {
 		                const scheduleId = selectedSchedule.value.schedule_id ?? selectedSchedule.value.scheduleId;
 		                const recordId = selectedSchedule.value?.recordId ?? null;
-		                const patientId = 1; // TODO: 从用户登录信息获取
+		                const patientId = await ensurePatientId();
+						if (!patientId) {
+							return;
+						}
 		
 		                // 调用封装后的 addWaitingQueue，确保取到 data
 		                const resData = await addWaitingQueue({
@@ -496,7 +535,11 @@
 					console.log("selectedSchedule.value：", selectedSchedule.value)
 					try {
 						// 调用后端检查是否重复挂号
-						const isDuplicate = await checkDuplicateBySchedule(1, selectedSchedule.value.schedule_id ||
+						const patientId = await ensurePatientId()
+						if (!patientId) {
+							return
+						}
+						const isDuplicate = await checkDuplicateBySchedule(patientId, selectedSchedule.value.schedule_id ||
 							selectedSchedule.value.scheduleId);
 
 
