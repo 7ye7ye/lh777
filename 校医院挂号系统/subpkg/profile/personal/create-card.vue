@@ -58,7 +58,7 @@
             </view>
             
             <view class="form-item">
-              <text class="form-label">出生日期 <text class="required">*</text></text>
+              <text class="form-label">出生日期</text>
               <picker 
                 mode="date" 
                 :value="formData.birthDate" 
@@ -70,7 +70,7 @@
             </view>
             
             <view class="form-item">
-              <text class="form-label">民族 <text class="required">*</text></text>
+              <text class="form-label">民族 </text>
               <picker 
                 :value="nationIndex" 
                 :range="nationOptions" 
@@ -99,7 +99,7 @@
             <view class="section-title">联系信息</view>
             
             <view class="form-item">
-              <text class="form-label">所在地区 <text class="required">*</text></text>
+              <text class="form-label">所在地区</text>
               <input 
                 v-model="formData.region" 
                 class="form-input" 
@@ -109,7 +109,7 @@
             </view>
             
             <view class="form-item">
-              <text class="form-label">详细住址 <text class="required">*</text></text>
+              <text class="form-label">详细住址</text>
               <input 
                 v-model="formData.detailedAddress" 
                 class="form-input" 
@@ -158,7 +158,7 @@
               />
             </view>
             
-            <view class="form-item" v-if="formData.patientType === 2 || formData.patientType === 3">
+            <view class="form-item" v-if="formData.patientType === 2">
               <text class="form-label">工号 <text class="required">*</text></text>
               <input 
                 v-model="formData.staffId" 
@@ -167,6 +167,7 @@
                 maxlength="20"
               />
             </view>
+
           </view>
           
           <!-- 紧急联系人 -->
@@ -218,22 +219,22 @@ const loading = ref(false)
 
 // 表单数据
 const formData = reactive({
-  patientName: '',
-  idType: '',
-  idCard: '',
-  gender: '',
-  birthDate: '',
-  nation: '',
-  nationality: '中国',
-  region: '',
-  detailedAddress: '',
-  phone: '',
+  patientName: null,
+  idType: null,
+  idCard: null,
+  gender: null,
+  birthDate: null,
+  nation: null,
+  nationality: '中国', // 这个保持默认值'中国'
+  region: null,
+  detailedAddress: null,
+  phone: null,
   patientType: null,
-  patientTypeText: '',
-  studentId: '',
-  staffId: '',
-  emergencyContact: '',
-  emergencyPhone: ''
+  patientTypeText: null,
+  studentId: null,
+  staffId: null,
+  emergencyContact: null,
+  emergencyPhone: null
 })
 
 // 选择器选项
@@ -241,7 +242,7 @@ const idTypeOptions = ['身份证', '护照', '港澳通行证', '台胞证', '�
 const genderOptions = ['男', '女', '未知']
 const nationOptions = ['汉族', '蒙古族', '回族', '藏族', '维吾尔族', '苗族', '彝族', '壮族', '布依族', '朝鲜族', '满族', '侗族', '瑶族', '白族', '土家族', '哈尼族', '哈萨克族', '傣族', '黎族', '傈僳族', '佤族', '畲族', '高山族', '拉祜族', '水族', '东乡族', '纳西族', '景颇族', '柯尔克孜族', '土族', '达斡尔族', '仫佬族', '羌族', '布朗族', '撒拉族', '毛南族', '仡佬族', '锡伯族', '阿昌族', '普米族', '塔吉克族', '怒族', '乌孜别克族', '俄罗斯族', '鄂温克族', '德昂族', '保安族', '裕固族', '京族', '塔塔尔族', '独龙族', '鄂伦春族', '赫哲族', '门巴族', '珞巴族', '基诺族', '其他']
 const nationalityOptions = ['中国', '美国', '英国', '法国', '德国', '日本', '韩国', '俄罗斯', '加拿大', '澳大利亚', '其他']
-const patientTypeOptions = ['学生', '教师', '职工']
+const patientTypeOptions = ['学生', '教职工', '校外人员']
 
 // 选择器索引
 const idTypeIndex = ref(0)
@@ -277,7 +278,7 @@ const onNationalityChange = (e) => {
 
 const onPatientTypeChange = (e) => {
   patientTypeIndex.value = e.detail.value
-  formData.patientType = parseInt(e.detail.value) + 1 // 1-学生；2-教师；3-职工
+  formData.patientType = parseInt(e.detail.value) + 1 // 1-学生；2-教师；3-职工；4-校外人员
   formData.patientTypeText = patientTypeOptions[e.detail.value]
 }
 
@@ -297,31 +298,37 @@ const validateForm = () => {
     uniShowToast({ title: '请输入证件号码', icon: 'none' })
     return false
   }
-  
+
+   // 身份证号格式校验
+  if (formData.idType === '身份证' && !/^\d{17}[\dXx]$/.test(formData.idCard)) {
+    uniShowToast({ title: '请输入有效的18位身份证号码', icon: 'none' })
+    return false
+  }
+
   if (!formData.gender) {
     uniShowToast({ title: '请选择性别', icon: 'none' })
     return false
   }
   
-  if (!formData.birthDate) {
-    uniShowToast({ title: '请选择出生日期', icon: 'none' })
-    return false
-  }
+  // if (!formData.birthDate) {
+  //   uniShowToast({ title: '请选择出生日期', icon: 'none' })
+  //   return false
+  // }
   
-  if (!formData.nation) {
-    uniShowToast({ title: '请选择民族', icon: 'none' })
-    return false
-  }
+  // if (!formData.nation) {
+  //   uniShowToast({ title: '请选择民族', icon: 'none' })
+  //   return false
+  // }
   
-  if (!formData.region || !formData.region.trim()) {
-    uniShowToast({ title: '请输入所在地区', icon: 'none' })
-    return false
-  }
+  // if (!formData.region || !formData.region.trim()) {
+  //   uniShowToast({ title: '请输入所在地区', icon: 'none' })
+  //   return false
+  // }
   
-  if (!formData.detailedAddress || !formData.detailedAddress.trim()) {
-    uniShowToast({ title: '请输入详细住址', icon: 'none' })
-    return false
-  }
+  // if (!formData.detailedAddress || !formData.detailedAddress.trim()) {
+  //   uniShowToast({ title: '请输入详细住址', icon: 'none' })
+  //   return false
+  // }
   
   if (!formData.phone || !formData.phone.trim()) {
     uniShowToast({ title: '请输入手机号', icon: 'none' })
@@ -343,7 +350,7 @@ const validateForm = () => {
     return false
   }
   
-  if ((formData.patientType === 2 || formData.patientType === 3) && (!formData.staffId || !formData.staffId.trim())) {
+  if ((formData.patientType === 2) && (!formData.staffId || !formData.staffId.trim())) {
     uniShowToast({ title: '请输入工号', icon: 'none' })
     return false
   }
@@ -357,7 +364,6 @@ const handleCreate = async () => {
   
   loading.value = true
   try {
-    console.log("创建就诊卡传入的用户ID：",userStore.userInfo.userId)
     // 构建请求数据，字段名与后端实体类对齐
     const requestData = {
       userId: userStore.userInfo.userId, // 传入已登录的userID
@@ -381,20 +387,45 @@ const handleCreate = async () => {
     
     const response = await patientApi.createCard(requestData)
     
-    if (response.code === 200) {
-      uniShowToast({ title: '就诊卡创建成功' })
-      // 延迟一下再返回，让用户看到成功提示
+    console.log("到底是啥："+response)
+    // 处理成功响应（由于响应拦截器，所以只有个就诊卡id返回了）
+    if (response) {
+      uni.showToast({ 
+        title: response.message || '就诊卡创建成功',
+        icon: 'success',
+        duration: 1500
+      })
+      
+      // 延迟返回上一页
       setTimeout(() => {
-        uniNavigateBack()
+        uni.navigateBack()
       }, 1500)
     } else {
-      throw new Error(response.message || '创建就诊卡失败')
+      // 处理业务错误（仅非200才认为失败）
+      const errorMsg = (response && response.message) || '创建就诊卡失败'
+      throw new Error(errorMsg)
     }
   } catch (error) {
     console.error('创建就诊卡失败:', error)
-    uniShowToast({ 
-      title: error.message || '创建失败', 
-      icon: 'none' 
+    
+    // 显示错误提示
+    let errorMessage = '创建失败，请稍后重试'
+    
+    // 根据错误类型显示不同的提示信息
+    if (error && error.description) {
+      errorMessage = error.description
+    } else if (error && error.message) {
+      errorMessage = error.message
+    } else if (error && error.errMsg && error.errMsg.includes('timeout')) {
+      errorMessage = '网络请求超时，请检查网络后重试'
+    } else if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      errorMessage = '网络连接已断开，请检查网络设置'
+    }
+    
+    uni.showToast({
+      title: errorMessage,
+      icon: 'none',
+      duration: 3000
     })
   } finally {
     loading.value = false
