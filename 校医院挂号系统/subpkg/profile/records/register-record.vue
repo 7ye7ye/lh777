@@ -31,8 +31,10 @@
 		getRegistrationRecords,
 		cancelRegistration
 	} from '@/api/registration'
+	import { ensurePatientCard } from '@/utils/patientHelper'
 
 	const records = ref([])
+	const currentPatient = ref(null)
 	const doctorMap = {
 		1: '张医生',
 		14: '孙医生',
@@ -64,9 +66,45 @@
 		}
 	}
 
+	const loadPatientInfo = async () => {
+		const info = await ensurePatientCard()
+		if (info && info.patientId) {
+			currentPatient.value = info
+		} else {
+			currentPatient.value = null
+		}
+		return currentPatient.value
+	}
+
+	const ensurePatientId = async () => {
+		if (currentPatient.value?.patientId) {
+			return currentPatient.value.patientId
+		}
+		await loadPatientInfo()
+		if (currentPatient.value?.patientId) {
+			return currentPatient.value.patientId
+		}
+		uni.showModal({
+			title: '未找到就诊卡',
+			content: '请先创建就诊卡后再查看挂号记录',
+			confirmText: '去创建',
+			success: (res) => {
+				if (res.confirm) {
+					uni.navigateTo({
+						url: '/subpkg/profile/personal/create-card'
+					})
+				}
+			}
+		})
+		return null
+	}
+
 	// 获取挂号记录
 	const getRegisterRecords = async () => {
-		const patientId = 1;
+		const patientId = await ensurePatientId();
+		if (!patientId) {
+			return;
+		}
 
 		try {
 			const res = await getRegistrationRecords(patientId);

@@ -120,6 +120,18 @@ export const doctorApi = {
     getMyProfile: () =>
         d.get('/profile/me').then((res) => normalizeOne<any>(res)),
 
+    // 更新医生个人资料（依赖后端 /doctor/profile/update）
+    updateProfile: (data: any) =>
+        d.put('/profile/update', data),
+
+    // 医生资料变更申请（依赖后端 /doctor/profile/update-request）
+    applyProfileUpdate: (data: any) =>
+        d.post('/profile/update-request', data),
+
+    // 医生端：查看本人资料变更申请记录（依赖后端 /doctor/profile/update-request/my）
+    listProfileUpdateRequests: (params: { doctorId: number; status?: number; pageNo?: number; pageSize?: number }) =>
+        d.get('/profile/update-request/my', params),
+
     // 根据科室ID获取医生列表
     getDoctorsByDeptId: (deptId: string | number) =>
         d.get('/list/by-department', { departmentId: deptId }),

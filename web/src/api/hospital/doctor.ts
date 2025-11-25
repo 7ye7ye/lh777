@@ -66,6 +66,29 @@ export const registerDoctorAccount = (params: RegisterDoctorParams) =>
     data: params,
   });
 
+// 医生资料修改申请相关接口（管理员端）
+export const getDoctorProfileUpdateRequests = (params: {
+  pageNo?: number;
+  pageSize?: number;
+  status?: number;
+}) =>
+  defHttp.get<any>({
+    url: '/doctor/profile/update-request/list',
+    params,
+  });
+
+export const approveDoctorProfileUpdate = (params: { requestId: number; reason?: string }) =>
+  defHttp.post<boolean>({
+    url: '/doctor/profile/update-request/approve',
+    data: params,
+  });
+
+export const rejectDoctorProfileUpdate = (params: { requestId: number; reason?: string }) =>
+  defHttp.post<boolean>({
+    url: '/doctor/profile/update-request/reject',
+    data: params,
+  });
+
 // 创建医生
 export const createDoctor = (params: DoctorForm) =>
   // 根据后端API实现，正确的添加路径是/add

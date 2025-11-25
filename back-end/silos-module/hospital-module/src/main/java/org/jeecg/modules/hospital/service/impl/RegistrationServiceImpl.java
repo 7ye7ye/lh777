@@ -40,6 +40,7 @@ public class RegistrationServiceImpl implements RegistrationService {
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static final String MESSAGE_TYPE_WAITING_JOIN = "APPOINTMENT_WAITING_JOIN";
     private static final String MESSAGE_TYPE_WAITING_SUCCESS = "APPOINTMENT_WAITING_SUCCESS";
+    private static final String MESSAGE_TYPE_CANCEL = "APPOINTMENT_CANCEL";
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Resource
@@ -104,7 +105,7 @@ public class RegistrationServiceImpl implements RegistrationService {
             }
             record.setDoctorId(schedule.getDoctorId());
 
-            if (checkDuplicateBySchedule(patientId, schedule.getScheduleId())) {
+            if (checkDuplicateBySchedule(actualPatientId, schedule.getScheduleId())) {
                 return Result.error("您已预约过该时段，请勿重复挂号");
             }
 
@@ -121,7 +122,7 @@ public class RegistrationServiceImpl implements RegistrationService {
                 return addToWaitingQueue(schedule.getScheduleId(), actualPatientId);
             }
 
-            Patient patient = patientMapper.selectById(patientId);
+            Patient patient = patientMapper.selectById(actualPatientId);
             if (patient == null) {
                 return Result.error("患者信息未找到");
             }
@@ -136,7 +137,7 @@ public class RegistrationServiceImpl implements RegistrationService {
                 default -> type.getPriceOriginal();
             });
             if (record.getRegistrationNo() == null) {
-                record.setRegistrationNo(generateRegistrationNo(patientId));
+                record.setRegistrationNo(generateRegistrationNo(actualPatientId));
             }
             if (record.getIsAdd() == null) {
                 record.setIsAdd(0);
@@ -243,6 +244,9 @@ public class RegistrationServiceImpl implements RegistrationService {
             return false;
         }
 
+        // 额外获取一次详情用于后续消息推送
+        RegistrationDetailDTO detail = registrationMapper.selectRegistrationDetail(recordId);
+
         // 2. 设置取消状态与信息（status = 3）
         record.setStatus(3); // 3 = 已退号
         record.setCancelTime(LocalDateTime.now());
@@ -263,8 +267,15 @@ public class RegistrationServiceImpl implements RegistrationService {
             schedule.setUsedQuota(Math.max(0, used - 1));
             registrationMapper.updateScheduleUsedQuota(schedule);
         }
-// ⭐⭐⭐ 4. 自动候补补位
+        // ⭐⭐⭐ 自动候补补位
         autoFillFromQueue(record.getScheduleId());
+
+        String cancelUserId = resolveCurrentUserId();
+        // 5. 发送退号成功通知
+        if (detail == null) {
+            detail = registrationMapper.selectRegistrationDetail(recordId);
+        }
+        createCancelMessage(detail, cancelReason, cancelUserId);
 
         return true;
     }
@@ -472,6 +483,46 @@ public class RegistrationServiceImpl implements RegistrationService {
             log.info("waiting join message saved={}, userId={}, scheduleId={}", saved, userId, scheduleId);
         } catch (Exception e) {
             log.error("createWaitingJoinMessage error, scheduleId={}, patientId={}", scheduleId, patientId, e);
+        }
+    }
+
+    private void createCancelMessage(RegistrationDetailDTO detail, String cancelReason, String overrideUserId) {
+        if (detail == null) {
+            log.warn("createCancelMessage skip because detail is null");
+            return;
+        }
+        try {
+            Message message = new Message();
+            String userId = StringUtils.isNotBlank(overrideUserId)
+                    ? overrideUserId
+                    : resolveUserIdForDetail(detail, null);
+            if (StringUtils.isBlank(userId)) {
+                log.warn("createCancelMessage skip due to empty userId, recordId={}", detail.getRecordId());
+                return;
+            }
+            message.setUserId(userId);
+            message.setAppointmentId(String.valueOf(detail.getRecordId()));
+            message.setMessageType(MESSAGE_TYPE_CANCEL);
+            message.setTitle("退号成功提醒");
+            message.setCreatedTime(LocalDateTime.now());
+            message.setIsRead(false);
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("patient_card_no", detail.getPatientCardNo());
+            payload.put("patient_name", detail.getPatientName());
+            payload.put("doctor_name", detail.getDoctorName());
+            payload.put("department_name", detail.getDepartmentName());
+            payload.put("appointment_time", buildAppointmentTime(detail.getScheduleDate(), detail.getTimeSlot()));
+            payload.put("cancel_time", DATE_TIME_FORMATTER.format(LocalDateTime.now()));
+            payload.put("cancel_reason", StringUtils.defaultIfBlank(cancelReason, "患者主动取消"));
+            payload.put("hospital_remark", "您的号源已释放，如需就诊请重新预约");
+
+            message.setContent(objectMapper.writeValueAsString(payload));
+
+            boolean saved = messageService.save(message);
+            log.info("cancel message saved={}, userId={}, appointmentId={}", saved, userId, detail.getRecordId());
+        } catch (Exception e) {
+            log.error("createCancelMessage error, recordId={}", detail.getRecordId(), e);
         }
     }
 
