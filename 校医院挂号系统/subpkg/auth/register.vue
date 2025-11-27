@@ -80,11 +80,14 @@ const onSubmit = async () => {
       await uniShowToast({ title: '两次密码不一致', icon: 'none' })
       return
     }
-    // 后端期望字段：{ userAccount, userPassword, checkPassword,userType }
-    const res=await userApi.register({ userAccount: form.value.userAccount, userPassword: form.value.userPassword, checkPassword: form.value.checkPassword, userType:'patient'})
+    // 后端期望字段：{ userAccount, userPassword, checkPassword,userType }，userType为1映射为患者用户
+    const res=await userApi.register({ userAccount: form.value.userAccount, userPassword: form.value.userPassword, checkPassword: form.value.checkPassword, userType:1})
     console.log(res)
-    await uniShowToast({ title: '注册成功' })
-    await uniNavigateTo({ url: '/subpkg/auth/login' })
+    await uniShowToast({ title: '注册成功', icon: 'success', duration: 1500 })
+          // 使用setTimeout确保toast显示完成后再跳转
+          setTimeout(() => {
+            uniNavigateTo('/subpkg/auth/login')
+          }, 1500)
   } catch (e) {
     await uniShowToast({ title: (e && e.message) || '注册失败', icon: 'none' })
   } finally {

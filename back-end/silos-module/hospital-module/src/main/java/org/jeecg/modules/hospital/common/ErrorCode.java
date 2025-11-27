@@ -9,7 +9,7 @@ import lombok.Getter;
 @Getter
 public enum ErrorCode {
 
-    SUCCESS(20000, "操作成功", "请求处理成功"),
+    SUCCESS(20000, "请求处理成功", "操作成功"),
     PARAMS_ERROR(40000, "请求参数错误", ""),
     NULL_ERROR(40001, "请求数据为空", ""),
     NOT_LOGIN(40100, "未登录", ""),

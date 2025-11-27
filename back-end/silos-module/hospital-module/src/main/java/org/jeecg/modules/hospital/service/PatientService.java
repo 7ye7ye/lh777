@@ -38,4 +38,10 @@ public interface PatientService extends IService<Patient> {
 
     // 预约详情（基于 registration_record ）
     AppointmentDetailVO appointmentDetail(Long appointmentId);
+
+    /**
+     * 解绑就诊卡（软删除）：
+     * 将指定 userId 名下的某个 patient 记录的 isDeleted 字段置为 1
+     */
+    boolean unbindPatientCard(Long userId, Long patientId);
 }
