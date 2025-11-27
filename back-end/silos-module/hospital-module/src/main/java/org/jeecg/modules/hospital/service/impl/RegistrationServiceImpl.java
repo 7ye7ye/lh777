@@ -59,6 +59,8 @@ public class RegistrationServiceImpl implements RegistrationService {
     private DepartmentMapper departmentMapper;
     @Resource
     private AppointmentReminderTask appointmentReminderTask;
+    @Resource
+    private DoctorScheduleMapper doctorScheduleMapper;
 
     @Override
     public List<RegistrationType> getAllRegistrationTypes() {
@@ -279,6 +281,62 @@ public class RegistrationServiceImpl implements RegistrationService {
 
         return true;
     }
+
+
+
+    @Override
+    public DoctorSchedule getScheduleDetailById(Long scheduleId) {
+        if (scheduleId == null) {
+            // scheduleId 为空，直接抛出异常
+            throw new IllegalArgumentException("排班ID不能为空");
+        }
+        try {
+            DoctorSchedule schedule = doctorScheduleMapper.selectById(scheduleId);
+            if (schedule == null) {
+                // 查询为空，抛出异常或返回 null，由调用方处理
+                throw new RuntimeException("排班ID：" + scheduleId + " 对应的排班不存在");
+            }
+            return schedule;
+        } catch (Exception e) {
+            // 捕获 Mapper 查询异常
+            e.printStackTrace();
+            throw new RuntimeException("查询排班详情失败：" + e.getMessage(), e);
+        }
+    }
+
+
+    @Override
+    public Long getDepartmentIdBySchedule(Long scheduleId) {
+        if (scheduleId == null) {
+            log.warn("getDepartmentIdBySchedule called with null scheduleId");
+            return null;
+        }
+
+        DoctorSchedule schedule = registrationMapper.selectScheduleById(scheduleId);
+        if (schedule == null) {
+            log.warn("No schedule found for scheduleId={}", scheduleId);
+            return null;
+        }
+
+        Long deptId = schedule.getDeptId();
+        if (deptId == null) {
+            log.warn("scheduleId={} exists but deptId is null", scheduleId);
+        }
+
+        return deptId;
+    }
+
+    @Override
+    public Patient getPatientDetailById(Long patientId) {
+        Patient patient = registrationMapper.selectPatientById(patientId);
+        if (patient == null) {
+            throw new RuntimeException("患者不存在，patientId=" + patientId);
+        }
+        return patient;
+    }
+
+
+
     /**
      * 若有人退号 → 自动补候补队列
      */
