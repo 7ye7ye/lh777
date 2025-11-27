@@ -438,6 +438,7 @@
 		    confirmText: '加入候补',
 		    async success(res) {
 		        if (res.confirm) {
+		            // 检查是否有选中排班
 		            if (!selectedSchedule.value) {
 		                console.error("selectedSchedule.value 为空，无法获取排班 ID");
 		                uni.showToast({
@@ -449,48 +450,61 @@
 		
 		            try {
 		                const scheduleId = selectedSchedule.value.schedule_id ?? selectedSchedule.value.scheduleId;
-		                const recordId = selectedSchedule.value?.recordId ?? null;
 		                const patientId = await ensurePatientId();
-						if (!patientId) {
-							return;
-						}
+		                if (!patientId) return;
 		
-		                // 调用封装后的 addWaitingQueue，确保取到 data
-		                const resData = await addWaitingQueue({
+		                const fee = 20; // 候补费用
+		
+		                // 构建挂号记录对象
+		                const record = {
 		                    scheduleId,
 		                    patientId,
-		                    recordId
-		                });
+		                    doctorId: doctor.value.doctorId,
+		                    typeId: selectedType.value.typeId,
+		                    registrationNo: generateRegistrationNo(), // 前端生成或后端生成都可以
+		                    registerTime: formatLocalDateTime(new Date()), // YYYY-MM-DD HH:mm:ss
+		                    status: 0, // 候补
+		                    priceOriginal: fee,
+		                    actualPrice: fee,
+		                    isAdd: 0 // 正常号
+		                };
 		
-		                // 打印接口返回值，用于调试
-		                console.log('addWaitingQueue返回值', resData);
+		                // 写入挂号记录
+		                const regRes = await createRegistration(record, patientId, true);
+		                console.log('createRegistration返回值', regRes);
 		
-		                // toast 文本兜底
-		                const toastTitle = resData?.message || (resData?.success ? '已加入候补队列' : '加入候补失败');
-		
-		                if (resData && resData.success) {
+		                // 判断接口返回值
+		                if ((typeof regRes === 'string' && regRes.includes('已加入候补队列')) || regRes?.success) {
 		                    selectedSlot.value = slot.key; // 更新选中状态
 		                    uni.showToast({
-		                        title: toastTitle,
+		                        title: '已加入候补队列',
 		                        icon: 'success'
 		                    });
+		                    console.log('候补挂号写入成功', { regRes });
 		                } else {
+		                    // 优先显示具体错误原因
+		                    let errorMsg = '加入候补失败';
+		                    if (typeof regRes === 'string') errorMsg = regRes;
+		                    else if (regRes?.message) errorMsg = `挂号记录失败：${regRes.message}`;
+		
 		                    uni.showToast({
-		                        title: toastTitle,
+		                        title: errorMsg,
 		                        icon: 'none'
 		                    });
+		                    console.warn('候补写入部分失败', { regRes });
 		                }
+		
 		            } catch (e) {
 		                console.error('加入候补异常', e);
 		                uni.showToast({
-		                    title: '加入候补失败，请稍后重试',
+		                    title: e?.message || '加入候补失败，请稍后重试',
 		                    icon: 'none'
 		                });
 		            }
 		        }
 		    }
-			
 		});
+
 
 
 			return
@@ -579,6 +593,22 @@
 							icon: 'none'
 						})
 					}
+				}
+				
+				// 工具函数：生成挂号单号（前端简单示例）
+				function generateRegistrationNo() {
+				  const date = new Date()
+				  const y = date.getFullYear()
+				  const m = (date.getMonth() + 1).toString().padStart(2, '0')
+				  const d = date.getDate().toString().padStart(2, '0')
+				  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0')
+				  return `${y}${m}${d}${doctor.value.doctorId}${random}`
+				}
+				
+				// 工具函数：格式化时间 YYYY-MM-DD HH:mm:ss
+				function formatLocalDateTime(date) {
+				  const pad = (n) => n.toString().padStart(2, '0')
+				  return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 				}
 </script>
 

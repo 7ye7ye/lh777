@@ -4,13 +4,16 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.jeecg.common.api.vo.Result;
+import org.jeecg.modules.hospital.entity.DoctorSchedule;
 import org.jeecg.modules.hospital.entity.RegistrationRecord;
 import org.jeecg.modules.hospital.entity.RegistrationType;
 import org.jeecg.modules.hospital.entity.WaitingQueue;
 import org.jeecg.modules.hospital.service.RegistrationService;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 小程序端-挂号控制器
@@ -101,6 +104,70 @@ public class RegistrationAppletController {
         }
     }
 
+    @Operation(summary = "根据排班ID获取科室ID")
+    @GetMapping("/schedule/department")
+    public Result<?> getDepartmentIdBySchedule(@RequestParam Long scheduleId) {
+        try {
+            Long departmentId = registrationService.getDepartmentIdBySchedule(scheduleId);
+            return Result.OK(departmentId);
+        } catch (Exception e) {
+            return Result.error("获取科室ID失败：" + e.getMessage());
+        }
+    }
 
+    @Operation(summary = "根据排班ID获取排班详情")
+    @GetMapping("/schedule/detail")
+    public Result<?> getScheduleDetailById(@RequestParam Long scheduleId) {
+        try {
+            DoctorSchedule schedule = registrationService.getScheduleDetailById(scheduleId);
+
+            if (schedule == null) {
+                return Result.error("排班不存在");
+            }
+
+            String timeSlotText;
+            switch (schedule.getTimeSlot()) {
+                case 1: timeSlotText = "上午"; break;
+                case 2: timeSlotText = "下午"; break;
+                case 3: timeSlotText = "晚上"; break;
+                default: timeSlotText = "未知";
+            }
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("scheduleId", schedule.getScheduleId());
+            result.put("doctorId", schedule.getDoctorId());
+            result.put("deptId", schedule.getDeptId());
+            result.put("typeId", schedule.getTypeId());
+            result.put("scheduleDate", schedule.getScheduleDate());
+            result.put("timeSlot", schedule.getTimeSlot());
+            result.put("timeSlotText", timeSlotText);
+            result.put("roomNumber", schedule.getRoomNumber());
+
+            return Result.OK(result);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取排班详情失败：" + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "根据患者ID获取患者详情")
+    @GetMapping("/patient/detail")
+    public Result<?> getPatientDetail(@RequestParam Long patientId) {
+        try {
+            // 假设你的 RegistrationService 中已经有对应方法
+            Object patient = registrationService.getPatientDetailById(patientId);
+
+            if (patient == null) {
+                return Result.error("未找到该患者信息");
+            }
+
+            return Result.OK(patient);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("获取患者详情失败：" + e.getMessage());
+        }
+    }
 
 }
