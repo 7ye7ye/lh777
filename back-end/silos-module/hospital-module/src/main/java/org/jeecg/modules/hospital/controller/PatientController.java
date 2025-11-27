@@ -134,13 +134,27 @@ public class PatientController {
 
     @PostMapping("/cardInfo")
     public ResponseEntity<HashMap<String, Object>> cardInfo(@RequestBody Patient patient ) {
-        // 根据userId查询第一条患者信息，查询所有字段
-        Patient patientInfo = patientService.lambdaQuery()
-                .eq(Patient::getUserId, patient.getUserId())
-                .list() // 查询列表
-                .stream()
-                .findFirst()
-                .orElse(null); // 取第一条或 null
+        // 优先根据 patientId 查询指定就诊人的就诊卡，如未传则根据 userId 查询第一条患者信息
+        if (patient == null || (patient.getPatientId() == null && patient.getUserId() == null)) {
+            HashMap<String, Object> result = new HashMap<>();
+            result.put("code", 400);
+            result.put("message", "请至少提供 patientId 或 userId");
+            return ResponseEntity.ok(result);
+        }
+
+        Patient patientInfo = null;
+        if (patient.getPatientId() != null) {
+            // 按 patientId 精确查询
+            patientInfo = patientService.getById(patient.getPatientId());
+        } else if (patient.getUserId() != null) {
+            // 根据userId查询第一条患者信息，查询所有字段
+            patientInfo = patientService.lambdaQuery()
+                    .eq(Patient::getUserId, patient.getUserId())
+                    .list() // 查询列表
+                    .stream()
+                    .findFirst()
+                    .orElse(null); // 取第一条或 null
+        }
 
         HashMap<String, Object> result = new HashMap<>();
         if (patientInfo != null) {
@@ -149,7 +163,7 @@ public class PatientController {
             result.put("data", patientInfo);
         } else {
             result.put("code", 404);
-            result.put("message", "未找到该用户的就诊卡");
+            result.put("message", "未找到就诊卡信息");
         }
 
         return ResponseEntity.ok(result);
@@ -160,9 +174,10 @@ public class PatientController {
         // 构建查询条件
         LambdaQueryWrapper<Patient> queryWrapper = new LambdaQueryWrapper<>();
 
-        // 核心：只查询与传入 userId 匹配的患者（必须添加，确保数据归属正确）
+        // 核心：只查询与传入 userId 匹配且未被软删除的患者（isDeleted = 0）
         if (request != null && request.getUserId() != null) {
-            queryWrapper.eq(Patient::getUserId, request.getUserId());
+            queryWrapper.eq(Patient::getUserId, request.getUserId())
+                        .eq(Patient::getIsDeleted, 0);
         } else {
             // 可选：若未传 userId，返回无数据或提示，避免查询全表（根据业务需求调整）
             HashMap<String, Object> emptyResult = new HashMap<>();
@@ -195,5 +210,40 @@ public class PatientController {
         result.put("data", patientList);
 
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/unbind")
+    public ResponseEntity<HashMap<String, Object>> unbind(@RequestBody Patient patient) {
+        HashMap<String, Object> result = new HashMap<>();
+
+        try {
+            if (patient == null || patient.getUserId() == null || patient.getPatientId() == null) {
+                result.put("code", 400);
+                result.put("message", "userId 和 patientId 不能为空");
+                return ResponseEntity.ok(result);
+            }
+
+            boolean success = patientService.unbindPatientCard(patient.getUserId(), patient.getPatientId());
+            if (success) {
+                result.put("code", 200);
+                result.put("message", "解绑成功");
+            } else {
+                result.put("code", 404);
+                result.put("message", "未找到需要解绑的就诊人或已解绑");
+            }
+
+            return ResponseEntity.ok(result);
+        } catch (BusinessException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new HashMap<String, Object>() {{
+                put("code", e.getCode());
+                put("message", e.getMessage());
+                put("description", e.getDescription());
+            }});
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new HashMap<String, Object>() {{
+                put("code", 500);
+                put("message", "解绑失败，系统异常，请稍后重试");
+            }});
+        }
     }
 }

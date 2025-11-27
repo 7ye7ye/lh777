@@ -100,7 +100,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onShow, onLoad } from '@dcloudio/uni-app'
+
 import uqrcode from '@/uni_modules/Sansnn-uQRCode/components/uqrcode/uqrcode.vue'
 import { patientApi } from '@/api/patient'
 import { uniShowToast, uniShowModal, uniNavigateBack, uniNavigateTo } from '@/utils/uniHelper'
@@ -110,20 +111,39 @@ const userStore = useUserStore()
 const cardInfo = ref({}) // 存储后端返回的就诊卡数据
 const loading = ref(false)
 const activeTab = ref('card') // 当前选项卡：card-电子就诊卡，inpatient-住院号
+const routePatientId = ref(null) // 路由参数携带的patientId
+
+// 读取路由参数中的 patientId
+onLoad((query) => {
+  if (query && query.patientId) {
+    const id = Number(query.patientId)
+    routePatientId.value = Number.isNaN(id) ? null : id
+  }
+})
 
 const getCardInfo = async () => {
   loading.value = true
   try {
     const userId = userStore.userInfo?.userId
-    if (!userId) {
-      console.log('未获取到用户ID')
+    if (!userId && !routePatientId.value) {
+      console.log('未获取到用户ID和patientId')
       cardInfo.value = {}
       loading.value = false
       return
     }
-    
+
+    // 优先根据 patientId 查询指定就诊人的就诊卡，若无则按 userId 查询默认就诊卡
+    const params = {}
+
+    if (routePatientId.value) {
+      params.patientId = routePatientId.value
+    } else if (userId) {
+      params.userId = userId
+    }
+
     // 调用接口，直接接收后端返回的"纯数据"
-    const cardData = await patientApi.getCard({ userId })
+    const cardData = await patientApi.getCard(params)
+
     console.log('后端返回的就诊卡数据：', cardData)
     
     // 后端直接返回数据，所以只要拿到数据就视为成功
@@ -213,8 +233,10 @@ const handleUnbind = () => {
         try {
           const userId = userStore.userInfo?.userId
           if (!userId) throw new Error('未获取到用户ID')
-          
+          if (!cardInfo.value || !cardInfo.value.patientId) throw new Error('未获取到就诊人ID')
+
           await patientApi.unbindCard({ userId, patientId: cardInfo.value.patientId })
+
           uniShowToast({ title: '解绑成功', icon: 'success' })
           
           // 清空就诊卡信息
