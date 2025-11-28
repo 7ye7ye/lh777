@@ -2,7 +2,7 @@
   <view class="profile-bg">
   <view class="profile-header">
       <view class="profile-info">
-        <view class="avatar">👤</view>
+        <image class="avatar" src="/static/profile.svg" mode="aspectFill"></image>
         <view class="user-info">
           <text class="user-name">{{ userInfo.name || '微信用户' }}</text>
           <text class="user-phone">{{ userInfo.phone || '*************' }}</text>
@@ -46,7 +46,7 @@
         </view>
         <view class="profile-item" @click="goToHospitalRecord">
           <image class="icon" src="/static/hospital.svg" />
-          <text>住院预交记录</text>
+          <text>就诊记录</text>
         </view>
         <view class="profile-item" @click="goToConsultRecord">
           <image class="icon" src="/static/consult.svg" />
@@ -223,9 +223,9 @@ const goToTransfer = () => {
 }
 
 const goToTransferHistory = () => {
-  console.log('直接导航到: /subpkg/hospital/referral-records')
-  uniNavigateTo({ url: '/subpkg/hospital/referral-records' })
-}
+   console.log('直接导航到: /subpkg/hospital/referral-records')
+   uniNavigateTo({ url: '/subpkg/hospital/referral-records' })
+  }
 
 const goLogin = () => {
   uni.navigateTo({ url: '/subpkg/auth/login' })

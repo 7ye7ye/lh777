@@ -85,6 +85,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { getPatientReferralList } from '@/api/referral'
 
 // 筛选选项
 const filterOptions = ['全部', '待审核', '已审核', '已拒绝']

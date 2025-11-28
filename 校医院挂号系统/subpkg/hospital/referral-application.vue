@@ -176,14 +176,40 @@ const onHospitalChange = (e) => {
   formData.value.targetHospital = hospitals.value[hospitalIndex.value].name
 }
 
-// 获取当前用户信息（实际项目中可能从全局状态获取）
-const getCurrentUserInfo = () => {
-  // 模拟获取用户信息
-  return {
-    name: '当前用户',
-    phone: '13800138000',
-    gender: '男',
-    age: '25'
+// 获取当前用户信息（使用真实数据）
+const getCurrentUserInfo = async () => {
+  try {
+    // 由于patientHelper.js文件不存在，我们直接从store获取患者信息
+    // 或者返回一个基础对象，让用户手动填写
+    const { useUserStore } = await import('@/store/user')
+    const userStore = useUserStore()
+    
+    // 获取用户存储中的信息
+    if (userStore.userInfo) {
+      return {
+        name: userStore.userInfo.patientName || userStore.userInfo.name || '',
+        phone: userStore.userInfo.phone || '',
+        gender: userStore.userInfo.gender || '',
+        age: userStore.userInfo.age || ''
+      }
+    }
+    
+    // 如果没有患者信息，返回空对象让用户手动填写
+    return {
+      name: '',
+      phone: '',
+      gender: '',
+      age: ''
+    }
+  } catch (error) {
+    console.error('获取用户信息失败:', error)
+    // 错误情况下返回空对象，让用户手动填写信息
+    return {
+      name: '',
+      phone: '',
+      gender: '',
+      age: ''
+    }
   }
 }
 
@@ -230,12 +256,45 @@ const changeReferralType = () => {
 const loadHospitals = async () => {
   try {
     loading.value = true
+    // 尝试从API获取医院列表
     const res = await getReferralOptions()
-    if (res.code === 200 && res.data) {
-      hospitals.value = res.data.hospitals || res.data
+    
+    // 处理不同格式的API响应
+    if (res) {
+      // 标准化数据处理
+      let data = res
+      // 如果有data字段，使用data字段内容
+      if (res.data) {
+        data = res.data
+      }
+      
+      // 处理API返回的internalDepartments和externalHospitals格式
+      if (data.externalHospitals && Array.isArray(data.externalHospitals)) {
+        // 对于院外转诊，使用externalHospitals数组
+        hospitals.value = data.externalHospitals
+      }
+      // 兼容原有的hospitals字段
+      else if (data.hospitals && Array.isArray(data.hospitals)) {
+        hospitals.value = data.hospitals
+      }
+      // 如果响应数据本身就是医院数组
+      else if (Array.isArray(data)) {
+        hospitals.value = data
+      }
+      // 处理空数据情况
+      else {
+        console.warn('API返回的数据格式不符合预期，但已正确处理:', res)
+        hospitals.value = []
+      }
+    } else {
+      // 如果API调用失败但返回了部分数据
+      console.warn('API返回的数据为空:', res)
+      hospitals.value = []
     }
   } catch (error) {
     console.error('加载医院列表失败:', error)
+    // 错误情况下使用空数组
+    hospitals.value = []
     uni.showToast({
       title: '加载医院列表失败',
       icon: 'none'
@@ -246,38 +305,42 @@ const loadHospitals = async () => {
 }
 
 // 预填表单数据
-const prefillFormData = () => {
-  // 获取用户信息
-  const userInfo = getCurrentUserInfo()
-  
-  // 预填患者信息
-  formData.value.patientName = userInfo.name
-  formData.value.gender = userInfo.gender
-  formData.value.age = userInfo.age
-  formData.value.phone = userInfo.phone
-  
-  // 如果有选择的就诊记录，预填相关信息
-  if (selectedVisitRecord.value) {
-    // 可以从就诊记录中提取症状、诊断等信息
-    if (selectedVisitRecord.value.symptoms) {
-      formData.value.symptoms = selectedVisitRecord.value.symptoms
-    }
-    if (selectedVisitRecord.value.diagnosis) {
-      formData.value.medicalHistory = selectedVisitRecord.value.diagnosis
-    }
-    formData.value.visitRecordId = selectedVisitRecord.value.id || selectedVisitRecord.value.registrationNo
-  }
-  
-  // 如果有转诊信息，设置目标科室或医院
-  if (referralInfo.value) {
-    formData.value.referralType = referralInfo.value.type
-    isInternalReferral.value = referralInfo.value.type === 'internal'
+const prefillFormData = async () => {
+  try {
+    // 获取用户信息
+    const userInfo = await getCurrentUserInfo()
     
-    if (referralInfo.value.type === 'internal') {
-      // 院内转诊：设置目标科室
-      formData.value.targetDepartment = referralInfo.value.targetDepartment || ''
-      formData.value.targetHospital = '本校医院' // 院内转诊的目标医院固定为本院
+    // 预填患者信息
+    formData.value.patientName = userInfo.name
+    formData.value.gender = userInfo.gender
+    formData.value.age = userInfo.age
+    formData.value.phone = userInfo.phone
+    
+    // 如果有选择的就诊记录，预填相关信息
+    if (selectedVisitRecord.value) {
+      // 可以从就诊记录中提取症状、诊断等信息
+      if (selectedVisitRecord.value.symptoms) {
+        formData.value.symptoms = selectedVisitRecord.value.symptoms
+      }
+      if (selectedVisitRecord.value.diagnosis) {
+        formData.value.medicalHistory = selectedVisitRecord.value.diagnosis
+      }
+      formData.value.visitRecordId = selectedVisitRecord.value.id || selectedVisitRecord.value.registrationNo
     }
+    
+    // 如果有转诊信息，设置目标科室或医院
+    if (referralInfo.value) {
+      formData.value.referralType = referralInfo.value.type
+      isInternalReferral.value = referralInfo.value.type === 'internal'
+      
+      if (referralInfo.value.type === 'internal') {
+        // 院内转诊：设置目标科室
+        formData.value.targetDepartment = referralInfo.value.targetDepartment || ''
+        formData.value.targetHospital = '本校医院' // 院内转诊的目标医院固定为本院
+      }
+    }
+  } catch (error) {
+    console.error('预填表单数据失败:', error)
   }
 }
 
@@ -343,7 +406,7 @@ const submitApplication = async () => {
           // 重置表单
           formData.value = {
             patientName: '',
-            gender: '男',
+            gender: '',
             age: '',
             phone: '',
             symptoms: '',
@@ -380,20 +443,40 @@ const submitApplication = async () => {
 }
 
 // 页面加载时初始化数据
-onMounted(() => {
-  // 获取转诊信息
-  const info = uni.getStorageSync('referralInfo')
-  if (info) {
-    referralInfo.value = info
-    selectedVisitRecord.value = info.visitRecord || {}
-  }
-  
-  // 预填表单数据
-  prefillFormData()
-  
-  // 加载医院列表（仅在院外转诊时需要）
-  if (!isInternalReferral.value) {
-    loadHospitals()
+onMounted(async () => {
+  try {
+    // 从路由参数中获取就诊记录数据
+    const query = uni.getLaunchOptionsSync().query
+    if (query.recordData) {
+      try {
+        const recordData = JSON.parse(decodeURIComponent(query.recordData))
+        selectedVisitRecord.value = recordData
+        console.log('从路由获取到就诊记录:', recordData)
+      } catch (parseError) {
+        console.error('解析路由参数失败:', parseError)
+      }
+    }
+    
+    // 获取转诊信息（从存储中）
+    const info = uni.getStorageSync('referralInfo')
+    if (info) {
+      referralInfo.value = typeof info === 'string' ? JSON.parse(info) : info
+      console.log('从存储获取到转诊信息:', referralInfo.value)
+      // 确保selectedVisitRecord也从存储中获取
+      if (!selectedVisitRecord.value && referralInfo.value.visitRecord) {
+        selectedVisitRecord.value = referralInfo.value.visitRecord
+      }
+    }
+    
+    // 预填表单数据
+    await prefillFormData()
+    
+    // 加载医院列表（仅在院外转诊时需要）
+    if (!isInternalReferral.value) {
+      await loadHospitals()
+    }
+  } catch (error) {
+    console.error('页面初始化失败:', error)
   }
 })
 </script>
