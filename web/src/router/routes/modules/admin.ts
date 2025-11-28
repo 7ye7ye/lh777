@@ -55,6 +55,24 @@ const admin: AppRouteModule = {
             ignoreAuth: true,
           },
         },
+        {
+          path: 'referral/review',
+          name: 'AdminReferralManagement',
+          component: () => import('/@/views/admin/management/ReferralManagement.vue'),
+          meta: {
+            title: t('routes.admin.referralReview'),
+            ignoreAuth: true,
+          },
+        },
+        {
+          path: 'referral/history',
+          name: 'AdminReferralHistory',
+          component: () => import('/@/views/admin/management/referral/ReferralHistory.vue'),
+          meta: {
+            title: t('routes.admin.referralHistory'),
+            ignoreAuth: true,
+          },
+        },
       ],
     },
     {

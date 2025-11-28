@@ -142,7 +142,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import { getPatientReferralDetail, cancelPatientReferral, autoRegisterInternalReferral } from '../../api/referral'
 
 // 转诊详情数据
@@ -165,14 +166,21 @@ const referralDetail = ref({
   rejectReason: '',
   attachments: [],
   type: '院内转诊', // 默认院内转诊，后端返回时会覆盖
-  visitRecordId: '' // 关联的就诊记录ID
+  visitRecordId: '', // 关联的就诊记录ID
+  rawStatus: 'PENDING'
 })
 const loading = ref(true)
 const submitting = ref(false)
 
-// 获取路由参数
-const route = useRoute()
-const referralId = computed(() => route.params.id)
+const statusMap = {
+  PENDING: '待审核',
+  APPROVED: '已审核',
+  REJECTED: '已拒绝',
+  CANCELLED: '已取消',
+  COMPLETED: '已完成'
+}
+
+const referralId = ref('')
 
 // 返回上一页
 const goBack = () => {
@@ -232,7 +240,7 @@ const previewImage = (current, index) => {
 
 // 取消转诊申请
 const cancelReferral = async () => {
-  if (referralDetail.value.status !== '待审核') {
+  if (referralDetail.value.rawStatus !== 'PENDING') {
     uni.showToast({
       title: '只有待审核的申请可以取消',
       icon: 'none'
@@ -286,7 +294,7 @@ const createNewReferral = () => {
 
 // 院内转诊自动挂号
 const autoRegister = async () => {
-  if (referralDetail.value.status !== '已审核') {
+  if (referralDetail.value.rawStatus !== 'APPROVED') {
     uni.showToast({
       title: '只有已审核的申请可以进行自动挂号',
       icon: 'none'
@@ -303,7 +311,7 @@ const autoRegister = async () => {
           submitting.value = true
           const result = await autoRegisterInternalReferral(referralDetail.value.id)
           
-          if (result.code === 200) {
+          if (result && result !== false) {
             uni.showToast({
               title: '自动挂号成功！',
               icon: 'success'
@@ -334,12 +342,36 @@ const autoRegister = async () => {
 
 // 加载转诊详情
 const loadReferralDetail = async () => {
+  if (!referralId.value) return
   try {
     loading.value = true
     const res = await getPatientReferralDetail(referralId.value)
-    
-    if (res.code === 200 && res.data) {
-      referralDetail.value = res.data
+    if (res) {
+      referralDetail.value = {
+        ...referralDetail.value,
+        ...res,
+        id: res.id || res.referralId || referralId.value,
+        patientName: res.patientName || '',
+        gender: res.gender || '',
+        age: res.age || '',
+        phone: res.phone || '',
+        symptoms: res.symptoms || '',
+        medicalHistory: res.medicalHistory || '',
+        reason: res.reason || '',
+        targetHospital: res.targetHospitalName || res.targetHospital || '',
+        targetDepartment: res.targetDeptName || res.targetDepartment || '',
+        applyTime: res.applyTime || res.createTime || '',
+        reviewTime: res.reviewTime || '',
+        status: statusMap[res.status] || res.status || '待审核',
+        rawStatus: res.status || 'PENDING',
+        reviewDoctor: res.reviewDoctor || '',
+        reviewComments: res.reviewComments || '',
+        rejectReason: res.rejectReason || '',
+        attachments: Array.isArray(res.attachments) ? res.attachments : [],
+        type: res.targetType === 'EXTERNAL' ? '院外转诊' : '院内转诊'
+      }
+    } else {
+      uni.showToast({ title: '未找到该转诊记录', icon: 'none' })
     }
   } catch (error) {
     console.error('加载转诊详情失败:', error)
@@ -353,7 +385,8 @@ const loadReferralDetail = async () => {
 }
 
 // 页面加载时获取详情数据
-onMounted(() => {
+onLoad((options) => {
+  referralId.value = options?.id || ''
   loadReferralDetail()
 })
 </script>

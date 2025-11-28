@@ -1,5 +1,6 @@
 <template>
-  <div class="referral-management">
+  <PageWrapper title="转诊审核管理">
+    <div class="referral-management">
     <a-card class="filter-card" bordered>
       <a-form layout="inline" :model="filters">
         <a-form-item label="患者姓名">
@@ -22,8 +23,11 @@
           </a-select>
         </a-form-item>
         <a-form-item>
-          <a-button type="primary" @click="fetchData(true)">查询</a-button>
-          <a-button class="ml-8" @click="resetFilters">重置</a-button>
+          <a-space>
+            <a-button type="primary" @click="fetchData(true)">查询</a-button>
+            <a-button @click="resetFilters">重置</a-button>
+            <a-button :loading="loading" @click="fetchData()">刷新</a-button>
+          </a-space>
         </a-form-item>
       </a-form>
     </a-card>
@@ -115,12 +119,14 @@
       </a-form>
     </a-modal>
   </div>
+  </PageWrapper>
 </template>
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
 import { message } from 'ant-design-vue';
 import { fetchReferralPage, getReferralDetail, reviewReferral } from '/@/api/hospital/referral';
+import { PageWrapper } from '/@/components/Page';
 
 const filters = reactive({
   patientName: '',
@@ -132,7 +138,7 @@ const filters = reactive({
 const statusOptions = [
   { label: '全部', value: undefined },
   { label: '待审核', value: 'PENDING' },
-  { label: '已通过', value: 'APPROVED' },
+  { label: '已审核', value: 'APPROVED' },
   { label: '已拒绝', value: 'REJECTED' },
   { label: '已取消', value: 'CANCELLED' },
 ];
@@ -174,7 +180,7 @@ const statusText = (status?: string) => {
     case 'PENDING':
       return '待审核';
     case 'APPROVED':
-      return '已通过';
+      return '已审核';
     case 'REJECTED':
       return '已拒绝';
     case 'CANCELLED':

@@ -10,7 +10,7 @@ export function getPatientVisitRecords(params) {
   return request({
     url: '/patient/registration/history',
     method: 'get',
-    data: params
+    params
   });
 }
 
@@ -27,7 +27,7 @@ export function getPatientReferralList(params) {
   return request({
     url: '/patient/referral/list',
     method: 'get',
-    data: params
+    params
   });
 }
 
@@ -38,7 +38,7 @@ export function getPatientReferralList(params) {
  */
 export function getPatientReferralDetail(id) {
   return request({
-    url: `/patient/referral/detail/${id}`,
+    url: `/patient/referral/${id}`,
     method: 'get'
   });
 }
@@ -67,6 +67,28 @@ export function getReferralOptions() {
     url: '/patient/referral/options',
     method: 'get'
   });
+}
+
+/**
+ * 获取合作医院列表（院外转诊）
+ * 单独暴露，便于仅需要医院数据的页面引用。
+ * @returns {Promise} 接口返回结果
+ */
+export function getReferralHospitals() {
+  return request({
+    url: '/patient/referral/options',
+    method: 'get'
+  }).then((res) => {
+    const data = res?.data || res?.result || res || {}
+    if (Array.isArray(data.hospitals)) {
+      return { ...res, data: data.hospitals }
+    }
+    // 若后端直接返回数组
+    if (Array.isArray(data)) {
+      return { ...res, data }
+    }
+    return res
+  })
 }
 
 /**

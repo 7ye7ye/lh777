@@ -15,6 +15,8 @@ export default {
   leaveApproval: 'Leave Approval',
   doctorRegister: 'Doctor Registration',
   doctorProfileUpdateApproval: 'Doctor Profile Update Approval',
+  referralReview: 'Referral Review',
+  referralHistory: 'Referral Records',
 };
 
 

@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.hospital.mapper.HospitalReferralRecordMapper">
+
+    <sql id="Base_Column_List">
+        id,
+        referral_id,
+        referral_code,
+        patient_name,
+        patient_id_card,
+        actual_hospital_id,
+        actual_hospital_name,
+        actual_dept_id,
+        actual_dept_name,
+        actual_doctor_id,
+        actual_doctor_name,
+        referral_date,
+        visit_date,
+        diagnosis_result,
+        treatment_plan,
+        medications,
+        examinations,
+        total_cost,
+        covered_cost,
+        patient_cost,
+        referral_status,
+        medical_documents,
+        follow_up_status,
+        follow_up_date,
+        follow_up_doctor,
+        follow_up_notes,
+        recovery_status,
+        feedback_rating,
+        feedback_comments,
+        transfer_out_time,
+        transfer_in_time,
+        completion_time,
+        create_time,
+        update_time
+    </sql>
+
+    <resultMap id="BaseResultMap" type="org.jeecg.modules.hospital.entity.HospitalReferralRecord">
+        <id column="id" property="id" />
+        <result column="referral_id" property="referralId" />
+        <result column="referral_code" property="referralCode" />
+        <result column="patient_name" property="patientName" />
+        <result column="patient_id_card" property="patientIdCard" />
+        <result column="actual_hospital_id" property="actualHospitalId" />
+        <result column="actual_hospital_name" property="actualHospitalName" />
+        <result column="actual_dept_id" property="actualDeptId" />
+        <result column="actual_dept_name" property="actualDeptName" />
+        <result column="actual_doctor_id" property="actualDoctorId" />
+        <result column="actual_doctor_name" property="actualDoctorName" />
+        <result column="referral_date" property="referralDate" />
+        <result column="visit_date" property="visitDate" />
+        <result column="diagnosis_result" property="diagnosisResult" />
+        <result column="treatment_plan" property="treatmentPlan" />
+        <result column="medications" property="medications" />
+        <result column="examinations" property="examinations" />
+        <result column="total_cost" property="totalCost" />
+        <result column="covered_cost" property="coveredCost" />
+        <result column="patient_cost" property="patientCost" />
+        <result column="referral_status" property="referralStatus" />
+        <result column="medical_documents" property="medicalDocuments" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler" />
+        <result column="follow_up_status" property="followUpStatus" />
+        <result column="follow_up_date" property="followUpDate" />
+        <result column="follow_up_doctor" property="followUpDoctor" />
+        <result column="follow_up_notes" property="followUpNotes" />
+        <result column="recovery_status" property="recoveryStatus" />
+        <result column="feedback_rating" property="feedbackRating" />
+        <result column="feedback_comments" property="feedbackComments" />
+        <result column="transfer_out_time" property="transferOutTime" />
+        <result column="transfer_in_time" property="transferInTime" />
+        <result column="completion_time" property="completionTime" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+    </resultMap>
+
+    <select id="selectByReferralId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM hospital_referral_record
+        WHERE referral_id = #{referralId}
+    </select>
+
+    <select id="selectByReferralCode" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM hospital_referral_record
+        WHERE referral_code = #{referralCode}
+    </select>
+
+    <update id="updateReferralStatus">
+        UPDATE hospital_referral_record
+        SET referral_status = #{status},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateFollowUpInfo">
+        UPDATE hospital_referral_record
+        SET follow_up_status = #{followUpStatus},
+            follow_up_date = #{followUpDate},
+            follow_up_doctor = #{followUpDoctor},
+            follow_up_notes = #{followUpNotes},
+            recovery_status = #{recoveryStatus},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateFeedbackInfo">
+        UPDATE hospital_referral_record
+        SET feedback_rating = #{rating},
+            feedback_comments = #{comments},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectReferralRecordList" resultType="java.util.Map">
+        SELECT
+            r.id,
+            r.referral_id,
+            r.referral_code,
+            r.patient_name,
+            r.actual_hospital_name,
+            r.actual_dept_name,
+            r.referral_date,
+            r.visit_date,
+            r.referral_status,
+            r.follow_up_status,
+            r.create_time
+        FROM
+            hospital_referral_record r
+        <where>
+            <if test="patientName != null and patientName != ''">
+                AND r.patient_name LIKE CONCAT('%', #{patientName}, '%')
+            </if>
+            <if test="referralCode != null and referralCode != ''">
+                AND r.referral_code = #{referralCode}
+            </if>
+            <if test="referralStatus != null and referralStatus != ''">
+                AND r.referral_status = #{referralStatus}
+            </if>
+            <if test="startDate != null and startDate != ''">
+                AND DATE(r.referral_date) >= #{startDate}
+            </if>
+            <if test="endDate != null and endDate != ''">
+                AND DATE(r.referral_date) <= #{endDate}
+            </if>
+        </where>
+        ORDER BY r.create_time DESC
+        LIMIT #{startIndex}, #{pageSize}
+    </select>
+</mapper>

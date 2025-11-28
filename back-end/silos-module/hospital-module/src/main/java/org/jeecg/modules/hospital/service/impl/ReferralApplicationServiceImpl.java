@@ -5,6 +5,7 @@ import cn.hutool.core.date.DateUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.dynamic.datasource.annotation.DS;
 import lombok.RequiredArgsConstructor;
 import org.jeecg.modules.hospital.dto.referral.ReferralApplyRequest;
 import org.jeecg.modules.hospital.dto.referral.ReferralAttachmentPayload;
@@ -36,9 +37,13 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
+@DS("hospital")
 @RequiredArgsConstructor
 public class ReferralApplicationServiceImpl extends ServiceImpl<ReferralApplicationMapper, ReferralApplication>
     implements IReferralApplicationService {
+
+    /** 默认内部转诊可占用的最大候诊号源，避免依赖 DB 字段 */
+    private static final int INTERNAL_SCHEDULE_CAPACITY = 20;
 
     private final DoctorScheduleMapper doctorScheduleMapper;
     private final DepartmentMapper departmentMapper;
@@ -195,7 +200,7 @@ public class ReferralApplicationServiceImpl extends ServiceImpl<ReferralApplicat
         LambdaQueryWrapper<DoctorSchedule> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(DoctorSchedule::getDeptId, entity.getTargetDeptId())
             .ge(DoctorSchedule::getScheduleDate, LocalDate.now())
-            .apply("(max_quota - IFNULL(used_quota,0)) > 0")
+            .apply(String.format("IFNULL(used_quota,0) < %d", INTERNAL_SCHEDULE_CAPACITY))
             .orderByAsc(DoctorSchedule::getScheduleDate)
             .last("limit 1");
         DoctorSchedule schedule = doctorScheduleMapper.selectOne(wrapper);
