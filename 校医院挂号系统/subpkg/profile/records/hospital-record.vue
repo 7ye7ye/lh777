@@ -528,7 +528,7 @@ const loadHospitalRecords = async () => {
         statusKey: statusInfo.key,
         statusDescription: statusInfo.description,
         recordNumber: recordNumber,
-        recordNumberDisplay: recordNumber ? `编号: ${recordNumber}` : '无编号',
+        recordNumberDisplay: recordNumber || '无编号',
         canRefer: statusInfo.allowReferral,
         originalRecord: item
       }

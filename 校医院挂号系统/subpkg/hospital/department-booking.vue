@@ -464,13 +464,16 @@ const viewDoctorDetail = async (doctor) => {
     }
     
     // 构建跳转参数
+    const scheduleId = schedule?.scheduleId ?? schedule?.id ?? schedule?.schedule_id ?? 0
+    const typeId = schedule?.typeId ?? schedule?.type_id ?? schedule?.type ?? 1
+
     const params = {
       dept: encodeURIComponent(selectedDepartment?.deptName || '未知科室'),
       doctor: encodeURIComponent(doctor.name || doctor.doctorName || '未知医生'),
-      time: encodeURIComponent(`${selectedDate} ${timeText}`),
-      doctorId: doctor.id || 0,
-      scheduleId: schedule.id || 0,
-      typeId: schedule.type || 1,
+      time: encodeURIComponent(`${selectedDate.value} ${timeText}`),
+      doctorId: doctor.doctorId || doctor.id || 0,
+      scheduleId,
+      typeId,
       deptId: selectedDepartment?.deptId || 0
     };
     
@@ -525,28 +528,41 @@ const viewDoctorDetail = async (doctor) => {
         .map(schedule => {
           // 重新获取scheduleDate，避免作用域问题
           const scheduleDate = schedule.schedule_date || schedule.scheduleDate;
-          
+
+          // 解析排班与类型编号
+          const resolvedScheduleId = schedule.schedule_id ?? schedule.scheduleId ?? schedule.id ?? `${validDoctorId}-${date}`;
+          const resolvedTypeId = schedule.type_id ?? schedule.typeId ?? schedule.registration_type_id ?? schedule.registrationTypeId ?? schedule.type?.id ?? null;
+
           // 将time_slot转换为文本形式
           let timeRangeText = '';
-          switch(Number(schedule.time_slot)) {
-            case 1: timeRangeText = '上午'; break;
-            case 2: timeRangeText = '下午'; break;
-            case 3: timeRangeText = '晚上'; break;
-            default: timeRangeText = '全天';
+          switch (Number(schedule.time_slot ?? schedule.timeSlot)) {
+            case 1:
+              timeRangeText = '上午';
+              break;
+            case 2:
+              timeRangeText = '下午';
+              break;
+            case 3:
+              timeRangeText = '晚上';
+              break;
+            default:
+              timeRangeText = '全天';
           }
-          
+
           // 计算剩余号源
-          const maxQuota = Number(schedule.max_quota || schedule.maxQuota || 0);
+          const maxQuota = Number(schedule.max_quota || schedule.maxQuota || schedule.totalQuota || 0);
           const usedQuota = Number(schedule.used_quota || schedule.usedQuota || 0);
           const availableSlots = maxQuota - usedQuota;
-          
+
           return {
-            id: schedule.schedule_id || schedule.scheduleId || `${validDoctorId}-${date}-${timeRangeText}`,
+            id: resolvedScheduleId,
+            scheduleId: resolvedScheduleId,
             date: scheduleDate || date,
             timeRange: timeRangeText,
-            type: schedule.type_name || schedule.typeName || '普通门诊',
-            fee: schedule.price || 50,
-            availableSlots: availableSlots,
+            typeId: resolvedTypeId != null ? Number(resolvedTypeId) : null,
+            typeName: schedule.type_name || schedule.typeName || schedule.type?.name || '普通门诊',
+            fee: Number(schedule.price || schedule.fee || 50),
+            availableSlots,
             roomNo: schedule.room_number || schedule.roomNumber || '诊室1',
             totalSlots: maxQuota
           };
