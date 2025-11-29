@@ -68,12 +68,12 @@
             <text class="info-label">状态</text>
             <text class="info-value status-text">{{ item.statusDisplay }}</text>
           </view>
-          <view class="info-row">
-            <text class="info-label">挂号时间</text>
-            <text class="info-value">{{ item.displayRegisterTime }}</text>
+          <view class="info-row" v-if="item.appointmentTimeSlot">
+            <text class="info-label">就诊时间段</text>
+            <text class="info-value">{{ item.appointmentTimeSlot }}</text>
           </view>
-          <view class="info-row">
-            <text class="info-label">就诊时间</text>
+          <view class="info-row" v-if="item.displayVisitTime && item.displayVisitTime !== '-'">
+            <text class="info-label">实际就诊时间</text>
             <text class="info-value">{{ item.displayVisitTime }}</text>
           </view>
         </view>
@@ -121,6 +121,7 @@ import { ref, computed, onMounted } from 'vue'
 import { getRegistrationRecords, getScheduleDetailById } from '@/api/registration'
 import { ensurePatientCard } from '@/utils/patientHelper'
 import { getPatientReferralList } from '@/api/referral'
+import http from '@/utils/request'
 
 import { getDoctorDetail } from '@/api/doctor_massage'
 import { getDepartmentDetail } from '@/api/department'
@@ -173,16 +174,17 @@ const STATUS_DEFINITIONS = {
   }
 }
 
+// 状态码映射（根据数据库：0-候补；1-已预约；2-已就诊；3-已退号；4-已取消）
+// 注意：状态码3和4需要结合cancel_time和cancel_reason判断，不能仅凭状态码判定为已取消
 const RAW_STATUS_CODE_MAP = new Map([
-  ['0', STATUS_DEFINITIONS.pending],
-  ['1', STATUS_DEFINITIONS.completed],
-  ['2', STATUS_DEFINITIONS.cancelled],
-  ['3', STATUS_DEFINITIONS.expired],
-  ['4', STATUS_DEFINITIONS.expired]
+  ['0', STATUS_DEFINITIONS.pending],   // 候补
+  ['1', STATUS_DEFINITIONS.pending],   // 已预约（待就诊）
+  ['2', STATUS_DEFINITIONS.completed], // 已就诊（已完成）
+  // '3' 和 '4' 不在这里映射，需要检查 cancel_time 和 cancel_reason
 ])
 
 const STATUS_KEYWORD_RULES = [
-  { regex: /(取消|退号|作废|关闭|失败|拒绝|撤销)/, status: STATUS_DEFINITIONS.cancelled },
+  // 注意：取消状态不再通过关键字匹配，只能通过 cancel_time 和 cancel_reason 判断
   { regex: /(过期|失效)/, status: STATUS_DEFINITIONS.expired },
   { regex: /(完成|成功|已支付|已就诊|诊疗|结束)/, status: STATUS_DEFINITIONS.completed },
   { regex: /(待|未支付|预约|排队|未就诊|确认中)/, status: STATUS_DEFINITIONS.pending }
@@ -218,40 +220,102 @@ const parseToDate = (value) => {
 
 const cloneStatus = (statusDefinition) => ({ ...statusDefinition })
 
-const resolveStatusInfo = (rawStatusValue, visitTimeStr, registerTimeStr) => {
+// 根据时间段获取就诊开始时间（小时）
+const getTimeSlotStartHour = (timeSlot) => {
+  const slotNum = Number(timeSlot)
+  if (slotNum === 1) return 8   // 上午 08:00
+  if (slotNum === 2) return 14  // 下午 14:00
+  if (slotNum === 3) return 18  // 晚上 18:00
+  return null
+}
+
+// 根据排班日期和时段构建就诊时间
+const buildAppointmentTime = (scheduleDateStr, timeSlot) => {
+  if (!scheduleDateStr || !timeSlot) return null
+  
+  const scheduleDate = parseToDate(scheduleDateStr)
+  if (!scheduleDate) return null
+  
+  const startHour = getTimeSlotStartHour(timeSlot)
+  if (startHour === null) return null
+  
+  const appointmentTime = new Date(scheduleDate)
+  appointmentTime.setHours(startHour, 0, 0, 0)
+  return appointmentTime
+}
+
+const resolveStatusInfo = (rawStatusValue, visitTimeStr, registerTimeStr, scheduleDateStr = null, timeSlot = null, cancelTime = null, cancelReason = null) => {
   const rawText = String(rawStatusValue ?? '').trim()
-
-  if (RAW_STATUS_CODE_MAP.has(rawText)) {
-    return cloneStatus(RAW_STATUS_CODE_MAP.get(rawText))
-  }
-
-  if (rawText && RAW_STATUS_CODE_MAP.has(String(Number(rawText)))) {
-    return cloneStatus(RAW_STATUS_CODE_MAP.get(String(Number(rawText))))
-  }
-
-  const visitDate = parseToDate(visitTimeStr || registerTimeStr)
   const now = new Date()
 
-  if (rawText) {
-    if (/(取消|退号|作废|关闭|失败|拒绝|撤销)/.test(rawText)) {
-      return cloneStatus(STATUS_DEFINITIONS.cancelled)
+  // 优先检查是否取消（取消状态优先级最高）
+  // 只有 cancel_time 和 cancel_reason 都有合理数值时，才判定为已取消
+  const hasCancelTime = cancelTime && String(cancelTime).trim() !== ''
+  const hasCancelReason = cancelReason && String(cancelReason).trim() !== ''
+  
+  if (hasCancelTime && hasCancelReason) {
+    return cloneStatus(STATUS_DEFINITIONS.cancelled)
+  }
+
+  // 优先检查是否有实际就诊时间（如果有实际就诊时间，说明已经就诊过，应判定为已完成）
+  // 这个检查要在状态码映射之前，确保有实际就诊时间的记录不会被错误判定
+  const visitDate = parseToDate(visitTimeStr)
+  if (visitDate) {
+    // 拥有实际就诊时间的应被判定为已就诊（已完成）
+    // 判断是否超过5天
+    const diffDays = (now.getTime() - visitDate.getTime()) / DAY_IN_MS
+    if (diffDays <= 5) {
+      return cloneStatus(STATUS_DEFINITIONS.completed)
     }
+    // 超过5天 → 已过期
+    return cloneStatus(STATUS_DEFINITIONS.expired)
+  }
+
+  // 检查排班时间：如果已经超过预约的排班中规定的就诊时间，也判定为"已完成"
+  // 这个检查要在状态码映射之前，确保即使状态码是"待就诊"，超过排班时间也会被判定为"已完成"
+  if (scheduleDateStr && timeSlot) {
+    const appointmentTime = buildAppointmentTime(scheduleDateStr, timeSlot)
+    if (appointmentTime) {
+      // 如果当前时间已经超过排班时间 → 已就诊（已完成）
+      if (now >= appointmentTime) {
+        // 判断是否超过5天
+        const diffDays = (now.getTime() - appointmentTime.getTime()) / DAY_IN_MS
+        if (diffDays <= 5) {
+          return cloneStatus(STATUS_DEFINITIONS.completed)
+        }
+        // 超过5天 → 已过期
+        return cloneStatus(STATUS_DEFINITIONS.expired)
+      }
+      // 如果当前时间还没到排班时间 → 待就诊（但继续后续判断，可能被状态码覆盖）
+    }
+  }
+
+  // 如果状态码是3或4，但没有取消时间和原因，不判定为已取消
+  // 状态码3（已退号）和4（已取消）需要同时有cancel_time和cancel_reason才能判定为已取消
+  if (rawText === '3' || rawText === '4' || rawText === 3 || rawText === 4) {
+    // 如果没有取消时间和原因，根据其他信息判断状态
+    // 继续后续判断逻辑
+  } else {
+    // 对于其他状态码，使用状态码映射
+    // 注意：如果已经通过排班时间判定为"已完成"，上面的逻辑已经返回了
+    // 这里只处理还没有被排班时间判定的情况
+    if (RAW_STATUS_CODE_MAP.has(rawText)) {
+      return cloneStatus(RAW_STATUS_CODE_MAP.get(rawText))
+    }
+
+    if (rawText && RAW_STATUS_CODE_MAP.has(String(Number(rawText)))) {
+      return cloneStatus(RAW_STATUS_CODE_MAP.get(String(Number(rawText))))
+    }
+  }
+  
+  // 如果没有取消时间和原因，再检查状态文本关键字
+  if (rawText) {
     if (/(过期|失效)/.test(rawText)) {
       return cloneStatus(STATUS_DEFINITIONS.expired)
     }
   }
 
-  if (visitDate) {
-    if (now < visitDate) {
-      return cloneStatus(STATUS_DEFINITIONS.pending)
-    }
-    const diffDays = (now.getTime() - visitDate.getTime()) / DAY_IN_MS
-    if (diffDays <= 5) {
-      return cloneStatus(STATUS_DEFINITIONS.completed)
-    }
-    return cloneStatus(STATUS_DEFINITIONS.expired)
-  }
-
+  // 根据关键字匹配状态
   if (rawText) {
     for (const rule of STATUS_KEYWORD_RULES) {
       if (rule.regex.test(rawText)) {
@@ -260,6 +324,7 @@ const resolveStatusInfo = (rawStatusValue, visitTimeStr, registerTimeStr) => {
     }
   }
 
+  // 默认：如果没有就诊时间和排班信息，默认视为待就诊
   return cloneStatus(STATUS_DEFINITIONS.pending)
 }
 
@@ -501,7 +566,10 @@ const loadHospitalRecords = async () => {
     const recordsWithDepartment = await processRecordsDepartments(list)
     list = recordsWithDepartment
     
-    records.value = list.map(item => {
+    // 先映射记录，同时收集需要查询排班信息的记录
+    const recordsNeedingScheduleInfo = []
+    
+    records.value = list.map((item, index) => {
       const deptName = (item.departmentName || '').trim()
       const doctorName = pickStringValue(item, [
         'doctorName',
@@ -520,9 +588,38 @@ const loadHospitalRecords = async () => {
       const displayRegisterTime = formatDateTimeForDisplay(rawRegisterTime)
       const displayVisitTime = formatDateTimeForDisplay(rawVisitTime)
       const displayTimeSlot = item.timeSlot || item.time_slot || item.appointmentTimeSlot || displayVisitTime || '-'
-      const statusInfo = resolveStatusInfo(rawStatus, rawVisitTime, rawRegisterTime)
+      
+      // 获取排班信息用于状态判断
+      const scheduleDateStr = item.scheduleDate || item.schedule_date || item.scheduleDateStr || null
+      const timeSlot = item.timeSlot || item.time_slot || null
+      const scheduleId = item.scheduleId || item.schedule_id || null
+      
+      // 获取取消相关字段
+      const cancelTime = item.cancelTime || item.cancel_time || null
+      const cancelReason = item.cancelReason || item.cancel_reason || null
+      
+      // 对于所有有scheduleId的记录，都尝试查询排班详情以确保时间段能正确显示
+      const needsScheduleInfo = scheduleId !== null && scheduleId !== undefined
+      
+      const statusInfo = resolveStatusInfo(rawStatus, rawVisitTime, rawRegisterTime, scheduleDateStr, timeSlot, cancelTime, cancelReason)
+      
+      // 构建就诊时间段显示（如果有排班信息）
+      let appointmentTimeSlot = null
+      if (scheduleDateStr && timeSlot) {
+        const timeSlotText = timeSlot === 1 ? '上午' : timeSlot === 2 ? '下午' : timeSlot === 3 ? '晚上' : ''
+        if (timeSlotText) {
+          // 格式化日期：将 YYYY-MM-DD 转换为 YYYY年MM月DD日
+          const dateStr = String(scheduleDateStr).substring(0, 10)
+          const dateParts = dateStr.split('-')
+          if (dateParts.length === 3) {
+            appointmentTimeSlot = `${dateParts[0]}年${dateParts[1]}月${dateParts[2]}日 ${timeSlotText}`
+          } else {
+            appointmentTimeSlot = `${dateStr} ${timeSlotText}`
+          }
+        }
+      }
 
-      return {
+      const record = {
         id: item.recordId || item.id,
         patientId: item.patientId || item.patient_id || null,
         department: deptName || '-',
@@ -534,6 +631,7 @@ const loadHospitalRecords = async () => {
         displayRegisterTime,
         displayVisitTime,
         timeSlot: displayTimeSlot,
+        appointmentTimeSlot: appointmentTimeSlot, // 就诊时间段
         status: rawStatus,
         statusDisplay: statusInfo.label,
         normalizedStatus: statusInfo.label,
@@ -544,9 +642,83 @@ const loadHospitalRecords = async () => {
         recordNumberDisplay: recordNumber || '无编号',
         canRefer: statusInfo.allowReferral,
         hasReferral: false, // 标记是否已申请过转诊
-        originalRecord: item
+        originalRecord: item,
+        scheduleId: scheduleId,
+        scheduleDateStr: scheduleDateStr,
+        timeSlotValue: timeSlot,
+        cancelTime: cancelTime,
+        cancelReason: cancelReason
       }
+      
+      if (needsScheduleInfo) {
+        recordsNeedingScheduleInfo.push({ recordIndex: index, scheduleId: scheduleId })
+      }
+      
+      return record
     })
+    
+    // 对于需要查询排班信息的记录，异步查询并更新状态
+    if (recordsNeedingScheduleInfo.length > 0) {
+      const updatePromises = recordsNeedingScheduleInfo.map(async ({ recordIndex, scheduleId }) => {
+        try {
+          // 使用 getScheduleDetailById 获取排班详情原始数据，以便获取数字类型的timeSlot
+          const res = await getScheduleDetailById(scheduleId)
+          const schedule = res?.result || res?.data || res
+          
+          if (schedule && schedule.schedule_date) {
+            const record = records.value[recordIndex]
+            const scheduleDateStr = schedule.schedule_date || schedule.scheduleDate
+            // 从原始响应中获取数字类型的 timeSlot
+            const timeSlot = schedule.time_slot || schedule.timeSlot || record.timeSlotValue
+            
+            // 从记录中获取取消相关字段
+            const cancelTime = record.cancelTime || record.originalRecord?.cancelTime || record.originalRecord?.cancel_time || null
+            const cancelReason = record.cancelReason || record.originalRecord?.cancelReason || record.originalRecord?.cancel_reason || null
+            
+            // 重新计算状态（使用更新后的排班信息）
+            const updatedStatusInfo = resolveStatusInfo(
+              record.status,
+              record.visitTime,
+              record.registerTime,
+              scheduleDateStr,
+              timeSlot,
+              cancelTime,
+              cancelReason
+            )
+            
+            // 更新记录状态
+            record.statusDisplay = updatedStatusInfo.label
+            record.normalizedStatus = updatedStatusInfo.label
+            record.statusCode = updatedStatusInfo.code
+            record.statusKey = updatedStatusInfo.key
+            record.statusDescription = updatedStatusInfo.description
+            record.canRefer = updatedStatusInfo.allowReferral
+            record.scheduleDateStr = scheduleDateStr
+            record.timeSlotValue = timeSlot
+            
+            // 更新就诊时间段显示（根据排班日期和时间段构建）
+            if (scheduleDateStr && timeSlot) {
+              const timeSlotText = timeSlot === 1 ? '上午' : timeSlot === 2 ? '下午' : timeSlot === 3 ? '晚上' : ''
+              if (timeSlotText) {
+                // 格式化日期：将 YYYY-MM-DD 转换为 YYYY年MM月DD日
+                const dateStr = String(scheduleDateStr).substring(0, 10)
+                const dateParts = dateStr.split('-')
+                if (dateParts.length === 3) {
+                  record.appointmentTimeSlot = `${dateParts[0]}年${dateParts[1]}月${dateParts[2]}日 ${timeSlotText}`
+                } else {
+                  record.appointmentTimeSlot = `${dateStr} ${timeSlotText}`
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.warn(`查询排班详情失败 (scheduleId: ${scheduleId}):`, error)
+        }
+      })
+      
+      // 等待所有排班信息查询完成
+      await Promise.all(updatePromises)
+    }
     
     // 检查每个就诊记录是否已申请过转诊
     await checkReferralStatus()
@@ -1005,6 +1177,11 @@ onMounted(() => {
   padding: 32rpx;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
+  position: relative;
+}
+
+.record-card::after {
+  display: none !important;
 }
 
 .record-card:active {
@@ -1086,6 +1263,11 @@ onMounted(() => {
   font-size: 28rpx;
   flex: 1;
   text-align: right;
+}
+
+.info-value::after {
+  display: none !important;
+  content: none !important;
 }
 
 .info-value.doctor-name {

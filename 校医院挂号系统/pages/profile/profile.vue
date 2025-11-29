@@ -33,42 +33,38 @@
       </view>
     </view>
 
-    <view class="profile-section card centered centered-down-small">
+    <view class="profile-section card">
       <view class="section-title">就诊记录</view>
       <view class="profile-row">
         <view class="profile-item" @click="goToRegisterRecord">
           <image class="icon" src="/static/register.svg" />
           <text>挂号记录</text>
         </view>
-        <view class="profile-item" @click="goToOutpatientRecord">
-          <image class="icon" src="/static/outpatient.svg" />
-          <text>门诊缴费记录</text>
-        </view>
         <view class="profile-item" @click="goToHospitalRecord">
           <image class="icon" src="/static/hospital.svg" />
           <text>就诊记录</text>
         </view>
-        <view class="profile-item" @click="goToConsultRecord">
-          <image class="icon" src="/static/consult.svg" />
-          <text>咨询记录</text>
+        <view class="profile-item" @click="goToTransferHistory">
+          <image class="icon" src="/static/referral-record.svg" />
+          <text>转诊记录</text>
+        </view>
+        <view class="profile-item" @click="goToOutpatientRecord">
+          <image class="icon" src="/static/outpatient.svg" />
+          <text>缴费记录</text>
         </view>
       </view>
       <view class="profile-row">
         <view class="profile-item" @click="goToRevisitRecord">
           <image class="icon" src="/static/record.svg" />
-          <text>在线复诊记录</text>
+          <text>复诊记录</text>
         </view>
         <view class="profile-item" @click="goToCheckRecord">
           <image class="icon" src="/static/check.svg" />
-          <text>检查预约记录</text>
+          <text>检查预约</text>
         </view>
-        <view class="profile-item" @click="goToTransfer">
-          <image class="icon" src="/static/referral.svg" />
-          <text>转诊申请</text>
-        </view>
-        <view class="profile-item" @click="goToTransferHistory">
-          <image class="icon" src="/static/referral-record.svg" />
-          <text>转诊记录</text>
+        <view class="profile-item" @click="goToConsultRecord">
+          <image class="icon" src="/static/consult.svg" />
+          <text>咨询记录</text>
         </view>
       </view>
     </view>
@@ -217,11 +213,6 @@ const goToUnbind = createAuthHandler(
   '/subpkg/profile/settings/unbind'
 )
 
-const goToTransfer = () => {
-  console.log('直接导航到: /subpkg/hospital/referral-application')
-  uniNavigateTo({ url: '/subpkg/hospital/referral-application' })
-}
-
 const goToTransferHistory = () => {
    console.log('直接导航到: /subpkg/hospital/referral-records')
    uniNavigateTo({ url: '/subpkg/hospital/referral-records' })
@@ -274,32 +265,37 @@ onMounted(() => {
 
 <style scoped>
 .profile-bg {
-  background: #3a9cff;
-  min-height: 100vh;
-  padding-bottom: 72rpx;
+  background: linear-gradient(180deg, #e6f4ff 0%, #cce7ff 100%);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
 }
 .profile-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24rpx 24rpx;
-  min-height: 180rpx; /* 个人信息模块在区域内垂直居中 */
-  background: #3a9cff;
+  padding: 28rpx 32rpx 20rpx 32rpx;
+  flex-shrink: 0;
+  background: linear-gradient(180deg, #e6f4ff 0%, #cce7ff 100%);
 }
 .profile-info {
   display: flex;
   align-items: center;
 }
 .avatar {
-  width: 100rpx;
-  height: 100rpx;
+  width: 110rpx;
+  height: 110rpx;
   border-radius: 50%;
   background: #fff;
   margin-right: 24rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 48rpx;
+  font-size: 52rpx;
+  box-shadow: 0 4rpx 16rpx rgba(58, 156, 255, 0.2);
+  border: 3rpx solid rgba(255, 255, 255, 0.8);
 }
 .user-info {
   display: flex;
@@ -307,77 +303,83 @@ onMounted(() => {
   color: #fff;
 }
 .user-name {
-  font-size: 36rpx;
-  font-weight: bold;
+  font-size: 38rpx;
+  font-weight: 600;
+  margin-bottom: 8rpx;
+  color: #1a4d80;
 }
 .user-phone {
   font-size: 26rpx;
-  margin-top: 8rpx;
+  opacity: 0.85;
+  color: #4a7ba7;
 }
 .unbind-btn {
-  border: 1px solid #fff;
-  color: #fff;
-  background: transparent;
-  font-size: 26rpx;
-  border-radius: 8rpx;
+  border: 2rpx solid #3a9cff;
+  color: #3a9cff;
+  background: #fff;
+  font-size: 24rpx;
+  border-radius: 28rpx;
   padding: 8rpx 24rpx;
+  box-shadow: 0 4rpx 12rpx rgba(58, 156, 255, 0.2);
+  font-weight: 500;
 }
 .card {
   background: #fff;
-  border-radius: 16rpx;
-  margin: 14rpx 14rpx 0 14rpx; /* 略放松，避免过紧 */
-  padding: 14rpx 0;
-  box-shadow: 0 4rpx 16rpx rgba(58,156,255,0.08);
+  border-radius: 20rpx;
+  margin: 16rpx 32rpx 0 32rpx;
+  padding: 24rpx 0;
+  box-shadow: 0 4rpx 20rpx rgba(58, 156, 255, 0.15);
+  flex-shrink: 0;
 }
 .profile-section {
   display: flex;
   flex-direction: column;
-  justify-content: flex-start; /* 区块内容靠上且整体居中感 */
+  justify-content: flex-start;
 }
 .profile-section.centered {
   min-height: 180rpx;
-  justify-content: center; /* 该块内竖直居中 */
+  justify-content: center;
 }
 .profile-section.centered-down {
-  padding-top: 18rpx; /* 让第一块稍微下移 */
-}
-.profile-section.centered-down-small {
-  min-height: 200rpx;
-  justify-content: center;
-  padding-top: 10rpx; /* 就诊记录整体略向下 */
+  padding-top: 12rpx;
 }
 .section-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  margin: 0 0 6rpx 32rpx;
-  color: #333;
+  font-size: 30rpx;
+  font-weight: 600;
+  margin: 0 0 20rpx 32rpx;
+  color: #1a4d80;
 }
 .profile-row {
   display: flex;
   flex-direction: row;
-  justify-content: flex-start;
-  align-items: center;
-  margin: 0 0 6rpx 0; /* 适当放松行距 */
+  justify-content: space-around;
+  align-items: flex-start;
+  margin: 0;
+  padding: 0 24rpx;
+}
+.profile-row:not(:last-child) {
+  margin-bottom: 20rpx;
 }
 .profile-item {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center; /* 新增这一行 */
-  margin: 8rpx 0;
-  padding: 12rpx;
-  border-radius: 12rpx;
-  transition: background-color 0.3s;
+  justify-content: center;
+  padding: 16rpx 12rpx;
+  border-radius: 16rpx;
+  transition: all 0.3s ease;
+  min-height: 130rpx;
 }
 
 .profile-item:active {
   background-color: rgba(58, 156, 255, 0.1);
+  transform: scale(0.96);
 }
 .icon {
-  width: 72rpx;
-  height: 72rpx;
-  margin-bottom: 6rpx;
+  width: 80rpx;
+  height: 80rpx;
+  margin-bottom: 14rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -385,16 +387,21 @@ onMounted(() => {
 .icon-lg {
   width: 88rpx;
   height: 88rpx;
-  margin-bottom: 12rpx;
+  margin-bottom: 14rpx;
 }
 .profile-item text {
   display: block;
   text-align: center;
-  line-height: 32rpx;
-  min-height: 64rpx; /* 固定两行高度，保证同一行标题对齐 */
+  font-size: 26rpx;
+  color: #333;
+  line-height: 1.5;
+  word-break: keep-all;
+  white-space: nowrap;
+  font-weight: 500;
 }
 .tabbar-placeholder {
-  height: 72rpx;
+  height: 0;
+  flex-shrink: 0;
 }
 
 /* 退出登录按钮样式 */

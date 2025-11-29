@@ -1,9 +1,7 @@
 <template>
   <view class="referral-bg">
     <view class="page-header">
-      <view class="back-btn" @click="goBack">←</view>
       <text class="page-title">转诊详情</text>
-      <view class="header-right"></view>
     </view>
 
     <scroll-view scroll-y class="content">
@@ -401,9 +399,8 @@ onLoad((options) => {
 }
 
 .page-header {
-  background-color: #1989fa;
-  color: #fff;
-  padding: 16px;
+  background-color: #ffffff;
+  padding: 32rpx 30rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -414,24 +411,13 @@ onLoad((options) => {
   box-sizing: border-box;
 }
 
-.back-btn {
-  font-size: 20px;
-  margin-right: 20px;
-  flex-shrink: 0;
-}
-
 .page-title {
-  flex: 1;
-  font-size: 18px;
-  font-weight: bold;
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #1f2d3d;
   text-align: center;
-  margin: 0 auto;
 }
 
-.header-right {
-  width: 20px;
-  flex-shrink: 0;
-}
 
 .content {
   padding: 16px;

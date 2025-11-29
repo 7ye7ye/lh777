@@ -91,14 +91,27 @@
               <text class="info-label">状态</text>
               <text class="info-value waiting-tips">等待管理员审核</text>
             </view>
+            <view class="info-row" v-if="record.status === 'APPROVED' && record.targetType === 'INTERNAL' && record.autoRegisterStatus !== null && record.autoRegisterStatus !== undefined">
+              <text class="info-label">自动挂号状态</text>
+              <text class="info-value" :class="getAutoRegisterStatusClass(record.autoRegisterStatus)">
+                {{ getAutoRegisterStatusText(record.autoRegisterStatus) }}
+              </text>
+            </view>
           </view>
           <view class="card-actions">
             <view class="detail-section">
               <button class="detail-btn" @click.stop="viewRecordDetail(record)">查看详情</button>
+              <button 
+                v-if="record.status === 'APPROVED' && record.targetType === 'INTERNAL' && record.autoRegisterStatus !== null && record.autoRegisterStatus !== undefined"
+                class="detail-btn status-btn"
+                @click.stop="viewAutoRegisterStatus(record)"
+              >
+                查看挂号状态
+              </button>
             </view>
             <view class="action-wrapper">
               <button
-                v-if="record.status === 'APPROVED' && record.targetType === 'INTERNAL'"
+                v-if="record.status === 'APPROVED' && record.targetType === 'INTERNAL' && (record.autoRegisterStatus === null || record.autoRegisterStatus === undefined || record.autoRegisterStatus === 0)"
                 class="small-action-btn blue-btn"
                 @click.stop="handleAutoRegister(record)"
               >
@@ -276,12 +289,76 @@ const viewRecordDetail = (record) => {
   })
 }
 
+// 获取自动挂号状态文本
+const getAutoRegisterStatusText = (status) => {
+  if (status === null || status === undefined) return ''
+  if (status === 0) return '未处理'
+  if (status === 1) return '挂号成功'
+  if (status === 2) return '挂号失败'
+  return '未知状态'
+}
+
+// 获取自动挂号状态样式类
+const getAutoRegisterStatusClass = (status) => {
+  if (status === 1) return 'status-success'
+  if (status === 2) return 'status-failed'
+  return ''
+}
+
+// 查看自动挂号状态
+const viewAutoRegisterStatus = (record) => {
+  let content = ''
+  const status = record.autoRegisterStatus
+  
+  if (status === 1) {
+    // 挂号成功
+    content = `自动挂号状态：已成功\n`
+    if (record.assignedDate) {
+      content += `预约日期：${record.assignedDate}\n`
+    }
+    if (record.assignedTimeSlot) {
+      const timeSlotMap = { 1: '上午', 2: '下午', 3: '晚上' }
+      content += `预约时段：${timeSlotMap[record.assignedTimeSlot] || record.assignedTimeSlot}\n`
+    }
+    if (record.registrationRecordId) {
+      content += `挂号记录编号：${record.registrationRecordId}`
+    }
+  } else if (status === 2) {
+    // 挂号失败
+    content = '自动挂号状态：挂号失败\n'
+    if (record.quotaAction === 'WAITLIST' && record.waitNumber) {
+      content += `已加入候补队列，候补号：${record.waitNumber}`
+    } else {
+      content += '当前无可用排班，请稍后重试或联系医院'
+    }
+  } else {
+    content = '自动挂号状态：未处理'
+  }
+  
+  uni.showModal({
+    title: '自动挂号状态',
+    content: content,
+    showCancel: false,
+    confirmText: '知道了'
+  })
+}
+
 // 自动挂号（院内转诊）
 const handleAutoRegister = async (record) => {
   if (!record || !record.id) {
     uni.showToast({
       title: '转诊记录信息不完整',
       icon: 'none'
+    })
+    return
+  }
+  
+  // 检查是否已经自动挂号过
+  if (record.autoRegisterStatus === 1) {
+    uni.showToast({
+      title: '该转诊申请已经成功自动挂号，无需重复申请',
+      icon: 'none',
+      duration: 3000
     })
     return
   }
@@ -313,8 +390,18 @@ const handleAutoRegister = async (record) => {
           }
         } catch (error) {
           console.error('自动挂号失败:', error)
+          let errorMsg = '自动挂号失败，请稍后重试'
+          if (error.message) {
+            if (error.message.includes('已经成功')) {
+              errorMsg = '该转诊申请已经成功自动挂号，无需重复申请'
+            } else if (error.message.includes('不满足')) {
+              errorMsg = '不满足自动挂号条件'
+            } else {
+              errorMsg = error.message
+            }
+          }
           uni.showToast({
-            title: error.message || '自动挂号失败，请稍后重试',
+            title: errorMsg,
             icon: 'none',
             duration: 3000
           })
@@ -550,7 +637,13 @@ const loadReferralRecords = async () => {
         cancelTimeText: formatDateTime(cancelTime),
         rejectReason: record.rejectReason || '',
         sourceType: record.sourceType || '',
-        registrationRecordId: record.registrationRecordId || record.registration_record_id || null
+        registrationRecordId: record.registrationRecordId || record.registration_record_id || null,
+        autoRegisterStatus: record.autoRegisterStatus || record.auto_register_status || null,
+        assignedScheduleId: record.assignedScheduleId || record.assigned_schedule_id || null,
+        assignedDate: record.assignedDate || record.assigned_date || null,
+        assignedTimeSlot: record.assignedTimeSlot || record.assigned_time_slot || null,
+        quotaAction: record.quotaAction || record.quota_action || null,
+        waitNumber: record.waitNumber || record.wait_number || null
       }
     })
     
@@ -1012,6 +1105,17 @@ onMounted(async () => {
   background: none;
   padding: 8rpx 20rpx;
   border: none;
+}
+.status-btn {
+  margin-left: 8rpx;
+}
+.info-value.status-success {
+  color: #52c41a;
+  font-weight: 600;
+}
+.info-value.status-failed {
+  color: #ff4d4f;
+  font-weight: 600;
 }
 
 .action-wrapper {

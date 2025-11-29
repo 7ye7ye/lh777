@@ -473,8 +473,8 @@
 			{
 			"pagePath": "pages/home/home",
 			"text": "首页",
-			"iconPath": "/static/logo.png",
-			"selectedIconPath": "/static/logo.png"
+			"iconPath": "/static/home.png",
+			"selectedIconPath": "/static/home.png"
 		},
 			{
 			"pagePath": "pages/assistant/assistant",

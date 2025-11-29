@@ -127,7 +127,6 @@
                     <view class="doctor-title">{{ doctor.title || '医师' }}</view>
                     <view class="doctor-specialty">擅长: {{ doctor.specialty || '内科' }}</view>
                   </view>
-                  <view class="arrow-icon">></view>
                 </view>
                 <!-- 按日期分组显示排班 -->
                 <view class="date-section">
@@ -790,7 +789,7 @@ const callConsult = () => {
 // 页面加载时初始化
 onMounted(() => {
   initDateList()
-  fetchDepartmentTree()
+  initDepartmentTree()
 })
 </script>
 
@@ -798,7 +797,7 @@ onMounted(() => {
 /* 全局样式重置和统一 */
 .department-booking-page {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: linear-gradient(180deg, #f5f7fa 0%, #f0f3f6 100%);
   display: flex;
   flex-direction: column;
   font-size: 28rpx;
@@ -813,36 +812,38 @@ onMounted(() => {
   right: 0;
   height: 88rpx;
   line-height: 88rpx;
-  background-color: #ffffff;
+  background: linear-gradient(135deg, #4a90e2 0%, #6ec6ff 100%);
   text-align: center;
   font-size: 32rpx;
   font-weight: bold;
-  color: #333333;
-  border-bottom: 1rpx solid #eaeaea;
+  color: #ffffff;
+  box-shadow: 0 4rpx 12rpx rgba(74, 144, 226, 0.2);
   z-index: 100;
 }
 
 .header-title {
   font-size: 32rpx;
   font-weight: bold;
-  color: #333333;
+  color: #ffffff;
+  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.1);
 }
 
 /* 日期选择器容器 - 移至顶部 */
 .date-selection {
   margin-top: 88rpx;
   padding: 0;
-  background-color: #fff;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafb 100%);
   position: sticky;
   top: 88rpx;
   z-index: 99;
-  border-bottom: 1rpx solid #e0e0e0;
+  border-bottom: 1rpx solid #e0e6ed;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
   overflow-x: auto;
   white-space: nowrap;
 }
 
 .date-scroll {
-  padding: 0;
+  padding: 8rpx 0;
   display: flex;
   width: 100%;
 }
@@ -851,47 +852,60 @@ onMounted(() => {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  padding: 16rpx 0;
+  padding: 16rpx 20rpx;
+  margin: 0 4rpx;
   text-align: center;
-  border-bottom: 4rpx solid transparent;
+  border-radius: 16rpx;
   flex: 1;
   min-width: 120rpx;
   transition: all 0.3s ease;
+  background: transparent;
+  position: relative;
 }
 
 .date-item.active {
-  color: #197afc;
-  border-bottom-color: #197afc;
+  background: linear-gradient(135deg, #4a90e2 0%, #6ec6ff 100%);
+  color: #ffffff;
   transform: scale(1.05);
+  box-shadow: 0 4rpx 12rpx rgba(74, 144, 226, 0.3);
 }
 
 .date-item:active {
-  transform: scale(1.05);
-  color: #197afc;
+  transform: scale(1.02);
 }
 
 .date-week {
-  font-size: 26rpx;
-  margin-bottom: 5rpx;
+  font-size: 24rpx;
+  margin-bottom: 4rpx;
   text-align: center;
-  transition: font-size 0.3s ease;
+  transition: all 0.3s ease;
+  opacity: 0.8;
+}
+
+.date-item.active .date-week {
+  opacity: 1;
+  font-weight: 600;
 }
 
 .date-day {
   font-size: 30rpx;
-  font-weight: 500;
+  font-weight: 600;
   text-align: center;
-  transition: font-size 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .date-item.active .date-day,
 .date-item:active .date-day {
   font-size: 32rpx;
+  font-weight: 700;
 }
 
-.date-item.active .date-week,
-.date-item:active .date-week {
-  font-size: 28rpx;
+.date-tag {
+  font-size: 20rpx;
+  margin-top: 4rpx;
+  padding: 2rpx 8rpx;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 8rpx;
 }
 
 /* 主内容区域 - 双栏布局 */
@@ -904,9 +918,11 @@ onMounted(() => {
 /* 左侧科室列表 */
 .left-panel {
   width: 220rpx;
-  background-color: #f5f5f5;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafb 100%);
   height: calc(100vh - 240rpx);
   overflow-y: auto;
+  border-right: 1rpx solid #e0e6ed;
+  box-shadow: 2rpx 0 8rpx rgba(0, 0, 0, 0.02);
 }
 
 /* 移除标签页显示 */
@@ -925,13 +941,13 @@ onMounted(() => {
 
 /* 一级科室样式 */
 .primary-department {
-  padding: 25rpx 0;
+  padding: 28rpx 16rpx;
   text-align: center;
-  font-size: 30rpx;
-  font-weight: bold;
+  font-size: 28rpx;
+  font-weight: 600;
   color: #333;
-  background-color: #f5f5f5;
-  border-bottom: 1rpx solid #e0e0e0;
+  background: transparent;
+  border-bottom: 1rpx solid #f0f3f6;
   cursor: pointer;
   position: relative;
   transition: all 0.3s ease;
@@ -940,14 +956,15 @@ onMounted(() => {
 }
 
 .primary-department:hover {
-  background-color: #f0f0f0;
-  transform: translateY(-1rpx);
+  background: linear-gradient(90deg, rgba(74, 144, 226, 0.05) 0%, transparent 100%);
 }
 
 .primary-department.active {
-  background-color: #e8f0fe;
-  color: #197afc;
-  box-shadow: 0 2rpx 8rpx rgba(25, 122, 252, 0.1);
+  background: linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, rgba(110, 198, 255, 0.1) 100%);
+  color: #4a90e2;
+  font-weight: 700;
+  border-left: 4rpx solid #4a90e2;
+  box-shadow: inset 0 0 20rpx rgba(74, 144, 226, 0.08);
 }
 
 .primary-department:active {
@@ -987,29 +1004,31 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 30rpx 0;
+  padding: 24rpx 16rpx;
   text-align: center;
-  font-size: 28rpx;
+  font-size: 26rpx;
   color: #666;
   transition: all 0.2s ease;
-  background-color: #f5f5f5;
-  border-bottom: 1rpx solid #e0e0e0;
+  background: transparent;
+  border-bottom: 1rpx solid #f0f3f6;
   user-select: none;
   -webkit-user-select: none;
   transform-origin: center;
 }
 
 .secondary-department:hover {
-  background-color: #f0f0f0;
-  color: #197afc;
+  background: linear-gradient(90deg, rgba(74, 144, 226, 0.08) 0%, transparent 100%);
+  color: #4a90e2;
 }
 
 .secondary-department.active {
-  background-color: white;
-  color: #197afc;
-  font-weight: bold;
-  padding: 30rpx 0;
-  box-shadow: inset 0 0 0 1rpx #197afc;
+  background: linear-gradient(135deg, #4a90e2 0%, #6ec6ff 100%);
+  color: #ffffff;
+  font-weight: 700;
+  padding: 24rpx 16rpx;
+  box-shadow: 0 4rpx 12rpx rgba(74, 144, 226, 0.3);
+  border-radius: 12rpx;
+  margin: 8rpx 12rpx;
 }
 
 .secondary-department:active {
@@ -1110,17 +1129,20 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 80rpx 40rpx;
 }
 
 .empty-state .empty-icon {
-  font-size: 120rpx;
-  margin-bottom: 24rpx;
-  opacity: 0.5;
+  font-size: 140rpx;
+  margin-bottom: 32rpx;
+  opacity: 0.3;
+  filter: grayscale(100%);
 }
 
 .empty-state .empty-text {
-  font-size: 28rpx;
+  font-size: 30rpx;
   color: #999;
+  font-weight: 500;
 }
 
 /* 医生排班列表 */
@@ -1132,53 +1154,59 @@ onMounted(() => {
 
 /* 日期分组标题 */
 .date-section {
-  padding: 15rpx 20rpx;
-  background-color: #f5f5f5;
+  padding: 20rpx 24rpx;
+  background: linear-gradient(135deg, rgba(74, 144, 226, 0.05) 0%, rgba(110, 198, 255, 0.05) 100%);
+  border-left: 4rpx solid #4a90e2;
 }
 
 .date-title {
   font-size: 28rpx;
-  color: #333;
-  font-weight: 500;
+  color: #4a90e2;
+  font-weight: 600;
 }
 
 /* 医生信息卡片 */
 .doctor-item {
-  margin-bottom: 20rpx;
+  margin-bottom: 24rpx;
+  background: #ffffff;
+  border-radius: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.doctor-item:hover {
+  box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.1);
+  transform: translateY(-2rpx);
 }
 
 /* 医生基本信息 */
 .doctor-info {
   display: flex;
   align-items: center;
-  padding: 20rpx;
-  background-color: white;
-  border-bottom: 1rpx solid #f0f0f0;
+  padding: 24rpx;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafb 100%);
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
+  border-bottom: 1rpx solid #f0f3f6;
 }
 
 .doctor-info:active {
-  background-color: #f5f5f5;
-}
-
-.arrow-icon {
-  font-size: 28rpx;
-  color: #999;
-  margin-left: 10rpx;
+  background: linear-gradient(135deg, #f0f3f6 0%, #e8ecf0 100%);
 }
 
 .doctor-avatar {
-  width: 80rpx;
-  height: 80rpx;
-  border-radius: 40rpx;
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 44rpx;
   margin-right: 20rpx;
-  background-color: #f0f0f0;
+  background: linear-gradient(135deg, #4a90e2 0%, #6ec6ff 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 36rpx;
-  color: #197afc;
+  font-size: 38rpx;
+  color: #ffffff;
+  box-shadow: 0 4rpx 12rpx rgba(74, 144, 226, 0.3);
 }
 
 .doctor-details {
@@ -1190,20 +1218,21 @@ onMounted(() => {
 
 .doctor-name {
   font-size: 32rpx;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 5rpx;
+  font-weight: 700;
+  color: #1f2d3d;
+  margin-bottom: 6rpx;
 }
 
 .doctor-title {
   font-size: 26rpx;
-  color: #666;
-  margin-bottom: 5rpx;
+  color: #4a90e2;
+  margin-bottom: 6rpx;
+  font-weight: 500;
 }
 
 .doctor-specialty {
   font-size: 24rpx;
-  color: #999;
+  color: #666;
   line-height: 32rpx;
 }
 
@@ -1219,17 +1248,31 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 30rpx;
-  margin-bottom: 15rpx;
-  background-color: #fff;
-  border-radius: 12rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+  padding: 28rpx 32rpx;
+  margin-bottom: 16rpx;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafb 100%);
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+  border: 2rpx solid transparent;
   transition: all 0.3s ease;
 }
 
-.time-slot-item:active {
-  transform: scale(0.98);
-  box-shadow: 0 1rpx 4rpx rgba(0, 0, 0, 0.05);
+.time-slot-item.clickable {
+  cursor: pointer;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f6ff 100%);
+  border-color: rgba(74, 144, 226, 0.2);
+}
+
+.time-slot-item.clickable:active {
+  transform: scale(0.97);
+  box-shadow: 0 4rpx 16rpx rgba(74, 144, 226, 0.25);
+  background: linear-gradient(135deg, #4a90e2 0%, #6ec6ff 100%);
+  border-color: transparent;
+}
+
+.time-slot-item.clickable:active .slot-label,
+.time-slot-item.clickable:active .slot-status {
+  color: #ffffff;
 }
 
 /* 时段信息 */
@@ -1242,20 +1285,26 @@ onMounted(() => {
 .slot-label {
   font-size: 30rpx;
   color: #333;
-  font-weight: 500;
+  font-weight: 600;
+  transition: color 0.3s ease;
 }
 
 /* 时段状态 */
 .slot-status {
   font-size: 30rpx;
-  font-weight: bold;
-  color: #197afc;
+  font-weight: 700;
+  color: #4a90e2;
+  padding: 8rpx 20rpx;
+  background: linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, rgba(110, 198, 255, 0.1) 100%);
+  border-radius: 20rpx;
+  transition: all 0.3s ease;
 }
 
 /* 无号状态 */
 .slot-status.no-slot {
   color: #999;
-  font-weight: normal;
+  font-weight: 500;
+  background: #f5f5f5;
 }
 
 .schedule-card {
@@ -1355,13 +1404,17 @@ onMounted(() => {
 
 .no-doctors {
   text-align: center;
-  padding: 100rpx 0;
+  padding: 120rpx 40rpx;
   color: #999;
   font-size: 28rpx;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 250, 251, 0.8) 100%);
+  border-radius: 20rpx;
+  margin: 20rpx;
 }
 
 .no-doctors-text {
   font-size: 28rpx;
   color: #999;
+  font-weight: 500;
 }
 </style>
