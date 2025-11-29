@@ -216,6 +216,15 @@ const admin: AppRouteModule = {
         ignoreAuth: true,
       },
     },
+    {
+      path: 'patient-identity-approval',
+      name: 'AdminPatientIdentityApproval',
+      component: () => import('/@/views/admin/patient/PatientIdentityApproval.vue'),
+      meta: {
+        title: 'routes.admin.PatientldentityApproval',
+        ignoreAuth: true,
+      },
+    },
   ],
 };
 

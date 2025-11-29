@@ -25,7 +25,7 @@
         @change="handleTableChange"
       >
         <template #avatar="{ text }">
-          <a-avatar :src="text" icon="user" />
+          <a-avatar :src="text ? buildImageUrl(text) : undefined" icon="user" />
         </template>
 
         <template #status="{ text }">
@@ -64,7 +64,25 @@ import { PageWrapper } from '/@/components/Page';
 import { useMessage } from '/@/hooks/web/useMessage';
 import { getDoctorProfileUpdateRequests, approveDoctorProfileUpdate, rejectDoctorProfileUpdate } from '/@/api/hospital/doctor';
 
+
 const { createMessage } = useMessage();
+
+const buildImageUrl = (relativePath: string) => {
+  if (!relativePath) return '';
+  // 已经是完整 URL 的情况，直接返回
+  if (/^https?:\/\//.test(relativePath)) {
+    return relativePath;
+  }
+
+  const baseURL = import.meta.env.VITE_GLOB_API_URL || '';
+  // 如果 baseURL 中已经包含 jeecg-boot，则不再重复拼接
+  const hasJeecgBoot = baseURL.includes('jeecg-boot');
+  const apiPrefix = hasJeecgBoot ? '' : '/jeecg-boot';
+  const cleanPrefix = apiPrefix.endsWith('/') ? apiPrefix.slice(0, -1) : apiPrefix;
+  const cleanPath = relativePath.replace(/^\/+/, '');
+
+  return `${baseURL}${cleanPrefix}/sys/common/static/${encodeURI(cleanPath)}`;
+};
 
 const loading = ref(false);
 const status = ref<number | undefined>(1);
@@ -109,6 +127,13 @@ async function fetchData() {
       pageSize: pagination.pageSize,
       status: status.value,
     });
+    console.log('updateRequest response:', res);
+    // 在 DoctorProfileUpdateApproval.vue 里加一行调试
+    console.log(
+      'doctor avatar url:',
+      buildImageUrl('doctor-avatar/yAJC3yt3DLmm099312ae84ff483152c07708f5172d25_1764430082732.jpg'),
+    );
+
     const records = res?.records || [];
     dataSource.value = records;
     pagination.total = res?.total || 0;

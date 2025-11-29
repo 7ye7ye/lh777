@@ -3,7 +3,7 @@
     <!-- 医生信息头部 -->
     <view class="profile-header">
       <view class="avatar-section">
-        <image class="avatar" :src="doctorInfo.avatar" mode="aspectFill" @click="onChangeAvatar" />
+        <image class="avatar" :src="avatarUrl" mode="aspectFill" @click="onChangeAvatar" />
 
         <view class="doctor-main">
           <view class="doctor-main-top">
@@ -153,7 +153,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+
 import { uniNavigateTo, uniShowToast } from '@/utils/uniHelper'
 import { useUserStore } from '@/store/user'
 import { doctorApi } from '@/api/doctor'
@@ -166,10 +167,23 @@ const doctorInfo = ref({
   title: '',
   department: '',
   departmentId: null,
-  avatar: '/static/doctor.svg',
+  // 存服务器上的头像相对路径，如 doctor-avatar/xxx.jpg
+  avatar: '',
   specialty: '',
   doctorDesc: ''
 })
+
+// 头像完整 URL：优先用服务器相对路径拼接，其次用默认本地占位图
+const buildImageUrl = (relativePath) => {
+  if (!relativePath) return '/static/doctor.svg'
+  const baseURL = uni.getStorageSync('BASE_URL') || 'http://localhost:8095'
+  const apiPrefix = uni.getStorageSync('API_PREFIX') || '/jeecg-boot'
+  const cleanPrefix = apiPrefix.endsWith('/') ? apiPrefix.slice(0, -1) : apiPrefix
+  const cleanPath = relativePath.replace(/^\/+/, '')
+  return `${baseURL}${cleanPrefix}/sys/common/static/${encodeURI(cleanPath)}`
+}
+
+const avatarUrl = computed(() => buildImageUrl(doctorInfo.value.avatar))
 
 const loadingProfile = ref(false)
 const userStore = useUserStore()
@@ -208,7 +222,8 @@ async function loadDoctorProfile() {
       title: p.title || p.professionalTitle || '医师',
       department: p.deptName || p.departmentName || p.department || '未知科室',
       departmentId: p.deptId || p.departmentId || null,
-      avatar: p.avatar || p.avatarUrl || p.photo || '/static/doctor.svg',
+      // 这里期望后端返回的是相对路径，如 doctor-avatar/xxx.jpg
+      avatar: p.avatar || p.avatarUrl || p.photo || '',
       specialty: p.specialty || '',
       doctorDesc: p.doctorDesc || p.doctor_desc || p.description || ''
     }
@@ -375,8 +390,18 @@ function onChangeAvatar() {
     success: async (res) => {
       const tempPath = res.tempFilePaths && res.tempFilePaths[0]
       if (!tempPath) return
-      doctorInfo.value.avatar = tempPath
-      // TODO: 调用后端上传接口，成功后更新为服务端返回的头像 URL
+      // 本地预览仍然可用：直接覆盖 avatarUrl 的显示即可
+      // 这里不修改服务器相对路径字段，真正的上传与保存通过资料变更申请页完成
+      // 为保持简单，直接用 tempPath 作为 <image> 的 src
+      // 小程序本地路径本身就是一个可访问的完整 URL
+      // 若需要在此处直接上传，可复用 uploadIdentityPhoto 逻辑
+      doctorInfo.value.avatar = ''
+      // 临时预览：直接用 uni 原生本地路径渲染
+      // 注意：computed avatarUrl 使用的是服务器路径，这里不再改
+      // 如需更复杂的本地+远程混合逻辑，可单独扩展
+      uni.previewImage({
+        urls: [tempPath]
+      })
     }
   })
 }

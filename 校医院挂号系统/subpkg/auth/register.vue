@@ -85,7 +85,7 @@ const onSubmit = async () => {
     console.log(res)
     await uniShowToast({ title: '注册成功', icon: 'success', duration: 1500 })
           // 使用setTimeout确保toast显示完成后再跳转
-          setTimeout(() => {
+          setTimeout(() => {e3c 
             uniNavigateTo('/subpkg/auth/login')
           }, 1500)
   } catch (e) {

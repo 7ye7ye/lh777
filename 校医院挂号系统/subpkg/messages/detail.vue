@@ -159,7 +159,7 @@
 			
 			fetchMessageDetail() {
 				// 【重要】调用新的单条消息接口
-				const apiUrl = `http://10.61.62.249:8095/jeecg-boot/api/messages/${this.messageId}`;
+				const apiUrl = `http://10.61.66.247:8095/jeecg-boot/api/messages/${this.messageId}`;
 				
 				console.log('📤 请求消息详情, messageId =', this.messageId);
 				console.log('📤 请求URL:', apiUrl);

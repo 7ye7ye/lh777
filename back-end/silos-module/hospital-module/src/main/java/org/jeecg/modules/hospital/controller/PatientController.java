@@ -6,9 +6,12 @@ import jakarta.annotation.Resource;
 import org.apache.commons.lang3.StringUtils;
 import org.jeecg.modules.hospital.common.ErrorCode;
 import org.jeecg.modules.hospital.controller.request.PatientListRequest;
+import org.jeecg.modules.hospital.controller.response.PatientIdentityAdminItem;
 import org.jeecg.modules.hospital.entity.Patient;
 import org.jeecg.modules.hospital.exception.BusinessException;
 import org.jeecg.modules.hospital.service.PatientService;
+import org.jeecg.modules.hospital.service.PatientIdentityVerifyService;
+import org.jeecg.modules.hospital.entity.PatientIdentityVerify;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,15 +19,17 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.*;
 
 @RestController
 @RequestMapping("/patient")
 public class PatientController {
     @Resource
     private PatientService patientService;
+
+    @Resource
+    private PatientIdentityVerifyService patientIdentityVerifyService;
 
     @PostMapping("/create")
     public ResponseEntity<HashMap<String, Object>> create(@RequestBody Patient patient) {
@@ -102,6 +107,56 @@ public class PatientController {
                 put("message", "系统异常，请稍后重试");
             }});
         }
+    }
+
+    @PostMapping("/identity/adminList")
+    public ResponseEntity<Map<String, Object>> adminIdentityList(@RequestBody(required = false) Map<String, Object> body) {
+        Integer status = null;
+        if (body != null && body.get("status") != null) {
+            status = Integer.valueOf(body.get("status").toString());
+        }
+
+        LambdaQueryWrapper<PatientIdentityVerify> wrapper = new LambdaQueryWrapper<>();
+        if (status != null) {
+            wrapper.eq(PatientIdentityVerify::getStatus, status);
+        }
+        List<PatientIdentityVerify> verifyRecords = patientIdentityVerifyService.list(wrapper);
+
+        List<PatientIdentityAdminItem> resultList = new ArrayList<>();
+        if (verifyRecords != null && !verifyRecords.isEmpty()) {
+            for (PatientIdentityVerify item : verifyRecords) {
+                Patient patient = patientService.getById(item.getPatientId());
+                if (patient == null) {
+                    continue;
+                }
+                PatientIdentityAdminItem vo = new PatientIdentityAdminItem();
+                vo.setPatientId(patient.getPatientId());
+                vo.setPatientName(patient.getPatientName());
+                vo.setPhone(patient.getPhone());
+                vo.setPatientType(patient.getPatientType());
+                vo.setStudentId(patient.getStudentId());
+                vo.setStaffId(patient.getStaffId());
+                vo.setIdentityVerify(patient.getIdentityVerify());
+                vo.setIdentityPhoto(item.getIdentityPhoto());
+                resultList.add(vo);
+            }
+        }
+
+        Map<String, Object> page = new HashMap<>();
+        page.put("records", resultList);
+        page.put("total", resultList.size());
+        page.put("size", resultList.size());
+        page.put("current", 1);
+        page.put("pages", 1);
+
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("success", true);
+        resp.put("message", "");
+        resp.put("code", 200);
+        resp.put("result", page);
+        resp.put("timestamp", System.currentTimeMillis());
+
+        return ResponseEntity.ok(resp);
     }
 
     @PostMapping("/update")
@@ -243,6 +298,142 @@ public class PatientController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new HashMap<String, Object>() {{
                 put("code", 500);
                 put("message", "解绑失败，系统异常，请稍后重试");
+            }});
+        }
+    }
+
+    /**
+     * 用户提交/更新身份认证申请：
+     * - 更新学号/工号、证件照片
+     * - 将 identityVerify 置为 0（未审核）、清空 verifyTime
+     */
+    @PostMapping("/identity/apply")
+    public ResponseEntity<HashMap<String, Object>> applyIdentity(@RequestBody Patient request) {
+        HashMap<String, Object> result = new HashMap<>();
+
+        try {
+            if (request == null || request.getPatientId() == null) {
+                result.put("code", 400);
+                result.put("message", "patientId 不能为空");
+                return ResponseEntity.ok(result);
+            }
+
+            Patient dbPatient = patientService.getById(request.getPatientId());
+            if (dbPatient == null) {
+                result.put("code", 404);
+                result.put("message", "未找到对应就诊卡");
+                return ResponseEntity.ok(result);
+            }
+
+            Integer patientType = dbPatient.getPatientType();
+            if (patientType != null) {
+                if (patientType == 1 && (request.getStudentId() == null || request.getStudentId().trim().isEmpty())) {
+                    result.put("code", 400);
+                    result.put("message", "学生身份必须填写学号");
+                    return ResponseEntity.ok(result);
+                }
+                if (patientType == 2 && (request.getStaffId() == null || request.getStaffId().trim().isEmpty())) {
+                    result.put("code", 400);
+                    result.put("message", "教职工身份必须填写工号");
+                    return ResponseEntity.ok(result);
+                }
+            }
+
+            if (request.getIdentityPhoto() == null || request.getIdentityPhoto().trim().isEmpty()) {
+                result.put("code", 400);
+                result.put("message", "请先上传证件照片");
+                return ResponseEntity.ok(result);
+            }
+
+            boolean success = patientIdentityVerifyService.applyIdentity(
+                    dbPatient.getUserId(),
+                    dbPatient.getPatientId(),
+                    request.getIdentityPhoto(),
+                    dbPatient.getPatientName(),
+                    dbPatient.getIdCard()
+            );
+            if (!success) {
+                result.put("code", 500);
+                result.put("message", "提交认证申请失败，请稍后重试");
+                return ResponseEntity.ok(result);
+            }
+
+            result.put("code", 200);
+            result.put("message", "身份认证申请已提交，请等待管理员审核");
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new HashMap<String, Object>() {{
+                put("code", 500);
+                put("message", "系统异常，请稍后重试");
+            }});
+        }
+    }
+
+    /**
+     * 管理员审核身份认证
+     * approve=true: 通过 -> identityVerify=1, verifyTime=now
+     * approve=false: 驳回 -> identityVerify=2
+     */
+    @PostMapping("/identity/approve")
+    public ResponseEntity<HashMap<String, Object>> approveIdentity(@RequestBody HashMap<String, Object> body) {
+        HashMap<String, Object> result = new HashMap<>();
+
+        try {
+            Object patientIdObj = body.get("patientId");
+            Object approveObj = body.get("approve");
+            Object rejectReasonObj = body.get("rejectReason");
+            if (patientIdObj == null || approveObj == null) {
+                result.put("code", 400);
+                result.put("message", "patientId 和 approve 参数不能为空");
+                return ResponseEntity.ok(result);
+            }
+
+            Long patientId = Long.valueOf(patientIdObj.toString());
+            boolean approve = Boolean.parseBoolean(approveObj.toString());
+            String rejectReason = rejectReasonObj == null ? null : rejectReasonObj.toString();
+
+            Patient dbPatient = patientService.getById(patientId);
+            if (dbPatient == null) {
+                result.put("code", 404);
+                result.put("message", "未找到对应就诊卡");
+                return ResponseEntity.ok(result);
+            }
+
+            Patient update = new Patient();
+            update.setPatientId(patientId);
+            if (approve) {
+                update.setIdentityVerify(1);
+                update.setVerifyTime(LocalDateTime.now());
+            } else {
+                update.setIdentityVerify(2);
+                update.setVerifyTime(null);
+            }
+
+            boolean success = patientService.updateById(update);
+            if (!success) {
+                result.put("code", 500);
+                result.put("message", "审核失败，请稍后重试");
+                return ResponseEntity.ok(result);
+            }
+
+            com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<PatientIdentityVerify> wrapper =
+                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+            wrapper.eq(PatientIdentityVerify::getPatientId, patientId);
+            PatientIdentityVerify record = patientIdentityVerifyService.getOne(wrapper);
+            if (record != null) {
+                record.setStatus(approve ? 1 : 2);
+                record.setRejectReason(approve ? null : rejectReason);
+                record.setUpdateTime(LocalDateTime.now());
+                patientIdentityVerifyService.updateById(record);
+            }
+
+            result.put("code", 200);
+            result.put("message", approve ? "已通过该身份认证申请" : "已驳回该身份认证申请");
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new HashMap<String, Object>() {{
+                put("code", 500);
+                put("message", "系统异常，请稍后重试");
             }});
         }
     }
