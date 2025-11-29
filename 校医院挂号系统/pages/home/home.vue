@@ -528,6 +528,9 @@ onShow(() => {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: flex-start;
+  padding-left: 40rpx;
+  padding-right: 20rpx;
 }
 .patient-basic-info {
   display: flex;
@@ -626,7 +629,8 @@ onShow(() => {
   align-items: center;
   justify-content: center;
   color: #333;
-  margin-left: 24rpx;
+  margin-left: 20rpx;
+  padding-left: 20rpx;
   flex-shrink: 0;
 }
 .qrcode-wrapper {

@@ -276,7 +276,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 28rpx 32rpx 20rpx 32rpx;
+  padding: 24rpx 32rpx 16rpx 32rpx;
   flex-shrink: 0;
   background: linear-gradient(180deg, #e6f4ff 0%, #cce7ff 100%);
 }
@@ -326,8 +326,8 @@ onMounted(() => {
 .card {
   background: #fff;
   border-radius: 20rpx;
-  margin: 16rpx 32rpx 0 32rpx;
-  padding: 24rpx 0;
+  margin: 20rpx 32rpx 0 32rpx;
+  padding: 28rpx 0;
   box-shadow: 0 4rpx 20rpx rgba(58, 156, 255, 0.15);
   flex-shrink: 0;
 }
@@ -337,16 +337,16 @@ onMounted(() => {
   justify-content: flex-start;
 }
 .profile-section.centered {
-  min-height: 180rpx;
+  min-height: 160rpx;
   justify-content: center;
 }
 .profile-section.centered-down {
-  padding-top: 12rpx;
+  padding-top: 8rpx;
 }
 .section-title {
   font-size: 30rpx;
   font-weight: 600;
-  margin: 0 0 20rpx 32rpx;
+  margin: 0 0 24rpx 32rpx;
   color: #1a4d80;
 }
 .profile-row {
@@ -355,10 +355,10 @@ onMounted(() => {
   justify-content: space-around;
   align-items: flex-start;
   margin: 0;
-  padding: 0 24rpx;
+  padding: 0 32rpx;
 }
 .profile-row:not(:last-child) {
-  margin-bottom: 20rpx;
+  margin-bottom: 24rpx;
 }
 .profile-item {
   flex: 1;
@@ -366,10 +366,10 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 16rpx 12rpx;
+  padding: 20rpx 16rpx;
   border-radius: 16rpx;
   transition: all 0.3s ease;
-  min-height: 130rpx;
+  min-height: 120rpx;
 }
 
 .profile-item:active {
@@ -379,7 +379,7 @@ onMounted(() => {
 .icon {
   width: 80rpx;
   height: 80rpx;
-  margin-bottom: 14rpx;
+  margin-bottom: 16rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -387,7 +387,7 @@ onMounted(() => {
 .icon-lg {
   width: 88rpx;
   height: 88rpx;
-  margin-bottom: 14rpx;
+  margin-bottom: 16rpx;
 }
 .profile-item text {
   display: block;
