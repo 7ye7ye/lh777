@@ -106,6 +106,7 @@ import { ref, onMounted } from 'vue'
 import { fetchPatientCard } from '@/utils/patientHelper'
 import { getDepartmentDetail } from '@/api/department'
 import { getDoctorDetail } from '@/api/doctor_massage'
+import { patientApi } from '@/api/patient'
 
 // 挂号状态映射表
 const statusTextMap = {
@@ -267,12 +268,37 @@ const loadRecordDetails = async () => {
       // 设置医生和科室名称，确保显示的是名称而非ID
       // 从原始记录中获取更完整的信息
       if (routeData.originalRecord) {
-        // 从originalRecord中提取患者信息（如果页面数据中有患者姓名）
-        if (routeData.patientName) {
+        // 从originalRecord中获取patientId，根据patientId查询正确的患者信息
+        const recordPatientId = routeData.originalRecord.patientId || routeData.originalRecord.patient_id
+        if (recordPatientId) {
+          // 根据就诊记录的patientId查询该就诊人的就诊卡信息
+          try {
+            const cardData = await patientApi.getCard({ patientId: recordPatientId })
+            if (cardData && cardData.patientId) {
+              patientInfo.value = {
+                name: cardData.patientName || cardData.name || '',
+                cardNumber: cardData.cardNumber || cardData.outpatientNumber || '',
+                phone: cardData.phone || '',
+                patientId: cardData.patientId,
+                id: cardData.patientId // 同时设置id字段，以便兼容
+              }
+            }
+          } catch (error) {
+            console.warn('根据patientId获取就诊卡信息失败:', error)
+            // 如果获取失败，使用传递的patientName作为备选
+            if (routeData.patientName) {
+              patientInfo.value = {
+                ...patientInfo.value,
+                name: routeData.patientName
+              }
+            }
+          }
+        } else if (routeData.patientName) {
+          // 如果没有patientId，使用传递的patientName
           patientInfo.value = {
             ...patientInfo.value,
             name: routeData.patientName
-          };
+          }
         }
         
         // 获取医生ID
@@ -836,7 +862,7 @@ const navigateToDepartment = () => {
         diagnosis: diagnosisInfo.value?.primary || '',
         // 添加更多可能有用的真实字段
         visitId: record.value.visitId || record.value.id,
-        patientId: patientInfo.value?.id || '',
+        patientId: patientInfo.value?.patientId || patientInfo.value?.id || '',
         originalRecord: record.value // 传递完整的原始记录
       }
       

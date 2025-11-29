@@ -126,6 +126,7 @@ export function autoRegisterInternalReferral(referralId) {
   return request({
     url: `/patient/referral/autoRegister/${referralId}`,
     method: 'post',
-    data: {}
+    data: {},
+    noPrefix: false // 确保使用 /jeecg-boot 前缀
   });
 }

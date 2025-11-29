@@ -60,7 +60,7 @@ interface HealthProfileRequest {
 export const patientApi = {
 
 // 就诊卡相关
-getCard: (data: { userId: number }) => u.post('/cardInfo', data),
+getCard: (data: { userId?: number; patientId?: number }) => u.post('/cardInfo', data),
 createCard: (data: CreateCardRequest) => u.post('/create', data),
 updateCard: (data: UpdateCardRequest) => u.post('/update', data),
 unbindCard: (data: { userId: number; patientId: number }) => u.post('/unbind', data),

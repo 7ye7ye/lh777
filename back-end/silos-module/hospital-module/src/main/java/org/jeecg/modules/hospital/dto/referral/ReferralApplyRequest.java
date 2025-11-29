@@ -44,6 +44,9 @@ public class ReferralApplyRequest {
     /** 期望的就诊日期（可选） */
     private String preferredDate;
 
+    /** 关联的挂号记录ID（就诊后申请转诊时使用） */
+    private Long registrationRecordId;
+
     private List<ReferralAttachmentPayload> attachments;
 }
 

@@ -81,14 +81,25 @@
           <view class="detail-section">
             <button class="detail-btn" @click.stop="viewRecordDetail(item)">查看详情</button>
           </view>
-          <view class="referral-wrapper">
+          <!-- 仅非“待就诊”状态才显示转诊相关操作 -->
+          <view class="referral-wrapper" v-if="item.statusKey !== 'pending'">
+            <!-- 可申请转诊 -->
             <button 
-              v-if="item.canRefer" 
+              v-if="item.canRefer && !item.hasReferral" 
               class="small-referral-btn blue-btn" 
               @click.stop="goToReferralApplication(item)"
             >
               申请转诊
             </button>
+            <!-- 已经发生过转诊：改为“查看转诊情况”按钮 -->
+            <button
+              v-else-if="item.hasReferral"
+              class="small-referral-btn blue-btn"
+              @click.stop="goToReferralStatus(item)"
+            >
+              查看转诊情况
+            </button>
+            <!-- 其它情况（超过5天等） -->
             <text v-else class="cannot-refer-text">超过5天，无法转诊</text>
           </view>
         </view>
@@ -107,8 +118,9 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { getRegistrationRecords } from '@/api/registration'
+import { getRegistrationRecords, getScheduleDetailById } from '@/api/registration'
 import { ensurePatientCard } from '@/utils/patientHelper'
+import { getPatientReferralList } from '@/api/referral'
 
 import { getDoctorDetail } from '@/api/doctor_massage'
 import { getDepartmentDetail } from '@/api/department'
@@ -512,6 +524,7 @@ const loadHospitalRecords = async () => {
 
       return {
         id: item.recordId || item.id,
+        patientId: item.patientId || item.patient_id || null,
         department: deptName || '-',
         departmentId: item.departmentId || item.deptId || item.dept_id || null,
         doctor: resolvedDoctor || '-',
@@ -530,9 +543,13 @@ const loadHospitalRecords = async () => {
         recordNumber: recordNumber,
         recordNumberDisplay: recordNumber || '无编号',
         canRefer: statusInfo.allowReferral,
+        hasReferral: false, // 标记是否已申请过转诊
         originalRecord: item
       }
     })
+    
+    // 检查每个就诊记录是否已申请过转诊
+    await checkReferralStatus()
 
     if (records.value.length === 0) {
       uni.showToast({
@@ -558,6 +575,60 @@ const loadHospitalRecords = async () => {
   }
 }
 
+// 检查每个就诊记录是否已申请过转诊
+const checkReferralStatus = async () => {
+  if (!records.value || records.value.length === 0) {
+    return
+  }
+  
+  try {
+    // 查询所有转诊记录
+    const referralParams = {
+      pageNo: 1,
+      pageSize: 100 // 获取足够多的记录
+    }
+    const referralRes = await getPatientReferralList(referralParams)
+    
+    let referralList = []
+    if (Array.isArray(referralRes?.records)) {
+      referralList = referralRes.records
+    } else if (Array.isArray(referralRes?.result?.records)) {
+      referralList = referralRes.result.records
+    } else if (Array.isArray(referralRes?.data?.records)) {
+      referralList = referralRes.data.records
+    } else if (Array.isArray(referralRes)) {
+      referralList = referralRes
+    }
+    
+    // 创建就诊记录ID到转诊记录的映射（排除已取消和已拒绝的）
+    const recordIdToReferralMap = new Map()
+    referralList.forEach(referral => {
+      const registrationId = referral.registrationRecordId || referral.registration_record_id
+      const status = (referral.status || '').toUpperCase()
+      
+      // 只统计非取消和非拒绝的转诊申请
+      if (registrationId && status !== 'CANCELLED' && status !== 'REJECTED') {
+        recordIdToReferralMap.set(Number(registrationId), referral)
+      }
+    })
+    
+    // 更新每个就诊记录的转诊状态，并记录对应的转诊ID，便于“查看转诊情况”
+    records.value.forEach(record => {
+      const recordId = Number(record.id)
+      const referral = recordIdToReferralMap.get(recordId)
+      if (referral) {
+        record.hasReferral = true
+        record.canRefer = false // 已申请过转诊，不能再次申请
+        // 保存关联的转诊记录ID，供“查看转诊情况”使用
+        record.referralId = referral.id || referral.referralId || null
+      }
+    })
+  } catch (error) {
+    console.warn('检查转诊状态失败:', error)
+    // 检查失败不影响显示，允许用户尝试申请
+  }
+}
+
 const changeFilter = (filterValue) => {
   currentFilter.value = filterValue
 }
@@ -573,6 +644,37 @@ const viewRecordDetail = (record) => {
   uni.navigateTo({
     url: `/subpkg/profile/records/hospital-record-detail?record=${encodeURIComponent(JSON.stringify(record))}`
   })
+}
+
+// 查看某条就诊记录对应的转诊情况
+const goToReferralStatus = (record) => {
+  try {
+    const referralId = record?.referralId
+    if (!referralId) {
+      uni.showToast({
+        title: '未找到对应的转诊记录',
+        icon: 'none'
+      })
+      return
+    }
+    
+    uni.navigateTo({
+      url: `/subpkg/hospital/referral-detail?id=${referralId}`,
+      fail: (error) => {
+        console.error('跳转转诊详情页面失败:', error)
+        uni.showToast({
+          title: '跳转失败，请重试',
+          icon: 'none'
+        })
+      }
+    })
+  } catch (error) {
+    console.error('查看转诊情况失败:', error)
+    uni.showToast({
+      title: '操作失败，请重试',
+      icon: 'none'
+    })
+  }
 }
 
 const updateCurrentPatientInfo = async (patientId) => {
@@ -646,24 +748,115 @@ const goToReferralApplication = async (record) => {
       return
     }
     
+    // 获取就诊记录的原始数据（与就诊详情页保持一致）
+    const originalRecord = record.originalRecord || record
+    
+    // 优先从就诊记录的originalRecord中获取patientId（这是最准确的）
+    let patientId = originalRecord.patientId || originalRecord.patient_id || record.patientId || null
     let patientName = ''
-    try {
-      const patientInfo = await ensurePatientCard()
-      patientName = patientInfo?.patientName || ''
-    } catch (error) {
-      console.warn('获取患者信息失败:', error)
+    let patientPhone = ''
+    let patientGender = ''
+    let patientAge = ''
+    
+    // 如果没有patientId，使用当前选择的就诊人ID
+    if (!patientId && selectedPatientId.value) {
+      patientId = selectedPatientId.value
+    }
+    
+    // 根据patientId获取该就诊人的就诊卡信息（这是关键！与就诊详情页逻辑一致）
+    if (patientId) {
+      try {
+        const cardData = await patientApi.getCard({ patientId: patientId })
+        if (cardData && cardData.patientId) {
+          patientName = cardData.patientName || cardData.name || ''
+          patientPhone = cardData.phone || ''
+          patientGender = cardData.gender || ''
+          
+          // 计算年龄
+          if (cardData.birthDate) {
+            const birthDate = new Date(cardData.birthDate)
+            const now = new Date()
+            const age = now.getFullYear() - birthDate.getFullYear()
+            const monthDiff = now.getMonth() - birthDate.getMonth()
+            if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birthDate.getDate())) {
+              patientAge = String(age - 1)
+            } else {
+              patientAge = String(age)
+            }
+          }
+          
+          console.log('根据patientId获取就诊卡信息成功:', { patientId, patientName, patientPhone, patientGender, patientAge })
+        }
+      } catch (cardError) {
+        console.warn('根据patientId获取就诊卡信息失败:', cardError)
+      }
+    }
+    
+    // 如果还是没有patientName，尝试从就诊人列表获取
+    if (!patientName && patientId) {
+      try {
+        const patientList = await fetchPatientList()
+        const matchedPatient = patientList.find(p => Number(p.patientId) === Number(patientId))
+        if (matchedPatient) {
+          patientName = matchedPatient.patientName || matchedPatient.name || ''
+          if (!patientPhone) {
+            patientPhone = matchedPatient.phone || ''
+          }
+          if (!patientGender) {
+            patientGender = matchedPatient.gender || ''
+          }
+          if (!patientAge && matchedPatient.age) {
+            patientAge = String(matchedPatient.age)
+          }
+        }
+      } catch (error) {
+        console.warn('获取就诊人列表失败:', error)
+      }
+    }
+    
+    // 如果还是没有，使用当前就诊人的姓名作为备选
+    if (!patientName && currentPatientInfo.value.name) {
+      patientName = currentPatientInfo.value.name
+    }
+    
+    // 构建转诊数据，与就诊详情页保持一致
+    // 确保 originalRecord 中包含正确的 patientId（与就诊详情页逻辑一致）
+    const enhancedOriginalRecord = {
+      ...originalRecord,
+      patientId: patientId || originalRecord.patientId || originalRecord.patient_id || null,
+      patient_id: patientId || originalRecord.patient_id || originalRecord.patientId || null
+    }
+    
+    // 构建完整的原始记录对象，包含所有必要字段（参考就诊详情页的 record.value）
+    const completeOriginalRecord = {
+      ...enhancedOriginalRecord,
+      id: record.id,
+      recordId: record.id,
+      patientId: patientId,
+      patient_id: patientId,
+      visitTime: record.visitTime || record.displayVisitTime || '',
+      department: record.department || record.departmentName || '',
+      departmentId: record.departmentId || originalRecord.departmentId || null,
+      doctor: record.doctor || record.doctorName || '',
+      doctorId: originalRecord.doctorId || record.doctorId || null
     }
     
     const referralData = {
       recordId: record.id,
-      patientName: patientName,
-      department: record.department,
-      doctor: record.doctor,
-      visitTime: record.visitTime,
       visitId: record.id,
-      originalRecord: record.originalRecord || record
+      patientId: patientId, // 直接传递patientId
+      patientName: patientName, // 直接传递patientName（从就诊卡获取）
+      department: record.department || record.departmentName || '',
+      doctor: record.doctor || record.doctorName || '',
+      visitTime: record.visitTime || record.displayVisitTime || '',
+      diagnosis: originalRecord.diagnosis || '',
+      // 传递完整的原始记录，确保包含patientId（与就诊详情页保持一致）
+      originalRecord: completeOriginalRecord
     }
     
+    console.log('跳转到转诊申请，传递的数据:', referralData)
+    console.log('就诊记录关联的patientId:', patientId)
+    console.log('就诊记录关联的patientName:', patientName)
     const encodedData = encodeURIComponent(JSON.stringify(referralData))
     
     uni.navigateTo({

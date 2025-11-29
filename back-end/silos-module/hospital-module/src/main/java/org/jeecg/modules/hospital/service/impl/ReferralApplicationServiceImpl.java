@@ -51,6 +51,21 @@ public class ReferralApplicationServiceImpl extends ServiceImpl<ReferralApplicat
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ReferralApplication createReferral(ReferralApplyRequest request) {
+        // 如果有关联的挂号记录ID，检查是否已有转诊申请
+        Long registrationRecordId = request.getRegistrationRecordId();
+        if (registrationRecordId != null) {
+            LambdaQueryWrapper<ReferralApplication> checkWrapper = new LambdaQueryWrapper<>();
+            checkWrapper.eq(ReferralApplication::getRegistrationRecordId, registrationRecordId)
+                    .and(wrapper -> wrapper
+                            .ne(ReferralApplication::getStatus, ReferralStatus.CANCELLED.name())
+                            .ne(ReferralApplication::getStatus, ReferralStatus.REJECTED.name())
+                    );
+            long existingCount = count(checkWrapper);
+            if (existingCount > 0) {
+                throw new IllegalStateException("该就诊记录已经申请过转诊，一次就诊记录只能申请一次转诊");
+            }
+        }
+        
         ReferralApplication entity = new ReferralApplication();
         entity.setPatientName(request.getPatientName());
         entity.setGender(request.getGender());
@@ -64,6 +79,11 @@ public class ReferralApplicationServiceImpl extends ServiceImpl<ReferralApplicat
         entity.setApplyTime(LocalDateTime.now());
         entity.setStatus(ReferralStatus.PENDING.name());
         entity.setReferralCode(generateReferralCode());
+        
+        // 设置关联的挂号记录ID
+        if (registrationRecordId != null) {
+            entity.setRegistrationRecordId(registrationRecordId);
+        }
 
         if (CollUtil.isNotEmpty(request.getAttachments())) {
             entity.setAttachments(convertAttachments(request.getAttachments()));
@@ -262,6 +282,58 @@ public class ReferralApplicationServiceImpl extends ServiceImpl<ReferralApplicat
             return ReferralTargetType.INTERNAL;
         }
         return ReferralTargetType.valueOf(targetType);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String processAutoRegister(Long referralId) {
+        ReferralApplication referral = getById(referralId);
+        if (referral == null) {
+            throw new IllegalArgumentException("转诊记录不存在");
+        }
+
+        // 验证状态：必须是已审核通过
+        if (!ReferralStatus.APPROVED.name().equals(referral.getStatus())) {
+            throw new IllegalStateException("只有已审核通过的转诊申请才能申请加号");
+        }
+
+        // 验证类型：必须是院内转诊
+        if (!ReferralTargetType.INTERNAL.name().equals(referral.getTargetType())) {
+            throw new IllegalStateException("只有院内转诊才能申请加号");
+        }
+
+        // 如果已经成功自动挂号过，不允许重复申请
+        if (referral.getAutoRegisterStatus() != null && referral.getAutoRegisterStatus() == 1) {
+            throw new IllegalStateException("该转诊申请已经成功自动挂号，无需重复申请");
+        }
+
+        // 重置自动挂号状态为未处理
+        referral.setAutoRegisterStatus(0);
+        
+        // 重新执行自动挂号逻辑
+        try {
+            applyInternalRouting(referral);
+            updateById(referral);
+            
+            // 根据结果返回消息
+            if (ReferralQuotaAction.DIRECT_ASSIGN.name().equals(referral.getQuotaAction())) {
+                referral.setAutoRegisterStatus(1); // 成功
+                updateById(referral);
+                return "自动挂号成功，已为您安排号源";
+            } else if (ReferralQuotaAction.WAITLIST.name().equals(referral.getQuotaAction())) {
+                referral.setAutoRegisterStatus(2); // 加入候补
+                updateById(referral);
+                return String.format("当前无可用排班，已加入候补队列，候补号：%d", referral.getWaitNumber());
+            } else {
+                referral.setAutoRegisterStatus(2); // 失败
+                updateById(referral);
+                return "自动挂号失败，请稍后重试";
+            }
+        } catch (Exception e) {
+            referral.setAutoRegisterStatus(2); // 失败
+            updateById(referral);
+            throw new RuntimeException("自动挂号失败：" + e.getMessage(), e);
+        }
     }
 }
 

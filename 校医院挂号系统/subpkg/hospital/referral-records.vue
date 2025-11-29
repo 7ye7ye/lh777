@@ -1,56 +1,56 @@
 <template>
-  <view class="referral-bg">
-    <view class="page-header">
-      <view class="back-btn" @click="goBack">←</view>
-      <text class="page-title">转诊记录</text>
-      <view class="header-right">
-        <text class="refresh-btn" :class="{ disabled: loading }" @click="refreshRecords">刷新</text>
+  <view class="page-bg">
+    <!-- 标题和刷新按钮区域 -->
+    <view class="header-section">
+      <view class="list-header">转诊记录</view>
+      <view class="header-actions">
+        <button class="refresh-btn small" @click="refreshRecords" :disabled="loading">
+          <text class="refresh-icon">⟳</text>
+          <text>刷新</text>
+        </button>
       </view>
     </view>
 
-    <!-- 筛选栏 -->
-    <view class="filter-bar">
-      <view
-        v-for="(item, index) in filterTabs"
-        :key="item.value || index"
-        class="filter-item"
+    <!-- 顶部就诊人信息卡片 -->
+    <view class="patient-card">
+      <view class="patient-info-left">
+        <view class="patient-avatar">{{ (currentPatientInfo.name || '访').charAt(0) }}</view>
+        <view class="patient-text">
+          <view class="patient-name">{{ currentPatientInfo.name || '未填写姓名' }}</view>
+          <view class="patient-visit-no" v-if="currentPatientInfo.visitNo">门诊号 {{ currentPatientInfo.visitNo }}</view>
+        </view>
+      </view>
+      <view class="patient-info-right">
+        <button class="patient-switch-btn" @click.stop="openPatientSelect">
+          <text class="btn-icon">⇄</text>
+          <text class="btn-text">切换就诊人</text>
+        </button>
+      </view>
+    </view>
+
+    <!-- 分类目录 -->
+    <view class="filter-tabs">
+      <view 
+        v-for="(tab, index) in filterTabs" 
+        :key="tab.value || index"
+        class="filter-tab"
         :class="{ active: currentFilter === index }"
         @click="changeFilter(index)"
       >
-        {{ item.label }}
+        {{ tab.label }}
       </view>
     </view>
 
     <!-- 记录列表 -->
-    <scroll-view
-      scroll-y
-      class="records-list"
-      @refresh="onRefresh"
-      @scrolltolower="onLoadMore"
-      refresher-enabled
-      :refresher-triggered="loading"
-    >
+    <view class="record-container">
       <view
-        v-for="group in groupedRecords"
-        :key="group.patientKey"
-        class="patient-group"
+        v-for="(record, index) in filteredRecords"
+        :key="record.id || index"
+        class="record-card"
+        @click="viewRecordDetail(record)"
       >
-        <view class="patient-header">
-          <text class="patient-name">{{ group.patientName }}</text>
-          <text class="record-count">共 {{ group.records.length }} 条转诊记录</text>
-        </view>
-
-        <view
-          v-for="(record, index) in group.records"
-          :key="record.id || index"
-          class="record-item"
-          @click="viewRecordDetail(record)"
-        >
-          <view class="record-header">
-            <view class="record-title">
-              <text class="hospital-name">{{ record.targetHospital }}</text>
-              <text v-if="record.targetDepartment" class="department-name"> · {{ record.targetDepartment }}</text>
-            </view>
+          <view class="card-header">
+            <text class="operation-time">{{ record.applyTimeText }}</text>
             <view class="badge-group">
               <view v-if="record.sourceType === 'DOCTOR_DIRECT'" class="source-badge">医生发起</view>
               <view class="status-badge" :class="getStatusClass(record.status)">
@@ -58,70 +58,89 @@
               </view>
             </view>
           </view>
-          <text class="apply-time">申请时间：{{ record.applyTimeText }}</text>
-
-          <view class="record-content">
-            <view class="info-item">
-              <span class="info-label">患者姓名：</span>
-              <span class="info-value">{{ record.patientName }}</span>
+          <view class="card-title">
+            <text class="hospital-name">{{ record.targetHospital }}</text>
+            <text v-if="record.targetDepartment" class="department-name"> · {{ record.targetDepartment }}</text>
+          </view>
+          <view class="card-body blue-bg">
+            <view class="info-row">
+              <text class="info-label">患者姓名</text>
+              <text class="info-value">{{ record.patientName }}</text>
             </view>
-            <view class="info-item">
-              <span class="info-label">症状：</span>
-              <span class="info-value symptoms">{{ truncateText(record.symptoms, 30) }}</span>
+            <view class="info-row" v-if="record.registrationRecordId">
+              <text class="info-label">就诊记录编号</text>
+              <text class="info-value">{{ record.registrationRecordId }}</text>
+            </view>
+            <view class="info-row">
+              <text class="info-label">症状</text>
+              <text class="info-value symptoms">{{ truncateText(record.symptoms, 30) }}</text>
+            </view>
+            <view class="info-row" v-if="record.status === 'APPROVED' && record.reviewTimeText">
+              <text class="info-label">审核时间</text>
+              <text class="info-value">{{ record.reviewTimeText }}</text>
+            </view>
+            <view class="info-row" v-else-if="record.status === 'REJECTED'">
+              <text class="info-label">驳回原因</text>
+              <text class="info-value reject-reason">{{ record.rejectReason || '未说明' }}</text>
+            </view>
+            <view class="info-row" v-else-if="record.status === 'CANCELLED'">
+              <text class="info-label">取消时间</text>
+              <text class="info-value">{{ record.cancelTimeText || record.reviewTimeText || '--' }}</text>
+            </view>
+            <view class="info-row" v-else-if="record.status === 'PENDING'">
+              <text class="info-label">状态</text>
+              <text class="info-value waiting-tips">等待管理员审核</text>
             </view>
           </view>
-
-          <view class="record-footer">
-            <view class="footer-info">
-              <text v-if="record.status === 'APPROVED' && record.reviewTimeText" class="review-time">
-                审核时间：{{ record.reviewTimeText }}
-              </text>
-              <text v-else-if="record.status === 'REJECTED'" class="reject-reason">
-                驳回原因：{{ record.rejectReason || '未说明' }}
-              </text>
-              <text v-else-if="record.status === 'PENDING'" class="waiting-tips">等待管理员审核</text>
-              <text v-else-if="record.status === 'CANCELLED'">
-                取消时间：{{ record.cancelTimeText || record.reviewTimeText || '--' }}
-              </text>
+          <view class="card-actions">
+            <view class="detail-section">
+              <button class="detail-btn" @click.stop="viewRecordDetail(record)">查看详情</button>
             </view>
-            <view class="footer-actions">
+            <view class="action-wrapper">
               <button
-                v-if="record.status === 'APPROVED'"
-                class="action-btn"
+                v-if="record.status === 'APPROVED' && record.targetType === 'INTERNAL'"
+                class="small-action-btn blue-btn"
+                @click.stop="handleAutoRegister(record)"
+              >
+                自动挂号
+              </button>
+              <button
+                v-else-if="record.status === 'APPROVED' && record.targetType !== 'INTERNAL'"
+                class="small-action-btn blue-btn"
                 @click.stop="goToHospital(record)"
               >
                 前往医院
               </button>
               <button
                 v-else-if="record.status === 'PENDING'"
-                class="cancel-btn"
+                class="small-cancel-btn"
                 @click.stop="cancelReferral(record)"
               >
                 取消申请
               </button>
             </view>
-            <view class="arrow"></view>
           </view>
         </view>
-      </view>
 
       <!-- 空状态 -->
-      <view v-if="!loading && groupedRecords.length === 0" class="empty-state">
+      <view v-if="!loading && filteredRecords.length === 0" class="empty-container">
         <image src="/static/empty_message.png" mode="widthFix" class="empty-img" />
         <text class="empty-text">暂无转诊记录</text>
         <button class="create-btn" @click="createNewReferral">发起转诊申请</button>
       </view>
 
-      <view v-if="loading && groupedRecords.length === 0" class="loading-state">
+      <view v-if="loading && filteredRecords.length === 0" class="loading-state">
         <text class="loading-text">正在加载...</text>
       </view>
-    </scroll-view>
+    </view>
   </view>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { getPatientReferralList, cancelPatientReferral } from '@/api/referral'
+import { getPatientReferralList, cancelPatientReferral, autoRegisterInternalReferral } from '@/api/referral'
+import { patientApi } from '@/api/patient'
+import { useUserStore } from '@/store/user'
 
 // 筛选选项
 const filterTabs = [
@@ -136,30 +155,40 @@ const currentFilter = ref(0)
 // 转诊记录数据
 const referralRecords = ref([])
 
+// 就诊人相关
+const currentPatientInfo = ref({ name: '', visitNo: '' })
+const selectedPatientId = ref(null)
+const userStore = useUserStore()
+
 // 根据筛选条件过滤记录
 const filterStatus = ref(filterTabs[0].value || '')
 
 const filteredRecords = computed(() => {
-  if (!filterStatus.value) {
-    return referralRecords.value
+  let records = referralRecords.value || []
+  
+  // 按状态筛选 - 如果选择的是"全部"（空字符串），不筛选
+  if (filterStatus.value && filterStatus.value !== '') {
+    records = records.filter(record => {
+      const recordStatus = (record.status || '').toUpperCase()
+      const filterStatusUpper = (filterStatus.value || '').toUpperCase()
+      return recordStatus === filterStatusUpper
+    })
   }
-  return referralRecords.value.filter(record => record.status === filterStatus.value)
-})
-
-const groupedRecords = computed(() => {
-  const map = new Map()
-  filteredRecords.value.forEach(record => {
-    const key = record.patientId || record.patientName || 'default'
-    if (!map.has(key)) {
-      map.set(key, {
-        patientKey: key,
-        patientName: record.patientName || '未命名就诊人',
-        records: []
-      })
-    }
-    map.get(key).records.push(record)
-  })
-  return Array.from(map.values())
+  
+  // 按就诊人筛选 - 使用患者姓名筛选
+  // 只有当选择了就诊人且有姓名时才筛选
+  const currentPatientName = (currentPatientInfo.value.name || '').trim()
+  if (currentPatientName && selectedPatientId.value !== null && selectedPatientId.value !== undefined) {
+    const filtered = records.filter(record => {
+      const recordPatientName = (record.patientName || '').trim()
+      // 使用患者姓名严格匹配
+      return recordPatientName === currentPatientName
+    })
+    return filtered
+  }
+  
+  // 如果没有选择就诊人或没有姓名，显示所有记录
+  return records
 })
 
 // 切换筛选
@@ -247,6 +276,56 @@ const viewRecordDetail = (record) => {
   })
 }
 
+// 自动挂号（院内转诊）
+const handleAutoRegister = async (record) => {
+  if (!record || !record.id) {
+    uni.showToast({
+      title: '转诊记录信息不完整',
+      icon: 'none'
+    })
+    return
+  }
+  
+  uni.showModal({
+    title: '提示',
+    content: `确定要为患者${record.patientName}在${record.targetDepartment}自动挂号吗？`,
+    success: async (res) => {
+      if (res.confirm) {
+        try {
+          uni.showLoading({ title: '申请中...' })
+          const result = await autoRegisterInternalReferral(record.id)
+          
+          if (result) {
+            uni.showToast({
+              title: '自动挂号成功！',
+              icon: 'success'
+            })
+            // 重新加载转诊记录
+            setTimeout(() => {
+              currentPage.value = 1
+              loadReferralRecords()
+            }, 1500)
+          } else {
+            uni.showToast({
+              title: '自动挂号失败',
+              icon: 'none'
+            })
+          }
+        } catch (error) {
+          console.error('自动挂号失败:', error)
+          uni.showToast({
+            title: error.message || '自动挂号失败，请稍后重试',
+            icon: 'none',
+            duration: 3000
+          })
+        } finally {
+          uni.hideLoading()
+        }
+      }
+    }
+  })
+}
+
 // 前往医院
 const goToHospital = (record) => {
   console.log('前往医院:', record.targetHospital)
@@ -281,6 +360,125 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const hasMore = ref(true)
 
+// 获取就诊人列表
+const fetchPatientList = async () => {
+  const userId = userStore.userInfo?.userId
+  if (!userId) {
+    return []
+  }
+
+  try {
+    const data = await patientApi.getPatientList({ userId })
+    if (Array.isArray(data)) {
+      return data
+    }
+    if (data && Array.isArray(data.list)) {
+      return data.list
+    }
+    return []
+  } catch (error) {
+    console.warn('获取就诊人列表失败:', error)
+    uni.showToast({
+      title: '获取就诊人列表失败',
+      icon: 'none'
+    })
+    return []
+  }
+}
+
+// 更新当前就诊人信息
+const updateCurrentPatientInfo = async (patientId) => {
+  try {
+    const list = await fetchPatientList()
+    const target = list.find(item => Number(item.patientId) === Number(patientId))
+    if (target) {
+      selectedPatientId.value = Number(target.patientId)
+      currentPatientInfo.value = {
+        name: target.patientName || target.name || '',
+        visitNo: target.visitNo || target.cardNumber || ''
+      }
+    }
+  } catch (error) {
+    console.warn('更新就诊人信息失败:', error)
+  }
+}
+
+// 打开就诊人选择
+const openPatientSelect = async () => {
+  const list = await fetchPatientList()
+  if (!list.length) {
+    uni.showModal({
+      title: '提示',
+      content: '当前账号还没有就诊卡，无法切换，请先创建就诊卡。',
+      confirmText: '去创建',
+      cancelText: '稍后再说',
+      success: (res) => {
+        if (res.confirm) {
+          uni.navigateTo({ url: '/subpkg/profile/personal/create-card' })
+        }
+      }
+    })
+    return
+  }
+
+  if (list.length === 1) {
+    await updateCurrentPatientInfo(list[0].patientId)
+    await loadReferralRecords()
+    return
+  }
+
+  const selected = await new Promise((resolve) => {
+    uni.showActionSheet({
+      itemList: list.map(item => {
+        const name = item.patientName || '未命名就诊人'
+        const typeMap = { 1: '学生', 2: '教师', 3: '职工' }
+        const typeText = typeMap[item.patientType] || ''
+        return typeText ? `${name}（${typeText}）` : name
+      }),
+      success: (res) => {
+        resolve(list[res.tapIndex] || null)
+      },
+      fail: () => resolve(null)
+    })
+  })
+
+  if (selected?.patientId) {
+    await updateCurrentPatientInfo(selected.patientId)
+    await loadReferralRecords()
+  }
+}
+
+// 初始化就诊人信息
+const initPatientInfo = async () => {
+  try {
+    const userId = userStore.userInfo?.userId
+    if (!userId) {
+      return
+    }
+    
+    const list = await fetchPatientList()
+    if (list.length > 0) {
+      const firstPatient = list[0]
+      selectedPatientId.value = Number(firstPatient.patientId)
+      currentPatientInfo.value = {
+        name: firstPatient.patientName || firstPatient.name || '',
+        visitNo: firstPatient.visitNo || firstPatient.cardNumber || ''
+      }
+    } else {
+      // 如果没有就诊人，设置为null，显示所有记录
+      selectedPatientId.value = null
+      currentPatientInfo.value = {
+        name: '',
+        visitNo: ''
+      }
+    }
+  } catch (error) {
+    console.warn('初始化就诊人信息失败:', error)
+    // 出错时也设置为null，显示所有记录
+    selectedPatientId.value = null
+  }
+}
+
 // 加载转诊记录数据
 const loadReferralRecords = async () => {
   if (loading.value || (!hasMore.value && currentPage.value !== 1)) return
@@ -292,20 +490,55 @@ const loadReferralRecords = async () => {
       pageSize: pageSize.value,
       status: filterStatus.value || undefined
     }
+    
+    // 不在这里添加patientId筛选，让后端返回所有记录，然后在前端筛选
+    // 这样可以确保即使没有选择就诊人，也能看到所有记录
 
     const res = await getPatientReferralList(params)
-    const rawRecords = Array.isArray(res?.records) ? res.records : []
+    console.log('转诊记录API响应:', res)
+    
+    // 支持多种数据格式 - 优先检查result字段
+    let rawRecords = []
+    if (Array.isArray(res?.result?.records)) {
+      rawRecords = res.result.records
+      console.log('从 res.result.records 获取记录:', rawRecords.length)
+    } else if (Array.isArray(res?.records)) {
+      rawRecords = res.records
+      console.log('从 res.records 获取记录:', rawRecords.length)
+    } else if (Array.isArray(res?.data?.records)) {
+      rawRecords = res.data.records
+      console.log('从 res.data.records 获取记录:', rawRecords.length)
+    } else if (Array.isArray(res?.data)) {
+      rawRecords = res.data
+      console.log('从 res.data 获取记录:', rawRecords.length)
+    } else if (Array.isArray(res?.result)) {
+      rawRecords = res.result
+      console.log('从 res.result 获取记录:', rawRecords.length)
+    } else if (Array.isArray(res)) {
+      rawRecords = res
+      console.log('从 res 直接获取记录:', rawRecords.length)
+    } else {
+      console.warn('未找到有效的记录数组，响应结构:', res)
+    }
+    
+    console.log('解析后的转诊记录:', rawRecords.length, '条')
     const normalizedRecords = rawRecords.map(record => {
       const status = (record.status || '').toUpperCase()
       const applyTime = record.applyTime || record.createTime || ''
       const reviewTime = record.reviewTime || ''
       const cancelTime = record.cancelTime || ''
+      
+      // 从registrationRecordId关联中获取patientId（需要通过后端关联查询获取）
+      // 暂时从record中直接获取，如果后端返回了的话
+      const patientId = record.patientId || record.patient_id || null
+      
       return {
         id: record.id || record.referralId || '',
-        patientId: record.patientId || record.patient_id || '',
+        patientId: patientId,
         patientName: record.patientName || '',
         targetHospital: record.targetHospitalName || record.targetHospital || '校医院',
         targetDepartment: record.targetDeptName || record.targetDepartment || '',
+        targetType: record.targetType || record.target_type || 'INTERNAL', // 转诊类型：INTERNAL/EXTERNAL
         symptoms: record.symptoms || record.reason || '',
         applyTime,
         applyTimeText: formatDateTime(applyTime),
@@ -316,18 +549,33 @@ const loadReferralRecords = async () => {
         cancelTime,
         cancelTimeText: formatDateTime(cancelTime),
         rejectReason: record.rejectReason || '',
-        sourceType: record.sourceType || ''
+        sourceType: record.sourceType || '',
+        registrationRecordId: record.registrationRecordId || record.registration_record_id || null
       }
     })
+    
+    console.log('规范化后的转诊记录:', normalizedRecords.map(r => ({
+      id: r.id,
+      status: r.status,
+      patientName: r.patientName,
+      patientId: r.patientId
+    })))
 
     if (currentPage.value === 1) {
       referralRecords.value = normalizedRecords
     } else {
       referralRecords.value = [...referralRecords.value, ...normalizedRecords]
     }
+    
+    console.log('更新后的转诊记录数组:', referralRecords.value.length, '条')
+    console.log('筛选前的记录:', referralRecords.value)
+    console.log('当前筛选状态:', filterStatus.value)
+    console.log('filteredRecords 应该包含:', filteredRecords.value.length, '条')
+    console.log('filteredRecords 内容:', filteredRecords.value)
 
-    const total = res?.total || 0
+    const total = res?.result?.total || res?.total || res?.data?.total || rawRecords.length || 0
     hasMore.value = currentPage.value * pageSize.value < total
+    console.log('转诊记录总数:', total, '当前页:', currentPage.value, '每页大小:', pageSize.value, '是否有更多:', hasMore.value)
   } catch (error) {
     console.error('加载转诊记录失败:', error)
     uni.showToast({
@@ -391,15 +639,60 @@ const onLoadMore = () => {
 }
 
 // 页面加载时初始化数据
-onMounted(() => {
+onMounted(async () => {
+  await initPatientInfo()
   loadReferralRecords()
 })
 </script>
 
 <style scoped>
-.referral-bg {
-  background-color: #f5f5f5;
+.page-bg {
+  background-color: #f5f7fa;
   min-height: 100vh;
+  padding: 20rpx;
+}
+
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.list-header {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #1f2d3d;
+}
+
+.header-actions {
+  display: flex;
+  gap: 20rpx;
+}
+
+.refresh-btn.small {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 8rpx 20rpx;
+  background-color: #4a90e2;
+  color: #ffffff;
+  border: none;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  height: auto;
+  line-height: 1.2;
+}
+
+.refresh-icon {
+  font-size: 24rpx;
+}
+
+.record-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
 }
 
 .page-header {
@@ -438,246 +731,354 @@ onMounted(() => {
   opacity: 0.5;
 }
 
-.filter-bar {
-  display: flex;
-  background-color: #fff;
-  padding: 0 16px;
-  border-bottom: 1px solid #f0f0f0;
-  position: sticky;
-  top: 52px;
-  z-index: 5;
-}
-
-.filter-item {
-  flex: 1;
-  padding: 14px 0;
-  text-align: center;
-  font-size: 14px;
-  color: #666;
-  position: relative;
-}
-
-.filter-item.active {
-  color: #1989fa;
-}
-
-.filter-item.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 20px;
-  height: 3px;
-  background-color: #1989fa;
-  border-radius: 1.5px;
-}
-
-.records-list {
-  padding: 12px;
-  height: calc(100vh - 110px);
-}
-
-.record-item {
-  background-color: #fff;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.patient-group {
-  margin-bottom: 16px;
-}
-
-.patient-header {
+.patient-card {
+  margin: 24rpx 0;
+  padding: 24rpx 28rpx;
+  background: linear-gradient(135deg, #f0f6ff, #ffffff);
+  border-radius: 24rpx;
+  box-shadow: 0 6rpx 16rpx rgba(74, 144, 226, 0.12);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 4px 8px 4px;
-  color: #555;
+  border: 1rpx solid rgba(74, 144, 226, 0.2);
+}
+
+.patient-info-left {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.patient-avatar {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6ea8ff, #4a90e2);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34rpx;
+  font-weight: 600;
+  box-shadow: 0 8rpx 18rpx rgba(74, 144, 226, 0.25);
+}
+
+.patient-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
 }
 
 .patient-name {
-  font-size: 16px;
-  font-weight: bold;
-  color: #1a1a1a;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1f2d3d;
 }
 
-.record-count {
-  font-size: 12px;
-  color: #999;
+.patient-visit-no {
+  font-size: 24rpx;
+  color: #5c6b7a;
 }
 
-.record-header {
-  margin-bottom: 8px;
+.patient-info-right {
+  display: flex;
+  align-items: center;
+}
+
+.patient-switch-btn {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 16rpx 32rpx;
+  background: linear-gradient(135deg, #4a90e2, #6ec6ff);
+  color: #ffffff;
+  border: none;
+  border-radius: 999rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+  box-shadow: 0 6rpx 16rpx rgba(74, 144, 226, 0.25);
+  transition: all 0.3s ease;
+}
+
+.patient-switch-btn:active {
+  transform: translateY(2rpx);
+  box-shadow: 0 3rpx 10rpx rgba(74, 144, 226, 0.25);
+}
+
+.patient-switch-btn .btn-icon {
+  font-size: 32rpx;
+  line-height: 1;
+}
+
+.patient-switch-btn .btn-text {
+  font-size: 26rpx;
+  line-height: 1;
+}
+
+.filter-tabs {
+  display: flex;
+  overflow-x: auto;
+  gap: 20rpx;
+  padding: 20rpx 30rpx;
+  margin-bottom: 10rpx;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  background-color: #ffffff;
+  border-radius: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+.filter-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-tab {
+  flex-shrink: 0;
+  padding: 16rpx 40rpx;
+  background-color: #f5f5f5;
+  border-radius: 36rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #666;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  position: relative;
+}
+
+.filter-tab.active {
+  background-color: #4a90e2;
+  color: white;
+  box-shadow: 0 4rpx 16rpx rgba(74, 144, 226, 0.3);
+}
+
+.filter-tab:active {
+  transform: scale(0.95);
+}
+
+.records-list {
+  padding: 0;
+  height: calc(100vh - 300px);
+}
+
+.record-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+
+.record-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.card-header {
+  margin-bottom: 12rpx;
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  align-items: center;
+  gap: 20rpx;
 }
 
-.record-title {
-  font-size: 16px;
-  font-weight: bold;
-  color: #333;
+.operation-time {
+  font-size: 26rpx;
+  color: #666;
+  font-weight: 500;
+}
+
+.card-title {
+  margin-bottom: 16rpx;
+  display: flex;
+  align-items: center;
 }
 
 .hospital-name {
-  font-size: 16px;
-  font-weight: bold;
-  color: #333;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #23324b;
 }
 
 .department-name {
-  font-size: 14px;
+  font-size: 28rpx;
   color: #666;
 }
 
 .badge-group {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8rpx;
 }
 
 .status-badge {
-  padding: 2px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  color: #fff;
+  padding: 4rpx 20rpx;
+  border-radius: 16rpx;
+  font-size: 24rpx;
+  font-weight: 600;
   white-space: nowrap;
 }
 
 .status-pending {
-  background-color: #ff9800;
+  background: #fff3e6;
+  color: #ff7a45;
 }
 
 .status-approved {
-  background-color: #4caf50;
+  background: #f6ffed;
+  color: #52c41a;
 }
 
 .status-rejected {
-  background-color: #f44336;
+  background: #fff1f0;
+  color: #ff4d4f;
 }
 
 .status-cancelled {
-  background-color: #9e9e9e;
+  background: #f5f5f5;
+  color: #9e9e9e;
 }
 
 .source-badge {
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 12px;
-  background-color: #fff;
+  font-size: 24rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 16rpx;
+  background-color: #e6f7ff;
   color: #1989fa;
+  font-weight: 500;
 }
 
-.apply-time {
-  font-size: 12px;
-  color: #999;
-  margin-bottom: 8px;
+.card-body {
+  margin-bottom: 24rpx;
+  padding: 20rpx;
+  border-radius: 8rpx;
 }
 
-.record-content {
-  margin-bottom: 12px;
+.blue-bg {
+  background-color: #e3f2fd;
 }
 
-.info-item {
+.info-row {
   display: flex;
-  margin-bottom: 8px;
-  font-size: 14px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+  padding: 8rpx 0;
+}
+
+.info-row:last-child {
+  margin-bottom: 0;
 }
 
 .info-label {
-  color: #666;
-  width: 70px;
+  color: #1976d2;
+  font-size: 28rpx;
+  min-width: 140rpx;
 }
 
 .info-value {
   color: #333;
+  font-size: 28rpx;
   flex: 1;
-}
-
-.symptoms {
+  text-align: right;
   word-break: break-all;
 }
 
-.record-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 10px;
-  border-top: 1px solid #f0f0f0;
-  gap: 10px;
-}
-
-.footer-info {
-  flex: 1;
-  font-size: 12px;
+.info-value.symptoms {
   color: #666;
 }
 
-.footer-actions {
+.info-value.reject-reason {
+  color: #ff4d4f;
+}
+
+.info-value.waiting-tips {
+  color: #ff7a45;
+}
+
+.card-actions {
   display: flex;
-  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.review-time,
-.reject-reason,
-.waiting-tips {
-  font-size: 12px;
-  color: #999;
+.detail-section {
+  display: flex;
 }
 
-.action-btn {
-  padding: 6px 16px;
-  background-color: #1989fa;
-  color: #fff;
+.detail-btn {
+  font-size: 24rpx;
+  color: #4a90e2;
+  background: none;
+  padding: 8rpx 20rpx;
   border: none;
-  border-radius: 20px;
-  font-size: 14px;
 }
 
-.cancel-btn {
-  padding: 6px 16px;
+.action-wrapper {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.small-action-btn,
+.small-cancel-btn {
+  font-size: 24rpx;
+  padding: 8rpx 32rpx;
+  border-radius: 20rpx;
+  border: none;
+  min-width: 140rpx;
+  line-height: 1.5;
+}
+
+.small-action-btn.blue-btn {
+  background-color: #4a90e2;
+  color: white;
+}
+
+.small-action-btn.blue-btn:active {
+  background-color: #357abd;
+}
+
+.small-cancel-btn {
   background-color: transparent;
-  color: #f44336;
-  border: 1px solid #f44336;
-  border-radius: 20px;
-  font-size: 14px;
+  color: #ff4d4f;
+  border: 1px solid #ff4d4f;
 }
 
-.arrow {
-  color: #ccc;
-  font-size: 16px;
+.small-cancel-btn:active {
+  background-color: #fff1f0;
 }
 
-.empty-state {
+.empty-container {
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  padding: 60px 20px;
+  align-items: center;
+  height: 500rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  margin-top: 40rpx;
+  padding: 40rpx;
 }
 
 .empty-img {
-  width: 120px;
-  height: 120px;
-  margin-bottom: 16px;
+  width: 300rpx;
+  height: 200rpx;
+  margin-bottom: 30rpx;
 }
 
 .empty-text {
   color: #999;
-  font-size: 14px;
-  margin-bottom: 20px;
+  font-size: 28rpx;
+  margin-bottom: 20rpx;
 }
 
 .create-btn {
-  padding: 8px 24px;
-  background-color: #1989fa;
+  padding: 16rpx 48rpx;
+  background-color: #4a90e2;
   color: #fff;
   border: none;
-  border-radius: 20px;
-  font-size: 14px;
+  border-radius: 40rpx;
+  font-size: 28rpx;
 }
 
 .loading-state {

@@ -395,6 +395,9 @@ onLoad((options) => {
 .referral-bg {
   background-color: #f5f5f5;
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .page-header {
@@ -403,14 +406,18 @@ onLoad((options) => {
   padding: 16px;
   display: flex;
   align-items: center;
+  justify-content: center;
   position: sticky;
   top: 0;
   z-index: 10;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .back-btn {
   font-size: 20px;
   margin-right: 20px;
+  flex-shrink: 0;
 }
 
 .page-title {
@@ -418,23 +425,32 @@ onLoad((options) => {
   font-size: 18px;
   font-weight: bold;
   text-align: center;
+  margin: 0 auto;
 }
 
 .header-right {
   width: 20px;
+  flex-shrink: 0;
 }
 
 .content {
   padding: 16px;
   height: calc(100vh - 52px);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
-/* 状态卡片样式 */
+/* 状态卡片样式 - 缩小一半 */
 .status-card {
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 8px;
+  padding: 10px 16px;
   margin-bottom: 16px;
+  margin-left: 0;
+  margin-right: 0;
+  width: 100%;
   color: #fff;
+  box-sizing: border-box;
 }
 
 .status-pending {
@@ -452,45 +468,53 @@ onLoad((options) => {
 .status-header {
   display: flex;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .status-icon {
-  margin-right: 16px;
+  margin-right: 10px;
+  flex-shrink: 0;
 }
 
 .icon-img {
-  width: 40px;
-  height: 40px;
+  width: 28px;
+  height: 28px;
+}
+
+.status-info {
+  flex: 1;
 }
 
 .status-text {
-  font-size: 20px;
-  font-weight: bold;
-  display: block;
-  margin-bottom: 4px;
-}
-
-.status-desc {
-  font-size: 14px;
-  opacity: 0.9;
-}
-
-.hospital-info {
-  background-color: rgba(255, 255, 255, 0.2);
-  padding: 12px;
-  border-radius: 8px;
-}
-
-.hospital-name {
   font-size: 16px;
   font-weight: bold;
   display: block;
   margin-bottom: 4px;
 }
 
-.department {
+.status-desc {
+  font-size: 12px;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+.hospital-info {
+  background-color: rgba(255, 255, 255, 0.2);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.hospital-name {
   font-size: 14px;
+  font-weight: bold;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.department {
+  font-size: 12px;
+  opacity: 0.95;
 }
 
 /* 信息区域样式 */
@@ -499,7 +523,11 @@ onLoad((options) => {
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 16px;
+  margin-left: 0;
+  margin-right: 0;
+  width: 100%;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
 }
 
 .section-title {
@@ -593,8 +621,10 @@ onLoad((options) => {
 /* 操作按钮样式 */
 .action-section {
   margin-top: 20px;
+  width: 100%;
   display: flex;
   gap: 12px;
+  box-sizing: border-box;
 }
 
 .primary-btn {

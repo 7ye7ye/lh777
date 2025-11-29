@@ -65,6 +65,7 @@
           <view class="target-line">
             <text class="target-label">合作医院</text>
             <picker
+              mode="selector"
               class="target-picker"
               @change="onHospitalChange"
               :value="hospitalIndex"
@@ -72,8 +73,9 @@
               range-key="name"
               :disabled="hospitalLoading"
             >
-              <view class="target-value picker-value">
-                {{ hospitals[hospitalIndex]?.name || '请选择合作医院' }}
+              <view class="target-value picker-value" :class="{ 'loading-text': hospitalLoading }">
+                <text v-if="hospitalLoading">加载中...</text>
+                <text v-else>{{ hospitals[hospitalIndex]?.name || (hospitals.length === 0 ? '暂无合作医院' : '请选择合作医院') }}</text>
               </view>
             </picker>
           </view>
@@ -211,8 +213,9 @@
 
 <script>
 import { useUserStore } from '@/store/user'
+import { patientApi } from '../../api/patient'
 
-import { submitReferralApplication, getReferralHospitals } from '../../api/referral'
+import { submitReferralApplication, getReferralHospitals, getPatientReferralList } from '../../api/referral'
 import { getDepartmentTree } from '../../api/department'
 
 const MAX_ATTACHMENTS = 5
@@ -306,6 +309,7 @@ export default {
       selectedDepartment: null,
       referralInfo: null,
       selectedVisitRecord: null,
+      currentPatientId: null, // 当前就诊人ID
     }
   },
   computed: {
@@ -338,7 +342,7 @@ export default {
         this.fillPatientInfo()
       },
       deep: true,
-      immediate: true,
+      immediate: false,
     },
     'formData.referralType': {
       handler: async function (newType) {
@@ -467,27 +471,76 @@ export default {
       try {
         this.hospitalLoading = true
         const response = await getReferralHospitals()
-        let list = response?.data ?? response?.result ?? response
+        console.log('医院列表API响应:', response)
+        
+        // 尝试多种数据格式的解析
+        let list = null
+        
+        // 优先处理新的数据格式：{internalDepartments: [], externalHospitals: []}
+        // 检查 response.externalHospitals
+        if (response?.externalHospitals && Array.isArray(response.externalHospitals)) {
+          list = response.externalHospitals
+        } 
+        // 检查 response.data.externalHospitals
+        else if (response?.data?.externalHospitals && Array.isArray(response.data.externalHospitals)) {
+          list = response.data.externalHospitals
+        } 
+        // 检查 response.result.externalHospitals
+        else if (response?.result?.externalHospitals && Array.isArray(response.result.externalHospitals)) {
+          list = response.result.externalHospitals
+        }
+        // 处理旧的兼容格式：直接返回数组
+        else if (Array.isArray(response)) {
+          list = response
+        } 
+        // 处理 response.data 为数组
+        else if (Array.isArray(response?.data)) {
+          list = response.data
+        } 
+        // 处理 response.result 为数组
+        else if (Array.isArray(response?.result)) {
+          list = response.result
+        } 
+        // 处理 response.data.hospitals
+        else if (response?.data?.hospitals && Array.isArray(response.data.hospitals)) {
+          list = response.data.hospitals
+        } 
+        // 处理 response.hospitals
+        else if (response?.hospitals && Array.isArray(response.hospitals)) {
+          list = response.hospitals
+        }
+        
         if (!Array.isArray(list)) {
+          console.warn('医院列表数据格式不正确:', response)
           list = []
         }
-        this.hospitals = list.map((item) => ({
-          id: item.id ?? item.hospitalId ?? item.value ?? null,
-          name: item.name || item.label || item.hospitalName || '未知医院',
-          level: item.level || item.hospitalLevel || '',
-          address: item.address || item.hospitalAddress || '',
-        }))
+        
+        this.hospitals = list.map((item) => {
+          const hospital = {
+            id: item.id ?? item.hospitalId ?? item.value ?? null,
+            name: item.name || item.label || item.hospitalName || '未知医院',
+            level: item.level || item.hospitalLevel || '',
+            address: item.address || item.hospitalAddress || '',
+          }
+          return hospital
+        })
+
+        console.log('处理后的医院列表:', this.hospitals)
 
         if (this.hospitals.length > 0) {
           const matchedIndex = this.hospitals.findIndex((item) => item.name === this.formData.targetHospital)
           this.hospitalIndex = matchedIndex >= 0 ? matchedIndex : 0
           this.formData.targetHospital = this.hospitals[this.hospitalIndex]?.name || ''
+          console.log('当前选择的医院索引:', this.hospitalIndex, '医院名称:', this.formData.targetHospital)
         } else {
           this.hospitalIndex = 0
           this.formData.targetHospital = ''
+          uni.showToast({ title: '暂无合作医院可选', icon: 'none' })
         }
       } catch (error) {
         console.error('加载合作医院失败:', error)
+        this.hospitals = []
+        this.hospitalIndex = 0
         uni.showToast({ title: '合作医院加载失败', icon: 'none' })
       } finally {
         this.hospitalLoading = false
@@ -587,8 +640,101 @@ export default {
       if (index < 0 || index >= this.formData.attachments.length) return
       this.formData.attachments.splice(index, 1)
     },
-    fillPatientInfo() {
+    async fillPatientInfo() {
       try {
+        // 1. 如果已经有 currentPatientId（从就诊记录传递过来的 patientId），
+        //    则优先根据 patientId 查询就诊卡，并只使用该就诊人的信息，避免被账号下其他就诊人覆盖
+        if (this.currentPatientId) {
+          try {
+            const cardData = await patientApi.getCard({ patientId: this.currentPatientId })
+            console.log('根据 currentPatientId 获取就诊卡信息:', cardData)
+            if (cardData) {
+              const patientName = cardData.patientName || cardData.name
+              if (patientName) {
+                this.formData.patientName = patientName
+              }
+
+              const phone = cardData.phone || cardData.phoneNumber
+              if (phone) {
+                this.formData.phone = phone
+              }
+
+              const gender = resolveGender(cardData.gender)
+              if (gender) {
+                this.formData.gender = gender
+              }
+
+              if (cardData.birthDate) {
+                const calculatedAge = calculateAgeFromBirth(cardData.birthDate)
+                if (calculatedAge !== '') {
+                  this.formData.age = String(calculatedAge)
+                }
+              } else if (cardData.age) {
+                this.formData.age = String(cardData.age)
+              }
+
+              // 已根据就诊记录对应的就诊卡填充完成，直接返回，避免再用 userId 覆盖
+              return
+            }
+          } catch (cardError) {
+            console.warn('根据 currentPatientId 获取就诊卡信息失败:', cardError)
+            // 失败则继续尝试按 userId 方式获取
+          }
+        }
+
+        // 2. 否则退回到原来的逻辑：按当前登录账号的 userId 获取默认就诊卡信息
+        const userStore = this.userStore
+        const userId = userStore?.userInfo?.userId
+        
+        if (userId) {
+          try {
+            // 获取就诊卡信息
+            const cardData = await patientApi.getCard({ userId })
+            console.log('就诊卡信息:', cardData)
+            
+            if (cardData) {
+              // 保存当前就诊人ID
+              if (cardData.patientId) {
+                this.currentPatientId = cardData.patientId
+              }
+              
+              // 从就诊卡填充患者信息（仅在表单当前为空时才填充）
+              const patientName = cardData.patientName || cardData.name
+              if (patientName && !this.formData.patientName) {
+                this.formData.patientName = patientName
+              }
+              
+              const phone = cardData.phone || cardData.phoneNumber
+              if (phone && !this.formData.phone) {
+                this.formData.phone = phone
+              }
+              
+              const gender = resolveGender(cardData.gender)
+              if (gender && !this.formData.gender) {
+                this.formData.gender = gender
+              }
+              
+              // 计算年龄：如果有出生日期，从出生日期计算；否则使用已有的年龄
+              if (!this.formData.age) {
+                if (cardData.birthDate) {
+                  const calculatedAge = calculateAgeFromBirth(cardData.birthDate)
+                  if (calculatedAge !== '') {
+                    this.formData.age = String(calculatedAge)
+                  }
+                } else if (cardData.age) {
+                  this.formData.age = String(cardData.age)
+                }
+              }
+              
+              return // 如果从就诊卡获取到信息，就不继续从用户信息获取了
+            }
+          } catch (cardError) {
+            console.warn('获取就诊卡信息失败:', cardError)
+            // 继续从用户信息获取
+          }
+        }
+        
+        // 3. 如果没有就诊卡信息，则从用户信息获取
         const userInfo = this.userStore?.userInfo
         if (!userInfo) {
           return
@@ -601,7 +747,7 @@ export default {
           this.formData.phone = userInfo.phone
         }
         const genderFromUser = resolveGender(userInfo.gender)
-        if (genderFromUser) {
+        if (genderFromUser && !this.formData.gender) {
           this.formData.gender = genderFromUser
         }
         if (userInfo.age && !this.formData.age) {
@@ -617,7 +763,7 @@ export default {
             this.formData.phone = patient.phone
           }
           const genderFromPatient = resolveGender(patient.gender)
-          if (genderFromPatient) {
+          if (genderFromPatient && !this.formData.gender) {
             this.formData.gender = genderFromPatient
           }
           if (patient.age && !this.formData.age) {
@@ -709,9 +855,70 @@ export default {
         return
       }
 
+      // 如果有就诊记录，检查是否已有转诊申请
+      if (this.selectedVisitRecord && this.selectedVisitRecord.id) {
+        try {
+          const registrationRecordId = this.selectedVisitRecord.id || this.selectedVisitRecord.recordId
+          
+          // 查询所有转诊记录，然后在前端筛选
+          const checkParams = {
+            pageNo: 1,
+            pageSize: 100  // 获取足够多的记录以便筛选
+          }
+          const checkRes = await getPatientReferralList(checkParams)
+          
+          let existingRecords = []
+          if (Array.isArray(checkRes?.records)) {
+            existingRecords = checkRes.records
+          } else if (Array.isArray(checkRes?.result?.records)) {
+            existingRecords = checkRes.result.records
+          } else if (Array.isArray(checkRes)) {
+            existingRecords = checkRes
+          }
+          
+          // 筛选出与当前就诊记录ID匹配的转诊申请
+          const matchedRecords = existingRecords.filter(r => {
+            const recordRegistrationId = r.registrationRecordId || r.registration_record_id
+            return recordRegistrationId && Number(recordRegistrationId) === Number(registrationRecordId)
+          })
+          
+          // 过滤掉已取消和已拒绝的记录
+          const activeRecords = matchedRecords.filter(r => {
+            const status = (r.status || '').toUpperCase()
+            return status !== 'CANCELLED' && status !== 'REJECTED'
+          })
+          
+          if (activeRecords.length > 0) {
+            uni.showModal({
+              title: '提示',
+              content: '该就诊记录已经申请过转诊，一次就诊记录只能申请一次转诊。',
+              showCancel: false,
+              confirmText: '知道了'
+            })
+            return
+          }
+        } catch (checkError) {
+          console.warn('检查转诊申请失败:', checkError)
+          // 检查失败时继续提交，由后端验证
+        }
+      }
+
       try {
         this.submitting = true
         const isInternal = this.isInternalReferral
+        
+        // 获取registrationRecordId
+        let registrationRecordId = null
+        if (this.selectedVisitRecord) {
+          registrationRecordId = this.selectedVisitRecord.id || 
+                                 this.selectedVisitRecord.recordId || 
+                                 this.selectedVisitRecord.registrationId ||
+                                 this.formData.visitRecordId
+          if (registrationRecordId) {
+            registrationRecordId = Number(registrationRecordId)
+          }
+        }
+        
         const payload = {
           patientName: this.formData.patientName,
           gender: this.formData.gender,
@@ -725,6 +932,8 @@ export default {
           targetDeptId: isInternal && this.formData.targetDeptId ? Number(this.formData.targetDeptId) : null,
           targetDeptName: isInternal ? this.formData.targetDepartment : null,
           targetHospitalName: isInternal ? '校医院' : this.formData.targetHospital,
+          registrationRecordId: registrationRecordId,
+          patientId: this.currentPatientId,
           attachments: this.formData.attachments.map((item, index) => ({
             name: item.name || `附件${index + 1}`,
             url: item.url,
@@ -779,16 +988,47 @@ export default {
       if (this.selectedVisitRecord) {
         this.formData.visitRecordId =
           this.selectedVisitRecord.id || this.selectedVisitRecord.recordId || this.selectedVisitRecord.registrationNo || ''
-        this.fillPatientFromVisitRecord(this.selectedVisitRecord)
+        
+        // 优先从 originalRecord 中获取 patientId（与就诊详情页逻辑一致）
+        const originalRecord = this.selectedVisitRecord.originalRecord || this.selectedVisitRecord
+        const passedPatientId = originalRecord.patientId || originalRecord.patient_id || this.selectedVisitRecord.patientId
+        
+        if (passedPatientId) {
+          this.currentPatientId = passedPatientId
+          console.log('使用传递的patientId（从就诊记录）:', passedPatientId)
+          console.log('就诊记录原始数据:', {
+            selectedVisitRecord: this.selectedVisitRecord,
+            originalRecord: originalRecord,
+            passedPatientId: passedPatientId
+          })
+        } else {
+          console.warn('未找到就诊记录的patientId，将使用账号默认就诊卡')
+        }
+        
+        // 如果有传递的patientName，先设置（但后续会被 fillPatientInfo 中根据 patientId 获取的信息覆盖）
+        if (this.selectedVisitRecord.patientName && !this.formData.patientName) {
+          this.formData.patientName = this.selectedVisitRecord.patientName
+        }
+        
+        // 不要在这里调用 fillPatientFromVisitRecord，因为可能会覆盖正确的患者信息
+        // 让 fillPatientInfo() 统一处理患者信息填充
       }
 
+      // 优先填充患者信息（基于就诊记录的patientId）
+      await this.fillPatientInfo()
+      
+      // 然后再填充其他信息，避免覆盖正确的患者信息
       const cachedSnapshot = uni.getStorageSync('referralPatientSnapshot')
       if (cachedSnapshot) {
         this.fillPatientFromSnapshot(cachedSnapshot)
       }
 
       await this.prefillFormData()
-      this.fillPatientInfo()
+      
+      // 如果有就诊记录信息，最后填充就诊记录的其他字段（但不要覆盖患者信息）
+      if (this.selectedVisitRecord) {
+        this.fillPatientFromVisitRecord(this.selectedVisitRecord)
+      }
 
       if (!this.isInternalReferral) {
         await this.loadHospitals()
@@ -799,10 +1039,10 @@ export default {
       console.error('页面初始化失败:', error)
     }
   },
-  onShow() {
+  async onShow() {
     try {
       this.userStore?.initFromStorage?.()
-      this.fillPatientInfo()
+      await this.fillPatientInfo()
       if (this.selectedVisitRecord) {
         this.fillPatientFromVisitRecord(this.selectedVisitRecord)
       }
@@ -1083,6 +1323,11 @@ export default {
 .picker-value {
   text-align: right;
   color: #1f2937;
+}
+
+.picker-value.loading-text {
+  color: #9ca3af;
+  font-size: 13px;
 }
 
 .target-input .inline-input {
