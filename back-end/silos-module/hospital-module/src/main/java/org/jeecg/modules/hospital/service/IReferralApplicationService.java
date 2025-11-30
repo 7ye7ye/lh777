@@ -22,6 +22,13 @@ public interface IReferralApplicationService extends IService<ReferralApplicatio
     void cancelReferral(ReferralCancelRequest request);
 
     ReferralOptionsVO loadOptions();
+
+    /**
+     * 院内转诊自动挂号（申请加号）
+     * @param referralId 转诊申请ID
+     * @return 操作结果
+     */
+    String processAutoRegister(Long referralId);
 }
 
 

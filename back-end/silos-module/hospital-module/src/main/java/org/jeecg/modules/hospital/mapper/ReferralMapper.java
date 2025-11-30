@@ -3,6 +3,7 @@ package org.jeecg.modules.hospital.mapper;
 import org.apache.ibatis.annotations.Param;
 import org.jeecg.modules.hospital.entity.ReferralApplication;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.dynamic.datasource.annotation.DS;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.Map;
  * 转诊申请Mapper接口
  */
 @Repository
+@DS("hospital")
 public interface ReferralMapper extends BaseMapper<ReferralApplication> {
 
     /**

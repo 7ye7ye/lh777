@@ -90,13 +90,21 @@ public class RegistrationServiceImpl implements RegistrationService {
             Long actualPatientId = patientId;
             String currentUserId = resolveCurrentUserId();
             if (currentUserId != null) {
-                Patient patientByUserId = patientMapper.selectOne(
+                List<Patient> patientsByUserId = patientMapper.selectList(
                         new LambdaQueryWrapper<Patient>()
                                 .eq(Patient::getUserId, Long.valueOf(currentUserId))
+                                .orderByDesc(Patient::getPatientId)
                 );
-                if (patientByUserId != null && patientByUserId.getPatientId() != null) {
-                    actualPatientId = patientByUserId.getPatientId();
-                    log.info("根据Token解析的userId={}找到对应的patientId={}", currentUserId, actualPatientId);
+
+                if (patientsByUserId != null && !patientsByUserId.isEmpty()) {
+                    if (patientsByUserId.size() > 1) {
+                        log.warn("Token解析到的userId={}存在{}条患者记录，默认取最新一条", currentUserId, patientsByUserId.size());
+                    }
+                    Patient patientByUserId = patientsByUserId.get(0);
+                    if (patientByUserId != null && patientByUserId.getPatientId() != null) {
+                        actualPatientId = patientByUserId.getPatientId();
+                        log.info("根据Token解析的userId={}找到对应的patientId={}", currentUserId, actualPatientId);
+                    }
                 } else {
                     log.warn("Token解析到的userId={}未找到对应patient，使用前端patientId={}", currentUserId, patientId);
                 }

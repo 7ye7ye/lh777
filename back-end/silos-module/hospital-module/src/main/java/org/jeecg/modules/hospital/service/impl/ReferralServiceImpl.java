@@ -1,5 +1,6 @@
 package org.jeecg.modules.hospital.service.impl;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
 import org.jeecg.common.api.vo.Result;
 import org.jeecg.modules.hospital.entity.DoctorSchedule;
 import org.jeecg.modules.hospital.entity.Patient;
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
  * 转诊服务实现类
  */
 @Service
+@DS("hospital")
 public class ReferralServiceImpl implements ReferralService {
 
     @Autowired
@@ -98,23 +100,21 @@ public class ReferralServiceImpl implements ReferralService {
             // 生成转诊单号
             String referralCode = generateReferralCode();
             application.setReferralCode(referralCode);
-            application.setSourceType("DOCTOR");
-            application.setStatus(ReferralStatus.APPROVED.name()); // 医生直接生成的默认已批准
+            application.setSourceType("DOCTOR_DIRECT");
+            application.setStatus(ReferralStatus.PENDING.name());
             application.setApplyTime(LocalDateTime.now());
-            application.setReviewTime(LocalDateTime.now());
+            application.setReviewTime(null);
+            application.setReviewDoctor(null);
+            application.setReviewComments(null);
+            application.setRejectReason(null);
             application.setAutoRegisterStatus(0);
             application.setCreateTime(LocalDateTime.now());
             application.setUpdateTime(LocalDateTime.now());
             
-            // 保存转诊申请
+            // 医生端发起的转诊同样进入管理员审核队列
             referralMapper.insert(application);
             
-            // 如果是院内转诊，尝试自动挂号
-            if (ReferralTargetType.INTERNAL.name().equals(application.getTargetType())) {
-                processAutoRegister(application.getId());
-            }
-            
-            return Result.OK("转诊意见创建成功");
+            return Result.OK("转诊申请已提交，等待审核");
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("创建失败：" + e.getMessage());
