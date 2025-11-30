@@ -183,6 +183,56 @@ export const http = {
 
   postForm: (url, data, options) =>
     request({ contentType: 'form', ...options, url, method: 'POST', data }),
+
+  // 上传文件：走同一套拦截器逻辑，自动拼接 baseURL / API_PREFIX，并带上 token
+  upload: (url, filePath, extra = {}) => {
+    // 复用 requestInterceptor 来拼接 URL 和 Header（含 token）
+    const finalOptions = requestInterceptor({
+      url,
+      // 上传文件通常是 multipart/form-data，统一用 form，让拦截器不要强制 json
+      contentType: 'multipart',
+      header: extra.header || {},
+      skipAuth: extra.skipAuth,
+      noPrefix: extra.noPrefix,
+    });
+
+    return new Promise((resolve, reject) => {
+      uni.uploadFile({
+        url: finalOptions.url,
+        filePath,
+        name: extra.name || 'file',
+        formData: extra.formData || {},
+        header: finalOptions.header,
+        timeout: finalOptions.timeout ?? 8000,
+        success: (uploadRes) => {
+          // uploadFile 的 res.data 一般是字符串，这里交给 responseInterceptor 统一处理
+          // 构造一个类似 uni.request 的响应结构
+          let data: any = uploadRes.data;
+          try {
+            if (typeof data === 'string') {
+              data = JSON.parse(data);
+            }
+          } catch (_) {
+            // 如果不是合法 JSON，就按原样丢给响应拦截器，那里会做兜底处理
+          }
+          responseInterceptor({
+            data,
+            statusCode: uploadRes.statusCode || 200,
+          } as any).then(resolve).catch(reject);
+        },
+        fail: (err) => {
+          if (!finalOptions.silent) {
+            const msg =
+              typeof err?.errMsg === 'string' && err.errMsg.includes('ERR_EMPTY_RESPONSE')
+                ? '服务器未返回数据（可能端口/HTTPS/防火墙/网关导致）'
+                : '网络连接失败';
+            uni.showToast({ title: msg, icon: 'none' });
+          }
+          reject(err);
+        },
+      });
+    });
+  },
 };
 
 export default http;

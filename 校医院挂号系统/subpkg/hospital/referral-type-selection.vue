@@ -118,6 +118,29 @@ const onDepartmentChange = (e) => {
   departmentIndex.value = e.detail.value
 }
 
+const resolveGender = (value) => {
+  if (value === null || value === undefined) return ''
+  const str = String(value).trim().toLowerCase()
+  if (!str) return ''
+  if (str === '男' || str === 'male' || str === '1') return '男'
+  if (str === '女' || str === 'female' || str === '2') return '女'
+  return ''
+}
+
+const buildPatientSnapshot = () => {
+  const storedSnapshot = uni.getStorageSync('referralPatientSnapshot')
+  if (storedSnapshot) return storedSnapshot
+  const record = selectedRecord.value || uni.getStorageSync('selectedVisitRecord') || {}
+  const userInfo = uni.getStorageSync('userInfo') || {}
+  const snapshot = {
+    name: record.patientName || userInfo.name || userInfo.realname || '',
+    phone: record.patientPhone || userInfo.phone || userInfo.mobile || '',
+    gender: resolveGender(record.patientGender || record.gender || userInfo.gender),
+    age: String(record.patientAge || record.age || userInfo.age || '') || '',
+  }
+  return snapshot
+}
+
 // 进入下一步
 const goToNextStep = () => {
   if (!selectedType.value) {
@@ -129,13 +152,16 @@ const goToNextStep = () => {
   }
 
   // 保存选择的转诊信息
+  const patientSnapshot = buildPatientSnapshot()
   const referralInfo = {
     visitRecord: selectedRecord.value,
+    patient: patientSnapshot,
     type: selectedType.value,
     targetDepartment: selectedDepartment.value?.name || ''
   }
   
   uni.setStorageSync('referralInfo', referralInfo)
+  uni.setStorageSync('referralPatientSnapshot', patientSnapshot)
 
   // 跳转到转诊申请页面
   uni.navigateTo({

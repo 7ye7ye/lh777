@@ -67,6 +67,32 @@
             <text class="detail-label">电    话：</text>
             <text class="detail-value">{{ maskPhone(cardInfo.phone) }}</text>
           </view>
+          <view class="detail-row verify-row">
+            <text class="detail-label">认证状态：</text>
+            <view class="detail-value verify-value">
+              <text class="verify-status" :class="`verify-status-${cardInfo.identityVerify}`">
+                {{ getVerifyStatusName(cardInfo.identityVerify) }}
+              </text>
+              <view class="verify-actions">
+                <button
+                  v-if="cardInfo.identityVerify === 1 && cardInfo.identityPhoto"
+                  class="view-photo-btn"
+                  size="mini"
+                  @click="previewIdentityPhoto"
+                >
+                  查看照片
+                </button>
+                <button
+                  v-if="cardInfo.identityVerify !== 1"
+                  class="verify-btn"
+                  size="mini"
+                  @click="goToIdentityVerify"
+                >
+                  去认证
+                </button>
+              </view>
+            </view>
+          </view>
           <view class="detail-row">
             <text class="detail-label">地    址：</text>
             <text class="detail-value">{{ cardInfo.detailedAddress || cardInfo.region || '未填写' }}</text>
@@ -185,9 +211,9 @@ const maskPhone = (phone) => {
   return phone.substring(0, 3) + '****' + phone.substring(7) // 标准脱敏：保留前3后4
 }
 
-// 转换患者类型名称（后端patientType：1-学生/2-教师/3-职工）
+// 转换患者类型名称（后端patientType：1-学生/2-教师/3-校外人员）
 const getPatientTypeName = (type) => {
-  const typeMap = { 1: '学生', 2: '教师', 3: '职工' }
+  const typeMap = { 1: '学生', 2: '教职工', 3: '校外人员' }
   return typeMap[type] || '未知身份'
 }
 
@@ -202,6 +228,25 @@ const goToModifyInfo = () => {
   uniNavigateTo({ 
     url: `/subpkg/profile/personal/modify-info?cardInfo=${encodeURIComponent(JSON.stringify(cardInfo.value))}` 
   })
+}
+
+// 跳转到身份认证页面
+const goToIdentityVerify = () => {
+  uniNavigateTo({ 
+    url: `/subpkg/profile/personal/identity-verify?patientId=${cardInfo.value.patientId}` 
+  })
+}
+
+// 预览认证照片
+const previewIdentityPhoto = () => {
+  if (cardInfo.value.identityPhoto) {
+    uni.previewImage({
+      urls: [cardInfo.value.identityPhoto],
+      current: 0
+    })
+  } else {
+    uniShowToast({ title: '暂无认证照片', icon: 'none' })
+  }
 }
 
 // 更换新就诊卡（可根据实际业务补充逻辑）
@@ -387,6 +432,48 @@ onShow(() => {
   color: #333;
   flex: 1;
   word-break: break-all;
+}
+
+.verify-row {
+  align-items: center;
+}
+
+.verify-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.verify-status {
+  font-size: 26rpx;
+}
+
+.verify-actions {
+  display: flex;
+  gap: 12rpx;
+}
+
+.verify-btn {
+  margin-left: 24rpx;
+}
+
+.view-photo-btn {
+  margin-left: 24rpx;
+  background: #52c41a;
+  color: #fff;
+  border: none;
+}
+
+.verify-status-0 {
+  color: #fa8c16;
+}
+
+.verify-status-1 {
+  color: #52c41a;
+}
+
+.verify-status-2 {
+  color: #f5222d;
 }
 
 /* 操作按钮样式 */

@@ -35,11 +35,11 @@
     <view class="hospital-section card">
       <view class="hospital-row">
         <view class="hospital-item" @tap="goDepartments">
-          <image src="/static/logo.png" class="icon" @tap="goDepartments" />
+          <image src="/static/department-introduce.svg" class="icon" @tap="goDepartments" />
           <text @tap="goDepartments">科室介绍</text>
         </view>
         <view class="hospital-item" @tap="goDoctors">
-          <image src="/static/logo.png" class="icon" @tap="goDoctors" />
+          <image src="/static/doctor-introduce.svg" class="icon" @tap="goDoctors" />
           <text @tap="goDoctors">专家介绍</text>
         </view>
         <view class="hospital-item" @tap="goNavigation">
