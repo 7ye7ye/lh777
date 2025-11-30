@@ -1,5 +1,6 @@
 package org.jeecg.modules.hospital.controller;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
 import org.jeecg.common.api.vo.Result;
 import org.jeecg.modules.hospital.entity.ReferralApplication;
 import org.jeecg.modules.hospital.service.ReferralService;
@@ -16,6 +17,7 @@ import java.util.Map;
  */
 @Tag(name="转诊管理")
 @RestController
+@DS("hospital")
 @RequestMapping("/api/referral")
 public class ReferralController {
 

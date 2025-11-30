@@ -190,41 +190,48 @@
           </view>
           
           <!-- 院内转诊 - 目标科室 -->
-          <view v-if="referralData.targetType === 'internal'" class="form-section">
+          <view v-if="referralData.targetType === 'internal'" class="form-section internal-dept-section">
             <text class="form-label">目标科室</text>
-            <picker 
-              mode="selector" 
-              :range="departments" 
-              range-key="name"
-              @change="(e) => referralData.targetDepartment = departments[e.detail.value].name"
+            <view 
+              v-if="departmentGroups.length"
+              class="dept-groups"
             >
-              <view class="picker-text">
-                {{ referralData.targetDepartment || '请选择科室' }}
+              <view
+                v-for="group in departmentGroups"
+                :key="group.groupId"
+                class="dept-group"
+              >
+                <view class="dept-group-title">{{ group.groupName }}</view>
+                <view class="dept-items">
+                  <view
+                    v-for="dept in group.children"
+                    :key="dept.deptId"
+                    class="dept-item"
+                    :class="{ active: referralData.targetDeptId === String(dept.deptId) }"
+                    @click="selectInternalDepartment(dept)"
+                  >
+                    <view class="dept-item-name">{{ dept.deptName }}</view>
+                    <view class="dept-item-desc">{{ dept.deptDesc || '暂无介绍' }}</view>
+                  </view>
+                </view>
               </view>
-            </picker>
+            </view>
+            <view v-else class="empty-dept">正在加载科室信息...</view>
           </view>
           
-          <!-- 院外转诊 - 目标医院和科室 -->
+          <!-- 院外转诊 - 目标医院 -->
           <view v-else class="form-section">
             <text class="form-label">目标医院</text>
             <picker 
               mode="selector" 
               :range="hospitals" 
               range-key="name"
-              @change="(e) => referralData.targetHospital = hospitals[e.detail.value].name"
+              @change="handleHospitalChange"
             >
               <view class="picker-text">
                 {{ referralData.targetHospital || '请选择医院' }}
               </view>
             </picker>
-            
-            <text class="form-label">目标科室</text>
-            <input 
-              type="text" 
-              v-model="referralData.targetDepartment"
-              placeholder="请输入目标科室"
-              class="text-input"
-            />
           </view>
           
           <!-- 转诊原因 -->
@@ -255,6 +262,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import { uniNavigateTo, uniShowToast } from '@/utils/uniHelper'
 import { doctorApi } from '@/api/doctor'
 import { doctorGenerateReferralAdvice } from '@/api/referral'
+import { getDepartmentTree } from '@/api/department'
 
 // 患者详情数据（加载后会用后端数据覆盖）
 const patient = ref({
@@ -287,22 +295,11 @@ const referralData = ref({
   reason: '',
   targetType: 'internal', // internal: 院内, external: 院外
   targetDepartment: '',
-  targetHospital: ''
+  targetHospital: '',
+  targetDeptId: ''
 })
 
-// 院内科室列表（模拟数据，实际应从API获取）
-const departments = ref([
-  { id: '1', name: '内科' },
-  { id: '2', name: '外科' },
-  { id: '3', name: '儿科' },
-  { id: '4', name: '妇产科' },
-  { id: '5', name: '皮肤科' },
-  { id: '6', name: '眼科' },
-  { id: '7', name: '耳鼻喉科' },
-  { id: '8', name: '口腔科' },
-  { id: '9', name: '神经内科' },
-  { id: '10', name: '心血管内科' }
-])
+const departmentGroups = ref([])
 
 // 目标医院列表（模拟数据，实际应从API获取）
 const hospitals = ref([
@@ -318,6 +315,61 @@ const getStatusClass = (status) => {
   if (status === '接诊中') return 'status-progress'
   if (status === '已完成') return 'status-done'
   return 'status-pending'
+}
+
+function handleHospitalChange(event) {
+  const index = Number(event?.detail?.value ?? -1)
+  const hospital = hospitals.value[index]
+  referralData.value.targetHospital = hospital?.name || ''
+}
+
+const loadDepartmentGroups = async () => {
+  try {
+    const res = await getDepartmentTree()
+    let data = res?.data || res?.result || res || []
+    if (!Array.isArray(data)) {
+      data = data ? [data] : []
+    }
+    departmentGroups.value = data
+      .map(group => ({
+        groupId: group.deptId || group.id || group.deptCode || Math.random().toString(36).slice(2),
+        groupName: group.deptName || group.name || '科室',
+        children: (group.children || group.subDepartments || []).map(child => ({
+          deptId: child.deptId || child.id || '',
+          deptName: child.deptName || child.name || '未命名科室',
+          deptDesc: child.deptDesc || child.description || '',
+        })).filter(child => child.deptId)
+      }))
+      .filter(group => group.children && group.children.length)
+  } catch (error) {
+    console.error('加载科室数据失败', error)
+    departmentGroups.value = []
+  }
+}
+
+const selectInternalDepartment = (dept) => {
+  referralData.value.targetDeptId = String(dept.deptId || '')
+  referralData.value.targetDepartment = dept.deptName || ''
+}
+
+const buildMedicalHistoryText = () => {
+  if (!Array.isArray(patient.value.medicalHistory) || !patient.value.medicalHistory.length) {
+    return ''
+  }
+  return patient.value.medicalHistory
+    .map(item => {
+      const label = item?.type || '病史'
+      const desc = item?.description || ''
+      return desc ? `${label}：${desc}` : label
+    })
+    .join('；')
+}
+
+const resolveSymptomsText = () => {
+  if (patient.value.symptoms) return patient.value.symptoms
+  const visit = Array.isArray(patient.value.visitHistory) ? patient.value.visitHistory[0] : null
+  if (visit?.diagnosis) return visit.diagnosis
+  return ''
 }
 
 // 工具：计算年龄
@@ -474,6 +526,7 @@ function changeReferralType(type) {
     referralData.value.targetHospital = ''
   } else {
     referralData.value.targetDepartment = ''
+    referralData.value.targetDeptId = ''
   }
 }
 
@@ -486,31 +539,43 @@ async function submitReferral() {
   }
   
   if (referralData.value.targetType === 'internal') {
-    if (!referralData.value.targetDepartment) {
+    if (!referralData.value.targetDeptId) {
       uniShowToast({ title: '请选择目标科室', icon: 'none' })
       return
     }
   } else {
-    if (!referralData.value.targetHospital || !referralData.value.targetDepartment) {
-      uniShowToast({ title: '请选择目标医院和科室', icon: 'none' })
+    referralData.value.targetDeptId = ''
+    referralData.value.targetDepartment = ''
+    if (!referralData.value.targetHospital) {
+      uniShowToast({ title: '请选择目标医院', icon: 'none' })
       return
     }
   }
   
   try {
-    // 构建转诊数据
-    const data = {
-      patientId: patient.value.patientId,
-      appointmentId: appointmentIdRef.value,
+    const isInternal = referralData.value.targetType === 'internal'
+    const historyText = buildMedicalHistoryText()
+    const symptomsText = resolveSymptomsText()
+    const payload = {
+      patientId: patient.value.patientId || null,
+      patientName: patient.value.name || '',
+      gender: patient.value.gender || '',
+      age: patient.value.age ? Number(patient.value.age) : null,
+      phone: patient.value.phone || '',
+      symptoms: symptomsText || referralData.value.reason,
+      medicalHistory: historyText,
       reason: referralData.value.reason,
-      targetType: referralData.value.targetType,
-      targetDepartment: referralData.value.targetDepartment,
-      targetHospital: referralData.value.targetType === 'external' ? referralData.value.targetHospital : '本校医院',
-      doctorGenerated: true // 标识为医生生成的转诊
+      sourceType: 'DOCTOR_DIRECT',
+      targetType: isInternal ? 'INTERNAL' : 'EXTERNAL',
+      targetDeptId: isInternal && referralData.value.targetDeptId ? Number(referralData.value.targetDeptId) : null,
+      targetDeptName: referralData.value.targetDepartment,
+      targetHospitalName: isInternal ? '校医院' : referralData.value.targetHospital,
+      registrationRecordId: appointmentIdRef.value || null,
+      doctorGenerated: true,
+      attachments: []
     }
     
-    // 调用转诊API
-    await doctorGenerateReferralAdvice(data)
+    await doctorGenerateReferralAdvice(payload)
     
     uniShowToast({ title: '转诊意见已提交', icon: 'success' })
     hideReferralModal()
@@ -559,6 +624,7 @@ onLoad((options) => {
 
 // EventChannel 传入（保持兼容）
 onMounted(async () => {
+  await loadDepartmentGroups()
   const pages = getCurrentPages()
   const cur = pages[pages.length - 1]
   if (cur && cur.getOpenerEventChannel) {
@@ -877,6 +943,68 @@ onMounted(async () => {
     font-weight: 600;
     color: #2f3b52;
     margin-bottom: 16rpx;
+  }
+
+  .internal-dept-section .dept-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 24rpx;
+    max-height: 360rpx;
+    overflow-y: auto;
+  }
+
+  .dept-group {
+    padding: 20rpx;
+    border-radius: 16rpx;
+    background: #f9fbff;
+    border: 2rpx solid #eef2ff;
+  }
+
+  .dept-group-title {
+    font-size: 26rpx;
+    font-weight: 600;
+    color: #1f2a44;
+    margin-bottom: 16rpx;
+  }
+
+  .dept-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12rpx;
+  }
+
+  .dept-item {
+    width: calc(50% - 6rpx);
+    border: 2rpx solid #e0e7ff;
+    border-radius: 12rpx;
+    padding: 16rpx;
+    background: #fff;
+  }
+
+  .dept-item.active {
+    border-color: #ff9800;
+    background: #fff7e6;
+  }
+
+  .dept-item-name {
+    font-size: 26rpx;
+    font-weight: 600;
+    color: #2f3b52;
+    margin-bottom: 6rpx;
+  }
+
+  .dept-item-desc {
+    font-size: 22rpx;
+    color: #7a8aa0;
+  }
+
+  .empty-dept {
+    font-size: 24rpx;
+    color: #7a8aa0;
+    background: #f8fafc;
+    padding: 20rpx;
+    border-radius: 12rpx;
+    text-align: center;
   }
   
   .type-selector {

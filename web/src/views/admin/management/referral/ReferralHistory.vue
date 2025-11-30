@@ -223,8 +223,8 @@ const loadData = async () => {
       pageSize: pagination.pageSize,
     };
     const res = await getPatientReferralList(params);
-    tableData.value = res.data?.records || [];
-    pagination.total = res.data?.total || 0;
+    tableData.value = Array.isArray(res?.records) ? res.records : [];
+    pagination.total = res?.total || 0;
   } catch (error) {
     console.error('加载转诊记录失败:', error);
     message.error('加载转诊记录失败');
@@ -234,8 +234,9 @@ const loadData = async () => {
 };
 
 // 处理表格分页变化
-const handleTableChange = (pagination: any) => {
-  Object.assign(pagination, pagination);
+const handleTableChange = (pager: any) => {
+  pagination.current = pager.current;
+  pagination.pageSize = pager.pageSize;
   loadData();
 };
 
@@ -258,7 +259,7 @@ const handleReset = () => {
 const handleViewDetail = async (record: any) => {
   try {
     const res = await getPatientReferralDetail(record.id);
-    currentDetail.value = res.data;
+    currentDetail.value = res;
     detailVisible.value = true;
   } catch (error) {
     console.error('获取详情失败:', error);

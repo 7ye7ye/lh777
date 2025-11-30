@@ -171,11 +171,15 @@
 				{
 					"path": "records/hospital-record",
 					"style": {
-						"navigationBarTitleText": "住院预交记录"
+						"navigationBarTitleText": "就诊记录"
 					}
 				},
-				{
-					"path": "records/consult-record",
+				{"path": "records/hospital-record-detail",
+					"style": {
+						"navigationBarTitleText": "就诊详情"
+					}
+				},
+				{"path": "records/consult-record",
 					"style": {
 						"navigationBarTitleText": "咨询记录"
 					}
@@ -473,35 +477,35 @@
 		"backgroundColor": "#ffffff",
 		"list": [
 			{
-				"pagePath": "pages/home/home",
-				"text": "首页",
-				"iconPath": "static/logo.png",
-				"selectedIconPath": "static/logo.png"
-			},
+			"pagePath": "pages/home/home",
+			"text": "首页",
+			"iconPath": "/static/home.png",
+			"selectedIconPath": "/static/home.png"
+		},
 			{
-				"pagePath": "pages/assistant/assistant",
-				"text": "就医助手",
-				"iconPath": "static/logo.png",
-				"selectedIconPath": "static/logo.png"
-			},
+			"pagePath": "pages/assistant/assistant",
+			"text": "就医助手",
+			"iconPath": "/static/logo.png",
+			"selectedIconPath": "/static/logo.png"
+		},
 			{
-				"pagePath": "pages/messages/messages",
-				"text": "消息中心",
-				"iconPath": "static/message.png",
-				"selectedIconPath": "static/message-active.png"
-			},
+			"pagePath": "pages/messages/messages",
+			"text": "消息中心",
+			"iconPath": "/static/message.png",
+			"selectedIconPath": "/static/message-active.png"
+		},
 			{
-				"pagePath": "pages/hospital/hospital",
-				"text": "医院信息",
-				"iconPath": "static/navigation-message.png",
-				"selectedIconPath": "static/navigation-message.png"
-			},
+			"pagePath": "pages/hospital/hospital",
+			"text": "医院信息",
+			"iconPath": "/static/navigation-message.png",
+			"selectedIconPath": "/static/navigation-message.png"
+		},
 			{
-				"pagePath": "pages/profile/profile",
-				"text": "个人中心",
-				"iconPath": "static/logo.png",
-				"selectedIconPath": "static/logo.png"
-			}
+			"pagePath": "pages/profile/profile",
+			"text": "个人中心",
+			"iconPath": "/static/profile.png",
+			"selectedIconPath": "/static/profile.png"
+		}
 		]
 	},
 	"globalStyle": {

@@ -3,6 +3,7 @@ package org.jeecg.modules.hospital.controller.patient;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import com.baomidou.dynamic.datasource.annotation.DS;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.jeecg.common.api.vo.Result;
@@ -14,6 +15,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@DS("hospital")
 @RequestMapping("/patient/referral")
 @Tag(name = "患者端-转诊管理")
 @Validated
@@ -70,5 +72,23 @@ public class PatientReferralController {
     public Result<ReferralOptionsVO> options() {
         ReferralOptionsVO options = referralService.loadOptions();
         return Result.OK(options);
+    }
+
+    /**
+     * 院内转诊自动挂号（申请加号）
+     */
+    @Operation(summary = "院内转诊自动挂号")
+    @PostMapping("/autoRegister/{referralId}")
+    public Result<String> autoRegister(@PathVariable Long referralId) {
+        try {
+            String result = referralService.processAutoRegister(referralId);
+            return Result.OK(result);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (IllegalStateException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("申请加号失败：" + e.getMessage());
+        }
     }
 }

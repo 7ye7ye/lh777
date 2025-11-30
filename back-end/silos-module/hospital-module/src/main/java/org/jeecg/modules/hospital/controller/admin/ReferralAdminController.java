@@ -1,5 +1,6 @@
 package org.jeecg.modules.hospital.controller.admin;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import org.jeecg.common.api.vo.Result; // Path confirmed, no change needed
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
 @RestController
+@DS("hospital")
 @RequestMapping("/admin/referral")
 @RequiredArgsConstructor
 @Validated

@@ -8,7 +8,7 @@
                 <canvas id="qrcode" type="2d" style="width: 300rpx; height: 300rpx;"></canvas>
 				<text class="visit-code">{{ receiptDetail.qrCodeData }}</text>
 			</view>
-			
+
 			<view class="info-section">
 				<view class="info-row">
 					<text class="label">就诊人</text>
@@ -101,11 +101,11 @@
 		methods: {
 			fetchReceiptDetail() {
 				const apiUrl = `http://10.61.66.247:8095/jeecg-boot/api/appointment/detail`;
-				
+
 				uni.request({
 					url: `${apiUrl}?id=${this.appointmentId}`,
 					header:{
-						'X-Access-Token': uni.getStorageSync('token') 
+						'X-Access-Token': uni.getStorageSync('token')
 					},
 					success: (res) => {
 						if (res.statusCode === 200 && res.data) {
@@ -133,7 +133,7 @@
 			                const ctx = canvas.getContext('2d');
 			                canvas.width = res[0].width;
 			                canvas.height = res[0].height;
-			
+
                             // 使用 Sansnn-uQRCode 的实例化方式
                             const qr = new uQRCode({
                                 data: text,

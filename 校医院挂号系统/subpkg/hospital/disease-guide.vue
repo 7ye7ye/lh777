@@ -52,7 +52,6 @@
               </view>
               <view class="item-right">
                 <text class="dept-tag">{{ item.dept }}</text>
-                <text class="arrow">›</text>
               </view>
             </view>
           </view>
@@ -420,6 +419,7 @@ const selectDisease = (item) => {
   background: #fff;
   border-radius: 16rpx;
   overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
 }
 
 .disease-item {
@@ -429,6 +429,7 @@ const selectDisease = (item) => {
   padding: 32rpx 24rpx;
   border-bottom: 1rpx solid #f5f5f5;
   transition: all 0.2s;
+  cursor: pointer;
 }
 
 .disease-item:last-child {
@@ -436,7 +437,8 @@ const selectDisease = (item) => {
 }
 
 .disease-item:active {
-  background: #f8f9fa;
+  background: #f0f7ff;
+  transform: scale(0.98);
 }
 
 .item-left {
@@ -447,15 +449,16 @@ const selectDisease = (item) => {
 .item-name {
   display: block;
   font-size: 30rpx;
-  font-weight: 500;
-  color: #333;
+  font-weight: 600;
+  color: #1f2d3d;
   margin-bottom: 8rpx;
 }
 
 .item-desc {
   display: block;
   font-size: 24rpx;
-  color: #999;
+  color: #666;
+  line-height: 1.5;
 }
 
 .item-right {
@@ -466,16 +469,11 @@ const selectDisease = (item) => {
 .dept-tag {
   font-size: 24rpx;
   color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
-  padding: 8rpx 16rpx;
-  border-radius: 8rpx;
-  margin-right: 8rpx;
-}
-
-.arrow {
-  font-size: 48rpx;
-  color: #ccc;
-  font-weight: 300;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+  padding: 10rpx 20rpx;
+  border-radius: 20rpx;
+  font-weight: 500;
+  border: 1rpx solid rgba(102, 126, 234, 0.2);
 }
 
 .search-results {

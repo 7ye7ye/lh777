@@ -50,6 +50,23 @@ public class ReferralAppletController {
     public Result<?> options() {
         return Result.OK(referralService.loadOptions());
     }
+
+    /**
+     * 院内转诊自动挂号（申请加号）
+     */
+    @PostMapping("/autoRegister/{referralId}")
+    public Result<String> autoRegister(@PathVariable Long referralId) {
+        try {
+            String result = referralService.processAutoRegister(referralId);
+            return Result.OK(result);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (IllegalStateException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("申请加号失败：" + e.getMessage());
+        }
+    }
 }
 
 

@@ -55,6 +55,27 @@ const admin: AppRouteModule = {
             ignoreAuth: true,
           },
         },
+        {
+          path: 'referral/manage',
+          name: 'AdminReferralManagement',
+          component: () => import('/@/views/admin/management/ReferralManagement.vue'),
+          meta: {
+            // 统一为“转诊管理”页面，包含列表与审核
+            title: '转诊管理',
+            ignoreAuth: true,
+          },
+        },
+        {
+          path: 'referral/history',
+          name: 'AdminReferralHistory',
+          component: () => import('/@/views/admin/management/referral/ReferralHistory.vue'),
+          meta: {
+            // 如需仅保留一个菜单页面，可隐藏该菜单入口
+            title: t('routes.admin.referralHistory'),
+            ignoreAuth: true,
+            hideMenu: true,
+          },
+        },
       ],
     },
     {
