@@ -24,28 +24,53 @@
         :pagination="pagination"
         @change="handleTableChange"
       >
-        <template #photo="{ text }">
-          <a-image v-if="text" :width="80" :src="text" />
-          <span v-else>-</span>
-        </template>
-        <template #status="{ text }">
-          <a-tag v-if="text === 0" color="blue">未审核</a-tag>
-          <a-tag v-else-if="text === 1" color="green">已通过</a-tag>
-          <a-tag v-else-if="text === 2" color="red">未通过</a-tag>
-          <span v-else>-</span>
-        </template>
-        <template #action="{ record }">
-          <a-space>
-            <a-button size="small" type="link" :disabled="record.identityVerify !== 0" @click="handleApprove(record, true)">
-              通过
-            </a-button>
-            <a-button size="small" type="link" danger :disabled="record.identityVerify !== 0" @click="handleApprove(record, false)">
-              驳回
-            </a-button>
-          </a-space>
+        <template #bodyCell="{ column, record, text }">
+          <!-- 证件照片列 -->
+          <template v-if="column.dataIndex === 'identityPhoto'">
+            <img 
+              v-if="record.identityPhoto" 
+              :src="record.identityPhoto"
+              style="width: 80px; height: 80px; object-fit: cover; cursor: pointer; border-radius: 4px;"
+              @click="previewImage(record.identityPhoto)"
+            />
+            <span v-else>-</span>
+          </template>
+          
+          <!-- 状态列 -->
+          <template v-else-if="column.dataIndex === 'identityVerify'">
+            <a-tag v-if="text === 0" color="blue">未审核</a-tag>
+            <a-tag v-else-if="text === 1" color="green">已通过</a-tag>
+            <a-tag v-else-if="text === 2" color="red">未通过</a-tag>
+            <span v-else>-</span>
+          </template>
+          
+          <!-- 操作列 -->
+          <template v-else-if="column.key === 'action'">
+            <a-space>
+              <a-button size="small" type="link" :disabled="record.identityVerify !== 0" @click="handleApprove(record, true)">
+                通过
+              </a-button>
+              <a-button size="small" type="link" danger :disabled="record.identityVerify !== 0" @click="handleApprove(record, false)">
+                驳回
+              </a-button>
+            </a-space>
+          </template>
         </template>
       </a-table>
     </a-card>
+
+    <!-- 图片预览模态框 -->
+    <a-modal
+      v-model:open="previewVisible"
+      title="证件照片预览"
+      :footer="null"
+      :width="800"
+      centered
+    >
+      <div style="text-align: center;">
+        <img :src="previewImageUrl" style="max-width: 100%; max-height: 70vh;" />
+      </div>
+    </a-modal>
   </PageWrapper>
 </template>
 
@@ -60,6 +85,8 @@ const { createMessage } = useMessage();
 
 const loading = ref(false);
 const status = ref<number | undefined>(0);
+const previewVisible = ref(false);
+const previewImageUrl = ref('');
 
 interface PatientRecord {
   patientId: number;
@@ -97,9 +124,9 @@ const columns = [
   },
   { title: '学号', dataIndex: 'studentId', width: 120 },
   { title: '工号', dataIndex: 'staffId', width: 120 },
-  { title: '证件照片', dataIndex: 'identityPhoto', slots: { customRender: 'photo' }, width: 120 },
-  { title: '状态', dataIndex: 'identityVerify', slots: { customRender: 'status' }, width: 100 },
-  { title: '操作', key: 'action', slots: { customRender: 'action' }, width: 160 },
+  { title: '证件照片', dataIndex: 'identityPhoto', width: 120 },
+  { title: '状态', dataIndex: 'identityVerify', width: 100 },
+  { title: '操作', key: 'action', width: 160 },
 ];
 
 async function fetchData() {
@@ -143,6 +170,13 @@ async function handleApprove(record: PatientRecord, approve: boolean) {
   } catch (e) {
     console.error(e);
     createMessage.error('操作失败，请稍后重试');
+  }
+}
+
+function previewImage(url: string) {
+  if (url) {
+    previewImageUrl.value = url;
+    previewVisible.value = true;
   }
 }
 

@@ -382,28 +382,28 @@ async function saveEdit() {
   }
 }
 
-// 更换头像（前端本地预览，预留后端上传接口）
+// 点击头像预览大图
 function onChangeAvatar() {
-  uni.chooseImage({
-    count: 1,
-    sizeType: ['compressed'],
-    success: async (res) => {
-      const tempPath = res.tempFilePaths && res.tempFilePaths[0]
-      if (!tempPath) return
-      // 本地预览仍然可用：直接覆盖 avatarUrl 的显示即可
-      // 这里不修改服务器相对路径字段，真正的上传与保存通过资料变更申请页完成
-      // 为保持简单，直接用 tempPath 作为 <image> 的 src
-      // 小程序本地路径本身就是一个可访问的完整 URL
-      // 若需要在此处直接上传，可复用 uploadIdentityPhoto 逻辑
-      doctorInfo.value.avatar = ''
-      // 临时预览：直接用 uni 原生本地路径渲染
-      // 注意：computed avatarUrl 使用的是服务器路径，这里不再改
-      // 如需更复杂的本地+远程混合逻辑，可单独扩展
-      uni.previewImage({
-        urls: [tempPath]
-      })
-    }
-  })
+  // 如果有头像，则预览大图
+  if (avatarUrl.value && avatarUrl.value !== '/static/doctor.svg') {
+    uni.previewImage({
+      urls: [avatarUrl.value],
+      current: 0
+    })
+  } else {
+    // 如果没有头像，提示去编辑资料页面上传
+    uni.showModal({
+      title: '提示',
+      content: '暂无头像，是否前往编辑资料页面上传头像？',
+      confirmText: '去上传',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          goEditProfile()
+        }
+      }
+    })
+  }
 }
 
 // 退出登录

@@ -33,11 +33,11 @@
         </view>
         <view class="info-row" v-if="cardInfo.patientType === 1">
           <text class="label">学号</text>
-          <input class="input" v-model="form.studentId" placeholder="请输入学号" />
+          <text class="value">{{ cardInfo.studentId }}</text>
         </view>
         <view class="info-row" v-if="cardInfo.patientType === 2">
           <text class="label">工号</text>
-          <input class="input" v-model="form.staffId" placeholder="请输入工号" />
+          <text class="value">{{ cardInfo.staffId }}</text>
         </view>
         <!-- 校外人员（patientType=3）无需认证 -->
         <view v-if="isExternal" class="info-row">
@@ -53,12 +53,14 @@
 
           <view class="photo-section">
             <text class="label">证件照片（正面）</text>
-            <view class="photo-box" @click="chooseImage">
+            <view class="photo-box" @click="isVerified && !isReapplying ? previewPhoto() : chooseImage()">
               <image v-if="form.identityPhoto" :src="form.identityPhoto" mode="aspectFill" class="photo" />
               <view v-else class="photo-placeholder">
                 <text>点击上传证件正面照</text>
               </view>
             </view>
+            <text v-if="isVerified && !isReapplying" class="photo-tip verified-tip">已通过认证，点击照片可查看大图</text>
+            <text v-if="isReapplying" class="photo-tip reapply-tip">重新认证模式，点击上传新的证件照</text>
           </view>
         </template>
       </view>
@@ -70,13 +72,21 @@
 
     <view class="actions" v-if="cardInfo && !isExternal">
       <button
+        v-if="!isVerified || isReapplying"
         class="btn primary"
-        :class="{ 'btn-disabled': isVerified }"
-        :disabled="loading || isVerified"
+        :disabled="loading"
         @click="submitApply"
       >
-        {{ isVerified ? '已完成认证' : (loading ? '提交中...' : '提交认证申请') }}
+        {{ loading ? '提交中...' : (isReapplying ? '提交重新认证申请' : '提交认证申请') }}
       </button>
+      <view v-if="isVerified && !isReapplying" class="verified-actions">
+        <button class="btn verified" disabled>
+          ✓ 已完成认证
+        </button>
+        <button class="btn reapply" @click="startReapply">
+          重新认证
+        </button>
+      </view>
     </view>
   </view>
 </template>
@@ -102,6 +112,8 @@ const form = ref({
   staffId: '',
   identityPhoto: ''
 })
+
+const isReapplying = ref(false)
 
 const identityText = computed(() => {
   if (!cardInfo.value) return ''
@@ -152,13 +164,20 @@ const loadCardInfo = async () => {
       params.userId = userStore.userInfo.userId
     }
     const res = await patientApi.getCard(params)
-    console.log("获得的响应" + res)
+0.
     if (res) {
       cardInfo.value = res
       form.value.patientId = res.patientId
       form.value.studentId = res.studentId || ''
       form.value.staffId = res.staffId || ''
-      form.value.identityPhoto = res.identityPhoto || ''
+      // 如果后端返回的是完整 URL，直接使用；否则需要构建完整 URL
+      if (res.identityPhoto) {
+        form.value.identityPhoto = res.identityPhoto.startsWith('http') 
+          ? res.identityPhoto 
+          : buildImageUrl(res.identityPhoto)
+      } else {
+        form.value.identityPhoto = ''
+      }
     }
   } catch (e) {
     console.error('获取就诊卡信息失败', e)
@@ -199,6 +218,12 @@ const buildImageUrl = (relativePath) => {
 }
 
 const chooseImage = () => {
+  // 已通过认证且非重新认证模式则不允许修改
+  if (isVerified.value && !isReapplying.value) {
+    uniShowToast({ title: '已通过认证，如需修改请点击"重新认证"按钮', icon: 'none' })
+    return
+  }
+  
   uni.chooseImage({
     count: 1,
     sizeType: ['compressed'],
@@ -220,6 +245,30 @@ const chooseImage = () => {
       } catch (err) {
         console.error(err)
         uniShowToast({ title: '上传失败，请稍后重试', icon: 'none' })
+      }
+    }
+  })
+}
+
+const previewPhoto = () => {
+  if (form.value.identityPhoto) {
+    uni.previewImage({
+      urls: [form.value.identityPhoto],
+      current: 0
+    })
+  }
+}
+
+const startReapply = () => {
+  uni.showModal({
+    title: '重新认证',
+    content: '重新提交认证后，原认证状态将变为"未审核"，需要等待管理员重新审核。确定要重新认证吗？',
+    confirmText: '确定',
+    cancelText: '取消',
+    success: (res) => {
+      if (res.confirm) {
+        isReapplying.value = true
+        uniShowToast({ title: '请上传新的证件照片', icon: 'none' })
       }
     }
   })
@@ -253,7 +302,11 @@ const submitApply = async () => {
       staffId: form.value.staffId,
       identityPhoto: form.value.identityPhoto,
     })
-    await uniShowToast({ title: '提交成功，待管理员审核，如重新上传会覆盖当前申请', icon: 'none' })
+    const msg = isReapplying.value 
+      ? '重新认证申请已提交，待管理员审核' 
+      : '提交成功，待管理员审核'
+    await uniShowToast({ title: msg, icon: 'none' })
+    isReapplying.value = false
     await loadCardInfo()
   } catch (e) {
     console.error(e)
@@ -394,6 +447,21 @@ onLoad((query) => {
   color: #999;
 }
 
+.photo-tip {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #999;
+}
+
+.verified-tip {
+  color: #52c41a;
+}
+
+.reapply-tip {
+  color: #fa8c16;
+}
+
 .empty {
   padding: 40rpx 0;
   text-align: center;
@@ -402,6 +470,15 @@ onLoad((query) => {
 
 .actions {
   margin-top: 24rpx;
+}
+
+.verified-actions {
+  display: flex;
+  gap: 16rpx;
+}
+
+.verified-actions .btn {
+  flex: 1;
 }
 
 .btn-disabled {
@@ -420,5 +497,17 @@ onLoad((query) => {
 .primary {
   background: #3a9cff;
   color: #fff;
+}
+
+.verified {
+  background: #f6ffed;
+  color: #52c41a;
+  border: 1rpx solid #b7eb8f;
+}
+
+.reapply {
+  background: #fff;
+  color: #fa8c16;
+  border: 1rpx solid #fa8c16;
 }
 </style>

@@ -24,26 +24,37 @@
         :pagination="pagination"
         @change="handleTableChange"
       >
-        <template #avatar="{ text }">
-          <a-avatar :src="text ? buildImageUrl(text) : undefined" icon="user" />
-        </template>
-
-        <template #status="{ text }">
-          <a-tag v-if="text === 1" color="blue">待审核</a-tag>
-          <a-tag v-else-if="text === 2" color="green">已通过</a-tag>
-          <a-tag v-else-if="text === 3" color="red">已驳回</a-tag>
-          <span v-else>-</span>
-        </template>
-
-        <template #action="{ record }">
-          <a-space>
-            <a-button size="small" type="link" :disabled="record.status !== 1" @click="openApprove(record)">
-              通过
-            </a-button>
-            <a-button size="small" type="link" danger :disabled="record.status !== 1" @click="openReject(record)">
-              驳回
-            </a-button>
-          </a-space>
+        <template #bodyCell="{ column, record, text }">
+          <!-- 头像列 -->
+          <template v-if="column.dataIndex === 'avatar'">
+            <img 
+              v-if="record.avatar" 
+              :src="record.avatar"
+              style="width: 60px; height: 60px; object-fit: cover; cursor: pointer; border-radius: 4px;"
+              @click="previewImage(record.avatar)"
+            />
+            <span v-else>-</span>
+          </template>
+          
+          <!-- 状态列 -->
+          <template v-else-if="column.dataIndex === 'status'">
+            <a-tag v-if="text === 1" color="blue">待审核</a-tag>
+            <a-tag v-else-if="text === 2" color="green">已通过</a-tag>
+            <a-tag v-else-if="text === 3" color="red">已驳回</a-tag>
+            <span v-else>-</span>
+          </template>
+          
+          <!-- 操作列 -->
+          <template v-else-if="column.key === 'action'">
+            <a-space>
+              <a-button size="small" type="link" :disabled="record.status !== 1" @click="openApprove(record)">
+                通过
+              </a-button>
+              <a-button size="small" type="link" danger :disabled="record.status !== 1" @click="openReject(record)">
+                驳回
+              </a-button>
+            </a-space>
+          </template>
         </template>
       </a-table>
     </a-card>
@@ -54,6 +65,19 @@
       <p class="mb-2">擅长领域：{{ currentRecord?.specialty }}</p>
       <p class="mb-2">医生简介：{{ currentRecord?.doctorDesc }}</p>
       <a-textarea v-model:value="reason" :rows="3" placeholder="可填写审批备注" />
+    </a-modal>
+
+    <!-- 图片预览模态框 -->
+    <a-modal
+      v-model:open="previewVisible"
+      title="医生头像预览"
+      :footer="null"
+      :width="800"
+      centered
+    >
+      <div style="text-align: center;">
+        <img :src="previewImageUrl" style="max-width: 100%; max-height: 70vh;" />
+      </div>
     </a-modal>
   </PageWrapper>
 </template>
@@ -86,6 +110,8 @@ const buildImageUrl = (relativePath: string) => {
 
 const loading = ref(false);
 const status = ref<number | undefined>(1);
+const previewVisible = ref(false);
+const previewImageUrl = ref('');
 
 interface UpdateRequestRecord {
   id: number;
@@ -111,12 +137,12 @@ const pagination = reactive({
 const columns = [
   { title: '申请ID', dataIndex: 'id', width: 80 },
   { title: '医生姓名', dataIndex: 'doctorName', width: 120 },
-  { title: '头像', dataIndex: 'avatar', slots: { customRender: 'avatar' }, width: 80 },
+  { title: '头像', dataIndex: 'avatar', width: 80 },
   { title: '擅长领域', dataIndex: 'specialty' },
   { title: '医生简介', dataIndex: 'doctorDesc' },
-  { title: '状态', dataIndex: 'status', slots: { customRender: 'status' }, width: 100 },
+  { title: '状态', dataIndex: 'status', width: 100 },
   { title: '提交时间', dataIndex: 'createTime', width: 180 },
-  { title: '操作', key: 'action', slots: { customRender: 'action' }, width: 160 },
+  { title: '操作', key: 'action', width: 160 },
 ];
 
 async function fetchData() {
@@ -191,6 +217,13 @@ async function handleConfirm() {
   } catch (e) {
     console.error(e);
     createMessage.error('操作失败，请稍后重试');
+  }
+}
+
+function previewImage(url: string) {
+  if (url) {
+    previewImageUrl.value = url;
+    previewVisible.value = true;
   }
 }
 

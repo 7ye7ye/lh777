@@ -12,6 +12,7 @@ import org.jeecg.modules.hospital.exception.BusinessException;
 import org.jeecg.modules.hospital.service.PatientService;
 import org.jeecg.modules.hospital.service.PatientIdentityVerifyService;
 import org.jeecg.modules.hospital.entity.PatientIdentityVerify;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,6 +31,23 @@ public class PatientController {
 
     @Resource
     private PatientIdentityVerifyService patientIdentityVerifyService;
+
+    @Value("${jeecg.domainUrl:http://127.0.0.1:8095}")
+    private String domainUrl;
+
+    /**
+     * 构建完整的图片 URL
+     */
+    private String buildFullImageUrl(String relativePath) {
+        if (relativePath == null || relativePath.isEmpty()) {
+            return null;
+        }
+        if (relativePath.startsWith("http://") || relativePath.startsWith("https://")) {
+            return relativePath;
+        }
+        String cleanPath = relativePath.startsWith("/") ? relativePath.substring(1) : relativePath;
+        return domainUrl + "/jeecg-boot/sys/common/static/" + cleanPath;
+    }
 
     @PostMapping("/create")
     public ResponseEntity<HashMap<String, Object>> create(@RequestBody Patient patient) {
@@ -137,7 +155,8 @@ public class PatientController {
                 vo.setStudentId(patient.getStudentId());
                 vo.setStaffId(patient.getStaffId());
                 vo.setIdentityVerify(patient.getIdentityVerify());
-                vo.setIdentityPhoto(item.getIdentityPhoto());
+                // 将相对路径转换为完整 URL
+                vo.setIdentityPhoto(buildFullImageUrl(item.getIdentityPhoto()));
                 resultList.add(vo);
             }
         }
@@ -399,11 +418,21 @@ public class PatientController {
                 return ResponseEntity.ok(result);
             }
 
+            // 先查询认证记录，获取照片路径
+            com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<PatientIdentityVerify> wrapper =
+                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+            wrapper.eq(PatientIdentityVerify::getPatientId, patientId);
+            PatientIdentityVerify record = patientIdentityVerifyService.getOne(wrapper);
+
             Patient update = new Patient();
             update.setPatientId(patientId);
             if (approve) {
                 update.setIdentityVerify(1);
                 update.setVerifyTime(LocalDateTime.now());
+                // 审核通过时，将照片路径同步到 patient 表
+                if (record != null && record.getIdentityPhoto() != null) {
+                    update.setIdentityPhoto(record.getIdentityPhoto());
+                }
             } else {
                 update.setIdentityVerify(2);
                 update.setVerifyTime(null);
@@ -416,10 +445,7 @@ public class PatientController {
                 return ResponseEntity.ok(result);
             }
 
-            com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<PatientIdentityVerify> wrapper =
-                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
-            wrapper.eq(PatientIdentityVerify::getPatientId, patientId);
-            PatientIdentityVerify record = patientIdentityVerifyService.getOne(wrapper);
+            // 更新认证记录状态
             if (record != null) {
                 record.setStatus(approve ? 1 : 2);
                 record.setRejectReason(approve ? null : rejectReason);

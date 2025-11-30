@@ -73,14 +73,24 @@
               <text class="verify-status" :class="`verify-status-${cardInfo.identityVerify}`">
                 {{ getVerifyStatusName(cardInfo.identityVerify) }}
               </text>
-              <button
-                v-if="cardInfo.identityVerify !== 1"
-                class="verify-btn"
-                size="mini"
-                @click="goToIdentityVerify"
-              >
-                去认证
-              </button>
+              <view class="verify-actions">
+                <button
+                  v-if="cardInfo.identityVerify === 1 && cardInfo.identityPhoto"
+                  class="view-photo-btn"
+                  size="mini"
+                  @click="previewIdentityPhoto"
+                >
+                  查看照片
+                </button>
+                <button
+                  v-if="cardInfo.identityVerify !== 1"
+                  class="verify-btn"
+                  size="mini"
+                  @click="goToIdentityVerify"
+                >
+                  去认证
+                </button>
+              </view>
             </view>
           </view>
           <view class="detail-row">
@@ -225,6 +235,18 @@ const goToIdentityVerify = () => {
   uniNavigateTo({ 
     url: `/subpkg/profile/personal/identity-verify?patientId=${cardInfo.value.patientId}` 
   })
+}
+
+// 预览认证照片
+const previewIdentityPhoto = () => {
+  if (cardInfo.value.identityPhoto) {
+    uni.previewImage({
+      urls: [cardInfo.value.identityPhoto],
+      current: 0
+    })
+  } else {
+    uniShowToast({ title: '暂无认证照片', icon: 'none' })
+  }
 }
 
 // 更换新就诊卡（可根据实际业务补充逻辑）
@@ -426,8 +448,32 @@ onShow(() => {
   font-size: 26rpx;
 }
 
+.verify-actions {
+  display: flex;
+  gap: 12rpx;
+}
+
 .verify-btn {
   margin-left: 24rpx;
+}
+
+.view-photo-btn {
+  margin-left: 24rpx;
+  background: #52c41a;
+  color: #fff;
+  border: none;
+}
+
+.verify-status-0 {
+  color: #fa8c16;
+}
+
+.verify-status-1 {
+  color: #52c41a;
+}
+
+.verify-status-2 {
+  color: #f5222d;
 }
 
 /* 操作按钮样式 */
