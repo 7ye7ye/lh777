@@ -1,9 +1,7 @@
 <template>
   <view class="referral-bg">
     <view class="page-header">
-      <view class="back-btn" @click="goBack">←</view>
       <text class="page-title">转诊详情</text>
-      <view class="header-right"></view>
     </view>
 
     <scroll-view scroll-y class="content">
@@ -142,7 +140,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import { getPatientReferralDetail, cancelPatientReferral, autoRegisterInternalReferral } from '../../api/referral'
 
 // 转诊详情数据
@@ -165,14 +164,21 @@ const referralDetail = ref({
   rejectReason: '',
   attachments: [],
   type: '院内转诊', // 默认院内转诊，后端返回时会覆盖
-  visitRecordId: '' // 关联的就诊记录ID
+  visitRecordId: '', // 关联的就诊记录ID
+  rawStatus: 'PENDING'
 })
 const loading = ref(true)
 const submitting = ref(false)
 
-// 获取路由参数
-const route = useRoute()
-const referralId = computed(() => route.params.id)
+const statusMap = {
+  PENDING: '待审核',
+  APPROVED: '已审核',
+  REJECTED: '已拒绝',
+  CANCELLED: '已取消',
+  COMPLETED: '已完成'
+}
+
+const referralId = ref('')
 
 // 返回上一页
 const goBack = () => {
@@ -232,7 +238,7 @@ const previewImage = (current, index) => {
 
 // 取消转诊申请
 const cancelReferral = async () => {
-  if (referralDetail.value.status !== '待审核') {
+  if (referralDetail.value.rawStatus !== 'PENDING') {
     uni.showToast({
       title: '只有待审核的申请可以取消',
       icon: 'none'
@@ -286,7 +292,7 @@ const createNewReferral = () => {
 
 // 院内转诊自动挂号
 const autoRegister = async () => {
-  if (referralDetail.value.status !== '已审核') {
+  if (referralDetail.value.rawStatus !== 'APPROVED') {
     uni.showToast({
       title: '只有已审核的申请可以进行自动挂号',
       icon: 'none'
@@ -303,7 +309,7 @@ const autoRegister = async () => {
           submitting.value = true
           const result = await autoRegisterInternalReferral(referralDetail.value.id)
           
-          if (result.code === 200) {
+          if (result && result !== false) {
             uni.showToast({
               title: '自动挂号成功！',
               icon: 'success'
@@ -334,12 +340,36 @@ const autoRegister = async () => {
 
 // 加载转诊详情
 const loadReferralDetail = async () => {
+  if (!referralId.value) return
   try {
     loading.value = true
     const res = await getPatientReferralDetail(referralId.value)
-    
-    if (res.code === 200 && res.data) {
-      referralDetail.value = res.data
+    if (res) {
+      referralDetail.value = {
+        ...referralDetail.value,
+        ...res,
+        id: res.id || res.referralId || referralId.value,
+        patientName: res.patientName || '',
+        gender: res.gender || '',
+        age: res.age || '',
+        phone: res.phone || '',
+        symptoms: res.symptoms || '',
+        medicalHistory: res.medicalHistory || '',
+        reason: res.reason || '',
+        targetHospital: res.targetHospitalName || res.targetHospital || '',
+        targetDepartment: res.targetDeptName || res.targetDepartment || '',
+        applyTime: res.applyTime || res.createTime || '',
+        reviewTime: res.reviewTime || '',
+        status: statusMap[res.status] || res.status || '待审核',
+        rawStatus: res.status || 'PENDING',
+        reviewDoctor: res.reviewDoctor || '',
+        reviewComments: res.reviewComments || '',
+        rejectReason: res.rejectReason || '',
+        attachments: Array.isArray(res.attachments) ? res.attachments : [],
+        type: res.targetType === 'EXTERNAL' ? '院外转诊' : '院内转诊'
+      }
+    } else {
+      uni.showToast({ title: '未找到该转诊记录', icon: 'none' })
     }
   } catch (error) {
     console.error('加载转诊详情失败:', error)
@@ -353,7 +383,8 @@ const loadReferralDetail = async () => {
 }
 
 // 页面加载时获取详情数据
-onMounted(() => {
+onLoad((options) => {
+  referralId.value = options?.id || ''
   loadReferralDetail()
 })
 </script>
@@ -362,46 +393,50 @@ onMounted(() => {
 .referral-bg {
   background-color: #f5f5f5;
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .page-header {
-  background-color: #1989fa;
-  color: #fff;
-  padding: 16px;
+  background-color: #ffffff;
+  padding: 32rpx 30rpx;
   display: flex;
   align-items: center;
+  justify-content: center;
   position: sticky;
   top: 0;
   z-index: 10;
-}
-
-.back-btn {
-  font-size: 20px;
-  margin-right: 20px;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .page-title {
-  flex: 1;
-  font-size: 18px;
-  font-weight: bold;
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #1f2d3d;
   text-align: center;
 }
 
-.header-right {
-  width: 20px;
-}
 
 .content {
   padding: 16px;
   height: calc(100vh - 52px);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
-/* 状态卡片样式 */
+/* 状态卡片样式 - 缩小一半 */
 .status-card {
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 8px;
+  padding: 10px 16px;
   margin-bottom: 16px;
+  margin-left: 0;
+  margin-right: 0;
+  width: 100%;
   color: #fff;
+  box-sizing: border-box;
 }
 
 .status-pending {
@@ -419,45 +454,53 @@ onMounted(() => {
 .status-header {
   display: flex;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .status-icon {
-  margin-right: 16px;
+  margin-right: 10px;
+  flex-shrink: 0;
 }
 
 .icon-img {
-  width: 40px;
-  height: 40px;
+  width: 28px;
+  height: 28px;
+}
+
+.status-info {
+  flex: 1;
 }
 
 .status-text {
-  font-size: 20px;
-  font-weight: bold;
-  display: block;
-  margin-bottom: 4px;
-}
-
-.status-desc {
-  font-size: 14px;
-  opacity: 0.9;
-}
-
-.hospital-info {
-  background-color: rgba(255, 255, 255, 0.2);
-  padding: 12px;
-  border-radius: 8px;
-}
-
-.hospital-name {
   font-size: 16px;
   font-weight: bold;
   display: block;
   margin-bottom: 4px;
 }
 
-.department {
+.status-desc {
+  font-size: 12px;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+.hospital-info {
+  background-color: rgba(255, 255, 255, 0.2);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.hospital-name {
   font-size: 14px;
+  font-weight: bold;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.department {
+  font-size: 12px;
+  opacity: 0.95;
 }
 
 /* 信息区域样式 */
@@ -466,7 +509,11 @@ onMounted(() => {
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 16px;
+  margin-left: 0;
+  margin-right: 0;
+  width: 100%;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
 }
 
 .section-title {
@@ -560,8 +607,10 @@ onMounted(() => {
 /* 操作按钮样式 */
 .action-section {
   margin-top: 20px;
+  width: 100%;
   display: flex;
   gap: 12px;
+  box-sizing: border-box;
 }
 
 .primary-btn {

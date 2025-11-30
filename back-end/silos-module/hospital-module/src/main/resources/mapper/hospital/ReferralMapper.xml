@@ -23,6 +23,7 @@
             r.registration_record_id,
             rr.registration_no,
             rr.visit_time,
+            rr.patient_id,
             r.original_dept_id,
             r.original_dept_name,
             r.original_doctor_id,

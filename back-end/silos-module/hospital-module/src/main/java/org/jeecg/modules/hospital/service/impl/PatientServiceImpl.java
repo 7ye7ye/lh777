@@ -114,6 +114,21 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient>
         }
         return true;
     }
+
+    @Override
+    @Transactional
+    public boolean unbindPatientCard(Long userId, Long patientId) {
+        if (userId == null || patientId == null) {
+            return false;
+        }
+
+        // 软删除：将指定 userId 名下、指定 patientId 的记录 isDeleted 置为 1
+        return this.lambdaUpdate()
+                .eq(Patient::getUserId, userId)
+                .eq(Patient::getPatientId, patientId)
+                .set(Patient::getIsDeleted, 1)
+                .update();
+    }
 }
 
 
