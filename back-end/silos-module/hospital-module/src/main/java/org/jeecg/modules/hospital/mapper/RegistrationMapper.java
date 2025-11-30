@@ -36,15 +36,15 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
             "s.schedule_date, " +
             "s.time_slot, " +
             "CASE s.time_slot " +
-            "  WHEN 1 THEN '上午' " +
-            "  WHEN 2 THEN '下午' " +
-            "  WHEN 3 THEN '晚上' " +
-            "  ELSE '未知' " +
+            "    WHEN 1 THEN '上午' " +
+            "    WHEN 2 THEN '下午' " +
+            "    WHEN 3 THEN '晚上' " +
+            "    ELSE '未知' " +
             "END AS time_range, " +
             "s.type_id, " +
             "s.used_quota, " +
-            "COALESCE(rt.daily_quota, 0) AS daily_quota, " +
-            "COALESCE(rt.daily_quota, 0) - s.used_quota AS available_quota, " +
+            "s.max_quota," +
+            "s.max_quota - s.used_quota AS available_quota, " +
             "s.status " +
             "FROM doctor_schedule s " +
             "LEFT JOIN registration_type rt ON s.type_id = rt.type_id " +
@@ -53,9 +53,10 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
             "AND s.schedule_date <= DATE_ADD(#{startDate}, INTERVAL #{days} DAY) " +
             "AND s.status = 1 " +
             "ORDER BY s.schedule_date ASC, s.time_slot ASC")
-    List<Map<String, Object>> selectSchedulesByDoctor(@Param("doctorId") Long doctorId,
-                                                      @Param("startDate") String startDate,
-                                                      @Param("days") Integer days);
+    List<Map<String, Object>> selectSchedulesByDoctor(
+            @Param("doctorId") Long doctorId,
+            @Param("startDate") String startDate,
+            @Param("days") Integer days);
 
     /**
      * 统计医生某天某挂号类型已预约数量

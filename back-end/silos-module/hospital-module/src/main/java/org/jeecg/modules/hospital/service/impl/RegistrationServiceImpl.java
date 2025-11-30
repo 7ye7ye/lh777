@@ -17,8 +17,10 @@ import org.jeecg.modules.hospital.entity.*;
 import org.jeecg.modules.hospital.mapper.*;
 import org.jeecg.modules.hospital.service.MessageService;
 import org.jeecg.modules.hospital.service.RegistrationService;
+import org.jeecg.modules.hospital.service.WaitingQueueService;
 import org.jeecg.modules.hospital.task.AppointmentReminderTask;
 import org.jeecg.modules.hospital.vo.RegistrationVO;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -61,6 +63,9 @@ public class RegistrationServiceImpl implements RegistrationService {
     private AppointmentReminderTask appointmentReminderTask;
     @Resource
     private DoctorScheduleMapper doctorScheduleMapper;
+
+    @Autowired
+    private WaitingQueueService waitingQueueService;
 
     @Override
     public List<RegistrationType> getAllRegistrationTypes() {
@@ -325,30 +330,15 @@ public class RegistrationServiceImpl implements RegistrationService {
             registrationMapper.updateScheduleUsedQuota(schedule);
         }
         // ⭐⭐⭐ 自动候补补位
-        autoFillFromQueue(record.getScheduleId());
+        waitingQueueService.autoFillFromQueue(record.getScheduleId(),1);
 
-        WaitingQueue queueRecord = waitingQueueMapper.selectFirstByScheduleId(record.getScheduleId());
-        if (queueRecord != null) {
-            // 更新挂号记录状态为已预约
-            RegistrationRecord candidate = registrationMapper.selectById(queueRecord.getRegistrationId());
-            if (candidate != null) {
-                candidate.setStatus(1); // 1 = 已预约
-                registrationMapper.updateById(candidate);
 
-                // ✅ 打印提示，确认候补成功
-                System.out.println("候补成功！挂号记录ID: " + candidate.getRecordId() +
-                        " 已更新为已预约状态。");
-            } else {
-                System.out.println("未找到挂号记录，ID: " + queueRecord.getRegistrationId());
-            }
 
-            queueRecord.setStatus(1);
-            waitingQueueMapper.updateById(queueRecord);
 
 //            // 发送候补成功通知
 //            RegistrationDetailDTO candidateDetail = registrationMapper.selectRegistrationDetail(candidate.getId());
 //            createQueueSuccessMessage(candidateDetail);
-        }
+
 
         // 7. 发送退号成功通知
         String cancelUserId = resolveCurrentUserId();
@@ -359,8 +349,6 @@ public class RegistrationServiceImpl implements RegistrationService {
 
         return true;
     }
-
-
 
     @Override
     public DoctorSchedule getScheduleDetailById(Long scheduleId) {
@@ -414,53 +402,6 @@ public class RegistrationServiceImpl implements RegistrationService {
     }
 
 
-
-    /**
-     * 自动补候补队列（候补转正）
-     */
-    private void autoFillFromQueue(Long scheduleId) {
-
-        // 1. 读取候补队列中排第一的人
-        WaitingQueue first = waitingQueueMapper.selectFirstWaiting(scheduleId);
-        if (first == null) {
-            return; // 没有人候补
-        }
-
-        // 2. 获取挂号记录对应的候补记录
-        RegistrationRecord candidate = registrationMapper.selectById(first.getRegistrationId());
-        if (candidate != null) {
-            // 3. 更新挂号记录状态为已预约
-            candidate.setStatus(1);
-            registrationMapper.updateById(candidate);
-
-            // 4. 更新 waitingqueue 状态为已处理
-            first.setStatus(1);
-            first.setTransferTime(LocalDateTime.now());
-            waitingQueueMapper.updateById(first);
-
-            System.out.println("候补转正成功！挂号记录ID: " + candidate.getRecordId());
-
-            // 5. 发送通知
-            RegistrationDetailDTO detail = registrationMapper.selectRegistrationDetail(candidate.getRecordId());
-            String waitingUserId = resolveUserIdForDetail(detail, patientMapper.selectById(candidate.getPatientId()));
-            if (detail != null) {
-                createSuccessMessage(detail, waitingUserId);
-                createWaitingSuccessMessage(detail, first, waitingUserId);
-                // 预约提醒
-                appointmentReminderTask.checkAndCreateImmediateReminder(detail);
-                if (StringUtils.isNotBlank(waitingUserId)) {
-                    appointmentReminderTask.createOneHourReminderWithUserIdAndTime(detail, waitingUserId, null);
-                }
-            }
-
-            // 6. 更新排班号源
-            DoctorSchedule schedule = registrationMapper.selectScheduleById(scheduleId);
-            if (schedule != null) {
-                schedule.setUsedQuota(schedule.getUsedQuota() + 1);
-                registrationMapper.updateScheduleUsedQuota(schedule);
-            }
-        }
-    }
 
     @Override
     public List<RegistrationVO> listByDisease(String disease) {

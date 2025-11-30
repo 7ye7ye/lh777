@@ -15,8 +15,10 @@ import org.jeecg.modules.hospital.entity.Department;
 import org.jeecg.modules.hospital.service.DoctorScheduleService;
 import org.jeecg.modules.hospital.service.DoctorService;
 import org.jeecg.modules.hospital.service.DepartmentService;
+import org.jeecg.modules.hospital.service.RegistrationService;
 import org.jeecgframework.poi.excel.ExcelImportUtil;
 import org.jeecgframework.poi.excel.entity.ImportParams;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -53,6 +55,21 @@ public class DoctorScheduleAdminController {
 
     @Resource
     private DepartmentService departmentService;
+
+    @Resource
+    private RegistrationService registrationService;
+    @Autowired
+    private DoctorScheduleService doctorScheduleService;
+
+    @Operation(summary = "根据医生ID获取排班信息")
+    @GetMapping("/add")
+    public Result<?> getSchedules(
+            @RequestParam Long doctorId,
+            @RequestParam String startDate,
+            @RequestParam(defaultValue = "7") Integer days
+    ) {
+        return Result.OK(registrationService.getDoctorSchedules(doctorId, startDate, days));
+    }
 
     @Operation(summary = "查询排班列表（可按医生/科室/日期筛选）")
     @GetMapping("/list")
@@ -101,9 +118,16 @@ public class DoctorScheduleAdminController {
         s.setBookedSlots(req.getBookedSlots());
         s.setStatus(req.getStatus());
         s.setRemark(req.getRemark());
+
+
+        if (req.getMaxQuota() != null) {
+            s.setMaxQuota(req.getMaxQuota());
+        }
+
         boolean ok = scheduleService.update(s);
         return Result.OK(ok);
     }
+
 
     @Operation(summary = "删除排班")
     @DeleteMapping("/{scheduleId:\\d+}")
@@ -873,4 +897,29 @@ public class DoctorScheduleAdminController {
             }
         }
     }
+
+
+    @PutMapping("/addQuota")
+    public Result<String> addQuotaAndFillQueue(@RequestBody Map<String, Object> requestBody) {
+        try {
+            // 从请求体中获取参数
+            Long scheduleId = Long.parseLong(requestBody.get("scheduleId").toString());
+            int addCount = Integer.parseInt(requestBody.get("addCount").toString());
+
+            // 打印接收到的参数
+            System.out.println("Received scheduleId: " + scheduleId);
+            System.out.println("Received addCount: " + addCount);
+
+            boolean success = doctorScheduleService.addQuotaAndFillQueue(scheduleId, addCount);
+            if (success) {
+                return Result.OK("号源已成功增加，并处理了候补队列");
+            } else {
+                return Result.error("增加号源失败");
+            }
+        } catch (Exception e) {
+            return Result.error("服务器错误：" + e.getMessage());
+        }
+    }
+
+
 }
