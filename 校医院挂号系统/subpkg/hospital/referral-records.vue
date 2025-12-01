@@ -2,7 +2,11 @@
   <view class="page-bg">
     <!-- 标题和刷新按钮区域 -->
     <view class="header-section">
-      <view class="list-header">转诊记录</view>
+      <view class="list-header-wrapper">
+        <view class="header-icon">🔄</view>
+        <view class="list-header">转诊记录</view>
+        <view class="header-badge" v-if="filteredRecords.length > 0">{{ filteredRecords.length }}</view>
+      </view>
       <view class="header-actions">
         <button class="refresh-btn small" @click="refreshRecords" :disabled="loading">
           <text class="refresh-icon">⟳</text>
@@ -38,6 +42,63 @@
         @click="changeFilter(index)"
       >
         {{ tab.label }}
+      </view>
+    </view>
+
+    <!-- 日期范围筛选 - 紧凑形式 -->
+    <view class="date-filter-compact">
+      <view class="date-filter-btn" @click="showDatePicker = true">
+        <text class="calendar-icon">📅</text>
+        <text class="date-range-text" v-if="startDate && endDate">
+          {{ formatDateForDisplay(startDate) }} 至 {{ formatDateForDisplay(endDate) }}
+        </text>
+        <text class="date-range-text placeholder" v-else>选择日期范围</text>
+      </view>
+      <view v-if="startDate || endDate" class="clear-date-btn" @click.stop="clearDateRange">
+        <text class="clear-date-icon">✕</text>
+        <text class="clear-date-text">清除</text>
+      </view>
+    </view>
+    
+    <!-- 日历选择弹窗 -->
+    <view class="date-picker-modal" v-if="showDatePicker" @click="showDatePicker = false">
+      <view class="date-picker-content" @click.stop>
+        <view class="date-picker-header">
+          <text class="date-picker-title">选择日期范围</text>
+          <text class="date-picker-close" @click="showDatePicker = false">✕</text>
+        </view>
+        <view class="date-picker-body">
+          <view class="date-picker-row">
+            <text class="date-picker-label">开始日期：</text>
+            <picker mode="date" :value="startDate" @change="onStartDateChange" :end="endDate || undefined">
+              <view class="date-picker-view">
+                <text :class="startDate ? 'date-picker-value' : 'date-picker-placeholder'">
+                  {{ startDate ? formatDateForDisplay(startDate) : '选择开始日期' }}
+                </text>
+              </view>
+            </picker>
+          </view>
+          <view class="date-picker-row">
+            <text class="date-picker-label">结束日期：</text>
+            <picker mode="date" :value="endDate" @change="onEndDateChange" :start="startDate || undefined">
+              <view class="date-picker-view">
+                <text :class="endDate ? 'date-picker-value' : 'date-picker-placeholder'">
+                  {{ endDate ? formatDateForDisplay(endDate) : '选择结束日期' }}
+                </text>
+              </view>
+            </picker>
+          </view>
+        </view>
+        <view class="date-picker-footer">
+          <button 
+            v-if="startDate || endDate" 
+            class="date-picker-reset" 
+            @click="handleResetDateRange"
+          >
+            重置
+          </button>
+          <button class="date-picker-confirm" @click="showDatePicker = false">确定</button>
+        </view>
       </view>
     </view>
 
@@ -173,8 +234,131 @@ const currentPatientInfo = ref({ name: '', visitNo: '' })
 const selectedPatientId = ref(null)
 const userStore = useUserStore()
 
+// 日期范围筛选
+const startDate = ref('')
+const endDate = ref('')
+const showDatePicker = ref(false)
+
 // 根据筛选条件过滤记录
 const filterStatus = ref(filterTabs[0].value || '')
+
+// 格式化日期用于显示
+const formatDateForDisplay = (dateStr) => {
+  if (!dateStr) return ''
+  // 如果是 YYYY-MM-DD 格式，转换为 YYYY年MM月DD日
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (match) {
+    return `${match[1]}年${match[2]}月${match[3]}日`
+  }
+  return dateStr
+}
+
+// 解析日期字符串为Date对象（用于比较）
+const parseDate = (dateStr) => {
+  if (!dateStr) return null
+  // 处理各种日期格式
+  const str = String(dateStr).replace('T', ' ').split(' ')[0] // 取日期部分
+  const date = new Date(str)
+  if (isNaN(date.getTime())) return null
+  // 设置为当天的0点0分0秒
+  date.setHours(0, 0, 0, 0)
+  return date
+}
+
+// 开始日期变化
+const onStartDateChange = (e) => {
+  const selectedDate = e.detail.value
+  // 验证开始日期不能晚于结束日期
+  if (endDate.value) {
+    const start = parseDate(selectedDate)
+    const end = parseDate(endDate.value)
+    if (start && end && start > end) {
+      uni.showToast({
+        title: '开始日期不能晚于结束日期',
+        icon: 'none'
+      })
+      return
+    }
+  }
+  startDate.value = selectedDate
+}
+
+// 结束日期变化
+const onEndDateChange = (e) => {
+  const selectedDate = e.detail.value
+  // 验证结束日期不能早于开始日期
+  if (startDate.value) {
+    const start = parseDate(startDate.value)
+    const end = parseDate(selectedDate)
+    if (start && end && end < start) {
+      uni.showToast({
+        title: '结束日期不能早于开始日期',
+        icon: 'none'
+      })
+      return
+    }
+  }
+  endDate.value = selectedDate
+}
+
+// 清除日期范围
+const clearDateRange = () => {
+  startDate.value = ''
+  endDate.value = ''
+  uni.showToast({
+    title: '已清除日期筛选',
+    icon: 'success',
+    duration: 1500
+  })
+}
+
+// 在弹窗中重置日期范围
+const handleResetDateRange = () => {
+  startDate.value = ''
+  endDate.value = ''
+  showDatePicker.value = false
+  uni.showToast({
+    title: '已重置日期筛选',
+    icon: 'success',
+    duration: 1500
+  })
+}
+
+// 检查转诊记录是否在日期范围内
+const isRecordInDateRange = (record) => {
+  if (!startDate.value && !endDate.value) {
+    return true // 没有设置日期范围，显示所有
+  }
+  
+  // 使用申请时间作为比较基准
+  const recordDateStr = record.applyTime || record.applyTimeText || record.createTime
+  if (!recordDateStr) {
+    return false // 没有日期信息，不显示
+  }
+  
+  const recordDate = parseDate(recordDateStr)
+  if (!recordDate) return false
+  
+  const start = parseDate(startDate.value)
+  const end = parseDate(endDate.value)
+  
+  // 如果只有开始日期，只要记录日期 >= 开始日期即可
+  if (startDate.value && !endDate.value) {
+    return recordDate >= start
+  }
+  
+  // 如果只有结束日期，只要记录日期 <= 结束日期即可
+  if (!startDate.value && endDate.value) {
+    return recordDate <= end
+  }
+  
+  // 如果两个日期都有，记录日期必须在范围内
+  if (start && end) {
+    return recordDate >= start && recordDate <= end
+  }
+  
+  return true
+}
 
 const filteredRecords = computed(() => {
   let records = referralRecords.value || []
@@ -192,15 +376,16 @@ const filteredRecords = computed(() => {
   // 只有当选择了就诊人且有姓名时才筛选
   const currentPatientName = (currentPatientInfo.value.name || '').trim()
   if (currentPatientName && selectedPatientId.value !== null && selectedPatientId.value !== undefined) {
-    const filtered = records.filter(record => {
+    records = records.filter(record => {
       const recordPatientName = (record.patientName || '').trim()
       // 使用患者姓名严格匹配
       return recordPatientName === currentPatientName
     })
-    return filtered
   }
   
-  // 如果没有选择就诊人或没有姓名，显示所有记录
+  // 按日期范围筛选
+  records = records.filter(record => isRecordInDateRange(record))
+  
   return records
 })
 
@@ -749,14 +934,65 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20rpx 30rpx;
+  padding: 24rpx 30rpx 20rpx;
+  background: linear-gradient(135deg, #4a90e2 0%, #6ec6ff 100%);
+  border-radius: 0 0 32rpx 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(74, 144, 226, 0.2);
   margin-bottom: 20rpx;
 }
 
+.list-header-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.header-icon {
+  font-size: 40rpx;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6rpx);
+  }
+}
+
 .list-header {
-  font-size: 36rpx;
+  font-size: 42rpx;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 2rpx;
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+
+.list-header::after {
+  content: '';
+  position: absolute;
+  bottom: -4rpx;
+  left: 0;
+  right: 0;
+  height: 4rpx;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  border-radius: 2rpx;
+}
+
+.header-badge {
+  background-color: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10rpx);
+  color: #ffffff;
+  font-size: 22rpx;
   font-weight: 600;
-  color: #1f2d3d;
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.3);
+  min-width: 40rpx;
+  text-align: center;
+  line-height: 1.4;
 }
 
 .header-actions {
@@ -765,17 +1001,22 @@ onMounted(async () => {
 }
 
 .refresh-btn.small {
+  padding: 8rpx 24rpx;
+  height: 52rpx;
+  line-height: 36rpx;
+  background-color: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10rpx);
+  border: 1rpx solid rgba(255, 255, 255, 0.3);
+  border-radius: 26rpx;
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 6rpx;
-  padding: 8rpx 20rpx;
-  background-color: #4a90e2;
+  gap: 8rpx;
+  font-size: 26rpx;
   color: #ffffff;
-  border: none;
-  border-radius: 20rpx;
-  font-size: 24rpx;
-  height: auto;
-  line-height: 1.2;
+  width: auto;
+  margin: 0;
+  transition: all 0.3s ease;
 }
 
 .refresh-icon {
@@ -946,6 +1187,206 @@ onMounted(async () => {
 
 .filter-tab:active {
   transform: scale(0.95);
+}
+
+/* 日期筛选区域样式 - 紧凑形式 */
+.date-filter-compact {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 12rpx 20rpx;
+  margin-bottom: 12rpx;
+  gap: 12rpx;
+}
+
+.date-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 8rpx 16rpx;
+  background-color: #ffffff;
+  border: 1rpx solid #e4e7ed;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+}
+
+.calendar-icon {
+  font-size: 28rpx;
+  color: #4a90e2;
+}
+
+.date-range-text {
+  font-size: 24rpx;
+  color: #333;
+  max-width: 400rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.date-range-text.placeholder {
+  color: #999;
+}
+
+.clear-date-btn {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 8rpx 16rpx;
+  background-color: #fff5f5;
+  border: 1rpx solid #ffcccc;
+  border-radius: 20rpx;
+  transition: all 0.3s ease;
+}
+
+.clear-date-btn:active {
+  background-color: #ffe0e0;
+  border-color: #ffaaaa;
+}
+
+.clear-date-icon {
+  font-size: 24rpx;
+  color: #ff4d4f;
+  line-height: 1;
+}
+
+.clear-date-text {
+  font-size: 24rpx;
+  color: #ff4d4f;
+  line-height: 1;
+}
+
+/* 日历选择弹窗样式 */
+.date-picker-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.date-picker-content {
+  width: 85%;
+  max-width: 600rpx;
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.date-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32rpx 30rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.date-picker-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.date-picker-close {
+  font-size: 36rpx;
+  color: #999;
+  padding: 4rpx;
+  line-height: 1;
+}
+
+.date-picker-body {
+  padding: 30rpx;
+}
+
+.date-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 24rpx;
+}
+
+.date-picker-row:last-child {
+  margin-bottom: 0;
+}
+
+.date-picker-label {
+  font-size: 28rpx;
+  color: #666;
+  min-width: 120rpx;
+}
+
+.date-picker-view {
+  flex: 1;
+  padding: 16rpx 24rpx;
+  background-color: #f5f7fa;
+  border-radius: 12rpx;
+  border: 1rpx solid #e4e7ed;
+}
+
+.date-picker-value {
+  font-size: 28rpx;
+  color: #333;
+}
+
+.date-picker-placeholder {
+  font-size: 28rpx;
+  color: #999;
+}
+
+.date-picker-footer {
+  padding: 24rpx 30rpx;
+  border-top: 1rpx solid #f0f0f0;
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
+}
+
+.date-picker-confirm {
+  flex: 1;
+  padding: 24rpx;
+  background-color: #4a90e2;
+  color: #ffffff;
+  border: none;
+  border-radius: 12rpx;
+  font-size: 30rpx;
+  text-align: center;
+}
+
+.date-picker-confirm:active {
+  background-color: #357abd;
+}
+
+.date-picker-reset {
+  flex: 1;
+  padding: 24rpx;
+  background-color: #ffffff;
+  color: #666666;
+  border: 1rpx solid #e4e7ed;
+  border-radius: 12rpx;
+  font-size: 30rpx;
+  text-align: center;
+}
+
+.date-picker-reset:active {
+  background-color: #f5f7fa;
+  border-color: #d0d7de;
 }
 
 .records-list {

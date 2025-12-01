@@ -14,9 +14,8 @@ export default {
   accountPermission: '账号权限设置',
   leaveApproval: '请假审批',
   doctorRegister: '医生注册',
-  doctorProfileUpdateApproval:'医生资料修改审批',
-  PatientldentityApproval:'患者身份认证',
+  doctorProfileUpdateApproval: '医生资料修改审批',
+  PatientldentityApproval: '患者身份认证',
   referralReview: '转诊审核',
   referralHistory: '转诊记录',
 };
-

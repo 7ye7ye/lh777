@@ -115,6 +115,14 @@ export const batchDeleteDoctors = (doctorIds: number[]) =>
 export const getDoctorDetail = (doctorId: number) =>
   defHttp.get<Doctor>({ url: `${Api.DoctorDetail}/detail/${doctorId}` });
 
+// 按科室获取医生列表
+export const getDoctorsByDepartment = (departmentId: number) =>
+  defHttp.get<Doctor[]>({
+    url: `${Api.DoctorDetail}/list/by-department`,
+    params: { departmentId },
+  });
+
+
 // 定义医生相关API路径
 enum Api {
   DoctorList = '/admin/doctor/list',

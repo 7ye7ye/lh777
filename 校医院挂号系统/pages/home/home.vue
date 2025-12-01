@@ -763,17 +763,17 @@ onShow(() => {
   box-shadow: 0 4rpx 16rpx rgba(58,156,255,0.08);
 }
 .icon {
-  width: 56rpx;
-  height: 56rpx;
+  width: 64rpx;
+  height: 64rpx;
   margin-bottom: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32rpx;
+  font-size: 36rpx;
 }
 .icon-image {
-  width: 56rpx;
-  height: 56rpx;
+  width: 64rpx;
+  height: 64rpx;
   display: block;
   filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1));
 }
@@ -792,8 +792,8 @@ onShow(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 12rpx 0;
-  padding: 12rpx 8rpx;
+  margin: 10rpx 0;
+  padding: 10rpx 8rpx;
   border-radius: 16rpx;
   transition: all 0.3s ease;
   box-sizing: border-box;
@@ -805,7 +805,7 @@ onShow(() => {
 .home-item text {
   font-size: 24rpx;
   color: #333;
-  margin-top: 12rpx;
+  margin-top: 10rpx;
   text-align: center;
   line-height: 1.4;
   font-weight: 500;
