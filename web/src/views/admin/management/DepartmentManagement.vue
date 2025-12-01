@@ -70,20 +70,23 @@
       v-model:visible="modalVisible"
       :title="modalTitle"
       destroy-on-close
-      width="520px"
+      width="680px"
+      :body-style="{ padding: '32px', maxHeight: '70vh', overflowY: 'auto' }"
+      centered
       @ok="handleModalOk"
       @cancel="handleModalCancel"
     >
-      <a-form ref="formRef" layout="vertical" :model="formData" :rules="formRules">
+      <a-form ref="formRef" layout="vertical" :model="formData" :rules="formRules" class="edit-form">
         <a-form-item label="科室名称" name="deptName">
           <a-input v-model:value="formData.deptName" placeholder="请输入科室名称" />
         </a-form-item>
         <a-form-item label="科室级别" name="deptLevel">
-          <a-select 
-    v-model:value="formData.deptLevel" 
-    placeholder="请选择科室级别"
-    @change="handleDeptLevelChange"
-  >
+          <a-select
+            v-model:value="formData.deptLevel"
+            placeholder="请选择科室级别"
+            @change="handleDeptLevelChange"
+            style="width: 100%"
+          >
             <a-select-option :value="1">一级科室</a-select-option>
             <a-select-option :value="2">二级科室</a-select-option>
           </a-select>
@@ -407,5 +410,31 @@ onMounted(() => {
 .dept-name-link:hover {
   color: #40a9ff;
   text-decoration: underline;
+}
+
+/* 编辑表单样式优化 */
+.edit-form {
+  max-width: 100%;
+}
+
+.edit-form :deep(.ant-form-item) {
+  margin-bottom: 24px;
+}
+
+.edit-form :deep(.ant-form-item-label) {
+  padding-bottom: 8px;
+}
+
+.edit-form :deep(.ant-input),
+.edit-form :deep(.ant-select-selector),
+.edit-form :deep(.ant-input-number),
+.edit-form :deep(.ant-picker) {
+  border-radius: 6px;
+}
+
+.edit-form :deep(.ant-form-item-label > label) {
+  font-weight: 500;
+  color: #333;
+  font-size: 14px;
 }
 </style>
