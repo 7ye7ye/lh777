@@ -1,0 +1,636 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.hospital.mapper.StatisticsMapper">
+
+    <!-- 门诊量统计 -->
+    <select id="getOutpatientStatistics" resultType="org.jeecg.modules.hospital.dto.OutpatientStatisticsDTO">
+        SELECT
+            <choose>
+                <when test="periodType == 'day'">
+                    DATE(rr.visit_time) AS date,
+                </when>
+                <when test="periodType == 'week'">
+                    DATE_SUB(DATE(rr.visit_time), INTERVAL WEEKDAY(DATE(rr.visit_time)) DAY) AS date,
+                </when>
+                <when test="periodType == 'month'">
+                    DATE_FORMAT(rr.visit_time, '%Y-%m-01') AS date,
+                </when>
+                <otherwise>
+                    DATE(rr.visit_time) AS date,
+                </otherwise>
+            </choose>
+            d.dept_id AS deptId,
+            d.dept_name AS deptName,
+            COUNT(DISTINCT rr.record_id) AS visitCount,
+            COUNT(DISTINCT rr.record_id) AS totalVisitCount
+        FROM registration_record rr
+            INNER JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
+            INNER JOIN department d ON ds.dept_id = d.dept_id
+        WHERE rr.visit_time IS NOT NULL
+            AND rr.status = 2
+            <if test="startDate != null">
+                AND DATE(rr.visit_time) >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND DATE(rr.visit_time) &lt;= #{endDate}
+            </if>
+            <if test="deptId != null">
+                AND (d.parent_dept_id = #{deptId} OR ds.dept_id = #{deptId})
+            </if>
+        GROUP BY
+            <choose>
+                <when test="periodType == 'day'">
+                    DATE(rr.visit_time), ds.dept_id
+                </when>
+                <when test="periodType == 'week'">
+                    DATE_SUB(DATE(rr.visit_time), INTERVAL WEEKDAY(DATE(rr.visit_time)) DAY), ds.dept_id
+                </when>
+                <when test="periodType == 'month'">
+                    DATE_FORMAT(rr.visit_time, '%Y-%m-01'), ds.dept_id
+                </when>
+                <otherwise>
+                    DATE(rr.visit_time), ds.dept_id
+                </otherwise>
+            </choose>
+        ORDER BY date DESC, deptId
+    </select>
+
+    <!-- 科室负荷统计 -->
+    <select id="getDepartmentLoadStatistics" resultType="org.jeecg.modules.hospital.dto.DepartmentLoadDTO">
+        SELECT
+            d.dept_id AS deptId,
+            d.dept_name AS deptName,
+            <if test="doctorId != null">
+                ds.doctor_id AS doctorId,
+                (SELECT doctor_name FROM doctor WHERE doctor_id = ds.doctor_id LIMIT 1) AS doctorName,
+            </if>
+            <if test="doctorId == null">
+                NULL AS doctorId,
+                NULL AS doctorName,
+            </if>
+            CAST(
+                SUM(
+                    CASE ds.time_slot
+                        WHEN 1 THEN 4.0
+                        WHEN 2 THEN 3.0
+                        WHEN 3 THEN 3.0
+                        ELSE 4.0
+                    END
+                ) AS DECIMAL(10, 2)
+            ) AS visitDurationHours,
+            COALESCE(SUM(COALESCE(rt.daily_quota, 0)), 0) AS totalQuota,
+            COALESCE(SUM(ds.used_quota), 0) AS usedQuota,
+            CASE
+                WHEN COALESCE(SUM(COALESCE(rt.daily_quota, 0)), 0) > 0
+                THEN CAST(ROUND(SUM(ds.used_quota) * 100.0 / SUM(COALESCE(rt.daily_quota, 1)), 2) AS DECIMAL(10, 2))
+                ELSE CAST(0 AS DECIMAL(10, 2))
+            END AS quotaUsageRate
+        FROM doctor_schedule ds
+            INNER JOIN department d ON ds.dept_id = d.dept_id
+            LEFT JOIN registration_type rt ON ds.type_id = rt.type_id
+        WHERE ds.status = 1
+            <if test="startDate != null">
+                AND ds.schedule_date >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND ds.schedule_date &lt;= #{endDate}
+            </if>
+            <if test="deptId != null">
+                AND (ds.dept_id = #{deptId} OR d.parent_dept_id = #{deptId})
+            </if>
+            <if test="doctorId != null">
+                AND ds.doctor_id = #{doctorId}
+            </if>
+        GROUP BY
+            d.dept_id, d.dept_name
+            <if test="doctorId != null">
+                , ds.doctor_id
+            </if>
+        ORDER BY d.dept_id
+    </select>
+
+    <!-- 按科室统计退号率 -->
+    <select id="getCancelRateByDepartment" resultType="org.jeecg.modules.hospital.dto.CancelRateDTO">
+        SELECT
+            d.dept_id AS deptId,
+            d.dept_name AS deptName,
+            NULL AS doctorId,
+            NULL AS doctorName,
+            NULL AS typeId,
+            NULL AS typeName,
+            COUNT(*) AS totalRegistration,
+            SUM(
+                CASE WHEN rr.status IN (3, 4) OR rr.cancel_time IS NOT NULL THEN 1 ELSE 0 END
+            ) AS cancelCount,
+            CASE
+                WHEN COUNT(*) > 0
+                THEN CAST(ROUND(
+                    SUM(CASE WHEN rr.status IN (3, 4) OR rr.cancel_time IS NOT NULL THEN 1 ELSE 0 END) * 100.0 / COUNT(*),
+                    2
+                ) AS DECIMAL(10, 2))
+                ELSE CAST(0 AS DECIMAL(10, 2))
+            END AS cancelRate
+        FROM registration_record rr
+            INNER JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
+            INNER JOIN department d ON ds.dept_id = d.dept_id
+        WHERE 1 = 1
+            <if test="startDate != null">
+                AND DATE(rr.register_time) >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND DATE(rr.register_time) &lt;= #{endDate}
+            </if>
+            <if test="deptId != null">
+                AND (ds.dept_id = #{deptId} OR d.parent_dept_id = #{deptId})
+            </if>
+        GROUP BY d.dept_id, d.dept_name
+        ORDER BY cancelRate DESC
+    </select>
+
+    <!-- 按医生统计退号率 -->
+    <select id="getCancelRateByDoctor" resultType="org.jeecg.modules.hospital.dto.CancelRateDTO">
+        SELECT
+            d.dept_id AS deptId,
+            d.dept_name AS deptName,
+            doc.doctor_id AS doctorId,
+            doc.doctor_name AS doctorName,
+            NULL AS typeId,
+            NULL AS typeName,
+            COUNT(*) AS totalRegistration,
+            SUM(
+                CASE WHEN rr.status IN (3, 4) OR rr.cancel_time IS NOT NULL THEN 1 ELSE 0 END
+            ) AS cancelCount,
+            CASE
+                WHEN COUNT(*) > 0
+                THEN CAST(ROUND(
+                    SUM(CASE WHEN rr.status IN (3, 4) OR rr.cancel_time IS NOT NULL THEN 1 ELSE 0 END) * 100.0 / COUNT(*),
+                    2
+                ) AS DECIMAL(10, 2))
+                ELSE CAST(0 AS DECIMAL(10, 2))
+            END AS cancelRate
+        FROM registration_record rr
+            INNER JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
+            INNER JOIN department d ON ds.dept_id = d.dept_id
+            INNER JOIN doctor doc ON rr.doctor_id = doc.doctor_id
+        WHERE 1 = 1
+            <if test="startDate != null">
+                AND DATE(rr.register_time) >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND DATE(rr.register_time) &lt;= #{endDate}
+            </if>
+            <if test="doctorId != null">
+                AND rr.doctor_id = #{doctorId}
+            </if>
+        GROUP BY d.dept_id, d.dept_name, doc.doctor_id, doc.doctor_name
+        ORDER BY cancelRate DESC
+    </select>
+
+    <!-- 按号别统计退号率 -->
+    <select id="getCancelRateByType" resultType="org.jeecg.modules.hospital.dto.CancelRateDTO">
+        SELECT
+            NULL AS deptId,
+            NULL AS deptName,
+            NULL AS doctorId,
+            NULL AS doctorName,
+            rt.type_id AS typeId,
+            rt.type_name AS typeName,
+            COUNT(*) AS totalRegistration,
+            SUM(
+                CASE WHEN rr.status IN (3, 4) OR rr.cancel_time IS NOT NULL THEN 1 ELSE 0 END
+            ) AS cancelCount,
+            CASE
+                WHEN COUNT(*) > 0
+                THEN CAST(ROUND(
+                    SUM(CASE WHEN rr.status IN (3, 4) OR rr.cancel_time IS NOT NULL THEN 1 ELSE 0 END) * 100.0 / COUNT(*),
+                    2
+                ) AS DECIMAL(10, 2))
+                ELSE CAST(0 AS DECIMAL(10, 2))
+            END AS cancelRate
+        FROM registration_record rr
+            INNER JOIN registration_type rt ON rr.type_id = rt.type_id
+        WHERE 1 = 1
+            <if test="startDate != null">
+                AND DATE(rr.register_time) >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND DATE(rr.register_time) &lt;= #{endDate}
+            </if>
+            <if test="typeId != null">
+                AND rr.type_id = #{typeId}
+            </if>
+        GROUP BY rt.type_id, rt.type_name
+        ORDER BY cancelRate DESC
+    </select>
+
+    <!-- 挂号量统计 -->
+    <select id="getRegistrationStatistics" resultType="org.jeecg.modules.hospital.dto.RegistrationStatisticsDTO">
+        SELECT
+            t.date AS date,
+            t.typeId AS typeId,
+            t.typeName AS typeName,
+            t.typeRegistration AS typeRegistration,
+            t2.totalRegistration AS totalRegistration
+        FROM (
+            SELECT
+                <choose>
+                    <when test="periodType == 'day'">
+                        DATE(rr.register_time) AS date,
+                    </when>
+                    <when test="periodType == 'week'">
+                        DATE_SUB(DATE(rr.register_time), INTERVAL WEEKDAY(DATE(rr.register_time)) DAY) AS date,
+                    </when>
+                    <when test="periodType == 'month'">
+                        DATE_FORMAT(rr.register_time, '%Y-%m-01') AS date,
+                    </when>
+                    <otherwise>
+                        DATE(rr.register_time) AS date,
+                    </otherwise>
+                </choose>
+                COALESCE(rt.type_id, 0) AS typeId,
+                COALESCE(rt.type_name, '全部') AS typeName,
+                COUNT(*) AS typeRegistration
+            FROM registration_record rr
+                LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
+            WHERE rr.status IN (0, 1, 2)
+                <if test="startDate != null">
+                    AND DATE(rr.register_time) >= #{startDate}
+                </if>
+                <if test="endDate != null">
+                    AND DATE(rr.register_time) &lt;= #{endDate}
+                </if>
+                <if test="typeId != null">
+                    AND rr.type_id = #{typeId}
+                </if>
+            GROUP BY
+                <choose>
+                    <when test="periodType == 'day'">
+                        DATE(rr.register_time)
+                    </when>
+                    <when test="periodType == 'week'">
+                        DATE_SUB(DATE(rr.register_time), INTERVAL WEEKDAY(DATE(rr.register_time)) DAY)
+                    </when>
+                    <when test="periodType == 'month'">
+                        DATE_FORMAT(rr.register_time, '%Y-%m-01')
+                    </when>
+                    <otherwise>
+                        DATE(rr.register_time)
+                    </otherwise>
+                </choose>
+                , rt.type_id, rt.type_name
+        ) t
+        LEFT JOIN (
+            SELECT
+                <choose>
+                    <when test="periodType == 'day'">
+                        DATE(rr2.register_time) AS date,
+                    </when>
+                    <when test="periodType == 'week'">
+                        DATE_SUB(DATE(rr2.register_time), INTERVAL WEEKDAY(DATE(rr2.register_time)) DAY) AS date,
+                    </when>
+                    <when test="periodType == 'month'">
+                        DATE_FORMAT(rr2.register_time, '%Y-%m-01') AS date,
+                    </when>
+                    <otherwise>
+                        DATE(rr2.register_time) AS date,
+                    </otherwise>
+                </choose>
+                COUNT(*) AS totalRegistration
+            FROM registration_record rr2
+            WHERE rr2.status IN (0, 1, 2)
+                <if test="startDate != null">
+                    AND DATE(rr2.register_time) >= #{startDate}
+                </if>
+                <if test="endDate != null">
+                    AND DATE(rr2.register_time) &lt;= #{endDate}
+                </if>
+            GROUP BY
+                <choose>
+                    <when test="periodType == 'day'">
+                        DATE(rr2.register_time)
+                    </when>
+                    <when test="periodType == 'week'">
+                        DATE_SUB(DATE(rr2.register_time), INTERVAL WEEKDAY(DATE(rr2.register_time)) DAY)
+                    </when>
+                    <when test="periodType == 'month'">
+                        DATE_FORMAT(rr2.register_time, '%Y-%m-01')
+                    </when>
+                    <otherwise>
+                        DATE(rr2.register_time)
+                    </otherwise>
+                </choose>
+        ) t2 ON t.date = t2.date
+        ORDER BY t.date DESC, t.typeId
+    </select>
+
+    <!-- 门诊量历史对比统计 -->
+    <select id="getOutpatientStatisticsForCompare" resultType="org.jeecg.modules.hospital.dto.OutpatientStatisticsDTO">
+        SELECT
+            <choose>
+                <when test="periodType == 'day'">
+                    DATE_SUB(DATE(rr.visit_time), INTERVAL #{comparePeriods} DAY) AS date,
+                </when>
+                <when test="periodType == 'week'">
+                    DATE_SUB(
+                        DATE_SUB(DATE(rr.visit_time), INTERVAL WEEKDAY(DATE(rr.visit_time)) DAY),
+                        INTERVAL #{comparePeriods} WEEK
+                    ) AS date,
+                </when>
+                <when test="periodType == 'month'">
+                    DATE_FORMAT(
+                        DATE_SUB(DATE_FORMAT(rr.visit_time, '%Y-%m-01'), INTERVAL #{comparePeriods} MONTH),
+                        '%Y-%m-%d'
+                    ) AS date,
+                </when>
+                <otherwise>
+                    DATE_SUB(DATE(rr.visit_time), INTERVAL #{comparePeriods} DAY) AS date,
+                </otherwise>
+            </choose>
+            d.dept_id AS deptId,
+            d.dept_name AS deptName,
+            COUNT(DISTINCT rr.record_id) AS visitCount,
+            COUNT(DISTINCT rr.record_id) AS totalVisitCount
+        FROM registration_record rr
+            INNER JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
+            INNER JOIN department d ON ds.dept_id = d.dept_id
+        WHERE rr.visit_time IS NOT NULL
+            AND rr.status = 2
+            <if test="startDate != null">
+                AND DATE(rr.visit_time) >= DATE_SUB(#{startDate}, INTERVAL #{comparePeriods}
+                    <choose>
+                        <when test="periodType == 'day'">DAY</when>
+                        <when test="periodType == 'week'">WEEK</when>
+                        <when test="periodType == 'month'">MONTH</when>
+                        <otherwise>DAY</otherwise>
+                    </choose>
+                )
+            </if>
+            <if test="endDate != null">
+                AND DATE(rr.visit_time) &lt;= DATE_SUB(#{endDate}, INTERVAL #{comparePeriods}
+                    <choose>
+                        <when test="periodType == 'day'">DAY</when>
+                        <when test="periodType == 'week'">WEEK</when>
+                        <when test="periodType == 'month'">MONTH</when>
+                        <otherwise>DAY</otherwise>
+                    </choose>
+                )
+            </if>
+            <if test="deptId != null">
+                AND (ds.dept_id = #{deptId} OR d.parent_dept_id = #{deptId})
+            </if>
+        GROUP BY
+            <choose>
+                <when test="periodType == 'day'">
+                    DATE_SUB(DATE(rr.visit_time), INTERVAL #{comparePeriods} DAY), ds.dept_id
+                </when>
+                <when test="periodType == 'week'">
+                    DATE_SUB(
+                        DATE_SUB(DATE(rr.visit_time), INTERVAL WEEKDAY(DATE(rr.visit_time)) DAY),
+                        INTERVAL #{comparePeriods} WEEK
+                    ), ds.dept_id
+                </when>
+                <when test="periodType == 'month'">
+                    DATE_FORMAT(
+                        DATE_SUB(DATE_FORMAT(rr.visit_time, '%Y-%m-01'), INTERVAL #{comparePeriods} MONTH),
+                        '%Y-%m-%d'
+                    ), ds.dept_id
+                </when>
+                <otherwise>
+                    DATE_SUB(DATE(rr.visit_time), INTERVAL #{comparePeriods} DAY), ds.dept_id
+                </otherwise>
+            </choose>
+        ORDER BY date DESC, deptId
+    </select>
+
+    <!-- 挂号量历史对比统计 -->
+    <select id="getRegistrationStatisticsForCompare" resultType="org.jeecg.modules.hospital.dto.RegistrationStatisticsDTO">
+        SELECT
+            t.date AS date,
+            t.typeId AS typeId,
+            t.typeName AS typeName,
+            t.typeRegistration AS typeRegistration,
+            t2.totalRegistration AS totalRegistration
+        FROM (
+            SELECT
+                <choose>
+                    <when test="periodType == 'day'">
+                        DATE_SUB(DATE(rr.register_time), INTERVAL #{comparePeriods} DAY) AS date,
+                    </when>
+                    <when test="periodType == 'week'">
+                        DATE_SUB(
+                            DATE_SUB(DATE(rr.register_time), INTERVAL WEEKDAY(DATE(rr.register_time)) DAY),
+                            INTERVAL #{comparePeriods} WEEK
+                        ) AS date,
+                    </when>
+                    <when test="periodType == 'month'">
+                        DATE_FORMAT(
+                            DATE_SUB(DATE_FORMAT(rr.register_time, '%Y-%m-01'), INTERVAL #{comparePeriods} MONTH),
+                            '%Y-%m-%d'
+                        ) AS date,
+                    </when>
+                    <otherwise>
+                        DATE_SUB(DATE(rr.register_time), INTERVAL #{comparePeriods} DAY) AS date,
+                    </otherwise>
+                </choose>
+                COALESCE(rt.type_id, 0) AS typeId,
+                COALESCE(rt.type_name, '全部') AS typeName,
+                COUNT(*) AS typeRegistration
+            FROM registration_record rr
+                LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
+            WHERE rr.status IN (0, 1, 2)
+                <if test="startDate != null">
+                    AND DATE(rr.register_time) >= DATE_SUB(#{startDate}, INTERVAL #{comparePeriods}
+                        <choose>
+                            <when test="periodType == 'day'">DAY</when>
+                            <when test="periodType == 'week'">WEEK</when>
+                            <when test="periodType == 'month'">MONTH</when>
+                            <otherwise>DAY</otherwise>
+                        </choose>
+                    )
+                </if>
+                <if test="endDate != null">
+                    AND DATE(rr.register_time) &lt;= DATE_SUB(#{endDate}, INTERVAL #{comparePeriods}
+                        <choose>
+                            <when test="periodType == 'day'">DAY</when>
+                            <when test="periodType == 'week'">WEEK</when>
+                            <when test="periodType == 'month'">MONTH</when>
+                            <otherwise>DAY</otherwise>
+                        </choose>
+                    )
+                </if>
+                <if test="typeId != null">
+                    AND rr.type_id = #{typeId}
+                </if>
+            GROUP BY
+                <choose>
+                    <when test="periodType == 'day'">
+                        DATE_SUB(DATE(rr.register_time), INTERVAL #{comparePeriods} DAY)
+                    </when>
+                    <when test="periodType == 'week'">
+                        DATE_SUB(
+                            DATE_SUB(DATE(rr.register_time), INTERVAL WEEKDAY(DATE(rr.register_time)) DAY),
+                            INTERVAL #{comparePeriods} WEEK
+                        )
+                    </when>
+                    <when test="periodType == 'month'">
+                        DATE_FORMAT(
+                            DATE_SUB(DATE_FORMAT(rr.register_time, '%Y-%m-01'), INTERVAL #{comparePeriods} MONTH),
+                            '%Y-%m-%d'
+                        )
+                    </when>
+                    <otherwise>
+                        DATE_SUB(DATE(rr.register_time), INTERVAL #{comparePeriods} DAY)
+                    </otherwise>
+                </choose>
+                , rt.type_id, rt.type_name
+        ) t
+        LEFT JOIN (
+            SELECT
+                <choose>
+                    <when test="periodType == 'day'">
+                        DATE_SUB(DATE(rr2.register_time), INTERVAL #{comparePeriods} DAY) AS date,
+                    </when>
+                    <when test="periodType == 'week'">
+                        DATE_SUB(
+                            DATE_SUB(DATE(rr2.register_time), INTERVAL WEEKDAY(DATE(rr2.register_time)) DAY),
+                            INTERVAL #{comparePeriods} WEEK
+                        ) AS date,
+                    </when>
+                    <when test="periodType == 'month'">
+                        DATE_FORMAT(
+                            DATE_SUB(DATE_FORMAT(rr2.register_time, '%Y-%m-01'), INTERVAL #{comparePeriods} MONTH),
+                            '%Y-%m-%d'
+                        ) AS date,
+                    </when>
+                    <otherwise>
+                        DATE_SUB(DATE(rr2.register_time), INTERVAL #{comparePeriods} DAY) AS date,
+                    </otherwise>
+                </choose>
+                COUNT(*) AS totalRegistration
+            FROM registration_record rr2
+            WHERE rr2.status IN (0, 1, 2)
+                <if test="startDate != null">
+                    AND DATE(rr2.register_time) >= DATE_SUB(#{startDate}, INTERVAL #{comparePeriods}
+                        <choose>
+                            <when test="periodType == 'day'">DAY</when>
+                            <when test="periodType == 'week'">WEEK</when>
+                            <when test="periodType == 'month'">MONTH</when>
+                            <otherwise>DAY</otherwise>
+                        </choose>
+                    )
+                </if>
+                <if test="endDate != null">
+                    AND DATE(rr2.register_time) &lt;= DATE_SUB(#{endDate}, INTERVAL #{comparePeriods}
+                        <choose>
+                            <when test="periodType == 'day'">DAY</when>
+                            <when test="periodType == 'week'">WEEK</when>
+                            <when test="periodType == 'month'">MONTH</when>
+                            <otherwise>DAY</otherwise>
+                        </choose>
+                    )
+                </if>
+            GROUP BY
+                <choose>
+                    <when test="periodType == 'day'">
+                        DATE_SUB(DATE(rr2.register_time), INTERVAL #{comparePeriods} DAY)
+                    </when>
+                    <when test="periodType == 'week'">
+                        DATE_SUB(
+                            DATE_SUB(DATE(rr2.register_time), INTERVAL WEEKDAY(DATE(rr2.register_time)) DAY),
+                            INTERVAL #{comparePeriods} WEEK
+                        )
+                    </when>
+                    <when test="periodType == 'month'">
+                        DATE_FORMAT(
+                            DATE_SUB(DATE_FORMAT(rr2.register_time, '%Y-%m-01'), INTERVAL #{comparePeriods} MONTH),
+                            '%Y-%m-%d'
+                        )
+                    </when>
+                    <otherwise>
+                        DATE_SUB(DATE(rr2.register_time), INTERVAL #{comparePeriods} DAY)
+                    </otherwise>
+                </choose>
+        ) t2 ON t.date = t2.date
+        ORDER BY t.date DESC, t.typeId
+    </select>
+
+    <!-- 转诊情况统计 -->
+    <select id="getReferralStatistics" resultType="org.jeecg.modules.hospital.dto.ReferralStatisticsDTO">
+        SELECT
+            <choose>
+                <when test="periodType == 'day'">
+                    DATE(r.apply_time) AS date,
+                </when>
+                <when test="periodType == 'week'">
+                    DATE_SUB(DATE(r.apply_time), INTERVAL WEEKDAY(DATE(r.apply_time)) DAY) AS date,
+                </when>
+                <when test="periodType == 'month'">
+                    DATE_FORMAT(r.apply_time, '%Y-%m-01') AS date,
+                </when>
+                <otherwise>
+                    DATE(r.apply_time) AS date,
+                </otherwise>
+            </choose>
+            COALESCE(d.dept_id, 0) AS deptId,
+            COALESCE(d.dept_name, r.target_dept_name, '未指定') AS deptName,
+            COALESCE(r.target_type, 'INTERNAL') AS targetType,
+            CASE 
+                WHEN r.target_type = 'INTERNAL' THEN '院内转诊'
+                WHEN r.target_type = 'EXTERNAL' THEN '院外转诊'
+                ELSE '未知'
+            END AS targetTypeName,
+            COUNT(*) AS totalCount,
+            SUM(CASE WHEN r.status = 'PENDING' THEN 1 ELSE 0 END) AS applicationCount,
+            SUM(CASE WHEN r.status = 'APPROVED' THEN 1 ELSE 0 END) AS approvedCount,
+            SUM(CASE WHEN r.status = 'REJECTED' THEN 1 ELSE 0 END) AS rejectedCount,
+            SUM(CASE WHEN r.status = 'CANCELLED' THEN 1 ELSE 0 END) AS cancelledCount,
+            SUM(CASE WHEN r.status = 'COMPLETED' THEN 1 ELSE 0 END) AS completedCount,
+            CASE 
+                WHEN COUNT(*) > 0 
+                THEN CAST(ROUND(SUM(CASE WHEN r.status = 'APPROVED' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS DECIMAL(10, 2))
+                ELSE CAST(0 AS DECIMAL(10, 2))
+            END AS approvalRate,
+            CASE 
+                WHEN COUNT(*) > 0 
+                THEN CAST(ROUND(SUM(CASE WHEN r.status = 'COMPLETED' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS DECIMAL(10, 2))
+                ELSE CAST(0 AS DECIMAL(10, 2))
+            END AS completionRate
+        FROM hospital_referral r
+            LEFT JOIN department d ON r.target_dept_id = d.dept_id
+        WHERE 1 = 1
+            <if test="startDate != null">
+                AND DATE(r.apply_time) >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND DATE(r.apply_time) &lt;= #{endDate}
+            </if>
+            <if test="deptId != null">
+                AND r.target_dept_id = #{deptId}
+            </if>
+        GROUP BY
+            <choose>
+                <when test="periodType == 'day'">
+                    DATE(r.apply_time)
+                </when>
+                <when test="periodType == 'week'">
+                    DATE_SUB(DATE(r.apply_time), INTERVAL WEEKDAY(DATE(r.apply_time)) DAY)
+                </when>
+                <when test="periodType == 'month'">
+                    DATE_FORMAT(r.apply_time, '%Y-%m-01')
+                </when>
+                <otherwise>
+                    DATE(r.apply_time)
+                </otherwise>
+            </choose>
+            , COALESCE(d.dept_id, 0), COALESCE(d.dept_name, r.target_dept_name, '未指定')
+            , COALESCE(r.target_type, 'INTERNAL')
+            , CASE 
+                WHEN r.target_type = 'INTERNAL' THEN '院内转诊'
+                WHEN r.target_type = 'EXTERNAL' THEN '院外转诊'
+                ELSE '未知'
+            END
+        ORDER BY date DESC, deptId, targetType
+    </select>
+
+</mapper>
+
