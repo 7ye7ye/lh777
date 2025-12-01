@@ -3,7 +3,7 @@
     <!-- 医生信息头部 -->
     <view class="profile-header">
       <view class="avatar-section">
-        <image class="avatar" :src="doctorInfo.avatar" mode="aspectFill" @click="onChangeAvatar" />
+        <image class="avatar" :src="avatarUrl" mode="aspectFill" @click="onChangeAvatar" />
 
         <view class="doctor-main">
           <view class="doctor-main-top">
@@ -161,7 +161,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+
 import { uniNavigateTo, uniShowToast } from '@/utils/uniHelper'
 import { useUserStore } from '@/store/user'
 import { doctorApi } from '@/api/doctor'
@@ -174,10 +175,23 @@ const doctorInfo = ref({
   title: '',
   department: '',
   departmentId: null,
-  avatar: '/static/doctor.svg',
+  // 存服务器上的头像相对路径，如 doctor-avatar/xxx.jpg
+  avatar: '',
   specialty: '',
   doctorDesc: ''
 })
+
+// 头像完整 URL：优先用服务器相对路径拼接，其次用默认本地占位图
+const buildImageUrl = (relativePath) => {
+  if (!relativePath) return '/static/doctor.svg'
+  const baseURL = uni.getStorageSync('BASE_URL') || 'http://localhost:8095'
+  const apiPrefix = uni.getStorageSync('API_PREFIX') || '/jeecg-boot'
+  const cleanPrefix = apiPrefix.endsWith('/') ? apiPrefix.slice(0, -1) : apiPrefix
+  const cleanPath = relativePath.replace(/^\/+/, '')
+  return `${baseURL}${cleanPrefix}/sys/common/static/${encodeURI(cleanPath)}`
+}
+
+const avatarUrl = computed(() => buildImageUrl(doctorInfo.value.avatar))
 
 const loadingProfile = ref(false)
 const userStore = useUserStore()
@@ -216,7 +230,8 @@ async function loadDoctorProfile() {
       title: p.title || p.professionalTitle || '医师',
       department: p.deptName || p.departmentName || p.department || '未知科室',
       departmentId: p.deptId || p.departmentId || null,
-      avatar: p.avatar || p.avatarUrl || p.photo || '/static/doctor.svg',
+      // 这里期望后端返回的是相对路径，如 doctor-avatar/xxx.jpg
+      avatar: p.avatar || p.avatarUrl || p.photo || '',
       specialty: p.specialty || '',
       doctorDesc: p.doctorDesc || p.doctor_desc || p.description || ''
     }
@@ -375,18 +390,28 @@ async function saveEdit() {
   }
 }
 
-// 更换头像（前端本地预览，预留后端上传接口）
+// 点击头像预览大图
 function onChangeAvatar() {
-  uni.chooseImage({
-    count: 1,
-    sizeType: ['compressed'],
-    success: async (res) => {
-      const tempPath = res.tempFilePaths && res.tempFilePaths[0]
-      if (!tempPath) return
-      doctorInfo.value.avatar = tempPath
-      // TODO: 调用后端上传接口，成功后更新为服务端返回的头像 URL
-    }
-  })
+  // 如果有头像，则预览大图
+  if (avatarUrl.value && avatarUrl.value !== '/static/doctor.svg') {
+    uni.previewImage({
+      urls: [avatarUrl.value],
+      current: 0
+    })
+  } else {
+    // 如果没有头像，提示去编辑资料页面上传
+    uni.showModal({
+      title: '提示',
+      content: '暂无头像，是否前往编辑资料页面上传头像？',
+      confirmText: '去上传',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          goEditProfile()
+        }
+      }
+    })
+  }
 }
 
 // 退出登录

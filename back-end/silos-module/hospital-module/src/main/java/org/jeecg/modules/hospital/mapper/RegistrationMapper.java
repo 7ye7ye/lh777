@@ -5,6 +5,7 @@ import com.baomidou.dynamic.datasource.annotation.DS;
 import org.apache.ibatis.annotations.*;
 import org.jeecg.modules.hospital.dto.RegistrationDetailDTO;
 import org.jeecg.modules.hospital.entity.DoctorSchedule;
+import org.jeecg.modules.hospital.entity.Patient;
 import org.jeecg.modules.hospital.entity.RegistrationRecord;
 import org.jeecg.modules.hospital.entity.RegistrationType;
 import org.jeecg.modules.hospital.vo.RegistrationVO;
@@ -119,6 +120,11 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
             "AND r.status != 3")  // 状态 3 代表取消
     Integer checkDuplicateBySchedule(@Param("patientId") Long patientId,
                                                  @Param("scheduleId") Long scheduleId);
+
+
+    @Select("SELECT * FROM patient WHERE patient_id = #{patientId}")
+    Patient selectPatientById(@Param("patientId") Long patientId);
+
 
     /**
      * 查询挂号详情（用于消息 / 回执）

@@ -80,6 +80,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { getPatientVisitRecords } from '../../api/referral'
+import { useUserStore } from '../../store/user'
 
 // 筛选选项
 const filterOptions = ['全部', '近一个月', '近三个月', '近半年']
@@ -120,12 +121,63 @@ const truncateText = (text, maxLength) => {
   return text.substring(0, maxLength) + '...'
 }
 
+const userStore = useUserStore()
+userStore.initFromStorage?.()
+
+const resolveGender = (value) => {
+  if (value === null || value === undefined) return ''
+  const str = String(value).trim().toLowerCase()
+  if (!str) return ''
+  if (str === '男' || str === 'male' || str === '1') return '男'
+  if (str === '女' || str === 'female' || str === '2') return '女'
+  return ''
+}
+
+const calculateAgeFromBirth = (birthDate) => {
+  if (!birthDate) return ''
+  const date = new Date(birthDate)
+  if (Number.isNaN(date.getTime())) return ''
+  const now = new Date()
+  let age = now.getFullYear() - date.getFullYear()
+  const monthDiff = now.getMonth() - date.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < date.getDate())) {
+    age -= 1
+  }
+  return age >= 0 ? String(age) : ''
+}
+
+const buildPatientSnapshot = (record) => {
+  const storedUser = userStore?.userInfo || uni.getStorageSync('userInfo') || {}
+  const patientName = record.patientName || storedUser.name || storedUser.realname || storedUser.nickName || ''
+  const patientPhone = record.patientPhone || storedUser.phone || storedUser.mobile || storedUser.tel || ''
+  const patientGender = resolveGender(record.patientGender || record.gender || storedUser.gender)
+  const patientAge =
+    record.patientAge ||
+    record.age ||
+    storedUser.age ||
+    calculateAgeFromBirth(storedUser.birthDate)
+
+  return {
+    name: patientName,
+    phone: patientPhone,
+    gender: patientGender,
+    age: patientAge ? String(patientAge) : '',
+  }
+}
+
 // 选择记录
 const selectRecord = (record) => {
   console.log('选择的就诊记录:', record)
-  // 保存选择的记录到全局状态或通过路由参数传递
-  uni.setStorageSync('selectedVisitRecord', record)
-  // 跳转到转诊类型选择页面
+  const patientSnapshot = buildPatientSnapshot(record)
+  const recordWithPatient = {
+    ...record,
+    patientName: patientSnapshot.name,
+    patientPhone: patientSnapshot.phone,
+    patientGender: patientSnapshot.gender,
+    patientAge: patientSnapshot.age,
+  }
+  uni.setStorageSync('selectedVisitRecord', recordWithPatient)
+  uni.setStorageSync('referralPatientSnapshot', patientSnapshot)
   uni.navigateTo({
     url: '/subpkg/hospital/referral-type-selection'
   })
@@ -181,7 +233,11 @@ const loadVisitRecords = async () => {
         registrationTime: record.registrationTime || record.visitDate || '',
         registrationNo: record.registrationNo || record.visitNo || '',
         diagnosis: record.diagnosis || record.symptoms || '',
-        status: record.status || '已就诊'
+        status: record.status || '已就诊',
+        patientName: record.patientName || record.realname || record.name || record.patient?.name || '',
+        patientPhone: record.patientPhone || record.phone || record.mobile || record.patient?.phone || '',
+        patientGender: record.patientGender || record.gender || record.patient?.gender || '',
+        patientAge: record.patientAge || record.age || record.patient?.age || '',
       }))
       
       if (currentPage.value === 1) {

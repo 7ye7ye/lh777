@@ -46,10 +46,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { doctorApi } from '@/api/doctor'
+import { uploadIdentityPhoto } from '@/api/file'
 
 const form = ref({
   id: null,
-  avatar: '',     // avatar
+  avatar: '',     // 服务器上头像的相对路径
   specialty: '',  // specialty
   doctorDesc: ''  // doctor_desc
 })
@@ -57,9 +58,8 @@ const form = ref({
 const loading = ref(false)
 const saving = ref(false)
 
-// 头像本地预览 & 临时路径
+// 头像本地预览（完整 URL 或临时路径）
 const avatarPreview = ref('/static/doctor.svg')
-const avatarTempPath = ref('')
 
 const loadProfile = async () => {
   if (loading.value) return
@@ -74,9 +74,15 @@ const loadProfile = async () => {
       id: p.doctorId || p.id || null,
       avatar: p.avatar || p.avatarUrl || p.photo || '',
       specialty: p.specialty || '',
-      doctorDesc: p.doctor_desc || p.description || ''
+      // 兼容多种字段：doctorDesc / doctor_desc / description
+      doctorDesc: p.doctorDesc || p.doctor_desc || p.description || ''
     }
-    avatarPreview.value = form.value.avatar || '/static/doctor.svg'
+
+    if (form.value.avatar) {
+      avatarPreview.value = buildImageUrl(form.value.avatar)
+    } else {
+      avatarPreview.value = '/static/doctor.svg'
+    }
   } catch (e) {
     console.error('加载医生资料失败:', e)
     uni.showToast({ title: '加载医生资料失败', icon: 'none' })
@@ -91,18 +97,39 @@ const goBack = () => {
   uni.navigateBack()
 }
 
-// 选择头像（前端预览，提交时一并作为变更内容，后端需提供上传接口）
+const buildImageUrl = (relativePath) => {
+  if (!relativePath) return ''
+  const baseURL = uni.getStorageSync('BASE_URL') || 'http://localhost:8095'
+  const apiPrefix = uni.getStorageSync('API_PREFIX') || '/jeecg-boot'
+  const cleanPrefix = apiPrefix.endsWith('/') ? apiPrefix.slice(0, -1) : apiPrefix
+  const cleanPath = relativePath.replace(/^\/+/, '')
+  return `${baseURL}${cleanPrefix}/sys/common/static/${encodeURI(cleanPath)}`
+}
+
+// 选择头像并上传到服务器，保存相对路径，预览用完整 URL
 const chooseAvatar = () => {
   uni.chooseImage({
     count: 1,
     sizeType: ['compressed'],
-    success: (res) => {
+    sourceType: ['album', 'camera'],
+    success: async (res) => {
       const path = res.tempFilePaths && res.tempFilePaths[0]
       if (!path) return
-      avatarTempPath.value = path
-      avatarPreview.value = path
-      // 实际项目中建议：这里先调用 uni.uploadFile 上传到服务器，拿到正式 URL 后赋值给 form.value.avatar
-      // TODO: uni.uploadFile 上传头像，成功后将返回的 URL 写入 form.value.avatar
+      try {
+        const payload = await uploadIdentityPhoto(path, 'doctor-avatar')
+        const relative = payload && (payload.url || (payload.data && payload.data.url))
+        if (relative) {
+          // 保存相对路径给后端
+          form.value.avatar = relative
+          // 预览用完整 URL
+          avatarPreview.value = buildImageUrl(relative)
+        } else {
+          uni.showToast({ title: '上传头像失败，请重试', icon: 'none' })
+        }
+      } catch (err) {
+        console.error('上传头像失败:', err)
+        uni.showToast({ title: '上传头像失败，请稍后重试', icon: 'none' })
+      }
     }
   })
 }

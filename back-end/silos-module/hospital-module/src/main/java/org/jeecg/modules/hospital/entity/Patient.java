@@ -175,6 +175,28 @@ public class Patient {
      */
     private String qrCodeInfo;
 
+    public String getIdentityPhoto() {
+        return IdentityPhoto;
+    }
+
+    public void setIdentityPhoto(String identityPhoto) {
+        IdentityPhoto = identityPhoto;
+    }
+
+    private String IdentityPhoto;
+
+
+    public int getIsDeleted() {
+        return isDeleted;
+    }
+
+    public void setIsDeleted(int isDeleted) {
+        this.isDeleted = isDeleted;
+    }
+
+    private int isDeleted;
+
+
     public Long getPatientId() {
         return patientId;
     }

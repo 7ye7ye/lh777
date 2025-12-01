@@ -51,4 +51,30 @@ public interface WaitingQueueMapper {
             "status = #{status} " +
             "WHERE queue_id = #{queueId}")
     int updateById(WaitingQueue queue);
+
+    /**
+     * 查询某排班下最靠前的候补记录（状态 = 0：等待中）
+     * @param scheduleId 排班ID
+     * @return 排在最前面的候补记录（若无返回 null）
+     */
+    @Select("SELECT * FROM waiting_queue " +
+            "WHERE schedule_id = #{scheduleId} AND status = 0 " +
+            "ORDER BY queue_rank ASC " +
+            "LIMIT 1")
+    WaitingQueue selectFirstByScheduleId(@Param("scheduleId") Long scheduleId);
+
+
+    /**
+     * 查询某排班下最靠前的候补记录（排除指定患者）
+     * @param scheduleId 排班ID
+     * @param excludePatientId 排除的患者ID（当前退号患者）
+     * @return 候补记录对象（若无返回 null）
+     */
+    @Select("SELECT * FROM waiting_queue " +
+            "WHERE schedule_id = #{scheduleId} AND status = 0 AND patient_id != #{excludePatientId} " +
+            "ORDER BY queue_rank ASC " +
+            "LIMIT 1")
+    WaitingQueue selectFirstWaitingExcludingPatient(@Param("scheduleId") Long scheduleId,
+                                                    @Param("excludePatientId") Long excludePatientId);
+
 }

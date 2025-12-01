@@ -70,7 +70,7 @@
           userAccount: data.account,
           userPassword: data.password,
           checkPassword: data.confirmPassword,
-          // 移除 userType 医生相关配置
+          userType:3        
         })
       );
       console.log("lala:",resultInfo);
