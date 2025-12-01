@@ -124,10 +124,27 @@ export default defineComponent({
 
     async function loadDoctorOptions() {
       try {
-        const list = await getDoctorList();
-        doctorOptions.value = (list || []).map((d: any) => ({ label: d.doctorName, value: d.doctorId }));
-      } catch (error) {
+        const response = await getDoctorList();
+        // 处理API返回的数据结构：可能是 { records: [...], total: ... } 或直接是数组
+        let list: any[] = [];
+        if (response) {
+          if (Array.isArray(response)) {
+            list = response;
+          } else if (response.records && Array.isArray(response.records)) {
+            list = response.records;
+          } else if (response.list && Array.isArray(response.list)) {
+            list = response.list;
+          } else if (response.data && Array.isArray(response.data)) {
+            list = response.data;
+          }
+        }
+        doctorOptions.value = list.map((d: any) => ({ 
+          label: d.doctorName || d.name || '', 
+          value: d.doctorId || d.id || 0 
+        }));
+      } catch (error: any) {
         console.error('加载医生列表失败:', error);
+        message.error('加载医生列表失败：' + (error?.message || '未知错误'));
         doctorOptions.value = [];
       }
     }

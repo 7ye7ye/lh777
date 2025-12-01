@@ -129,9 +129,19 @@
       // 初始化 WebSocket
       function initWebSocket() {
         let token = getToken();
+        if (!token) {
+          console.warn('[WebSocket] Token不存在，跳过WebSocket连接');
+          return;
+        }
         //将登录token生成一个短的标识
         let wsClientId = md5(token);
-        let userId = unref(userStore.getUserInfo).id + "_" + wsClientId;
+        const userInfo = unref(userStore.getUserInfo);
+        const userId = userInfo?.id;
+        if (!userId) {
+          console.warn('[WebSocket] 用户ID不存在，跳过WebSocket连接');
+          return;
+        }
+        let userIdStr = userId + "_" + wsClientId;
         // WebSocket与普通的请求所用协议有所不同，ws等同于http，wss等同于https
         // 使用 domainUrl，如果不存在则使用 apiUrl，再不存在则使用当前域名
         let baseUrl = glob.domainUrl || glob.apiUrl || window.location.origin;
@@ -139,7 +149,7 @@
           console.warn('[WebSocket] 无法获取基础URL，使用默认值');
           baseUrl = 'http://127.0.0.1:8095';
         }
-        let url = baseUrl.replace('https://', 'wss://').replace('http://', 'ws://') + '/jeecg-boot/websocket/' + userId;
+        let url = baseUrl.replace('https://', 'wss://').replace('http://', 'ws://') + '/jeecg-boot/websocket/' + userIdStr;
         console.log('[WebSocket] 连接URL:', url);
         connectWebSocket(url);
         onWebSocket(onWebSocketMessage);

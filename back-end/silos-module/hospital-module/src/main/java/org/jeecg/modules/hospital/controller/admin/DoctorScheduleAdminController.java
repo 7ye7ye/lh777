@@ -35,10 +35,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.dynamic.datasource.annotation.DS;
 
 /**
  * 管理员-医生排班管理控制器
  */
+@DS("hospital")
 @Slf4j
 @RestController
 @RequestMapping("/admin/schedule")
@@ -56,13 +58,54 @@ public class DoctorScheduleAdminController {
 
     @Operation(summary = "查询排班列表（可按医生/科室/日期筛选）")
     @GetMapping("/list")
-    public Result<List<DoctorSchedule>> list(
+    public Result<List<Map<String, Object>>> list(
             @RequestParam(required = false) Long doctorId,
             @RequestParam(required = false) Long deptId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
-        List<DoctorSchedule> list = scheduleService.list(doctorId, deptId, date);
-        return Result.OK(list);
+        log.info("查询排班列表 - doctorId: {}, deptId: {}, date: {}, startDate: {}, endDate: {}", 
+                doctorId, deptId, date, startDate, endDate);
+        List<DoctorSchedule> list = scheduleService.list(doctorId, deptId, date, startDate, endDate);
+        log.info("查询结果数量: {}", list.size());
+        // 转换为包含医生和科室名称的Map列表
+        List<Map<String, Object>> resultList = new ArrayList<>();
+        for (DoctorSchedule schedule : list) {
+            log.debug("排班记录 - scheduleId: {}, date: {}, doctorId: {}, deptId: {}", 
+                    schedule.getScheduleId(), schedule.getScheduleDate(), schedule.getDoctorId(), schedule.getDeptId());
+            Map<String, Object> map = new HashMap<>();
+            map.put("scheduleId", schedule.getScheduleId());
+            map.put("doctorId", schedule.getDoctorId());
+            map.put("deptId", schedule.getDeptId());
+            map.put("scheduleDate", schedule.getScheduleDate() != null ? schedule.getScheduleDate().toString() : null);
+            map.put("timeSlot", schedule.getTimeSlot());
+            map.put("usedQuota", schedule.getUsedQuota());
+            map.put("maxQuota", schedule.getMaxQuota());
+            map.put("status", schedule.getStatus());
+            map.put("roomNumber", schedule.getRoomNumber());
+            map.put("createTime", schedule.getCreateTime());
+            map.put("updateTime", schedule.getUpdateTime());
+            
+            // 获取医生名称
+            if (schedule.getDoctorId() != null) {
+                Doctor doctor = doctorService.getById(schedule.getDoctorId());
+                if (doctor != null) {
+                    map.put("doctorName", doctor.getDoctorName());
+                }
+            }
+            
+            // 获取科室名称
+            if (schedule.getDeptId() != null) {
+                Department dept = departmentService.getById(schedule.getDeptId());
+                if (dept != null) {
+                    map.put("deptName", dept.getDeptName());
+                }
+            }
+            
+            resultList.add(map);
+        }
+        return Result.OK(resultList);
     }
 
     @Operation(summary = "根据排班ID获取详情")
@@ -79,9 +122,52 @@ public class DoctorScheduleAdminController {
         s.setDoctorId(req.getDoctorId());
         s.setDeptId(req.getDeptId());
         s.setDate(LocalDate.parse(req.getDate()));
-        s.setShift(req.getShift());
-        s.setSlots(req.getSlots());
-        s.setRemark(req.getRemark());
+        
+        // 解析时段：优先从shift字符串解析，支持中文和英文
+        Integer timeSlot = parseTimeSlotFromShift(req.getShift());
+        if (timeSlot == null || timeSlot < 1 || timeSlot > 3) {
+            // 如果shift解析失败，使用默认值
+            log.warn("无法从shift解析timeSlot: {}, 使用默认值1", req.getShift());
+            timeSlot = 1; // 默认上午
+        }
+        s.setTimeSlot(timeSlot);
+        log.info("创建排班 - doctorId: {}, deptId: {}, date: {}, timeSlot: {}, shift: {}", 
+                req.getDoctorId(), req.getDeptId(), req.getDate(), timeSlot, req.getShift());
+        
+        // 设置maxQuota
+        if (req.getMaxQuota() != null) {
+            s.setMaxQuota(req.getMaxQuota());
+        } else if (req.getSlots() != null) {
+            // 如果没有maxQuota，使用slots作为maxQuota
+            s.setMaxQuota(req.getSlots());
+        }
+        
+        // 设置roomNumber：如果没有指定，则随机分配一个可用诊室
+        if (req.getRoomNumber() != null && !req.getRoomNumber().trim().isEmpty()) {
+            s.setRoomNumber(req.getRoomNumber());
+        } else {
+            // 随机分配诊室
+            LocalDate scheduleDate = LocalDate.parse(req.getDate());
+            String availableRoom = getAvailableRoom(scheduleDate, timeSlot);
+            s.setRoomNumber(availableRoom);
+        }
+        
+        // 设置默认值
+        s.setUsedQuota(0);
+        s.setStatus(1);
+        s.setCreateTime(LocalDateTime.now());
+        s.setUpdateTime(LocalDateTime.now());
+        
+        // 再次确认timeSlot不为null
+        if (s.getTimeSlot() == null) {
+            log.error("timeSlot在Controller中为null，强制设置为1");
+            s.setTimeSlot(1);
+        }
+        
+        log.info("调用create前 - timeSlot: {}, 所有字段: doctorId={}, deptId={}, date={}, timeSlot={}, maxQuota={}, roomNumber={}", 
+                s.getTimeSlot(), s.getDoctorId(), s.getDeptId(), s.getScheduleDate(), 
+                s.getTimeSlot(), s.getMaxQuota(), s.getRoomNumber());
+        
         DoctorSchedule created = scheduleService.create(s);
         return Result.OK(created);
     }
@@ -96,11 +182,42 @@ public class DoctorScheduleAdminController {
         if (req.getDate() != null && !req.getDate().isEmpty()) {
             s.setDate(LocalDate.parse(req.getDate()));
         }
-        s.setShift(req.getShift());
-        s.setSlots(req.getSlots());
-        s.setBookedSlots(req.getBookedSlots());
+        
+        // 解析时段：优先使用timeSlot，如果没有则从shift字符串转换
+        Integer timeSlot = null;
+        if (req.getTimeSlot() != null && req.getTimeSlot() >= 1 && req.getTimeSlot() <= 3) {
+            // 直接使用timeSlot
+            timeSlot = req.getTimeSlot();
+            log.info("更新排班 - scheduleId: {}, 使用timeSlot: {}", req.getScheduleId(), timeSlot);
+        } else if (req.getShift() != null && !req.getShift().trim().isEmpty()) {
+            // 从shift字符串转换
+            timeSlot = parseTimeSlotFromShift(req.getShift());
+            if (timeSlot != null && timeSlot >= 1 && timeSlot <= 3) {
+                log.info("更新排班 - scheduleId: {}, shift: {}, 转换后timeSlot: {}", 
+                        req.getScheduleId(), req.getShift(), timeSlot);
+            } else {
+                log.warn("无法从shift解析timeSlot: {}, 保持原值", req.getShift());
+            }
+        }
+        
+        // 如果timeSlot有效，则设置
+        if (timeSlot != null && timeSlot >= 1 && timeSlot <= 3) {
+            s.setTimeSlot(timeSlot);
+        } else {
+            log.warn("更新排班 - scheduleId: {}, timeSlot无效或未提供，保持原值", req.getScheduleId());
+        }
+        
         s.setStatus(req.getStatus());
-        s.setRemark(req.getRemark());
+        // 设置roomNumber和maxQuota（如果Request中有这些字段）
+        if (req.getRoomNumber() != null) {
+            s.setRoomNumber(req.getRoomNumber());
+        }
+        if (req.getMaxQuota() != null) {
+            s.setMaxQuota(req.getMaxQuota());
+        } else if (req.getSlots() != null) {
+            // 如果没有maxQuota，使用slots作为maxQuota
+            s.setMaxQuota(req.getSlots());
+        }
         boolean ok = scheduleService.update(s);
         return Result.OK(ok);
     }
@@ -111,6 +228,83 @@ public class DoctorScheduleAdminController {
         boolean ok = scheduleService.delete(scheduleId);
         return Result.OK(ok);
     }
+
+    @Operation(summary = "获取可用诊室（随机分配）")
+    @GetMapping("/available-room")
+    public Result<String> getAvailableRoom(
+            @RequestParam String date,
+            @RequestParam Integer timeSlot) {
+        try {
+            LocalDate scheduleDate = LocalDate.parse(date);
+            String room = getAvailableRoom(scheduleDate, timeSlot);
+            return Result.OK(room);
+        } catch (Exception e) {
+            log.error("获取可用诊室失败", e);
+            return Result.error("获取可用诊室失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取可用诊室（内部方法）
+     * 根据日期和时段，查找未被占用的诊室，随机返回一个
+     */
+    private String getAvailableRoom(LocalDate date, Integer timeSlot) {
+        // 定义所有可能的诊室号（可以根据实际情况调整）
+        String[] allRooms = {"A-101", "A-102", "A-103", "A-104", "A-105", 
+                             "B-201", "B-202", "B-203", "B-204", "B-205",
+                             "C-301", "C-302", "C-303", "C-304", "C-305"};
+        
+        // 查询该日期和时段已占用的诊室
+        LambdaQueryWrapper<DoctorSchedule> query = new LambdaQueryWrapper<>();
+        query.eq(DoctorSchedule::getScheduleDate, date)
+             .eq(DoctorSchedule::getTimeSlot, timeSlot)
+             .eq(DoctorSchedule::getStatus, 1)
+             .isNotNull(DoctorSchedule::getRoomNumber)
+             .ne(DoctorSchedule::getRoomNumber, "");
+        List<DoctorSchedule> occupiedSchedules = scheduleService.list(query);
+        
+        Set<String> occupiedRooms = new HashSet<>();
+        for (DoctorSchedule schedule : occupiedSchedules) {
+            if (schedule.getRoomNumber() != null && !schedule.getRoomNumber().trim().isEmpty()) {
+                occupiedRooms.add(schedule.getRoomNumber().trim());
+            }
+        }
+        
+        // 找出未占用的诊室
+        List<String> availableRooms = new ArrayList<>();
+        for (String room : allRooms) {
+            if (!occupiedRooms.contains(room)) {
+                availableRooms.add(room);
+            }
+        }
+        
+        // 如果有可用诊室，随机返回一个；否则返回第一个诊室（可能冲突，但至少能分配）
+        if (!availableRooms.isEmpty()) {
+            java.util.Random random = new java.util.Random();
+            return availableRooms.get(random.nextInt(availableRooms.size()));
+        } else {
+            // 所有诊室都被占用，随机返回一个（实际应用中可能需要更复杂的逻辑）
+            java.util.Random random = new java.util.Random();
+            return allRooms[random.nextInt(allRooms.length)];
+        }
+    }
+
+    /**
+     * 将shift字符串转换为timeSlot数字
+     */
+    private Integer parseTimeSlotFromShift(String shift) {
+        if (shift == null) return 1;
+        String s = shift.toLowerCase();
+        if (s.contains("morning") || s.contains("上午") || s.equals("1")) {
+            return 1;
+        } else if (s.contains("afternoon") || s.contains("下午") || s.equals("2")) {
+            return 2;
+        } else if (s.contains("evening") || s.contains("晚上") || s.equals("3")) {
+            return 3;
+        }
+        return 1; // 默认上午
+    }
+
 
     @Operation(summary = "按科室查询指定年月排班映射")
     @GetMapping("/month-by-dept")

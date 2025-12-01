@@ -13,7 +13,7 @@
 
       <a-tabs v-model:activeKey="activeTab" @change="handleTabChange">
         <a-tab-pane key="requests" tab="调班申请">
-          <a-card :bordered="false">
+          <a-card :bordered="false" class="card-container">
             <template #title>
               <div class="card-title">
                 <span>调班申请列表</span>
@@ -23,66 +23,78 @@
               </div>
             </template>
 
-            <a-table
-              :data-source="adjustmentRequests"
-              :columns="requestColumns"
-              row-key="requestId"
-              :pagination="{ pageSize: 10 }"
-              class="mt-4"
-            >
-              <template #bodyCell="{ column, record }">
-                <template v-if="column.key === 'status'">
-                  <a-tag :color="getStatusColor(record.status)">
-                    {{ getStatusText(record.status) }}
-                  </a-tag>
+            <div class="table-container">
+              <a-table
+                :data-source="adjustmentRequests"
+                :columns="requestColumns"
+                row-key="adjustmentId"
+                :pagination="{ pageSize: 10 }"
+                class="compact-table"
+                :scroll="{ x: 1000 }"
+                size="small"
+                bordered
+              >
+                <template #bodyCell="{ column, record }">
+                  <template v-if="column.key === 'status'">
+                    <a-tag :color="getStatusColor(record.status)" class="status-tag">
+                      {{ getStatusText(record.status) }}
+                    </a-tag>
+                  </template>
+                  <template v-else-if="column.key === 'action'">
+                    <a-space :size="4" wrap>
+                      <a-button
+                        v-if="record.status === 1"
+                        type="primary"
+                        size="small"
+                        @click="handleApprove(record)"
+                      >
+                        同意
+                      </a-button>
+                      <a-button
+                        v-if="record.status === 1"
+                        danger
+                        size="small"
+                        @click="showRejectModal(record)"
+                      >
+                        拒绝
+                      </a-button>
+                      <a-button
+                        v-if="record.status !== 1"
+                        type="link"
+                        size="small"
+                        @click="handleViewDetail(record)"
+                      >
+                        查看
+                      </a-button>
+                    </a-space>
+                  </template>
+                  <template v-else-if="column.key === 'applyTime'">
+                    <div class="time-text">
+                      {{ formatTime(record.applyTime) }}
+                    </div>
+                  </template>
+                  <template v-else-if="column.key === 'currentSchedule'">
+                    <div class="schedule-info">
+                      <div class="schedule-item"><span class="label">日期:</span> {{ record.originalDate }}</div>
+                      <div class="schedule-item"><span class="label">时段:</span> {{ slotLabel(record.originalTimeSlot) }}</div>
+                      <div class="schedule-item"><span class="label">诊室:</span> {{ record.currentRoom || '-' }}</div>
+                    </div>
+                  </template>
+                  <template v-else-if="column.key === 'targetSchedule'">
+                    <div v-if="record.targetDate" class="schedule-info">
+                      <div class="schedule-item"><span class="label">日期:</span> {{ record.targetDate }}</div>
+                      <div class="schedule-item"><span class="label">时段:</span> {{ slotLabel(record.targetTimeSlot) }}</div>
+                    </div>
+                    <span v-else class="empty-text">-</span>
+                  </template>
+                  <template v-else-if="column.key === 'reason'">
+                    <div class="reason-text" :title="record.reason">
+                      {{ record.reason }}
+                    </div>
+                  </template>
                 </template>
-                <template v-else-if="column.key === 'action'">
-                  <a-space>
-                    <a-button
-                      v-if="record.status === 0"
-                      type="primary"
-                      size="small"
-                      @click="handleApprove(record)"
-                    >
-                      同意
-                    </a-button>
-                    <a-button
-                      v-if="record.status === 0"
-                      danger
-                      size="small"
-                      @click="showRejectModal(record)"
-                    >
-                      拒绝
-                    </a-button>
-                    <a-button
-                      v-if="record.status !== 0"
-                      type="link"
-                      size="small"
-                      @click="handleViewDetail(record)"
-                    >
-                      查看详情
-                    </a-button>
-                  </a-space>
-                </template>
-                <template v-else-if="column.key === 'requestTime'">
-                  {{ formatTime(record.requestTime) }}
-                </template>
-                <template v-else-if="column.key === 'currentSchedule'">
-                  <div>
-                    <div>日期: {{ record.currentDate }}</div>
-                    <div>时段: {{ slotLabel(record.currentTimeSlot) }}</div>
-                    <div>诊室: {{ record.currentRoom }}</div>
-                  </div>
-                </template>
-                <template v-else-if="column.key === 'targetSchedule'">
-                  <div v-if="record.targetDate">
-                    <div>日期: {{ record.targetDate }}</div>
-                    <div>时段: {{ slotLabel(record.targetTimeSlot) }}</div>
-                  </div>
-                  <span v-else>-</span>
-                </template>
-              </template>
-            </a-table>
+              </a-table>
+            </div>
           </a-card>
         </a-tab-pane>
 
@@ -118,12 +130,12 @@
                   <a-space>
                     <a-upload
                       name="file"
-                      accept=".xlsx,.xls"
+                      accept=".csv"
                       :showUploadList="false"
-                      :beforeUpload="handleExcelUpload"
+                      :beforeUpload="handleCsvUpload"
                     >
                       <a-button type="primary" size="small" preIcon="ant-design:upload-outlined">
-                        上传Excel排班
+                        上传CSV排班
                       </a-button>
                     </a-upload>
                     <a-button size="small" @click="handleSearch">刷新</a-button>
@@ -138,7 +150,15 @@
                 </div>
                 <div class="field">
                   <span class="field-label">科室：</span>
-                  <a-select v-model:value="filters.deptId" :options="deptOptions" style="width: 220px" allow-clear show-search placeholder="选择科室" />
+                  <a-select
+                    v-model:value="filters.deptId"
+                    :options="deptOptions"
+                    style="width: 220px"
+                    allow-clear
+                    show-search
+                    placeholder="选择科室"
+                    @change="handleDeptChange"
+                  />
                 </div>
                 <div class="field">
                   <span class="field-label">医生：</span>
@@ -148,7 +168,8 @@
                     style="width: 220px"
                     allow-clear
                     show-search
-                    placeholder="选择医生"
+                    :placeholder="filters.deptId ? '选择该科室的医生' : '请先选择科室'"
+                    :disabled="!filters.deptId"
                   />
                 </div>
                 <div class="field">
@@ -173,12 +194,21 @@
 
               <a-divider class="mt-2" />
 
+              <div class="mb-4">
+                <a-button type="primary" @click="handleAddSchedule">
+                  <template #icon><PlusOutlined /></template>
+                  添加排班
+                </a-button>
+                <span style="margin-left: 10px; color: #999; font-size: 12px;">(v2.0 - 已更新)</span>
+              </div>
+
               <a-table
                 :data-source="rows"
                 :columns="columns"
                 row-key="scheduleId"
                 bordered
                 :pagination="{ pageSize: 10 }"
+                :scroll="{ x: 1200 }"
                 class="mt-4"
               >
                 <template #bodyCell="{ column, record }">
@@ -192,6 +222,18 @@
                       {{ record.status === 1 ? '有效' : '停用' }}
                     </span>
                   </template>
+                  <template v-else-if="column.key === 'maxQuota'">
+                    {{ record.maxQuota || '-' }}
+                  </template>
+                  <template v-else-if="column.key === 'roomNumber'">
+                    {{ record.roomNumber || '-' }}
+                  </template>
+                  <template v-else-if="column.key === 'action'">
+                    <a-space>
+                      <a-button type="link" size="small" @click="handleEditSchedule(record)">编辑</a-button>
+                      <a-button type="link" size="small" danger @click="handleDeleteSchedule(record)">删除</a-button>
+                    </a-space>
+                  </template>
                 </template>
               </a-table>
             </a-card>
@@ -199,12 +241,16 @@
         </a-tab-pane>
       </a-tabs>
 
+      <!-- 拒绝调班弹窗 -->
       <a-modal
         v-model:visible="rejectModal.visible"
         title="拒绝调班申请"
         @ok="handleReject"
         @cancel="handleCancelReject"
         :confirmLoading="rejectModal.loading"
+        okText="确认拒绝"
+        cancelText="取消"
+        width="400px"
       >
         <a-form layout="vertical">
           <a-form-item label="拒绝原因">
@@ -218,6 +264,82 @@
           </a-form-item>
         </a-form>
       </a-modal>
+
+      <!-- 添加/编辑排班弹窗 -->
+      <a-modal
+        v-model:visible="scheduleFormVisible"
+        :title="editingSchedule ? '编辑排班' : '添加排班'"
+        width="700px"
+        @ok="handleSaveSchedule"
+        @cancel="handleCancelSchedule"
+      >
+        <a-form :model="scheduleForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+          <a-form-item label="医生ID" required>
+            <a-input-number
+              v-model:value="scheduleForm.doctorId"
+              :min="1"
+              style="width: 100%"
+              placeholder="请输入医生ID"
+              @change="handleDoctorIdChange"
+            />
+          </a-form-item>
+          <a-form-item label="医生姓名">
+            <a-input
+              v-model:value="scheduleForm.doctorName"
+              placeholder="请输入医生姓名（可选，系统会自动查找）"
+              :disabled="!!scheduleForm.doctorId"
+            />
+          </a-form-item>
+          <a-form-item label="科室" required>
+            <a-select
+              v-model:value="scheduleForm.deptId"
+              :options="deptOptions"
+              placeholder="选择科室"
+              show-search
+              :filter-option="filterOption"
+            />
+          </a-form-item>
+          <a-form-item label="排班日期" required>
+            <a-date-picker
+              v-model:value="scheduleForm.scheduleDate"
+              style="width: 100%"
+              format="YYYY-MM-DD"
+            />
+          </a-form-item>
+          <a-form-item label="时段" required>
+            <a-select v-model:value="scheduleForm.timeSlot" placeholder="选择时段">
+              <a-select-option :value="1">上午</a-select-option>
+              <a-select-option :value="2">下午</a-select-option>
+              <a-select-option :value="3">晚上</a-select-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item label="最大号源数" required>
+            <a-input-number
+              v-model:value="scheduleForm.maxQuota"
+              :min="1"
+              :max="100"
+              style="width: 100%"
+              placeholder="请输入最大号源数"
+            />
+          </a-form-item>
+          <a-form-item label="诊室">
+            <a-input
+              v-model:value="scheduleForm.roomNumber"
+              placeholder="留空则系统随机分配"
+              :disabled="!editingSchedule"
+            />
+            <div v-if="!editingSchedule" style="color: #999; font-size: 12px; margin-top: 4px;">
+              系统将自动随机分配一个可用诊室
+            </div>
+          </a-form-item>
+          <a-form-item label="状态">
+            <a-radio-group v-model:value="scheduleForm.status">
+              <a-radio :value="1">有效</a-radio>
+              <a-radio :value="0">停用</a-radio>
+            </a-radio-group>
+          </a-form-item>
+        </a-form>
+      </a-modal>
     </div>
   </PageWrapper>
 </template>
@@ -226,32 +348,14 @@
 import { defineComponent, reactive, ref, onMounted, computed, watch, h } from 'vue'; // **【已修改】引入 h**
 import { PageWrapper } from '/@/components/Page';
 import { message, Modal } from 'ant-design-vue';
-import dayjs from 'dayjs';
-import * as XLSX from 'xlsx';
+import { PlusOutlined } from '@ant-design/icons-vue';
+import dayjs, { Dayjs } from 'dayjs';
 import { getDepartmentList } from '/@/api/hospital/department';
 import { listSchedulesByDate, type TodayScheduleItem } from '/@/api/hospital/scheduleView';
 import { useGo } from '/@/hooks/web/usePage';
 import { getDoctorList } from '/@/api/hospital/doctor';
-
-// 模拟调班申请数据接口
-interface AdjustmentRequest {
-  requestId: string;
-  doctorId: number;
-  doctorName: string;
-  deptId: number;
-  deptName: string;
-  currentDate: string;
-  currentTimeSlot: number;
-  currentRoom: string;
-  targetDate?: string;
-  targetTimeSlot?: number;
-  targetRoom?: string;
-  reason: string;
-  status: number; // 0: 待处理, 1: 已同意, 2: 已拒绝
-  requestTime: string;
-  responseTime?: string;
-  responseReason?: string;
-}
+import { createSchedule, updateSchedule, deleteSchedule, getAvailableRoom } from '/@/api/hospital/schedule';
+import { getAdjustmentList, approveAdjustment, type AdjustmentRecord, type AdjustmentApprovalRequest } from '/@/api/hospital/adjustment';
 
 export default defineComponent({
   name: 'AdminScheduleAdjustment',
@@ -270,12 +374,12 @@ export default defineComponent({
     });
 
     // 调班申请相关
-    const adjustmentRequests = ref<AdjustmentRequest[]>([]);
+    const adjustmentRequests = ref<AdjustmentRecord[]>([]);
     const rejectModal = reactive({
       visible: false,
       loading: false,
       reason: '',
-      currentRequest: null as AdjustmentRequest | null
+      currentRequest: null as AdjustmentRecord | null
     });
 
     const timeOptions = [
@@ -285,26 +389,81 @@ export default defineComponent({
     ];
     const deptOptions = ref<{ label: string; value: number }[]>([]);
     const doctorOptions = ref<{ label: string; value: number }[]>([]);
-    const rows = ref<(TodayScheduleItem & { doctorName?: string; deptName?: string })[]>([]);
+    const rows = ref<(TodayScheduleItem & { doctorName?: string; deptName?: string; maxQuota?: number; roomNumber?: string })[]>([]);
 
-    // 调班申请表格列
+    // 排班表单相关
+    const scheduleFormVisible = ref(false);
+    const editingSchedule = ref<(TodayScheduleItem & { doctorName?: string; deptName?: string; maxQuota?: number; roomNumber?: string }) | null>(null);
+    const scheduleForm = reactive({
+      scheduleId: undefined as number | undefined,
+      doctorId: undefined as number | undefined,
+      doctorName: '' as string,
+      deptId: undefined as number | undefined,
+      scheduleDate: null as Dayjs | null,
+      timeSlot: undefined as number | undefined,
+      maxQuota: 50 as number,
+      roomNumber: '' as string,
+      status: 1 as number,
+    });
+
+    // 调班申请表格列 - 调整列宽确保不超出
     const requestColumns = [
-      { title: '申请医生', dataIndex: 'doctorName', key: 'doctorName', width: 120 },
-      { title: '科室', dataIndex: 'deptName', key: 'deptName', width: 120 },
-      { title: '当前排班', key: 'currentSchedule', width: 180 },
-      { title: '目标排班', key: 'targetSchedule', width: 180 },
-      { title: '申请原因', dataIndex: 'reason', key: 'reason', width: 200, ellipsis: true },
-      { title: '申请时间', key: 'requestTime', width: 150 },
-      { title: '状态', key: 'status', width: 100 },
-      { title: '操作', key: 'action', width: 150 },
+      {
+        title: '申请医生',
+        dataIndex: 'doctorName',
+        key: 'doctorName',
+        width: 80,
+        ellipsis: true
+      },
+      {
+        title: '科室',
+        dataIndex: 'deptName',
+        key: 'deptName',
+        width: 80,
+        ellipsis: true
+      },
+      {
+        title: '当前排班',
+        key: 'currentSchedule',
+        width: 120
+      },
+      {
+        title: '目标排班',
+        key: 'targetSchedule',
+        width: 120
+      },
+      {
+        title: '申请原因',
+        dataIndex: 'reason',
+        key: 'reason',
+        width: 120,
+        ellipsis: true
+      },
+      {
+        title: '申请时间',
+        key: 'applyTime',
+        width: 100
+      },
+      {
+        title: '状态',
+        key: 'status',
+        width: 70
+      },
+      {
+        title: '操作',
+        key: 'action',
+        width: 120,
+        fixed: 'right' as const
+      },
     ];
 
-    // 今日排班表格列 - 【已修改】在科室后面添加诊室列
+    // 今日排班表格列 - 已更新v2.0
     const columns = [
       { title: '日期', dataIndex: 'scheduleDate', key: 'scheduleDate', width: 120 },
       { title: '医生', dataIndex: 'doctorName', key: 'doctorName', width: 140 },
       { title: '科室', dataIndex: 'deptName', key: 'deptName', width: 160 },
-      { title: '诊室', dataIndex: 'roomNumber', key: 'roomNumber', width: 120 }, // 【新增】诊室列
+      { title: '最大号源数', dataIndex: 'maxQuota', key: 'maxQuota', width: 120 },
+      { title: '诊室', dataIndex: 'roomNumber', key: 'roomNumber', width: 120 },
       {
         title: '时段',
         dataIndex: 'timeSlot',
@@ -317,11 +476,12 @@ export default defineComponent({
         key: 'status',
         width: 100,
       },
+      { title: '操作', key: 'action', width: 150, fixed: 'right' },
     ];
 
     // 计算属性
     const pendingRequests = computed(() => {
-      return adjustmentRequests.value.filter(req => req.status === 0);
+      return adjustmentRequests.value.filter((req) => req.status === 1);
     });
 
     const stats = computed(() => {
@@ -344,12 +504,12 @@ export default defineComponent({
     }
 
     function getStatusColor(status: number) {
-      const colors: any = { 0: 'blue', 1: 'green', 2: 'red' };
+      const colors: any = { 1: 'blue', 2: 'green', 3: 'red', 4: 'orange' };
       return colors[status] || 'default';
     }
 
     function getStatusText(status: number) {
-      const texts: any = { 0: '待处理', 1: '已同意', 2: '已拒绝' };
+      const texts: any = { 1: '待审批', 2: '已同意', 3: '已拒绝', 4: '已撤销' };
       return texts[status] || '未知';
     }
 
@@ -360,77 +520,44 @@ export default defineComponent({
     // 加载调班申请数据
     async function loadAdjustmentRequests() {
       try {
-        // 模拟数据 - 实际项目中应该调用API
-        const mockData: AdjustmentRequest[] = [
-          {
-            requestId: '1',
-            doctorId: 101,
-            doctorName: '张医生',
-            deptId: 1,
-            deptName: '内科',
-            currentDate: '2024-01-20',
-            currentTimeSlot: 1,
-            currentRoom: 'A101',
-            targetDate: '2024-01-21',
-            targetTimeSlot: 2,
-            targetRoom: 'A102',
-            reason: '家庭事务需要调整班次',
-            status: 0,
-            requestTime: '2024-01-15 10:30:00'
-          },
-          {
-            requestId: '2',
-            doctorId: 102,
-            doctorName: '李医生',
-            deptId: 2,
-            deptName: '外科',
-            currentDate: '2024-01-22',
-            currentTimeSlot: 2,
-            currentRoom: 'B201',
-            reason: '身体不适需要休息',
-            status: 0,
-            requestTime: '2024-01-15 14:20:00'
-          }
-        ];
-        adjustmentRequests.value = mockData;
+        const { records } = await getAdjustmentList({ status: 1, current: 1, size: 50 });
+        adjustmentRequests.value = Array.isArray(records) ? records : [];
       } catch (error) {
         message.error('加载调班申请失败');
       }
     }
 
     // 同意调班申请
-    async function handleApprove(request: AdjustmentRequest) {
+    async function handleApprove(request: AdjustmentRecord) {
       Modal.confirm({
         title: '确认同意',
-        content: `确定同意 ${request.doctorName} 医生的调班申请吗？`,
+        content: `确定同意该调班申请吗？系统将自动创建新的排班记录。`,
         onOk: async () => {
           try {
-            // 调用API同意申请
-            // await approveAdjustmentRequest(request.requestId);
+            // 根据 AdjustmentApprovalRequest 的实际定义传递参数
+            const approvalRequest: AdjustmentApprovalRequest = {
+              adjustmentId: request.adjustmentId,
+              status: 2
+            };
 
-            // 模拟API调用
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // 更新状态
-            const index = adjustmentRequests.value.findIndex(req => req.requestId === request.requestId);
-            if (index !== -1) {
-              adjustmentRequests.value[index].status = 1;
-              adjustmentRequests.value[index].responseTime = new Date().toISOString();
-            }
-
+            await approveAdjustment(approvalRequest);
             message.success('已同意调班申请');
-
-            // 【已修改】路由路径
-            go(`/admin/schedule-modify?requestId=${request.requestId}`);
-          } catch (error) {
-            message.error('操作失败');
+            await loadAdjustmentRequests();
+          } catch (error: any) {
+            console.error('同意调班失败:', error);
+            // 如果还是因为 max_quota 错误，建议修改后端接口或数据库表结构
+            if (error.message?.includes('max_quota')) {
+              message.error('操作失败：请检查排班表结构，max_quota 字段需要默认值');
+            } else {
+              message.error('操作失败: ' + (error.message || '未知错误'));
+            }
           }
         }
       });
     }
 
     // 显示拒绝弹窗
-    function showRejectModal(request: AdjustmentRequest) {
+    function showRejectModal(request: AdjustmentRecord) {
       rejectModal.currentRequest = request;
       rejectModal.reason = '';
       rejectModal.visible = true;
@@ -447,23 +574,15 @@ export default defineComponent({
 
       rejectModal.loading = true;
       try {
-        // 调用API拒绝申请
-        // await rejectAdjustmentRequest(rejectModal.currentRequest.requestId, rejectModal.reason);
+        const approvalRequest: AdjustmentApprovalRequest = {
+          adjustmentId: rejectModal.currentRequest.adjustmentId,
+          status: 3,
+          rejectReason: rejectModal.reason
+        };
 
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // 更新状态
-        const index = adjustmentRequests.value.findIndex(
-          req => req.requestId === rejectModal.currentRequest!.requestId
-        );
-        if (index !== -1) {
-          adjustmentRequests.value[index].status = 2;
-          adjustmentRequests.value[index].responseTime = new Date().toISOString();
-          adjustmentRequests.value[index].responseReason = rejectModal.reason;
-        }
-
+        await approveAdjustment(approvalRequest);
         message.success('已拒绝调班申请');
+        await loadAdjustmentRequests();
         rejectModal.visible = false;
         rejectModal.reason = '';
       } catch (error) {
@@ -480,25 +599,24 @@ export default defineComponent({
       rejectModal.currentRequest = null;
     }
 
-    // **【已修改】使用 h 函数代替 JSX/TSX 渲染 Modal 内容**
-    function handleViewDetail(request: AdjustmentRequest) {
+    // 使用 h 函数渲染 Modal 内容
+    function handleViewDetail(request: AdjustmentRecord) {
       Modal.info({
         title: '调班申请详情',
-        width: 600,
-        content: h('div', {}, [
-          h('p', null, [h('strong', null, '申请医生：'), request.doctorName]),
-          h('p', null, [h('strong', null, '科室：'), request.deptName]),
-          h('p', null, [h('strong', null, '当前排班：'), `${request.currentDate} ${slotLabel(request.currentTimeSlot)} ${request.currentRoom}`]),
+        width: 500,
+        content: h('div', { class: 'detail-content' }, [
+          h('p', null, [h('strong', null, '申请医生：'), request.doctorName || request.doctorId]),
+          h('p', null, [h('strong', null, '当前排班：'), `${request.originalDate || ''} ${slotLabel(request.originalTimeSlot || 0)}`]),
           request.targetDate
-            ? h('p', null, [h('strong', null, '目标排班：'), `${request.targetDate} ${slotLabel(request.targetTimeSlot!)} ${request.targetRoom}`])
+            ? h('p', null, [h('strong', null, '目标排班：'), `${request.targetDate} ${slotLabel(request.targetTimeSlot)}`])
             : null,
           h('p', null, [h('strong', null, '申请原因：'), request.reason]),
-          h('p', null, [h('strong', null, '申请时间：'), formatTime(request.requestTime)]),
-          request.responseTime
-            ? h('p', null, [h('strong', null, '处理时间：'), formatTime(request.responseTime)])
+          h('p', null, [h('strong', null, '申请时间：'), formatTime(request.applyTime)]),
+          request.approveTime
+            ? h('p', null, [h('strong', null, '处理时间：'), formatTime(request.approveTime)])
             : null,
-          request.responseReason
-            ? h('p', null, [h('strong', null, '处理原因：'), request.responseReason])
+          request.rejectReason
+            ? h('p', null, [h('strong', null, '处理原因：'), request.rejectReason])
             : null,
         ]),
       });
@@ -513,26 +631,104 @@ export default defineComponent({
 
     // 原有方法
     async function loadDeptOptions() {
-      const list = await getDepartmentList();
-      deptOptions.value = (list || []).map((d: any) => ({ label: d.deptName, value: d.deptId }));
+      try {
+        const list = await getDepartmentList();
+        deptOptions.value = (list || []).map((d: any) => ({ label: d.deptName, value: d.deptId }));
+      } catch (error: any) {
+        console.error('加载科室列表失败:', error);
+        message.error('加载科室列表失败：' + (error?.message || '未知错误'));
+        deptOptions.value = [];
+        throw error; // 重新抛出错误，让调用者知道失败
+      }
     }
 
     async function loadDoctorOptions() {
-      const list = await getDoctorList(
-        filters.deptId != null ? { deptId: Number(filters.deptId) } : undefined
-      );
-      doctorOptions.value = (list || []).map((d: any) => ({ label: d.doctorName, value: d.doctorId }));
+      // 如果没有选择科室，清空医生列表
+      if (filters.deptId == null) {
+        doctorOptions.value = [];
+        return;
+      }
+
+      try {
+        // 调用API获取该科室的医生列表，设置较大的pageSize以获取所有医生
+        const response = await getDoctorList({
+          deptId: Number(filters.deptId),
+          isActive: 1, // 只获取启用的医生
+          pageNum: 1,
+          pageSize: 1000 // 设置较大的值以获取所有医生
+        });
+
+        // 处理API返回的数据结构：后端返回的是 IPage<Map<String, Object>>，即 { records: [...], total: ... }
+        let list: any[] = [];
+        if (response) {
+          if (Array.isArray(response)) {
+            // 直接是数组
+            list = response;
+          } else if (response.records && Array.isArray(response.records)) {
+            // 分页数据格式：{ records: [...], total: ... }
+            list = response.records;
+          } else if (response.list && Array.isArray(response.list)) {
+            list = response.list;
+          } else if (response.data && Array.isArray(response.data)) {
+            list = response.data;
+          } else if (response.result) {
+            // Result格式：{ result: { records: [...] } } 或 { result: [...] }
+            if (Array.isArray(response.result)) {
+              list = response.result;
+            } else if (response.result.records && Array.isArray(response.result.records)) {
+              list = response.result.records;
+            }
+          }
+        }
+
+        // 从doctor表中提取医生姓名，确保显示doctorName字段
+        doctorOptions.value = list
+          .filter((d: any) => {
+            // 过滤掉没有姓名的数据，并确保有有效的doctorId
+            return d && (d.doctorName || d.name) && (d.doctorId || d.id);
+          })
+          .map((d: any) => ({
+            label: d.doctorName || d.name || '未知医生',
+            value: d.doctorId || d.id || 0
+          }))
+          .filter((item: any) => item.value > 0) // 再次过滤掉无效的ID
+          .sort((a, b) => a.label.localeCompare(b.label, 'zh-CN')); // 按姓名排序（支持中文）
+
+        console.log('加载医生列表成功，科室ID:', filters.deptId, '医生数量:', doctorOptions.value.length);
+        if (doctorOptions.value.length === 0) {
+          message.info('该科室暂无医生');
+        }
+      } catch (error: any) {
+        console.error('加载医生列表失败:', error);
+        message.error('加载医生列表失败：' + (error?.message || '未知错误'));
+        doctorOptions.value = [];
+      }
     }
 
     async function loadList() {
-      const data = await listSchedulesByDate({
-        date: filters.date ? filters.date.format('YYYY-MM-DD') : undefined,
-        deptId: filters.deptId != null ? Number(filters.deptId) : undefined,
-        doctorId: filters.doctorId != null ? Number(filters.doctorId) : undefined,
-        timeSlot: filters.timeSlot != null ? Number(filters.timeSlot) : undefined,
-        keyword: filters.keyword && filters.keyword.trim() ? filters.keyword.trim() : undefined,
-      });
-      rows.value = Array.isArray(data) ? data : [];
+      try {
+        const data = await listSchedulesByDate({
+          date: filters.date ? filters.date.format('YYYY-MM-DD') : undefined,
+          deptId: filters.deptId != null ? Number(filters.deptId) : undefined,
+          doctorId: filters.doctorId != null ? Number(filters.doctorId) : undefined,
+          timeSlot: filters.timeSlot != null ? Number(filters.timeSlot) : undefined,
+          keyword: filters.keyword && filters.keyword.trim() ? filters.keyword.trim() : undefined,
+        });
+        // 确保数据包含所有必要字段
+        rows.value = (Array.isArray(data) ? data : []).map((item: any) => ({
+          ...item,
+          maxQuota: item.maxQuota ?? null,
+          roomNumber: item.roomNumber ?? null,
+          doctorName: item.doctorName ?? '',
+          deptName: item.deptName ?? '',
+        }));
+        console.log('排班列表数据:', rows.value);
+      } catch (error: any) {
+        console.error('加载排班列表失败:', error);
+        message.error('加载排班列表失败：' + (error?.message || '未知错误'));
+        rows.value = [];
+        throw error; // 重新抛出错误，让调用者知道失败
+      }
     }
 
     function handleSearch() {
@@ -551,43 +747,57 @@ export default defineComponent({
       message.warning('请先选择医生或科室后再查看月排班');
     }
 
-    // 处理Excel文件上传
-    async function handleExcelUpload(file: File) {
+    // 处理CSV文件上传
+    async function handleCsvUpload(file: File) {
       const fileExtension = file.name.split('.').pop()?.toLowerCase();
-      if (fileExtension !== 'xlsx' && fileExtension !== 'xls') {
-        message.error('请上传Excel文件（.xlsx或.xls格式）');
+      if (fileExtension !== 'csv') {
+        message.error('请上传CSV文件（.csv格式）');
         return false;
       }
 
       try {
-        // 读取Excel文件
-        const data = await file.arrayBuffer();
-        const workbook = XLSX.read(data, { type: 'array' });
-        
-        // 获取第一个工作表
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        
-        // 将工作表转换为JSON数组
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
-        
-        if (jsonData.length < 2) {
-          message.error('Excel文件至少需要包含表头和数据行');
+        // 读取CSV文件
+        const text = await file.text();
+        const lines = text.split('\n').filter(line => line.trim());
+
+        if (lines.length < 2) {
+          message.error('CSV文件至少需要包含表头和数据行');
           return false;
         }
 
+        // 解析CSV（简单处理，支持逗号分隔）
+        function parseCSVLine(line: string): string[] {
+          const result: string[] = [];
+          let current = '';
+          let inQuotes = false;
+
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              result.push(current.trim());
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          result.push(current.trim());
+          return result;
+        }
+
         // 解析表头（第一行）
-        const headers = jsonData[0].map((h: any) => String(h || '').trim().toLowerCase());
-        
+        const headers = parseCSVLine(lines[0]).map((h: string) => h.toLowerCase().replace(/"/g, ''));
+
         // 查找列索引
-        const dateIndex = findColumnIndex(headers, ['日期', 'date', '排班日期', 'scheduleDate']);
-        const doctorNameIndex = findColumnIndex(headers, ['医生', 'doctor', '医生姓名', 'doctorName', '姓名']);
-        const deptNameIndex = findColumnIndex(headers, ['科室', 'dept', '科室名称', 'deptName', '部门']);
-        const timeSlotIndex = findColumnIndex(headers, ['时段', 'timeslot', 'timeSlot', '时间段', '班次']);
-        const roomIndex = findColumnIndex(headers, ['诊室', 'room', 'roomNumber', '诊室号', '房间']);
+        const dateIndex = findColumnIndex(headers, ['日期', 'date', '排班日期', 'scheduledate']);
+        const doctorNameIndex = findColumnIndex(headers, ['医生', 'doctor', '医生姓名', 'doctorname', '姓名']);
+        const deptNameIndex = findColumnIndex(headers, ['科室', 'dept', '科室名称', 'deptname', '部门']);
+        const timeSlotIndex = findColumnIndex(headers, ['时段', 'timeslot', '时间段', '班次']);
+        const roomIndex = findColumnIndex(headers, ['诊室', 'room', 'roomnumber', '诊室号', '房间']);
 
         if (dateIndex === -1 || doctorNameIndex === -1) {
-          message.error('Excel文件必须包含"日期"和"医生"列');
+          message.error('CSV文件必须包含"日期"和"医生"列');
           return false;
         }
 
@@ -595,24 +805,16 @@ export default defineComponent({
         const parsedSchedules: TodayScheduleItem[] = [];
         const errors: string[] = [];
 
-        for (let i = 1; i < jsonData.length; i++) {
-          const row = jsonData[i];
+        for (let i = 1; i < lines.length; i++) {
+          const row = parseCSVLine(lines[i]);
           if (!row || row.length === 0) continue;
 
           try {
             // 解析日期
             let scheduleDate = '';
-            const dateValue = row[dateIndex];
+            const dateValue = row[dateIndex]?.replace(/"/g, '').trim();
             if (dateValue) {
-              if (typeof dateValue === 'string') {
-                scheduleDate = dayjs(dateValue).format('YYYY-MM-DD');
-              } else if (dateValue instanceof Date) {
-                scheduleDate = dayjs(dateValue).format('YYYY-MM-DD');
-              } else if (typeof dateValue === 'number') {
-                // Excel日期序列号
-                const excelDate = XLSX.SSF.parse_date_code(dateValue);
-                scheduleDate = dayjs(`${excelDate.y}-${excelDate.m}-${excelDate.d}`).format('YYYY-MM-DD');
-              }
+              scheduleDate = dayjs(dateValue).format('YYYY-MM-DD');
             }
 
             if (!scheduleDate || scheduleDate === 'Invalid Date') {
@@ -621,19 +823,19 @@ export default defineComponent({
             }
 
             // 解析医生姓名
-            const doctorName = String(row[doctorNameIndex] || '').trim();
+            const doctorName = (row[doctorNameIndex] || '').replace(/"/g, '').trim();
             if (!doctorName) {
               errors.push(`第${i + 1}行：医生姓名不能为空`);
               continue;
             }
 
             // 解析科室名称
-            const deptName = deptNameIndex !== -1 ? String(row[deptNameIndex] || '').trim() : '';
+            const deptName = deptNameIndex !== -1 ? (row[deptNameIndex] || '').replace(/"/g, '').trim() : '';
 
             // 解析时段（1-上午，2-下午，3-晚上）
             let timeSlot = 1;
             if (timeSlotIndex !== -1) {
-              const timeSlotValue = String(row[timeSlotIndex] || '').trim().toLowerCase();
+              const timeSlotValue = (row[timeSlotIndex] || '').replace(/"/g, '').trim().toLowerCase();
               if (timeSlotValue.includes('上午') || timeSlotValue.includes('am') || timeSlotValue === '1') {
                 timeSlot = 1;
               } else if (timeSlotValue.includes('下午') || timeSlotValue.includes('pm') || timeSlotValue === '2') {
@@ -646,7 +848,7 @@ export default defineComponent({
             }
 
             // 解析诊室
-            const roomNumber = roomIndex !== -1 ? String(row[roomIndex] || '').trim() : '';
+            const roomNumber = roomIndex !== -1 ? (row[roomIndex] || '').replace(/"/g, '').trim() : '';
 
             // 查找医生ID和科室ID
             let doctorId = 0;
@@ -699,7 +901,7 @@ export default defineComponent({
         );
 
         const newSchedules = parsedSchedules.filter(s => {
-          const key = `${s.scheduleDate}-${s.doctorName}-${s.timeSlot}`;
+          const key = `${s.scheduleDate}-${(s as any).doctorName || ''}-${s.timeSlot}`;
           return !existingKeys.has(key);
         });
 
@@ -715,8 +917,8 @@ export default defineComponent({
 
         return false; // 阻止默认上传行为
       } catch (error: any) {
-        console.error('Excel解析失败：', error);
-        message.error('Excel文件解析失败：' + (error.message || '未知错误'));
+        console.error('CSV解析失败：', error);
+        message.error('CSV文件解析失败：' + (error.message || '未知错误'));
         return false;
       }
     }
@@ -731,16 +933,204 @@ export default defineComponent({
     }
 
     onMounted(async () => {
-      await loadDeptOptions();
-      await loadDoctorOptions();
-      await loadList();
-      await loadAdjustmentRequests();
+      try {
+        // 加载科室选项（内部已有错误处理）
+        await loadDeptOptions().catch((error) => {
+          // 错误已在函数内部处理，这里只记录日志
+          console.error('onMounted: 加载科室列表失败', error);
+        });
+
+        // 加载医生选项（内部已有错误处理）
+        await loadDoctorOptions().catch((error) => {
+          // 错误已在函数内部处理，这里只记录日志
+          console.error('onMounted: 加载医生列表失败', error);
+        });
+
+        // 加载排班列表（内部已有错误处理）
+        await loadList().catch((error) => {
+          // 错误已在函数内部处理，这里只记录日志
+          console.error('onMounted: 加载排班列表失败', error);
+        });
+
+        // 加载调班申请（内部已有错误处理）
+        await loadAdjustmentRequests().catch((error) => {
+          // 错误已在函数内部处理，这里只记录日志
+          console.error('onMounted: 加载调班申请失败', error);
+        });
+      } catch (error: any) {
+        // 捕获未预期的错误
+        console.error('页面初始化发生未预期的错误:', error);
+        message.error('页面初始化失败：' + (error?.message || '未知错误'));
+      }
     });
 
-    watch(() => filters.deptId, async () => {
+    // 处理科室变化
+    async function handleDeptChange() {
+      // 清空已选择的医生
       filters.doctorId = undefined;
+      // 重新加载该科室的医生列表
       await loadDoctorOptions();
+    }
+
+    // 监听科室变化，自动更新医生列表
+    watch(() => filters.deptId, async (newDeptId) => {
+      // 清空已选择的医生
+      filters.doctorId = undefined;
+      // 如果选择了新科室，加载该科室的医生列表
+      if (newDeptId != null) {
+        await loadDoctorOptions();
+      } else {
+        // 如果清空了科室选择，清空医生列表
+        doctorOptions.value = [];
+      }
     });
+
+    // 排班增删改功能
+    function handleAddSchedule() {
+      editingSchedule.value = null;
+      scheduleForm.scheduleId = undefined;
+      scheduleForm.doctorId = undefined;
+      scheduleForm.doctorName = '';
+      scheduleForm.deptId = undefined;
+      scheduleForm.scheduleDate = filters.date || dayjs();
+      scheduleForm.timeSlot = undefined;
+      scheduleForm.maxQuota = 50;
+      scheduleForm.roomNumber = '';
+      scheduleForm.status = 1;
+      scheduleFormVisible.value = true;
+    }
+
+    function handleEditSchedule(record: TodayScheduleItem & { doctorName?: string; deptName?: string; maxQuota?: number; roomNumber?: string }) {
+      editingSchedule.value = record;
+      scheduleForm.scheduleId = record.scheduleId;
+      scheduleForm.doctorId = record.doctorId;
+      scheduleForm.doctorName = record.doctorName || '';
+      scheduleForm.deptId = record.deptId;
+      scheduleForm.scheduleDate = dayjs(record.scheduleDate);
+      scheduleForm.timeSlot = record.timeSlot;
+      scheduleForm.maxQuota = record.maxQuota || 50;
+      scheduleForm.roomNumber = record.roomNumber || '';
+      scheduleForm.status = record.status || 1;
+      scheduleFormVisible.value = true;
+    }
+
+    async function handleDeleteSchedule(record: TodayScheduleItem & { doctorName?: string; deptName?: string; maxQuota?: number; roomNumber?: string }) {
+      Modal.confirm({
+        title: '确认删除',
+        content: `确定要删除 ${record.doctorName || '该医生'} 在 ${record.scheduleDate} ${slotLabel(record.timeSlot)} 的排班吗？`,
+        onOk: async () => {
+          try {
+            await deleteSchedule(record.scheduleId);
+            message.success('删除成功');
+            await loadList();
+          } catch (error: any) {
+            message.error('删除失败：' + (error?.message || '未知错误'));
+          }
+        },
+      });
+    }
+
+    async function handleDoctorIdChange() {
+      if (scheduleForm.doctorId) {
+        try {
+          // 尝试从医生列表中查找医生信息
+          const doctor = doctorOptions.value.find(d => d.value === scheduleForm.doctorId);
+          if (doctor) {
+            scheduleForm.doctorName = doctor.label;
+          }
+        } catch (error) {
+          console.error('获取医生信息失败:', error);
+        }
+      }
+    }
+
+    function filterOption(input: string, option: any) {
+      return option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
+    }
+
+    async function handleSaveSchedule() {
+      if (!scheduleForm.doctorId) {
+        message.error('请选择医生ID');
+        return;
+      }
+      if (!scheduleForm.deptId) {
+        message.error('请选择科室');
+        return;
+      }
+      if (!scheduleForm.scheduleDate) {
+        message.error('请选择排班日期');
+        return;
+      }
+      if (!scheduleForm.timeSlot) {
+        message.error('请选择时段');
+        return;
+      }
+      if (!scheduleForm.maxQuota || scheduleForm.maxQuota < 1) {
+        message.error('请输入有效的最大号源数');
+        return;
+      }
+
+      try {
+        const dateStr = scheduleForm.scheduleDate.format('YYYY-MM-DD');
+        const shiftMap: { [key: number]: string } = { 1: '上午', 2: '下午', 3: '晚上' };
+        const shiftStr = shiftMap[scheduleForm.timeSlot] || '上午';
+
+        if (editingSchedule.value && scheduleForm.scheduleId) {
+          // 更新排班
+          await updateSchedule({
+            scheduleId: scheduleForm.scheduleId,
+            doctorId: scheduleForm.doctorId,
+            deptId: scheduleForm.deptId,
+            date: dateStr,
+            timeSlot: scheduleForm.timeSlot, // 直接传递timeSlot数字
+            shift: shiftStr, // 保留shift作为备用
+            slots: scheduleForm.maxQuota,
+            maxQuota: scheduleForm.maxQuota,
+            roomNumber: scheduleForm.roomNumber || undefined,
+            status: scheduleForm.status,
+          });
+          message.success('更新成功');
+        } else {
+          // 创建排班 - 需要随机分配诊室
+          let roomNumber = scheduleForm.roomNumber;
+          if (!roomNumber) {
+            // 调用后端接口获取可用诊室
+            try {
+              roomNumber = await getAvailableRoom({
+                date: dateStr,
+                timeSlot: scheduleForm.timeSlot,
+              });
+            } catch (error) {
+              console.error('获取可用诊室失败，使用默认值:', error);
+              // 如果后端接口不存在，使用简单的随机分配
+              const rooms = ['A-101', 'A-102', 'A-103', 'A-104', 'A-105', 'B-201', 'B-202'];
+              roomNumber = rooms[Math.floor(Math.random() * rooms.length)];
+            }
+          }
+
+          await createSchedule({
+            doctorId: scheduleForm.doctorId,
+            deptId: scheduleForm.deptId,
+            date: dateStr,
+            shift: shiftStr,
+            slots: scheduleForm.maxQuota,
+            maxQuota: scheduleForm.maxQuota,
+            roomNumber: roomNumber,
+          });
+          message.success('添加成功');
+        }
+
+        scheduleFormVisible.value = false;
+        await loadList();
+      } catch (error: any) {
+        message.error((editingSchedule.value ? '更新' : '添加') + '失败：' + (error?.message || '未知错误'));
+      }
+    }
+
+    function handleCancelSchedule() {
+      scheduleFormVisible.value = false;
+      editingSchedule.value = null;
+    }
 
     return {
       activeTab,
@@ -764,22 +1154,54 @@ export default defineComponent({
       showRejectModal,
       handleViewDetail,
       handleTabChange,
-      handleExcelUpload,
+      handleCsvUpload,
       slotLabel,
       slotClass,
       getStatusColor,
       getStatusText,
-      formatTime
+      formatTime,
+      PlusOutlined,
+      scheduleFormVisible,
+      editingSchedule,
+      scheduleForm,
+      handleAddSchedule,
+      handleEditSchedule,
+      handleDeleteSchedule,
+      handleSaveSchedule,
+      handleCancelSchedule,
+      handleDoctorIdChange,
+      filterOption,
+      handleDeptChange,
     };
   },
 });
 </script>
 
 <style scoped>
-.p-4 { padding: 16px; }
+.p-4 {
+  padding: 16px;
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow: hidden;
+}
+
 .mb-2 { margin-bottom: 8px; }
 .mb-4 { margin-bottom: 16px; }
-.card-title { display: flex; justify-content: space-between; align-items: center; }
+
+.card-container {
+  width: 100%;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.card-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .toolbar { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
 .field { display: flex; align-items: center; }
 .field-label { margin-right: 8px; color: rgba(0, 0, 0, 0.88); white-space: nowrap; }
@@ -791,4 +1213,100 @@ export default defineComponent({
 .slot-night { background: #722ed1; }
 .status-ok { color: #52c41a; font-weight: 500; }
 .status-ban { color: #ff4d4f; font-weight: 500; }
+
+/* 表格容器关键修复 */
+.table-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+}
+
+.table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.compact-table {
+  min-width: 100%;
+  table-layout: fixed;
+}
+
+.compact-table :deep(.ant-table) {
+  font-size: 12px;
+}
+
+.compact-table :deep(.ant-table-thead > tr > th) {
+  padding: 6px 4px;
+  background-color: #fafafa;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compact-table :deep(.ant-table-tbody > tr > td) {
+  padding: 6px 4px;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.schedule-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+}
+
+.schedule-item {
+  line-height: 1.2;
+  color: #666;
+  display: flex;
+  align-items: center;
+}
+
+.schedule-item .label {
+  color: #999;
+  margin-right: 2px;
+  min-width: 28px;
+}
+
+.empty-text {
+  color: #999;
+  font-style: italic;
+  font-size: 11px;
+}
+
+.reason-text {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.time-text {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.status-tag {
+  font-size: 11px;
+  padding: 0 4px;
+  line-height: 18px;
+}
 </style>

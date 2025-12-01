@@ -8,10 +8,13 @@ export interface TodayScheduleItem {
   scheduleDate: string; // YYYY-MM-DD
   timeSlot: number; // 1=上午 2=下午 3=晚上
   usedQuota?: number;
+  maxQuota?: number;
   status?: number; // 1有效 0停用
   roomNumber?: string;
   createTime?: string;
   updateTime?: string;
+  doctorName?: string;
+  deptName?: string;
 }
 
 // key=YYYY-MM-DD, value=当日排班时段列表

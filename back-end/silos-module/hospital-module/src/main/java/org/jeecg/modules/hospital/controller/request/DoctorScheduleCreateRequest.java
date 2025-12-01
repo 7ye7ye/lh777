@@ -23,6 +23,12 @@ public class DoctorScheduleCreateRequest {
     @Schema(description = "备注", example = "专家门诊")
     private String remark;
 
+    @Schema(description = "诊室号", example = "A101")
+    private String roomNumber;
+
+    @Schema(description = "最大号源数量", example = "50")
+    private Integer maxQuota;
+
     public Long getDoctorId() { return doctorId; }
     public void setDoctorId(Long doctorId) { this.doctorId = doctorId; }
     public Long getDeptId() { return deptId; }
@@ -35,4 +41,10 @@ public class DoctorScheduleCreateRequest {
     public void setSlots(Integer slots) { this.slots = slots; }
     public String getRemark() { return remark; }
     public void setRemark(String remark) { this.remark = remark; }
+
+    public String getRoomNumber() { return roomNumber; }
+    public void setRoomNumber(String roomNumber) { this.roomNumber = roomNumber; }
+
+    public Integer getMaxQuota() { return maxQuota; }
+    public void setMaxQuota(Integer maxQuota) { this.maxQuota = maxQuota; }
 }

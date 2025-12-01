@@ -115,6 +115,14 @@
           </view>
           <text class="menu-arrow">›</text>
         </view>
+
+        <view class="menu-item" @click="goToLeaveApplication">
+          <view class="menu-left">
+            <text class="menu-icon">📝</text>
+            <text class="menu-label">申请请假</text>
+          </view>
+          <text class="menu-arrow">›</text>
+        </view>
       </view>
     </view>
 

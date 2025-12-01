@@ -9,6 +9,8 @@ export interface DoctorSchedule {
   scheduleDate: string;
   timeSlot: number; // 1-上午, 2-下午, 3-晚上
   usedQuota?: number;
+  maxQuota?: number;
+  roomNumber?: string;
   status: number;
   createTime?: string;
   updateTime?: string;
@@ -18,8 +20,9 @@ export interface ScheduleListParams {
   doctorId?: number;
   doctorName?: string;
   deptId?: number;
-  startDate?: string;
-  endDate?: string;
+  date?: string;  // 单个日期查询
+  startDate?: string;  // 日期范围查询开始日期
+  endDate?: string;  // 日期范围查询结束日期
   current?: number;
   size?: number;
 }
@@ -31,6 +34,8 @@ export interface ScheduleCreateRequest {
   shift: string;
   slots: number;
   remark?: string;
+  roomNumber?: string;
+  maxQuota?: number;
 }
 
 export interface ScheduleUpdateRequest {
@@ -39,20 +44,18 @@ export interface ScheduleUpdateRequest {
   deptId?: number;
   date?: string;
   shift?: string;
+  timeSlot?: number; // 1-上午, 2-下午, 3-晚上
   slots?: number;
   bookedSlots?: number;
   status?: number;
   remark?: string;
+  roomNumber?: string;
+  maxQuota?: number;
 }
 
 // 获取医生排班列表
 export const getScheduleList = (params: ScheduleListParams) =>
-  defHttp.get<{
-    records: DoctorSchedule[];
-    total: number;
-    current: number;
-    size: number;
-  }>({
+  defHttp.get<DoctorSchedule[]>({
     url: '/admin/schedule/list',
     params,
   });
@@ -81,6 +84,13 @@ export const updateSchedule = (data: ScheduleUpdateRequest) =>
 export const deleteSchedule = (scheduleId: number) =>
   defHttp.delete<boolean>({
     url: `/admin/schedule/${scheduleId}`,
+  });
+
+// 获取可用诊室（随机分配）
+export const getAvailableRoom = (params: { date: string; timeSlot: number }) =>
+  defHttp.get<string>({
+    url: '/admin/schedule/available-room',
+    params,
   });
 
 // Excel导入排班数据
