@@ -16,7 +16,7 @@
 				</view>
 			</view>
 		</view>
-		
+
 		<view v-else class="empty-container">
 			<image class="empty-icon" src="/static/empty_message.png" mode="aspectFit"></image>
 			<text class="empty-text">暂无任何消息</text>
@@ -57,12 +57,12 @@
 				const userInfo = uni.getStorageSync('userInfo');
 				console.log('=== getUserId 调试 ===');
 				console.log('userInfo:', userInfo);
-				
+
 				if (userInfo && userInfo.userId) {
 					console.log('✅ 方式1成功: userInfo.userId =', userInfo.userId);
 					return userInfo.userId;
 				}
-				
+
 				// 方式2: 如果userInfo结构不同，尝试其他字段
 				// 根据后端返回的实际字段调整，可能是 id、user_id、userId 等
 				if (userInfo && userInfo.id) {
@@ -73,12 +73,12 @@
 					console.log('✅ 方式2成功: userInfo.user_id =', userInfo.user_id);
 					return userInfo.user_id;
 				}
-				
+
 				// 方式3: 开发测试阶段，如果未登录，使用测试ID（生产环境应删除）
 				console.warn('⚠️ 方式3: 未找到登录用户信息，使用测试ID');
 				return '262'; // 对应你的账号 24301018（hos_user表中的user_id=262）
 			},
-			
+
 			// 根据消息类型返回对应的图标
 			getMessageIcon(messageType) {
 				switch(messageType) {
@@ -98,7 +98,7 @@
 						return '/static/info_message.png';
 				}
 			},
-			
+
 			// 根据消息类型返回分类标签
 			getMessageCategory(messageType) {
 				switch(messageType) {
@@ -118,7 +118,7 @@
 						return '系统消息';
 				}
 			},
-			
+
 			getMessageSummary(message) {
 				if (!message) return '';
 				switch(message.messageType) {
@@ -134,7 +134,7 @@
 						return message.title;
 				}
 			},
-			
+
 			// 根据消息类型返回标题样式类
 			getMessageTitleClass(messageType) {
 				switch(messageType) {
@@ -152,40 +152,40 @@
 						return '';
 				}
 			},
-			
+
 			// 从后端接口获取消息列表
 			fetchMessageList() {
 				if (this.loading) return;
 				this.loading = true;
-				
+
 				// 获取当前登录用户的ID
 				let userId = this.getCurrentUserId();
 				console.log('📤 准备请求消息列表, userId =', userId);
-				
+
 				if (!userId) {
 					uni.showToast({ title: '请先登录', icon: 'none' });
 					this.loading = false;
 					return;
 				}
-				
+
 				// 这里的IP地址和端口需要换成你后端项目运行的实际地址
 				// 不要使用 localhost 或 127.0.0.1，而要使用你电脑的局域网IP 校园网：10.61.62.249
 				const apiUrl = 'http://10.61.192.131:8095/jeecg-boot/api/messages/list';
 				const requestUrl = `${apiUrl}?userId=${userId}`;
 				console.log('📤 请求URL:', requestUrl);
-				
+
 				uni.request({
 					url: requestUrl,
 					method: 'GET',
 					header: {
 							// 'X-Access-Token' 是 jeecg-boot 框架默认的 Token 键名
 							// 'token' 是您调用 uni.setStorageSync 存入时的键名，请确保一致
-							'X-Access-Token': uni.getStorageSync('token') 
+							'X-Access-Token': uni.getStorageSync('token')
 						},
 					success: (res) => {
 						console.log('📥 API响应状态码:', res.statusCode);
 						console.log('📥 API响应数据:', res.data);
-						
+
 						if (res.statusCode === 200) {
 							this.messageList = res.data;
 							console.log('📋 消息列表长度:', this.messageList ? this.messageList.length : 0);
@@ -204,14 +204,14 @@
 					}
 				});
 			},
-			
+
 			// 跳转到消息详情页（传递单条消息ID）
 			goToDetail(messageId) {
 				uni.navigateTo({
 					url: `/subpkg/messages/detail?messageId=${messageId}`
 				});
 			},
-			
+
 			// 格式化时间函数
 			formatTime(dateTimeStr) {
 				if (!dateTimeStr) return '';
@@ -270,7 +270,7 @@
 		color: #333;
 		font-weight: bold;
 	}
-	
+
 	/* 提醒消息标题样式 */
 	.card-title.title-reminder {
 		color: #ff9900;
@@ -280,12 +280,12 @@
 	.card-title.title-onehour {
 		color: #ff4d4f;
 	}
-	
+
 	/* 候补成功标题样式 */
 	.card-title.title-waiting {
 		color: #2f8df6;
 	}
-	
+
 	/* 取消消息标题样式 */
 	.card-title.title-cancel {
 		color: #999;

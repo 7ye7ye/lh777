@@ -10,6 +10,7 @@ import org.jeecg.modules.hospital.entity.DoctorProfileUpdateRequest;
 import org.jeecg.modules.hospital.mapper.DoctorProfileUpdateRequestMapper;
 import org.jeecg.modules.hospital.service.DoctorProfileUpdateRequestService;
 import org.jeecg.modules.hospital.service.DoctorService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
@@ -25,6 +26,27 @@ public class DoctorProfileUpdateRequestServiceImpl
 
     @Resource
     private DoctorService doctorService;
+
+    @Value("${jeecg.domainUrl:http://127.0.0.1:8095}")
+    private String domainUrl;
+
+    /**
+     * 构建完整的图片 URL
+     * @param relativePath 相对路径，如 doctor-avatar/xxx.jpg
+     * @return 完整的 URL，如 http://127.0.0.1:8095/jeecg-boot/sys/common/static/doctor-avatar/xxx.jpg
+     */
+    private String buildFullImageUrl(String relativePath) {
+        if (relativePath == null || relativePath.isEmpty()) {
+            return null;
+        }
+        // 如果已经是完整 URL，直接返回
+        if (relativePath.startsWith("http://") || relativePath.startsWith("https://")) {
+            return relativePath;
+        }
+        // 构建完整 URL
+        String cleanPath = relativePath.startsWith("/") ? relativePath.substring(1) : relativePath;
+        return domainUrl + "/jeecg-boot/sys/common/static/" + cleanPath;
+    }
 
     @Override
     public void createRequest(Long doctorId, String avatar, String specialty, String doctorDesc) {
@@ -57,8 +79,12 @@ public class DoctorProfileUpdateRequestServiceImpl
                     if (doctor != null) {
                         req.setDoctorName(doctor.getDoctorName());
                         if (req.getAvatar() == null) {
-                            req.setAvatar(doctor.getAvatar());
+                            req.setAvatar(buildFullImageUrl(doctor.getAvatar()));
+                        } else {
+                            req.setAvatar(buildFullImageUrl(req.getAvatar()));
                         }
+                    } else if (req.getAvatar() != null) {
+                        req.setAvatar(buildFullImageUrl(req.getAvatar()));
                     }
                 }
             }
@@ -83,8 +109,12 @@ public class DoctorProfileUpdateRequestServiceImpl
                     if (doctor != null) {
                         req.setDoctorName(doctor.getDoctorName());
                         if (req.getAvatar() == null) {
-                            req.setAvatar(doctor.getAvatar());
+                            req.setAvatar(buildFullImageUrl(doctor.getAvatar()));
+                        } else {
+                            req.setAvatar(buildFullImageUrl(req.getAvatar()));
                         }
+                    } else if (req.getAvatar() != null) {
+                        req.setAvatar(buildFullImageUrl(req.getAvatar()));
                     }
                 }
             }

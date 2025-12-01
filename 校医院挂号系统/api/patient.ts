@@ -73,6 +73,10 @@ addPatient: (data: CreateCardRequest) => u.post('/create', data),
 updatePatient: (data: UpdateCardRequest) => u.put('/update', data),
 deletePatient: (data: { userId: number; patientId: number }) => u.post('/delete', data),
 
+// 身份认证相关
+applyIdentity: (data: { patientId: number; studentId?: string; staffId?: string; identityPhoto: string }) =>
+  u.post('/identity/apply', data),
+
 // 健康档案相关
 getHealthProfile: (data: { patientId: number }) => u.post('/health/get', data),
 updateHealthProfile: (data: HealthProfileRequest) => u.post('/health/update', data)

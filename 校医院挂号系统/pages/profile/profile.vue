@@ -88,6 +88,10 @@
           <image class="icon" src="/static/evaluate.svg" />
           <text>就诊评价</text>
         </view>
+        <view class="profile-item" @click="goToIdentityVerify">
+          <image class="icon" src="/static/privacy.svg" />
+          <text>身份认证</text>
+        </view>
       </view>
     </view>
 
@@ -206,6 +210,11 @@ const goToComplain = createAuthHandler(
 const goToEvaluate = createAuthHandler(
   AUTH_REQUIRED_FEATURES.PROFILE.SETTINGS,
   '/subpkg/profile/settings/evaluate'
+)
+
+const goToIdentityVerify = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.SETTINGS,
+  '/subpkg/profile/personal/identity-verify'
 )
 
 const goToUnbind = createAuthHandler(

@@ -267,6 +267,12 @@
 					"style": {
 						"navigationBarTitleText": "其他"
 					}
+				},
+				{
+				  "path": "personal/identity-verify",
+				  "style": {
+					"navigationBarTitleText": "身份认证"
+				  }
 				}
 			]
 		},
