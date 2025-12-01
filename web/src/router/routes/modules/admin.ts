@@ -70,7 +70,7 @@ const admin: AppRouteModule = {
           component: () => import('/@/views/admin/management/referral/ReferralHistory.vue'),
           meta: {
             // 如需仅保留一个菜单页面，可隐藏该菜单入口
-            title: t('routes.admin.referralHistory'),
+            title: 'routes.admin.referralHistory',
             ignoreAuth: true,
             hideMenu: true,
           },

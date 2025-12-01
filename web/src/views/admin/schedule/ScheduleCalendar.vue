@@ -149,20 +149,7 @@ export default defineComponent({
       }
     }
 
-    function fillMock() {
-      const start = calendarValue.value.startOf('month');
-      const end = calendarValue.value.endOf('month');
-      const m: MonthScheduleMap = {};
-      let d = start.clone();
-      while (d.isBefore(end) || d.isSame(end, 'day')) {
-        const key = d.format('YYYY-MM-DD');
-        const rand = Math.random();
-        const slots: number[] = rand < 0.33 ? [1] : rand < 0.66 ? [2] : [3];
-        m[key] = slots.map((s) => ({ timeSlot: s }));
-        d = d.add(1, 'day');
-      }
-      monthMap.value = m;
-    }
+    // 已移除fillMock函数，不再使用模拟数据，只显示真实的数据库数据
 
     async function reload() {
       const year = calendarValue.value.year();
@@ -175,6 +162,7 @@ export default defineComponent({
           }
           const data = await listMonthlyScheduleByDoctor({ doctorId: doctorId.value, year, month });
           monthMap.value = data || {};
+          console.log('按医生查询排班数据:', { doctorId: doctorId.value, year, month, data, monthMap: monthMap.value });
         } else {
           if (!deptId.value) {
             message.warning('请选择科室');
@@ -182,13 +170,16 @@ export default defineComponent({
           }
           const data = await listMonthlyScheduleByDept({ deptId: deptId.value, year, month });
           monthMap.value = data || {};
+          console.log('按科室查询排班数据:', { deptId: deptId.value, year, month, data, monthMap: monthMap.value });
         }
+        // 移除fillMock()调用，显示真实的数据库数据（即使为空）
         if (!monthMap.value || Object.keys(monthMap.value).length === 0) {
-          fillMock();
+          message.info('该时间段暂无排班数据');
         }
       } catch (e) {
         console.error('加载排班数据失败:', e);
-        fillMock();
+        message.error('加载排班数据失败: ' + (e as any)?.message || '未知错误');
+        monthMap.value = {}; // 出错时清空数据，不显示模拟数据
       }
     }
 

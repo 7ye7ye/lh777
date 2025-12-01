@@ -325,11 +325,11 @@
           <a-form-item label="诊室">
             <a-input
               v-model:value="scheduleForm.roomNumber"
-              placeholder="留空则系统随机分配"
-              :disabled="!editingSchedule"
+              placeholder="留空则系统自动分配（保持原楼层）"
+              allow-clear
             />
-            <div v-if="!editingSchedule" style="color: #999; font-size: 12px; margin-top: 4px;">
-              系统将自动随机分配一个可用诊室
+            <div style="color: #999; font-size: 12px; margin-top: 4px;">
+              {{ editingSchedule ? '留空则系统自动分配，保持原楼层不变（如：门诊101 → 门诊104）' : '系统将自动随机分配一个可用诊室' }}
             </div>
           </a-form-item>
           <a-form-item label="状态">
@@ -351,7 +351,7 @@ import { message, Modal } from 'ant-design-vue';
 import { PlusOutlined } from '@ant-design/icons-vue';
 import dayjs, { Dayjs } from 'dayjs';
 import { getDepartmentList } from '/@/api/hospital/department';
-import { listSchedulesByDate, type TodayScheduleItem } from '/@/api/hospital/scheduleView';
+import { listSchedulesByDate, type TodayScheduleItem, getDoctorsByDeptFromSchedule } from '/@/api/hospital/scheduleView';
 import { useGo } from '/@/hooks/web/usePage';
 import { getDoctorList } from '/@/api/hospital/doctor';
 import { createSchedule, updateSchedule, deleteSchedule, getAvailableRoom } from '/@/api/hospital/schedule';
@@ -650,53 +650,25 @@ export default defineComponent({
       }
 
       try {
-        // 调用API获取该科室的医生列表，设置较大的pageSize以获取所有医生
-        const response = await getDoctorList({
-          deptId: Number(filters.deptId),
-          isActive: 1, // 只获取启用的医生
-          pageNum: 1,
-          pageSize: 1000 // 设置较大的值以获取所有医生
-        });
+        // 从doctor_schedule表中获取该科室有排班记录的医生列表
+        const list = await getDoctorsByDeptFromSchedule(Number(filters.deptId));
 
-        // 处理API返回的数据结构：后端返回的是 IPage<Map<String, Object>>，即 { records: [...], total: ... }
-        let list: any[] = [];
-        if (response) {
-          if (Array.isArray(response)) {
-            // 直接是数组
-            list = response;
-          } else if (response.records && Array.isArray(response.records)) {
-            // 分页数据格式：{ records: [...], total: ... }
-            list = response.records;
-          } else if (response.list && Array.isArray(response.list)) {
-            list = response.list;
-          } else if (response.data && Array.isArray(response.data)) {
-            list = response.data;
-          } else if (response.result) {
-            // Result格式：{ result: { records: [...] } } 或 { result: [...] }
-            if (Array.isArray(response.result)) {
-              list = response.result;
-            } else if (response.result.records && Array.isArray(response.result.records)) {
-              list = response.result.records;
-            }
-          }
-        }
-
-        // 从doctor表中提取医生姓名，确保显示doctorName字段
-        doctorOptions.value = list
+        // 处理返回的医生列表
+        doctorOptions.value = (Array.isArray(list) ? list : [])
           .filter((d: any) => {
             // 过滤掉没有姓名的数据，并确保有有效的doctorId
-            return d && (d.doctorName || d.name) && (d.doctorId || d.id);
+            return d && d.doctorName && d.doctorId;
           })
           .map((d: any) => ({
-            label: d.doctorName || d.name || '未知医生',
-            value: d.doctorId || d.id || 0
+            label: d.doctorName || '未知医生',
+            value: d.doctorId || 0
           }))
           .filter((item: any) => item.value > 0) // 再次过滤掉无效的ID
           .sort((a, b) => a.label.localeCompare(b.label, 'zh-CN')); // 按姓名排序（支持中文）
 
-        console.log('加载医生列表成功，科室ID:', filters.deptId, '医生数量:', doctorOptions.value.length);
+        console.log('从doctor_schedule表加载医生列表成功，科室ID:', filters.deptId, '医生数量:', doctorOptions.value.length);
         if (doctorOptions.value.length === 0) {
-          message.info('该科室暂无医生');
+          message.info('该科室在排班表中暂无医生');
         }
       } catch (error: any) {
         console.error('加载医生列表失败:', error);
@@ -1094,7 +1066,7 @@ export default defineComponent({
           // 创建排班 - 需要随机分配诊室
           let roomNumber = scheduleForm.roomNumber;
           if (!roomNumber) {
-            // 调用后端接口获取可用诊室
+            // 调用后端接口获取可用诊室（创建新排班时，没有原诊室号）
             try {
               roomNumber = await getAvailableRoom({
                 date: dateStr,
@@ -1102,9 +1074,8 @@ export default defineComponent({
               });
             } catch (error) {
               console.error('获取可用诊室失败，使用默认值:', error);
-              // 如果后端接口不存在，使用简单的随机分配
-              const rooms = ['A-101', 'A-102', 'A-103', 'A-104', 'A-105', 'B-201', 'B-202'];
-              roomNumber = rooms[Math.floor(Math.random() * rooms.length)];
+              // 如果后端接口不存在，使用默认值
+              roomNumber = '门诊101';
             }
           }
 

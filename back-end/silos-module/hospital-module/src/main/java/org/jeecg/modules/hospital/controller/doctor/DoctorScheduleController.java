@@ -163,6 +163,7 @@ public class DoctorScheduleController {
     // ------------------- 辅助方法 -------------------
 
     // DoctorScheduleController.toDTOList 辅助方法
+    // 优先使用数据库doctor_schedule表中的实际数据
     private List<ScheduleDTO> toDTOList(List<DoctorSchedule> list) {
         List<ScheduleDTO> res = new ArrayList<>();
         for (DoctorSchedule s : list) {
@@ -170,18 +171,43 @@ public class DoctorScheduleController {
             dto.setId(s.getScheduleId() == null ? 0L : s.getScheduleId());
             dto.setDate(s.getScheduleDate() == null ? "" : s.getScheduleDate().toString());
             dto.setTimeRange(mapSlotToTimeRange(s.getTimeSlot()));
-            dto.setRoomNo(s.getRoomNumber() == null ? mapSlotToRoomNo(s.getTimeSlot()) : s.getRoomNumber());
-            int total = (s.getMaxQuota() == null ? defaultTotalSlots(s.getTimeSlot()) : s.getMaxQuota());
-            // 安全统计：云库异常时回退 usedQuota，避免前端全挂
-            int booked;
-            try {
-                booked = (s.getScheduleId() == null)
-                    ? 0
-                    : registrationRecordMapper.countActiveByScheduleId(s.getScheduleId());
-            } catch (Exception ex) {
-                booked = s.getUsedQuota() == null ? 0 : s.getUsedQuota();
-            }
+            
+            // 优先使用数据库doctor_schedule表中的room_number字段
+            // 如果数据库值为空，才使用默认值
+            String roomNo = s.getRoomNumber() != null && !s.getRoomNumber().isEmpty() 
+                ? s.getRoomNumber() 
+                : mapSlotToRoomNo(s.getTimeSlot());
+            dto.setRoomNo(roomNo);
+            log.debug("[toDTOList] scheduleId={}, roomNumber from DB={}, final roomNo={}", 
+                s.getScheduleId(), s.getRoomNumber(), roomNo);
+            
+            // 优先使用数据库doctor_schedule表中的max_quota字段
+            // 如果数据库值为空，才使用默认值
+            int total = (s.getMaxQuota() != null && s.getMaxQuota() > 0) 
+                ? s.getMaxQuota() 
+                : defaultTotalSlots(s.getTimeSlot());
             dto.setTotalSlots(total);
+            log.debug("[toDTOList] scheduleId={}, maxQuota from DB={}, final totalSlots={}", 
+                s.getScheduleId(), s.getMaxQuota(), total);
+            
+            // 优先使用数据库doctor_schedule表中的used_quota字段
+            // 如果数据库值为空，才尝试从registration_record表统计
+            int booked;
+            if (s.getUsedQuota() != null) {
+                booked = s.getUsedQuota();
+                log.debug("[toDTOList] scheduleId={}, usedQuota from DB={}", s.getScheduleId(), booked);
+            } else {
+                try {
+                    booked = (s.getScheduleId() == null)
+                        ? 0
+                        : registrationRecordMapper.countActiveByScheduleId(s.getScheduleId());
+                    log.debug("[toDTOList] scheduleId={}, usedQuota from registration_record={}", s.getScheduleId(), booked);
+                } catch (Exception ex) {
+                    booked = 0;
+                    log.warn("[toDTOList] scheduleId={}, failed to count from registration_record, using 0", s.getScheduleId());
+                }
+            }
+            
             dto.setBookedCount(booked);
             res.add(dto);
         }

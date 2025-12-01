@@ -87,7 +87,7 @@ export const deleteSchedule = (scheduleId: number) =>
   });
 
 // 获取可用诊室（随机分配）
-export const getAvailableRoom = (params: { date: string; timeSlot: number }) =>
+export const getAvailableRoom = (params: { date: string; timeSlot: number; originalRoomNumber?: string }) =>
   defHttp.get<string>({
     url: '/admin/schedule/available-room',
     params,
