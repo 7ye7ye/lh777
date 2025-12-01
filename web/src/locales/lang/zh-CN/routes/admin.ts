@@ -16,7 +16,6 @@ export default {
   doctorRegister: '医生注册',
   doctorProfileUpdateApproval:'医生资料修改审批',
   PatientldentityApproval:'患者身份认证',
-  doctorProfileUpdateApproval: '医生资料修改审批',
   referralReview: '转诊审核',
   referralHistory: '转诊记录',
 };
