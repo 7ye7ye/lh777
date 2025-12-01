@@ -127,11 +127,11 @@ enum Api {
 
 // 获取医生列表函数
 export const getDoctorList = (params?: {
-  doctorName?: string;
+  keyword?: string; // 后端API使用keyword参数搜索医生姓名或专长
   deptId?: number | undefined;
   title?: string | undefined;
   isActive?: number | undefined;
-  pageNum?: number;
+  pageNo?: number; // 后端API使用pageNo参数
   pageSize?: number;
 }) => {
   return defHttp.get<any>({
