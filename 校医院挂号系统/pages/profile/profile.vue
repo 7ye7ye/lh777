@@ -2,10 +2,15 @@
   <view class="profile-bg">
   <view class="profile-header">
       <view class="profile-info">
-        <image class="avatar" src="/static/profile.svg" mode="aspectFill"></image>
+        <image 
+          class="avatar" 
+          :src="avatarError || !cardInfo.identityPhoto ? '/static/profile.svg' : cardInfo.identityPhoto" 
+          mode="aspectFill"
+          @error="onAvatarError"
+        ></image>
         <view class="user-info">
-          <text class="user-name">{{ userInfo.name || '微信用户' }}</text>
-          <text class="user-phone">{{ userInfo.phone || '*************' }}</text>
+          <text class="user-name">{{ cardInfo.patientName || userInfo.name || '微信用户' }}</text>
+          <text class="user-phone">{{ cardInfo.phone || userInfo.phone || '*************' }}</text>
         </view>
       </view>
       <template v-if="!isLoggedIn">
@@ -16,7 +21,7 @@
       </template>
     </view>
 
-    <view class="profile-section card centered centered-down">
+    <view class="profile-section card centered centered-down first-card">
       <view class="profile-row">
         <view class="profile-item" @click="goToMyCard">
           <image class="icon icon-lg" src="/static/card.svg" />
@@ -33,7 +38,7 @@
       </view>
     </view>
 
-    <view class="profile-section card">
+    <view class="profile-section card record-section">
       <view class="section-title">就诊记录</view>
       <view class="profile-row">
         <view class="profile-item" @click="goToRegisterRecord">
@@ -69,7 +74,7 @@
       </view>
     </view>
 
-    <view class="profile-section card">
+    <view class="profile-section card other-section">
       <view class="section-title">其他</view>
       <view class="profile-row">
         <view class="profile-item" @click="goToPrivacy">
@@ -101,15 +106,19 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { userApi } from '@/api/user'
 import { useUserStore } from '@/store/user'
 import { uniShowToast, uniSwitchTab, uniNavigateTo } from '@/utils/uniHelper'
 import LoginPrompt from '@/components/LoginPrompt.vue'
 import { AUTH_REQUIRED_FEATURES, createAuthHandler } from '@/utils/auth'
+import { patientApi } from '@/api/patient'
 
 const userInfo = ref({})
+const cardInfo = ref({})
 const userStore = useUserStore()
 const isLoggedIn = computed(() => !!userStore.isLoggedIn)
+const avatarError = ref(false)
 
 // 获取用户信息
 const getUserInfo = () => {
@@ -267,8 +276,132 @@ const handleLogout = async () => {
   }
 }
 
+// 获取就诊卡信息
+const loadCardInfo = async () => {
+  try {
+    userStore.initFromStorage()
+    const userId = userStore.userInfo?.userId
+    if (!userId) {
+      console.log('未获取到用户ID，无法加载就诊卡信息')
+      cardInfo.value = {}
+      return
+    }
+    
+    // 重置头像错误状态
+    resetAvatarError()
+    
+    console.log('开始获取就诊卡信息，userId:', userId)
+    const res = await patientApi.getCard({ userId })
+    console.log('个人主页获取到的就诊卡API响应:', res)
+    
+    // 处理不同的响应格式
+    let cardData = null
+    if (res && res.patientId) {
+      // 如果返回的直接是就诊卡数据对象（响应拦截器已处理）
+      cardData = res
+    } else if (res && res.code === 200 && res.data) {
+      // 如果返回的是 {code: 200, data: {...}} 格式（响应拦截器未处理）
+      cardData = res.data
+    } else if (res && res.data && res.data.patientId) {
+      // 如果返回的是 {data: {...}} 格式
+      cardData = res.data
+    }
+    
+    if (cardData && cardData.patientId) {
+      // 先保留所有原始数据
+      const mappedData = { ...cardData }
+      
+      // 统一字段映射，确保覆盖所有可能的字段名（包括下划线和驼峰命名）
+      // 基础标识
+      mappedData.patientId = cardData.patientId || cardData.patient_id || mappedData.patientId || null
+      
+      // 姓名（多种可能的字段名）
+      mappedData.patientName = cardData.patientName || cardData.patient_name || cardData.name || mappedData.patientName || ''
+      
+      // 电话号码（多种可能的字段名）
+      mappedData.phone = cardData.phone || cardData.phoneNumber || cardData.phone_number || mappedData.phone || ''
+      
+      // 性别
+      mappedData.gender = cardData.gender || mappedData.gender || ''
+      
+      // 出生日期
+      mappedData.birthDate = cardData.birthDate || cardData.birth_date || cardData.birthday || cardData.birthDay || mappedData.birthDate || ''
+      
+      // 年龄
+      mappedData.age = cardData.age || mappedData.age || null
+      
+      // 身份证号
+      mappedData.idCard = cardData.idCard || cardData.id_card || cardData.idCardNumber || cardData.id_card_number || mappedData.idCard || ''
+      
+      // 处理认证照片URL
+      if (cardData.identityPhoto || cardData.identity_photo) {
+        const photoPath = cardData.identityPhoto || cardData.identity_photo
+        // 构建完整图片URL
+        if (!photoPath.startsWith('http://') && !photoPath.startsWith('https://')) {
+          // 相对路径，需要构建完整URL
+          mappedData.identityPhoto = buildImageUrl(photoPath)
+        } else {
+          mappedData.identityPhoto = photoPath
+        }
+      }
+      
+      // 确保 patientName 有值
+      if (!mappedData.patientName || mappedData.patientName === '') {
+        mappedData.patientName = '未知'
+      }
+      
+      // 直接赋值，确保响应式更新
+      cardInfo.value = { ...mappedData }
+      
+      console.log('就诊卡信息已设置:', JSON.parse(JSON.stringify(cardInfo.value)))
+      console.log('患者姓名:', cardInfo.value.patientName)
+      console.log('电话号码:', cardInfo.value.phone)
+      console.log('认证照片:', cardInfo.value.identityPhoto)
+    } else {
+      console.log('未获取到有效就诊卡数据，API响应:', res)
+      cardInfo.value = {}
+    }
+  } catch (error) {
+    console.error('获取就诊卡信息失败:', error)
+    cardInfo.value = {}
+  }
+}
+
+// 构建图片URL
+const buildImageUrl = (relativePath) => {
+  if (!relativePath) return ''
+  const baseURL = uni.getStorageSync('BASE_URL') || 'http://localhost:8095'
+  const apiPrefix = uni.getStorageSync('API_PREFIX') || '/jeecg-boot'
+  const cleanPrefix = apiPrefix.endsWith('/') ? apiPrefix.slice(0, -1) : apiPrefix
+  const cleanPath = relativePath.replace(/^\/+/, '')
+  return `${baseURL}${cleanPrefix}/sys/common/static/${encodeURI(cleanPath)}`
+}
+
+// 头像加载错误处理
+const onAvatarError = (e) => {
+  console.error('头像加载失败:', e)
+  avatarError.value = true
+}
+
+// 在加载卡片信息时重置头像错误状态
+const resetAvatarError = () => {
+  avatarError.value = false
+}
+
 onMounted(() => {
   getUserInfo()
+  // 延迟加载就诊卡信息，确保用户信息已初始化
+  setTimeout(() => {
+    loadCardInfo()
+  }, 300)
+})
+
+onShow(() => {
+  // 每次页面显示时重新加载用户信息和就诊卡信息
+  getUserInfo()
+  setTimeout(() => {
+    loadCardInfo()
+  }, 200)
 })
 </script>
 
@@ -285,7 +418,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24rpx 32rpx 16rpx 32rpx;
+  padding: 18rpx 32rpx 4rpx 32rpx;
   flex-shrink: 0;
   background: linear-gradient(180deg, #e6f4ff 0%, #cce7ff 100%);
 }
@@ -335,10 +468,26 @@ onMounted(() => {
 .card {
   background: #fff;
   border-radius: 20rpx;
-  margin: 20rpx 32rpx 0 32rpx;
-  padding: 28rpx 0;
+  margin: 0 32rpx;
+  padding: 14rpx 0;
   box-shadow: 0 4rpx 20rpx rgba(58, 156, 255, 0.15);
   flex-shrink: 0;
+}
+
+.card.first-card {
+  margin-top: 60rpx;
+  padding-top: 16rpx;
+  padding-bottom: 14rpx;
+}
+
+.card.record-section {
+  margin-top: 48rpx;
+  padding: 14rpx 0;
+}
+
+.card.other-section {
+  margin-top: 48rpx;
+  padding: 14rpx 0;
 }
 .profile-section {
   display: flex;
@@ -350,12 +499,12 @@ onMounted(() => {
   justify-content: center;
 }
 .profile-section.centered-down {
-  padding-top: 8rpx;
+  padding-top: 0;
 }
 .section-title {
   font-size: 30rpx;
   font-weight: 600;
-  margin: 0 0 24rpx 32rpx;
+  margin: 0 0 16rpx 32rpx;
   color: #1a4d80;
 }
 .profile-row {
@@ -367,7 +516,7 @@ onMounted(() => {
   padding: 0 32rpx;
 }
 .profile-row:not(:last-child) {
-  margin-bottom: 24rpx;
+  margin-bottom: 18rpx;
 }
 .profile-item {
   flex: 1;
@@ -375,10 +524,10 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20rpx 16rpx;
+  padding: 14rpx 12rpx;
   border-radius: 16rpx;
   transition: all 0.3s ease;
-  min-height: 120rpx;
+  min-height: 112rpx;
 }
 
 .profile-item:active {
@@ -386,17 +535,17 @@ onMounted(() => {
   transform: scale(0.96);
 }
 .icon {
-  width: 80rpx;
-  height: 80rpx;
-  margin-bottom: 16rpx;
+  width: 88rpx;
+  height: 88rpx;
+  margin-bottom: 14rpx;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .icon-lg {
-  width: 88rpx;
-  height: 88rpx;
-  margin-bottom: 16rpx;
+  width: 96rpx;
+  height: 96rpx;
+  margin-bottom: 14rpx;
 }
 .profile-item text {
   display: block;
@@ -409,8 +558,10 @@ onMounted(() => {
   font-weight: 500;
 }
 .tabbar-placeholder {
-  height: 0;
+  height: 16rpx;
   flex-shrink: 0;
+  margin: 0;
+  padding: 0;
 }
 
 /* 退出登录按钮样式 */

@@ -16,6 +16,7 @@ export default {
   doctorRegister: 'Doctor Registration',
   doctorProfileUpdateApproval: 'Doctor Profile Update Approval',
   PatientldentityApproval:"Patient ldentity Approval",
+  PatientldentityApproval: 'Patient Identity Approval',
   referralReview: 'Referral Review',
   referralHistory: 'Referral Records',
 };
