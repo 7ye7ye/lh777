@@ -1,6 +1,15 @@
 {
 	"pages": [
 		{
+			"path": "pages/notice/agreement",
+			"style": {
+				"navigationBarTitleText": "挂号须知",
+				"navigationStyle": "custom",
+				"navigationBarBackgroundColor": "#0a1f3f",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
 			"path": "pages/home/home",
 			"style": {
 				"navigationBarTitleText": "首页"

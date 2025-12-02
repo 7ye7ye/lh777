@@ -17,19 +17,14 @@
               />
             </a-col>
             <a-col :span="6">
-              <a-select
+              <a-tree-select
                 v-model:value="searchForm.deptId"
+                :tree-data="departmentTreeData"
                 placeholder="选择科室"
                 allow-clear
-              >
-                <a-select-option
-                  v-for="dept in departmentOptions"
-                  :key="dept.deptId"
-                  :value="dept.deptId"
-                >
-                  {{ dept.deptName }}
-                </a-select-option>
-              </a-select>
+                tree-default-expand-all
+                style="width: 100%"
+              />
             </a-col>
             <a-col :span="6">
               <a-select
@@ -119,6 +114,9 @@
     <a-modal
       v-model:visible="doctorModalVisible"
       :title="modalTitle"
+      width="720px"
+      :body-style="{ padding: '32px', maxHeight: '75vh', overflowY: 'auto' }"
+      centered
       @ok="handleModalSubmit"
       @cancel="handleModalCancel"
       cancelText="取消"
@@ -127,23 +125,21 @@
       <a-form
         :model="doctorForm"
         :rules="formRules"
-        :label-col="{ span: 6 }"
-        :wrapper-col="{ span: 18 }"
+        layout="vertical"
         ref="formRef"
+        class="edit-form"
       >
         <a-form-item label="医生姓名" name="doctorName">
           <a-input v-model:value="doctorForm.doctorName" placeholder="请输入医生姓名" />
         </a-form-item>
         <a-form-item label="所属科室" name="deptId">
-          <a-select v-model:value="doctorForm.deptId" placeholder="请选择科室">
-            <a-select-option
-              v-for="dept in departmentOptions"
-              :key="dept.deptId"
-              :value="dept.deptId"
-            >
-              {{ dept.deptName }}
-            </a-select-option>
-          </a-select>
+          <a-tree-select
+            v-model:value="doctorForm.deptId"
+            :tree-data="departmentTreeData"
+            placeholder="请选择科室"
+            tree-default-expand-all
+            style="width: 100%"
+          />
         </a-form-item>
         <a-form-item label="医生职称" name="title">
           <a-select v-model:value="doctorForm.title" placeholder="请选择职称">
@@ -200,6 +196,7 @@ import type { ColumnsType } from 'ant-design-vue/es/table';
 import { PlusOutlined, SearchOutlined, ReloadOutlined, DownOutlined, DeleteOutlined, UserOutlined } from '@ant-design/icons-vue';
 import { getDepartmentList } from '/@/api/hospital/department';
 import type { Department } from '/@/api/hospital/department';
+import { convertDepartmentsToTree, type DepartmentTreeNode } from '/@/utils/departmentHelper';
 import { getDoctorList, createDoctor, updateDoctor, deleteDoctor, batchDeleteDoctors, getDoctorDetail, registerDoctorAccount } from '/@/api/hospital/doctor';
 import type { Doctor, RegisterDoctorParams } from '/@/api/hospital/doctor';
 
@@ -215,6 +212,8 @@ const pagination = reactive<PaginationProps>({
   showSizeChanger: true,
   showQuickJumper: true,
   showTotal: (total) => `共 ${total} 条数据`,
+  // 确保分页控件显示所有可用页码
+  showLessItems: false,
 });
 
 // 搜索表单
@@ -227,6 +226,8 @@ const searchForm = reactive({
 
 // 科室选项
 const departmentOptions = ref<Department[]>([]);
+// 科室树形数据
+const departmentTreeData = ref<DepartmentTreeNode[]>([]);
 
 // 模态框相关
 const doctorModalVisible = ref(false);
@@ -355,10 +356,14 @@ async function fetchDepartments() {
       deptId: Number(dept.deptId),
       deptName: dept.deptName || '未知科室'
     }));
+    
+    // 转换为树形结构
+    departmentTreeData.value = convertDepartmentsToTree(departmentOptions.value);
   } catch (error) {
     console.error('获取科室列表失败:', error);
     message.error('获取科室列表失败');
     departmentOptions.value = [];
+    departmentTreeData.value = [];
   }
 }
 
@@ -378,7 +383,7 @@ async function fetchDoctorList() {
   try {
     // 构建查询参数，确保使用正确的字段名
     const params = {
-      pageNum: pagination.current,
+      pageNo: pagination.current,
       pageSize: pagination.pageSize,
       // 支持所有四个搜索条件
       doctorName: searchForm.doctorName || undefined,
@@ -451,7 +456,9 @@ async function fetchDoctorList() {
       }
       
       doctorList.value = records;
-      pagination.total = records.length;
+      // 使用服务器返回的 total 字段，而不是筛选后的记录数
+      // 这样分页控件才能正确显示所有页码
+      pagination.total = response.total ?? response.records?.length ?? 0;
     } else {
       console.warn('API响应格式不符合预期:', response);
       doctorList.value = [];
@@ -749,5 +756,51 @@ onMounted(() => {
 
 :deep(.ant-btn-danger:hover) {
   color: #ff7875;
+}
+
+/* 编辑表单样式优化 */
+.edit-form {
+  max-width: 100%;
+}
+
+.edit-form :deep(.ant-form-item) {
+  margin-bottom: 24px;
+}
+
+.edit-form :deep(.ant-form-item-label) {
+  padding-bottom: 8px;
+}
+
+.edit-form :deep(.ant-input),
+.edit-form :deep(.ant-select-selector),
+.edit-form :deep(.ant-input-number),
+.edit-form :deep(.ant-picker) {
+  border-radius: 6px;
+}
+
+.edit-form :deep(.ant-form-item-label > label) {
+  font-weight: 500;
+  color: #333;
+  font-size: 14px;
+}
+
+/* 上传组件优化 */
+.edit-form :deep(.ant-upload-list-picture-card) {
+  margin: 0;
+}
+
+.edit-form :deep(.ant-upload-select-picture-card) {
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+}
+
+/* 文本域优化 */
+.edit-form :deep(.ant-input) {
+  padding: 8px 12px;
+}
+
+.edit-form :deep(.ant-input-number) {
+  width: 100%;
 }
 </style>

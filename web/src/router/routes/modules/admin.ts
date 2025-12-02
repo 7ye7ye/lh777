@@ -192,7 +192,7 @@ const admin: AppRouteModule = {
       name: 'AdminStatistics',
       component: () => import('/@/views/admin/report/Statistics.vue'),
       meta: {
-        title: t('routes.admin.statistics'),
+        title: '数据统计',
         ignoreAuth: true,
       },
     },
@@ -201,7 +201,7 @@ const admin: AppRouteModule = {
       name: 'AdminReportExport',
       component: () => import('/@/views/admin/report/ReportExport.vue'),
       meta: {
-        title: t('routes.admin.reportExport'),
+        title: '报表生成',
         ignoreAuth: true,
       },
     },

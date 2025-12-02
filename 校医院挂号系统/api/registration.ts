@@ -123,43 +123,40 @@ interface Result<T = any> {
   result?: T;
 }
 
+const getTimeSlotLabel = (slot?: number) => {
+  if (slot === 1) return '上午';
+  if (slot === 2) return '下午';
+  if (slot === 3) return '晚上';
+  return '';
+};
+
 export const getScheduleDetailById = async (scheduleId: number) => {
   try {
-    // 类型断言 Result<ScheduleDetail>
     const res = await request.get('/schedule/detail', { scheduleId }) as Result<ScheduleDetail>;
 
-    if (res?.result) {
-      const schedule = res.result;
-      let timeSlotText = '';
-      switch (schedule.time_slot) {
-        case 1:
-          timeSlotText = '上午';
-          break;
-        case 2:
-          timeSlotText = '下午';
-          break;
-        case 3:
-          timeSlotText = '晚上';
-          break;
-      }
-
-      return {
-        scheduleDate: schedule.schedule_date,
-        timeSlot: timeSlotText,
-        roomNumber: schedule.room_number,
-        deptId: schedule.dept_id,
-        doctorId: schedule.doctor_id,
-        typeId: schedule.type_id
-      };
+    if (!res?.result) {
+      return null;
     }
 
-    return {};
+    const schedule = res.result;
+    const slotLabel = getTimeSlotLabel(schedule.time_slot);
+
+    return {
+      ...schedule,
+      scheduleDate: schedule.schedule_date,
+      timeSlot: schedule.time_slot,
+      timeSlotValue: schedule.time_slot,
+      timeSlotText: slotLabel,
+      timeSlotLabel: slotLabel,
+      roomNumber: schedule.room_number,
+      deptId: schedule.dept_id,
+      doctorId: schedule.doctor_id,
+      typeId: schedule.type_id
+    };
   } catch (error) {
     console.error('获取排班详情失败:', error);
-    return {};
+    return null;
   }
-  
-  
 };
 
 /**
