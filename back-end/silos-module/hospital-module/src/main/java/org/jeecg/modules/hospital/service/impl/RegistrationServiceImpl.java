@@ -339,8 +339,7 @@ public class RegistrationServiceImpl implements RegistrationService {
         RegistrationDetailDTO detail = registrationMapper.selectRegistrationDetail(newRecord.getRecordId());
         String waitingUserId = resolveUserIdForDetail(detail, promotedPatient);
         if (detail != null) {
-            // 补位成功视为一次正式挂号，补发预约成功通知
-            createSuccessMessage(detail, waitingUserId);
+            // 补位成功只发送候补成功通知，避免与预约成功重复
             createWaitingSuccessMessage(detail, first, waitingUserId);
             // 候补转正后同样需要补建提醒，沿用正常挂号的判断逻辑
             appointmentReminderTask.checkAndCreateImmediateReminder(detail);
