@@ -420,4 +420,11 @@ public class DoctorAdminController {
         
         return Result.OK(stats);
     }
+
+    @Operation(summary = "按科室查询医生")
+    @GetMapping("/list/by-department")
+    public Result<List<Doctor>> listByDepartment(@RequestParam("departmentId") Long departmentId) {
+        List<Doctor> doctors = doctorService.getDoctorsByDeptId(departmentId);
+        return Result.OK(doctors);
+    }
 }
