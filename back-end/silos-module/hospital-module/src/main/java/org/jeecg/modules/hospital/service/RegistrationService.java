@@ -2,9 +2,7 @@ package org.jeecg.modules.hospital.service;
 
 import org.jeecg.common.api.vo.Result;
 import org.jeecg.modules.hospital.dto.RegistrationDetailDTO;
-import org.jeecg.modules.hospital.entity.RegistrationRecord;
-import org.jeecg.modules.hospital.entity.RegistrationType;
-import org.jeecg.modules.hospital.entity.WaitingQueue;
+import org.jeecg.modules.hospital.entity.*;
 import org.jeecg.modules.hospital.vo.RegistrationVO;
 
 import java.util.List;
@@ -77,5 +75,25 @@ public interface RegistrationService {
      * @return 挂号详情
      */
     RegistrationDetailDTO getRegistrationDetail(Long recordId);
+
+
+    /**
+     * 根据排班ID获取科室ID
+     * @param scheduleId 排班ID
+     * @return 科室ID
+     */
+    Long getDepartmentIdBySchedule(Long scheduleId);
+
+    /**
+     * 根据排班ID获取排班详情
+     */
+    DoctorSchedule getScheduleDetailById(Long scheduleId);
+
+    /**
+     * 根据患者ID获取患者详情
+     * @param patientId 患者ID
+     * @return 患者详情（包含基本信息、账户信息等）
+     */
+    Patient getPatientDetailById(Long patientId);
 
 }

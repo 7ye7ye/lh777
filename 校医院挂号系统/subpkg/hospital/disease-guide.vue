@@ -37,7 +37,6 @@
           <view class="group-header">
             <text class="group-icon">{{ group.icon }}</text>
             <text class="group-title">{{ group.title }}</text>
-            <text class="group-count">{{ group.items.length }}种</text>
           </view>
           <view class="group-items">
             <view 
@@ -52,7 +51,6 @@
               </view>
               <view class="item-right">
                 <text class="dept-tag">{{ item.dept }}</text>
-                <text class="arrow">›</text>
               </view>
             </view>
           </view>
@@ -102,6 +100,9 @@
         </view>
       </view>
     </scroll-view>
+    
+    <!-- 底部占位，避免内容被遮挡 -->
+    <view class="tabbar-placeholder"></view>
   </view>
 </template>
 
@@ -154,8 +155,8 @@ const diseaseData = ref([
       { name: '支气管炎', desc: '支气管黏膜炎症', dept: '呼吸内科', deptId: 11, keywords: ['支气管炎', '气管炎', '慢性咳嗽'] },
       { name: '肺炎', desc: '肺部感染性疾病', dept: '呼吸内科', deptId: 11, keywords: ['肺炎', '肺部感染', '呼吸困难'] },
       { name: '哮喘', desc: '慢性气道炎症', dept: '呼吸内科', deptId: 11, keywords: ['哮喘', '气喘', '喘息', '呼吸急促'] },
-      { name: '咽喉炎', desc: '咽喉部炎症', dept: '口腔科', deptId: 51, keywords: ['咽喉炎', '嗓子疼', '咽痛', '喉咙痛'] },
-      { name: '扁桃体炎', desc: '扁桃体发炎', dept: '口腔科', deptId: 51, keywords: ['扁桃体炎', '扁桃体发炎', '咽扁桃体'] }
+      { name: '咽喉炎', desc: '咽喉部炎症', dept: '耳鼻喉科', deptId: 307, keywords: ['咽喉炎', '嗓子疼', '咽痛', '喉咙痛', '耳鼻喉问题'] },
+      { name: '扁桃体炎', desc: '扁桃体发炎', dept: '耳鼻喉科', deptId: 307, keywords: ['扁桃体炎', '扁桃体发炎', '咽扁桃体', '耳鼻喉问题'] }
     ]
   },
   {
@@ -225,11 +226,15 @@ const diseaseData = ref([
     icon: '👁️',
     title: '眼耳鼻喉疾病',
     items: [
-      { name: '近视、远视', desc: '视力问题', dept: '口腔科', deptId: 51, keywords: ['近视', '远视', '视力下降', '看不清'] },
-      { name: '结膜炎', desc: '结膜发炎', dept: '口腔科', deptId: 51, keywords: ['结膜炎', '红眼病', '眼睛红'] },
-      { name: '中耳炎', desc: '中耳发炎', dept: '口腔科', deptId: 51, keywords: ['中耳炎', '耳朵疼', '流脓'] },
-      { name: '鼻炎、鼻窦炎', desc: '鼻部炎症', dept: '口腔科', deptId: 51, keywords: ['鼻炎', '鼻窦炎', '鼻塞', '流鼻涕'] },
-      { name: '耳鸣', desc: '耳内有声音', dept: '口腔科', deptId: 51, keywords: ['耳鸣', '耳朵响', '听力下降'] },
+      { name: '近视、远视', desc: '视力问题', dept: '眼科', deptId: 306, keywords: ['近视', '远视', '视力下降', '看不清', '眼部不适'] },
+      { name: '结膜炎', desc: '结膜发炎', dept: '眼科', deptId: 306, keywords: ['结膜炎', '红眼病', '眼睛红', '眼部不适'] },
+      { name: '干眼症', desc: '眼部干涩不适', dept: '眼科', deptId: 306, keywords: ['干眼症', '眼睛干', '眼部不适', '眼疲劳'] },
+      { name: '角膜炎', desc: '角膜发炎', dept: '眼科', deptId: 306, keywords: ['角膜炎', '眼睛疼', '眼部不适', '畏光'] },
+      { name: '中耳炎', desc: '中耳发炎', dept: '耳鼻喉科', deptId: 307, keywords: ['中耳炎', '耳朵疼', '流脓', '耳鼻喉问题'] },
+      { name: '鼻炎、鼻窦炎', desc: '鼻部炎症', dept: '耳鼻喉科', deptId: 307, keywords: ['鼻炎', '鼻窦炎', '鼻塞', '流鼻涕', '耳鼻喉问题'] },
+      { name: '过敏性鼻炎', desc: '过敏引起的鼻部炎症', dept: '耳鼻喉科', deptId: 307, keywords: ['过敏性鼻炎', '打喷嚏', '鼻塞', '流鼻涕', '耳鼻喉问题'] },
+      { name: '鼻出血', desc: '鼻腔出血', dept: '耳鼻喉科', deptId: 307, keywords: ['鼻出血', '流鼻血', '耳鼻喉问题'] },
+      { name: '耳鸣', desc: '耳内有声音', dept: '耳鼻喉科', deptId: 307, keywords: ['耳鸣', '耳朵响', '听力下降', '耳鼻喉问题'] },
       { name: '口腔溃疡', desc: '口腔黏膜溃疡', dept: '口腔科', deptId: 52, keywords: ['口腔溃疡', '口腔溃疡', '嘴巴疼'] }
     ]
   },
@@ -311,24 +316,27 @@ const selectDisease = (item) => {
 <style scoped>
 .disease-guide-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #f0f7ff 0%, #ffffff 30%);
+  background: linear-gradient(180deg, #f5f7fa 0%, #f0f3f6 100%);
+  padding-bottom: 120rpx;
+  box-sizing: border-box;
 }
 
 .search-header {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: #fff;
-  padding: 24rpx 32rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+  background: linear-gradient(135deg, #4a90e2 0%, #6ec6ff 100%);
+  padding: 32rpx;
+  box-shadow: 0 4rpx 12rpx rgba(74, 144, 226, 0.2);
 }
 
 .search-box {
   display: flex;
   align-items: center;
-  background: #f5f7fa;
+  background: rgba(255, 255, 255, 0.95);
   border-radius: 48rpx;
-  padding: 20rpx 32rpx;
+  padding: 24rpx 32rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
 }
 
 .search-icon {
@@ -340,12 +348,18 @@ const selectDisease = (item) => {
   flex: 1;
   font-size: 28rpx;
   color: #333;
+  margin-left: 12rpx;
+}
+
+.search-input::placeholder {
+  color: #999;
 }
 
 .category-tabs {
   background: #fff;
   padding: 24rpx 0;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid #e0e6ed;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
 }
 
 .tabs-scroll {
@@ -364,7 +378,8 @@ const selectDisease = (item) => {
 }
 
 .tab-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #4a90e2 0%, #6ec6ff 100%);
+  box-shadow: 0 4rpx 12rpx rgba(74, 144, 226, 0.3);
 }
 
 .tab-icon {
@@ -384,19 +399,23 @@ const selectDisease = (item) => {
 }
 
 .disease-list {
-  height: calc(100vh - 280rpx);
-  padding: 24rpx 32rpx;
+  min-height: calc(100vh - 280rpx);
+  padding: 32rpx;
+  box-sizing: border-box;
 }
 
 .disease-group {
   margin-bottom: 48rpx;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .group-header {
   display: flex;
   align-items: center;
   margin-bottom: 24rpx;
-  padding: 0 8rpx;
+  padding: 16rpx 0;
 }
 
 .group-icon {
@@ -408,27 +427,26 @@ const selectDisease = (item) => {
   flex: 1;
   font-size: 32rpx;
   font-weight: bold;
-  color: #333;
+  color: #1f2d3d;
 }
 
-.group-count {
-  font-size: 24rpx;
-  color: #999;
-}
 
 .group-items {
   background: #fff;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
   overflow: hidden;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
+  margin-bottom: 32rpx;
 }
 
 .disease-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 32rpx 24rpx;
-  border-bottom: 1rpx solid #f5f5f5;
-  transition: all 0.2s;
+  padding: 32rpx 28rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+  transition: all 0.3s ease;
+  position: relative;
 }
 
 .disease-item:last-child {
@@ -436,7 +454,7 @@ const selectDisease = (item) => {
 }
 
 .disease-item:active {
-  background: #f8f9fa;
+  background: linear-gradient(90deg, rgba(74, 144, 226, 0.05) 0%, rgba(110, 198, 255, 0.05) 100%);
 }
 
 .item-left {
@@ -447,41 +465,42 @@ const selectDisease = (item) => {
 .item-name {
   display: block;
   font-size: 30rpx;
-  font-weight: 500;
-  color: #333;
+  font-weight: 600;
+  color: #1f2d3d;
   margin-bottom: 8rpx;
 }
 
 .item-desc {
   display: block;
   font-size: 24rpx;
-  color: #999;
+  color: #666;
+  line-height: 1.5;
 }
 
 .item-right {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .dept-tag {
   font-size: 24rpx;
-  color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
-  padding: 8rpx 16rpx;
-  border-radius: 8rpx;
-  margin-right: 8rpx;
-}
-
-.arrow {
-  font-size: 48rpx;
-  color: #ccc;
-  font-weight: 300;
+  color: #4a90e2;
+  background: linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, rgba(110, 198, 255, 0.1) 100%);
+  padding: 12rpx 24rpx;
+  border-radius: 24rpx;
+  font-weight: 500;
+  border: 1rpx solid rgba(74, 144, 226, 0.2);
+  white-space: nowrap;
+  margin-left: 16rpx;
 }
 
 .search-results {
   background: #fff;
-  border-radius: 16rpx;
-  padding: 24rpx;
+  border-radius: 20rpx;
+  padding: 32rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
+  margin-bottom: 32rpx;
 }
 
 .result-header {
@@ -496,7 +515,8 @@ const selectDisease = (item) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 120rpx 0;
+  padding: 160rpx 32rpx;
+  text-align: center;
 }
 
 .empty-icon {
@@ -517,11 +537,13 @@ const selectDisease = (item) => {
 }
 
 .tips-card {
-  background: linear-gradient(135deg, #fef5e7 0%, #fff9e6 100%);
-  border-radius: 16rpx;
-  padding: 24rpx;
-  margin-top: 32rpx;
-  margin-bottom: 32rpx;
+  background: linear-gradient(135deg, rgba(255, 248, 220, 0.8) 0%, rgba(255, 251, 230, 0.8) 100%);
+  border-radius: 20rpx;
+  padding: 32rpx;
+  margin-top: 40rpx;
+  margin-bottom: 40rpx;
+  border: 1rpx solid rgba(255, 193, 7, 0.2);
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
 }
 
 .tips-header {
@@ -551,6 +573,11 @@ const selectDisease = (item) => {
   color: #8b5a2b;
   line-height: 40rpx;
   margin-bottom: 8rpx;
+}
+
+.tabbar-placeholder {
+  height: 120rpx;
+  width: 100%;
 }
 </style>
 

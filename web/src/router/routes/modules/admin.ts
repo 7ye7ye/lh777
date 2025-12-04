@@ -55,6 +55,27 @@ const admin: AppRouteModule = {
             ignoreAuth: true,
           },
         },
+        {
+          path: 'referral/manage',
+          name: 'AdminReferralManagement',
+          component: () => import('/@/views/admin/management/ReferralManagement.vue'),
+          meta: {
+            // 统一为“转诊管理”页面，包含列表与审核
+            title: '转诊管理',
+            ignoreAuth: true,
+          },
+        },
+        {
+          path: 'referral/history',
+          name: 'AdminReferralHistory',
+          component: () => import('/@/views/admin/management/referral/ReferralHistory.vue'),
+          meta: {
+            // 如需仅保留一个菜单页面，可隐藏该菜单入口
+            title: t('routes.admin.referralHistory'),
+            ignoreAuth: true,
+            hideMenu: true,
+          },
+        },
       ],
     },
     {
@@ -154,11 +175,24 @@ const admin: AppRouteModule = {
       },
     },
     {
+      path: 'add-number-source', // 路由路径（唯一，建议语义化）
+      name: 'AdminAddNumberSource', // 路由名称（唯一，格式与现有一致）
+      component: () => import('/@/views/admin/schedule/AddNumberSource.vue'), // 新增的页面组件
+      meta: {
+        title: '新增号源', // 左侧栏显示的菜单名称
+        ignoreAuth: true,
+        // 可选配置：图标（与现有风格一致，用 ionicons 图标）
+        icon: 'ion:add-circle-outline',
+        // 可选配置：排序（orderNo 控制左侧栏显示顺序，比 schedule-adjustment 大则在后面）
+        orderNo: 11,
+      },
+    },
+    {
       path: 'statistics',
       name: 'AdminStatistics',
       component: () => import('/@/views/admin/report/Statistics.vue'),
       meta: {
-        title: t('routes.admin.statistics'),
+        title: '数据统计',
         ignoreAuth: true,
       },
     },
@@ -167,7 +201,7 @@ const admin: AppRouteModule = {
       name: 'AdminReportExport',
       component: () => import('/@/views/admin/report/ReportExport.vue'),
       meta: {
-        title: t('routes.admin.reportExport'),
+        title: '报表生成',
         ignoreAuth: true,
       },
     },
@@ -213,6 +247,15 @@ const admin: AppRouteModule = {
       component: () => import('/@/views/admin/access/LeaveApproval.vue'),
       meta: {
         title: t('routes.admin.leaveApproval'),
+        ignoreAuth: true,
+      },
+    },
+    {
+      path: 'patient-identity-approval',
+      name: 'AdminPatientIdentityApproval',
+      component: () => import('/@/views/admin/patient/PatientIdentityApproval.vue'),
+      meta: {
+        title: 'routes.admin.PatientldentityApproval',
         ignoreAuth: true,
       },
     },

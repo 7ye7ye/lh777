@@ -99,6 +99,84 @@ export const cancelRegistration = async (recordId: number) => {
   return request.post(`/cancel?recordId=${recordId}`);
 };
 
+/**
+ * 根据排班ID获取科室ID
+ * @param scheduleId 排班ID
+ */
+export const getDepartmentIdBySchedule = async (scheduleId: number) => {
+  return request.get('/schedule/department', { scheduleId });
+};
+
+interface ScheduleDetail {
+  schedule_id: number;
+  doctor_id: number;
+  dept_id: number;
+  type_id?: number;
+  schedule_date: string;
+  time_slot: number;
+  room_number: string;
+}
+
+interface Result<T = any> {
+  code: number;
+  message: string;
+  result?: T;
+}
+
+const getTimeSlotLabel = (slot?: number) => {
+  if (slot === 1) return '上午';
+  if (slot === 2) return '下午';
+  if (slot === 3) return '晚上';
+  return '';
+};
+
+export const getScheduleDetailById = async (scheduleId: number) => {
+  try {
+    const res = await request.get('/schedule/detail', { scheduleId }) as Result<ScheduleDetail>;
+
+    if (!res?.result) {
+      return null;
+    }
+
+    const schedule = res.result;
+    const slotLabel = getTimeSlotLabel(schedule.time_slot);
+
+    return {
+      ...schedule,
+      scheduleDate: schedule.schedule_date,
+      timeSlot: schedule.time_slot,
+      timeSlotValue: schedule.time_slot,
+      timeSlotText: slotLabel,
+      timeSlotLabel: slotLabel,
+      roomNumber: schedule.room_number,
+      deptId: schedule.dept_id,
+      doctorId: schedule.doctor_id,
+      typeId: schedule.type_id
+    };
+  } catch (error) {
+    console.error('获取排班详情失败:', error);
+    return null;
+  }
+};
+
+/**
+ * 根据患者ID获取患者详情
+ * @param patientId 患者ID
+ */
+export const getPatientDetailById = async (patientId: number) => {
+  try {
+    const res = await request.get('/patient/detail', { patientId }) as Result<any>;
+    return res?.result ?? null;
+  } catch (error) {
+    console.error('获取患者详情失败:', error);
+    return null;
+  }
+};
+
+
+
+
+
 
 
 

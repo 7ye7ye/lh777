@@ -10,44 +10,65 @@
       <image src="/static/hospitalpicture.png" mode="aspectFill" style="width: 100%; height: 100%; border-radius: 12rpx;" />
     </view>
     <view class="visit-card card" @click="onVisitCardClick">
-      <view class="visit-left">
-        <view class="weather">周晴晴  女  20岁</view>
-        <view class="ecard">电子就诊卡</view>
-        <view class="visit-no">门诊号：M01078965</view>
+      <view class="visit-card-content">
+        <view class="visit-card-left">
+          <view class="patient-basic-info" v-if="cardInfo && cardInfo.patientId">
+            <text class="patient-name">{{ cardInfo.patientName || '未知' }}</text>
+            <text class="patient-gender" v-if="cardInfo.gender">{{ formatGender(cardInfo.gender) }}</text>
+            <text class="patient-age" v-if="cardInfo.birthDate || cardInfo.age">{{ formatAge(cardInfo.birthDate, cardInfo.age) }}岁</text>
+          </view>
+          <view class="patient-basic-info-empty" v-else>
+            <text>点击绑定就诊卡</text>
+          </view>
+          <view class="ecard-label-wrapper">
+            <view class="ecard-label">电子就诊卡</view>
+          </view>
+          <view class="card-number-row" v-if="cardInfo.patientId">
+            <text class="card-number-text">门诊号: {{ cardInfo.outpatientNumber || cardInfo.cardNumber || cardInfo.idCard || '-' }}</text>
+          </view>
+        </view>
+        <view class="visit-card-right">
+          <view class="qrcode-wrapper" v-if="cardInfo.patientId && (cardInfo.outpatientNumber || cardInfo.cardNumber || cardInfo.idCard)">
+            <uqrcode 
+              ref="qrcodeRef"
+              canvas-id="home-qrcode"
+              :value="(cardInfo.outpatientNumber || cardInfo.cardNumber || cardInfo.idCard) || ''" 
+              :size="120"
+              :margin="2"
+              background-color="#FFFFFF"
+              foreground-color="#000000"
+              file-type="png"
+            ></uqrcode>
+          </view>
+          <view class="qrcode-placeholder" v-else>
+            <text class="qrcode-icon">📱</text>
+          </view>
+          <view class="enter-tip">出示就诊码</view>
+        </view>
       </view>
-      <view class="visit-right">
-        <view class="qrcode">📱</view>
-        <view class="enter">出示就诊码</view>
-      </view>
     </view>
-    <view class="bind-tip card">
-      <text class="plus">+</text>
-      <text>首次使用，请绑定就诊人</text>
-    </view>
-    <view class="night-banner">
-      <text>“ 晚间门诊 ” 专栏</text>
-      <button class="night-btn" size="mini">点击进入</button>
-    </view>
+    
+    <!-- 快速功能 -->
     <view class="quick card">
       <view class="quick-grid">
-        <view class="quick-item" @click="goToDiseaseGuide">
-          <view class="quick-icon">📝</view>
-          <text>按疾病挂号</text>
+        <view class="quick-item-large quick-item-blue" @click="goToDiseaseGuide">
+          <view class="quick-item-content">
+            <image class="quick-icon-large" src="/static/disease-booking.svg" mode="aspectFit"></image>
+            <text class="quick-text-large">按疾病挂号</text>
+            <text class="quick-desc">根据症状快速匹配科室</text>
+          </view>
         </view>
-        <view class="quick-item" @click="goToDepartmentBooking">
-          <view class="quick-icon">🏥</view>
-          <text>按科室挂号</text>
-        </view>
-        <view class="quick-item">
-          <view class="quick-icon">📊</view>
-          <text>报告查询</text>
-        </view>
-        <view class="quick-item">
-          <view class="quick-icon">🌐</view>
-          <text>互联网诊疗</text>
+        <view class="quick-item-large quick-item-green" @click="goToDepartmentBooking">
+          <view class="quick-item-content">
+            <image class="quick-icon-large" src="/static/department-booking.svg" mode="aspectFit"></image>
+            <text class="quick-text-large">按科室挂号</text>
+            <text class="quick-desc">选择科室预约就诊</text>
+          </view>
         </view>
       </view>
     </view>
+
+    <!-- 功能标签页 -->
     <view class="home-tabs card">
       <view 
         v-for="(tab, idx) in tabs" 
@@ -57,7 +78,7 @@
         @click="activeIndex = idx"
       >{{ tab }}</view>
     </view>
-    <view class="home-section card">
+    <view class="home-section card" style="margin-top: 0;">
       <view class="home-grid">
         <view 
           v-for="item in currentItems" 
@@ -65,7 +86,10 @@
           class="home-item" 
           @click="onItemClick(item)"
         >
-          <view class="icon">{{ item.icon }}</view>
+          <view class="icon">
+            <image v-if="item.image" :src="item.image" class="icon-image" mode="aspectFit" />
+            <text v-else>{{ item.icon }}</text>
+          </view>
           <text>{{ item.text }}</text>
         </view>
       </view>
@@ -77,68 +101,81 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import LoginPrompt from '@/components/LoginPrompt.vue'
 import { AUTH_REQUIRED_FEATURES, createAuthHandler } from '@/utils/auth'
+import { userApi } from '@/api/user'
+import { useUserStore } from '@/store/user'
+import { uniNavigateTo } from '@/utils/uniHelper'
+import { patientApi } from '@/api/patient'
+import uqrcode from '@/uni_modules/Sansnn-uQRCode/components/uqrcode/uqrcode.vue'
 
-const tabs = ['门诊', '住院', '体检', '其他']
+const tabs = ['门诊', '体检', '其他']
 const activeIndex = ref(0)
 const loginPromptRef = ref(null)
+const userStore = useUserStore()
+const cardInfo = ref({})
+const qrcodeRef = ref(null)
+
+// 监听cardInfo变化，用于调试
+watch(() => cardInfo.value, (newVal) => {
+  console.log('cardInfo变化:', JSON.parse(JSON.stringify(newVal || {})))
+  console.log('patientId:', newVal?.patientId)
+  console.log('patientName:', newVal?.patientName)
+  console.log('gender:', newVal?.gender)
+  console.log('birthDate:', newVal?.birthDate)
+}, { deep: true, immediate: true })
 
 const itemsMap = {
   门诊: [
-    { icon: '🌙', text: '晚间门诊' },
-    { icon: '📅', text: '周末门诊' },
-    { icon: '📋', text: '门诊签到' },
-    { icon: '🧠', text: '心理筛查门诊' },
-    { icon: '🗓️', text: '超声签到' },
-    { icon: '🧾', text: '看结果K号' },
-    { icon: '💴', text: '门诊缴费' },
-    { icon: '🔎', text: '检查预约' },
-    { icon: '🧾', text: '电子发票' },
-    { icon: '📂', text: '电子票夹' },
-    { icon: '🧭', text: '院内导航' },
-    { icon: '📘', text: '门诊服务指南' },
-    { icon: '📝', text: '预约记录' },
-    { icon: '💬', text: '护理咨询' },
-    { icon: '💳', text: '就诊卡余额退款' },
-    { icon: '📚', text: '病史采集' },
-    { icon: '🤖', text: '智能导诊' },
-  ],
-  住院: [
-    { icon: '💳', text: '住院预交' },
-    { icon: '🧾', text: '在院费用查询' },
-    { icon: '🪪', text: '电子陪护证' },
-    { icon: '📄', text: '病案复印' },
-    { icon: '🧾', text: '住院发票清单' },
-    { icon: '📘', text: '住院服务指南' },
-    { icon: '🍱', text: '住院订餐' },
-    { icon: '🧾', text: '订单清单' },
-    { icon: '🍼', text: '出生证预约' },
-    { icon: '🧠', text: '心理筛查住院' },
-    { icon: '📊', text: '满意度调查' },
+    { icon: 'patient', image: '/static/patient.svg', text: '我的就诊人', action: 'goToMyPatient' },
+    { icon: 'register', image: '/static/register.svg', text: '挂号记录', action: 'goToRegisterRecord' },
+    { icon: 'hospital', image: '/static/hospital.svg', text: '就诊记录', action: 'goToHospitalRecord' },
+    { icon: 'referral', image: '/static/referral-record.svg', text: '转诊记录', action: 'goToTransferHistory' },
   ],
   体检: [
-    { icon: '👤', text: '个检预约' },
-    { icon: '👥', text: '团检预约' },
-    { icon: '🗂️', text: '体检报告' },
-    { icon: '🧾', text: '体检订单' },
-    { icon: '🏥', text: '体检中心' },
+    { icon: 'personal-exam', image: '/static/presonal-exam.svg', text: '个检预约' },
+    { icon: 'group-exam', image: '/static/group-exam.svg', text: '团检预约' },
+    { icon: 'exam-report', image: '/static/exam-report.svg', text: '体检报告' },
+    { icon: 'exam-order', image: '/static/exam-order.svg', text: '体检订单' },
+    { icon: 'exam-center', image: '/static/exam-center.svg', text: '体检中心' },
   ],
   其他: [
-    { icon: '📚', text: '健康百科' },
-    { icon: '📣', text: '科普宣教' },
-    { icon: '🆘', text: '帮助与反馈' },
-    { icon: '💴', text: '价目公示' },
-    { icon: '➕', text: '移动随访' },
-    { icon: '🚑', text: '院前急救' },
-    { icon: '💉', text: '惠民复诊' },
+    { icon: 'department', image: '/static/department-introduce.svg', text: '科室介绍', action: 'goDepartments' },
+    { icon: 'doctor', image: '/static/doctor-introduce.svg', text: '专家介绍', action: 'goDoctors' },
+    { icon: 'navigation', image: '/static/inhospital_navigation.svg', text: '院内导航', action: 'goNavigation' },
+    { icon: 'help', image: '/static/help.svg', text: '帮助反馈', action: 'goToHelp' },
   ],
 }
 
 const currentItems = computed(() => itemsMap[tabs[activeIndex.value]] || [])
 
 const onItemClick = (item) => {
+  // 如果有action字段，调用对应的函数
+  if (item.action) {
+    const actionMap = {
+      'goToMyCard': goToMyCard,
+      'goToMyPatient': goToMyPatient,
+      'goToRegisterRecord': goToRegisterRecord,
+      'goToHospitalRecord': goToHospitalRecord,
+      'goToOutpatientRecord': goToOutpatientRecord,
+      'goToTransferHistory': goToTransferHistory,
+      'goToConsultRecord': goToConsultRecord,
+      'goToCheckRecord': goToCheckRecord,
+      'goDepartments': goDepartments,
+      'goDoctors': goDoctors,
+      'goNavigation': goNavigation,
+      'goToHelp': goToHelp,
+    }
+    
+    const actionFunc = actionMap[item.action]
+    if (actionFunc) {
+      actionFunc()
+      return
+    }
+  }
+  
   // 体检功能跳转映射
   const examRoutes = {
     '个检预约': '/subpkg/physical-exam/individual-booking',
@@ -163,19 +200,14 @@ const onItemClick = (item) => {
         })
       }
     })
-  } else {
-    uni.showToast({ title: item.text, icon: 'none' })
   }
+  // 如果没有路由映射也没有action，说明该功能未实现，不显示任何提示
 }
 
 // 跳转到按疾病挂号
 const goToDiseaseGuide = () => {
-  console.log('点击按疾病挂号')
   uni.navigateTo({
     url: '/subpkg/hospital/disease-guide',
-    success: () => {
-      console.log('跳转成功')
-    },
     fail: (err) => {
       console.error('跳转失败:', err)
       uni.showToast({
@@ -188,12 +220,8 @@ const goToDiseaseGuide = () => {
 
 // 跳转到按科室挂号
 const goToDepartmentBooking = () => {
-  console.log('点击按科室挂号')
   uni.navigateTo({
     url: '/subpkg/hospital/department-booking',
-    success: () => {
-      console.log('跳转成功')
-    },
     fail: (err) => {
       console.error('跳转失败:', err)
       uni.showToast({
@@ -204,19 +232,229 @@ const goToDepartmentBooking = () => {
   })
 }
 
+// 使用统一的权限控制创建导航函数
+const goToMyCard = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.MY_CARD,
+  '/subpkg/profile/personal/mycard',
+  { requireCard: true }
+)
+
+const goToMyPatient = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.MY_PATIENT,
+  '/subpkg/profile/personal/mypatient'
+)
+
+const goToRegisterRecord = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.RECORDS,
+  '/subpkg/profile/records/register-record'
+)
+
+const goToOutpatientRecord = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.RECORDS,
+  '/subpkg/profile/records/outpatient-record'
+)
+
+const goToHospitalRecord = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.RECORDS,
+  '/subpkg/profile/records/hospital-record'
+)
+
+const goToConsultRecord = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.RECORDS,
+  '/subpkg/profile/records/consult-record'
+)
+
+const goToCheckRecord = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.RECORDS,
+  '/subpkg/profile/records/check-record'
+)
+
+const goToTransferHistory = () => {
+  uniNavigateTo({ url: '/subpkg/hospital/referral-records' })
+}
+
+const goToHelp = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.PROFILE.SETTINGS,
+  '/subpkg/profile/help/help'
+)
+
+// 医院信息相关功能
+const goDepartments = () => {
+  uni.navigateTo({ url: '/subpkg/hospital/departments' })
+}
+
+const goDoctors = () => {
+  uni.navigateTo({ url: '/subpkg/hospital/doctors' })
+}
+
+const goNavigation = () => {
+  uni.navigateTo({ url: '/subpkg/hospital/navigation' })
+}
+
+
+// 获取就诊卡信息
+const loadCardInfo = async () => {
+  try {
+    userStore.initFromStorage() // 确保从本地存储加载用户信息
+    const userId = userStore.userInfo?.userId
+    if (!userId) {
+      console.log('未获取到用户ID，无法加载就诊卡信息')
+      cardInfo.value = {}
+      return
+    }
+    
+    console.log('开始获取就诊卡信息，userId:', userId)
+    const res = await patientApi.getCard({ userId })
+    console.log('主页获取到的就诊卡API响应:', res)
+    
+    // 响应拦截器可能已经处理了响应，直接使用res
+    // 但如果响应拦截器返回的是{code, data}结构，需要提取data
+    let cardData = null
+    if (res && res.patientId) {
+      // 如果返回的直接是就诊卡数据对象（响应拦截器已处理）
+      cardData = res
+    } else if (res && res.code === 200 && res.data) {
+      // 如果返回的是 {code: 200, data: {...}} 格式（响应拦截器未处理）
+      cardData = res.data
+    } else if (res && res.data && res.data.patientId) {
+      // 如果返回的是 {data: {...}} 格式
+      cardData = res.data
+    }
+    
+    if (cardData && cardData.patientId) {
+      // 先保留所有原始数据
+      const mappedData = { ...cardData }
+      
+      // 然后统一字段映射，确保覆盖所有可能的字段名（包括下划线和驼峰命名）
+      // 基础标识（优先使用驼峰命名）
+      mappedData.patientId = cardData.patientId || cardData.patient_id || mappedData.patientId || null
+      
+      // 姓名（多种可能的字段名，优先使用驼峰命名）
+      mappedData.patientName = cardData.patientName || cardData.patient_name || cardData.name || mappedData.patientName || ''
+      
+      // 性别
+      mappedData.gender = cardData.gender || mappedData.gender || ''
+      
+      // 出生日期（多种可能的字段名）
+      mappedData.birthDate = cardData.birthDate || cardData.birth_date || cardData.birthday || cardData.birthDay || mappedData.birthDate || ''
+      
+      // 年龄
+      mappedData.age = cardData.age || mappedData.age || null
+      
+      // 门诊号（多种可能的字段名）
+      mappedData.outpatientNumber = cardData.outpatientNumber || cardData.outpatient_number || cardData.outpatientNo || cardData.outpatient_no || mappedData.outpatientNumber || ''
+      
+      // 卡号
+      mappedData.cardNumber = cardData.cardNumber || cardData.card_number || cardData.cardNo || cardData.card_no || mappedData.cardNumber || ''
+      
+      // 身份证号
+      mappedData.idCard = cardData.idCard || cardData.id_card || cardData.idCardNumber || cardData.id_card_number || mappedData.idCard || ''
+      
+      // 如果门诊号为空，尝试使用身份证号作为显示
+      if (!mappedData.outpatientNumber && !mappedData.cardNumber && mappedData.idCard) {
+        mappedData.outpatientNumber = mappedData.idCard
+      }
+      
+      // 确保 patientName 有值（如果所有字段都为空，使用默认值）
+      if (!mappedData.patientName || mappedData.patientName === '') {
+        mappedData.patientName = '未知'
+      }
+      
+      // 直接赋值，确保响应式更新（Vue 3 的 ref 需要直接赋值整个对象）
+      cardInfo.value = { ...mappedData }
+      
+      console.log('就诊卡信息已设置:', JSON.parse(JSON.stringify(cardInfo.value)))
+      console.log('cardInfo.patientId:', cardInfo.value.patientId)
+      console.log('患者姓名:', cardInfo.value.patientName)
+      console.log('性别:', cardData.gender, '格式化后:', formatGender(cardData.gender))
+      console.log('年龄:', cardInfo.value.age, '出生日期:', cardInfo.value.birthDate)
+      console.log('门诊号:', cardInfo.value.outpatientNumber || cardInfo.value.cardNumber || cardInfo.value.idCard)
+      
+      // 强制触发响应式更新
+      await nextTick()
+      console.log('DOM更新后，cardInfo.value:', JSON.parse(JSON.stringify(cardInfo.value)))
+      console.log('cardInfo.value.patientId 检查:', cardInfo.value?.patientId)
+      console.log('cardInfo.value.patientName 检查:', cardInfo.value?.patientName)
+    } else {
+      console.log('未获取到有效就诊卡数据，API响应:', res)
+      cardInfo.value = {}
+    }
+  } catch (error) {
+    console.error('获取就诊卡信息失败:', error)
+    cardInfo.value = {}
+  }
+}
+
+// 格式化性别
+const formatGender = (gender) => {
+  if (!gender) return ''
+  const str = String(gender).trim()
+  if (str === '1' || str === '男' || str.toLowerCase() === 'male') return '男'
+  if (str === '2' || str === '女' || str.toLowerCase() === 'female') return '女'
+  return str === '男' || str === '女' ? str : ''
+}
+
+// 格式化年龄
+const formatAge = (birthDate, age) => {
+  if (age) return String(age)
+  if (!birthDate) return ''
+  try {
+    const birth = new Date(birthDate)
+    if (Number.isNaN(birth.getTime())) return ''
+    const now = new Date()
+    let calculatedAge = now.getFullYear() - birth.getFullYear()
+    const monthDiff = now.getMonth() - birth.getMonth()
+    if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
+      calculatedAge -= 1
+    }
+    return calculatedAge >= 0 ? String(calculatedAge) : ''
+  } catch (error) {
+    console.warn('计算年龄失败:', error)
+    return ''
+  }
+}
+
+// 切换就诊人
+const onSwitchPatient = () => {
+  uni.navigateTo({
+    url: '/subpkg/profile/personal/mypatient',
+    fail: (err) => {
+      console.error('跳转失败:', err)
+    }
+  })
+}
+
 // 使用统一的权限控制（需要就诊卡）
 const onVisitCardClick = createAuthHandler(
   AUTH_REQUIRED_FEATURES.HOME.VISIT_CARD,
   '/subpkg/profile/personal/mycard',
   { requireCard: true }
 )
+
+// 初始化用户信息
+onMounted(() => {
+  // 确保用户信息已从存储中恢复
+  userStore.initFromStorage()
+  // 延迟加载，确保用户信息已初始化
+  setTimeout(() => {
+    loadCardInfo()
+  }, 500)
+})
+
+onShow(() => {
+  // 每次显示页面时重新加载就诊卡信息
+  userStore.initFromStorage()
+  setTimeout(() => {
+    loadCardInfo()
+  }, 200)
+})
 </script>
 
 <style scoped>
 .home-bg {
   background: #f8faff;
   min-height: 100vh;
-  padding-bottom: 120rpx;
+  padding-bottom: 0;
 }
 .home-header {
   background: #3a9cff;
@@ -234,6 +472,7 @@ const onVisitCardClick = createAuthHandler(
 .header-icons {
   display: flex;
   align-items: center;
+  gap: 16rpx;
 }
 .header-icon {
   width: 48rpx;
@@ -242,134 +481,373 @@ const onVisitCardClick = createAuthHandler(
   align-items: center;
   justify-content: center;
   font-size: 24rpx;
+  cursor: pointer;
 }
 .banner {
-  width: 100%;
+  width: calc(100% - 48rpx);
   height: 180rpx;
-  margin-bottom: 16rpx;
+  margin: 16rpx 24rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 80rpx;
   background: #f0f0f0;
-  border-radius: 12rpx;
-}
-.bind-tip {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(90deg, #3a9cff 0%, #1de9b6 100%);
-  color: #fff;
-  font-size: 28rpx;
   border-radius: 16rpx;
-  margin: 16rpx 24rpx 0 24rpx;
-  padding: 24rpx 0;
-  font-weight: bold;
-}
-.plus {
-  font-size: 36rpx;
-  margin-right: 16rpx;
-}
-.special-banner {
-  width: 92%;
-  margin: 24rpx 4% 0 4%;
-  border-radius: 16rpx;
-  height: 120rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 60rpx;
-  background: #f0f0f0;
+  overflow: hidden;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
 }
 .visit-card {
+  margin: 16rpx 24rpx 0 24rpx;
+  padding: 32rpx 24rpx;
+  background: linear-gradient(135deg, #e6f4ff 0%, #cce7ff 100%);
+  border-radius: 24rpx;
+  box-shadow: 0 4rpx 20rpx rgba(58, 156, 255, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+.visit-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+  pointer-events: none;
+}
+.visit-card-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 16rpx 24rpx 0 24rpx;
-  padding: 16rpx 24rpx;
+  position: relative;
+  z-index: 1;
 }
-.visit-left .weather { font-size: 26rpx; color: #fff; }
-.visit-left .ecard { margin-top: 8rpx; background: #fff; color: #3a9cff; display: inline-block; padding: 6rpx 12rpx; border-radius: 8rpx; font-size: 24rpx; }
-.visit-left .visit-no { margin-top: 8rpx; color: #fff; font-size: 26rpx; }
-.visit-right { display:flex; flex-direction: column; align-items: center; color:#fff; }
-.visit-right .qrcode { font-size: 48rpx; }
-.visit-right .enter { font-size: 22rpx; margin-top: 6rpx; }
-
-.night-banner {
-  margin: 16rpx 24rpx 0 24rpx;
-  height: 120rpx;
+.visit-card-left {
+  flex: 1;
+  color: #333;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding-left: 40rpx;
+  padding-right: 20rpx;
+}
+.patient-basic-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+  gap: 12rpx;
+  width: 100%;
+  min-height: 50rpx;
+}
+.patient-name {
+  font-size: 44rpx;
+  font-weight: 600;
+  letter-spacing: 1rpx;
+  color: #1a4d80 !important;
+  flex-shrink: 0;
+  line-height: 1.3;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+.patient-gender {
+  font-size: 28rpx;
+  color: #4a7ba7 !important;
+  font-weight: 500;
+  line-height: 1.3;
+  margin-left: 12rpx;
+}
+.patient-age {
+  font-size: 28rpx;
+  color: #4a7ba7 !important;
+  font-weight: 500;
+  line-height: 1.3;
+  margin-left: 8rpx;
+}
+.patient-basic-info-empty {
+  font-size: 26rpx;
+  color: #4a7ba7;
+  opacity: 0.8;
+  margin-bottom: 16rpx;
+}
+.ecard-label-wrapper {
+  margin-bottom: 16rpx;
+}
+.ecard-label {
+  display: inline-block;
+  background: #fff;
+  color: #3a9cff;
+  font-size: 24rpx;
+  font-weight: 500;
+  padding: 10rpx 24rpx;
+  border-radius: 24rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+}
+.card-number-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-top: 0;
+}
+.switch-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  color: #3a9cff;
+  border-radius: 32rpx;
+  padding: 10rpx 24rpx;
+  border: 2rpx solid #3a9cff;
+  flex-shrink: 0;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+}
+.switch-icon {
+  font-size: 24rpx;
+  margin-right: 6rpx;
+}
+.switch-text {
+  font-size: 24rpx;
+  font-weight: 500;
+}
+.card-number-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 6rpx 14rpx;
+  border-radius: 12rpx;
+  flex: 1;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+}
+.card-number-text {
+  font-size: 26rpx;
+  flex: 1;
+  font-weight: 500;
+  color: #4a7ba7 !important;
+}
+.visit-card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #333;
+  margin-left: 20rpx;
+  padding-left: 20rpx;
+  flex-shrink: 0;
+}
+.qrcode-wrapper {
+  width: 140rpx;
+  height: 140rpx;
+  background: #fff;
   border-radius: 16rpx;
-  background: linear-gradient(90deg, #6a00ff 0%, #8a2eff 100%);
+  padding: 10rpx;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 24rpx;
-  color: #fff;
-  font-weight: bold;
+  justify-content: center;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
 }
-.night-btn { background: #fff; color: #6a00ff; border-radius: 999rpx; padding: 8rpx 16rpx; }
+.qrcode-wrapper :deep(uqrcode),
+.qrcode-wrapper :deep(.uqrcode) {
+  width: 120rpx !important;
+  height: 120rpx !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.qrcode-wrapper :deep(canvas),
+.qrcode-wrapper :deep(.uqrcode-canvas) {
+  width: 120rpx !important;
+  height: 120rpx !important;
+  display: block !important;
+}
+.qrcode-placeholder {
+  width: 120rpx;
+  height: 120rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.qrcode-icon {
+  font-size: 60rpx;
+  opacity: 0.7;
+}
+.enter-tip {
+  font-size: 24rpx;
+  margin-top: 14rpx;
+  color: #4a7ba7;
+  opacity: 0.9;
+  text-align: center;
+  font-weight: 500;
+}
 
-.quick .quick-grid { display: flex; }
-.quick-item { width: 25%; display: flex; flex-direction: column; align-items: center; }
-.quick-icon { width: 56rpx; height: 56rpx; display: flex; align-items: center; justify-content: center; font-size: 32rpx; margin-bottom: 8rpx; }
+.quick .quick-grid { 
+  display: flex; 
+  gap: 20rpx;
+  padding: 0 24rpx;
+}
+.quick-item-large { 
+  flex: 1; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center;
+  border-radius: 20rpx;
+  padding: 32rpx 24rpx;
+  box-shadow: 0 8rpx 24rpx rgba(74, 144, 226, 0.25);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.quick-item-blue {
+  background: linear-gradient(135deg, #4a90e2 0%, #6ec6ff 100%);
+  box-shadow: 0 8rpx 24rpx rgba(74, 144, 226, 0.25);
+}
+.quick-item-blue:active {
+  transform: scale(0.98);
+  box-shadow: 0 4rpx 16rpx rgba(74, 144, 226, 0.2);
+}
+.quick-item-green {
+  background: linear-gradient(135deg, #1de9b6 0%, #4caf50 100%);
+  box-shadow: 0 8rpx 24rpx rgba(29, 233, 182, 0.25);
+}
+.quick-item-green:active {
+  transform: scale(0.98);
+  box-shadow: 0 4rpx 16rpx rgba(29, 233, 182, 0.2);
+}
+.quick-item-large::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.quick-item-large:active::before {
+  opacity: 1;
+}
+.quick-item-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 1;
+}
+.quick-icon-large { 
+  width: 80rpx; 
+  height: 80rpx; 
+  margin-bottom: 16rpx;
+  filter: drop-shadow(0 4rpx 8rpx rgba(0,0,0,0.1));
+}
+.quick-text-large {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 8rpx;
+  text-shadow: 0 2rpx 4rpx rgba(0,0,0,0.1);
+}
+.quick-desc {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.9);
+  text-align: center;
+  line-height: 1.4;
+}
 .card {
   background: #fff;
   border-radius: 16rpx;
-  margin: 24rpx 24rpx 0 24rpx;
-  padding: 24rpx 0;
+  margin: 16rpx 24rpx 0 24rpx;
+  padding: 16rpx 0;
   box-shadow: 0 4rpx 16rpx rgba(58,156,255,0.08);
 }
-.home-section {
-  margin-top: 24rpx;
-}
-.home-row {
+.icon {
+  width: 64rpx;
+  height: 64rpx;
+  margin-bottom: 0;
   display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
   align-items: center;
-  margin: 0 0 16rpx 0;
+  justify-content: center;
+  font-size: 36rpx;
+}
+.icon-image {
+  width: 64rpx;
+  height: 64rpx;
+  display: block;
+  filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1));
+}
+.home-section {
+  margin-top: 0;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 .home-grid {
   display: flex;
   flex-wrap: wrap;
+  padding: 8rpx 16rpx;
 }
 .home-item {
   width: 25%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 16rpx 0;
+  margin: 10rpx 0;
+  padding: 10rpx 8rpx;
+  border-radius: 16rpx;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
 }
-.icon {
-  width: 56rpx;
-  height: 56rpx;
-  margin-bottom: 8rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 32rpx;
+.home-item:active {
+  background-color: rgba(58, 156, 255, 0.08);
+  transform: scale(0.95);
+}
+.home-item text {
+  font-size: 24rpx;
+  color: #333;
+  margin-top: 10rpx;
+  text-align: center;
+  line-height: 1.4;
+  font-weight: 500;
+  word-break: break-all;
+  padding: 0 8rpx;
+  box-sizing: border-box;
 }
 .home-tabs {
   display: flex;
   background: #fff;
   border-radius: 16rpx;
-  margin: 24rpx 24rpx 0 24rpx;
+  margin: 16rpx 24rpx 0 24rpx;
   overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(58, 156, 255, 0.08);
+  margin-bottom: 0;
 }
 .tab {
   flex: 1;
   text-align: center;
-  padding: 24rpx 0;
-  font-size: 28rpx;
-  color: #888;
+  padding: 20rpx 0;
+  font-size: 30rpx;
+  color: #666;
+  position: relative;
+  transition: all 0.3s ease;
 }
 .tab.active {
   color: #3a9cff;
-  font-weight: bold;
-  border-bottom: 4rpx solid #3a9cff;
-  background: #f0f8ff;
+  font-weight: 600;
+  background: linear-gradient(to bottom, #f0f8ff, #ffffff);
+}
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60rpx;
+  height: 4rpx;
+  background: linear-gradient(90deg, #3a9cff, #6ec6ff);
+  border-radius: 2rpx;
 }
 .tabbar-placeholder {
-  height: 120rpx;
+  height: 0;
 }
 </style>

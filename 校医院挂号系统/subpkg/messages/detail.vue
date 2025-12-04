@@ -97,7 +97,7 @@
 						return '';
 				}
 			},
-			
+
 			// 根据消息类型返回标题样式类
 			getTitleClass(messageType) {
 				switch(messageType) {
@@ -114,7 +114,7 @@
 						return '';
 				}
 			},
-			
+
 			// 根据消息类型返回显示的标题
 			getDisplayTitle(message) {
 				if (!message) return '';
@@ -125,6 +125,17 @@
 					return '就诊前一小时提醒';
 				}
 				if (message.messageType === 'APPOINTMENT_WAITING_SUCCESS') {
+					// 检查是否为加号场景
+					try {
+						const content = typeof message.content === 'string' 
+							? JSON.parse(message.content) 
+							: message.content;
+						if (content && content.source_type === 'add_quota') {
+							return '加号成功';
+						}
+					} catch (e) {
+						console.warn('解析消息内容失败', e);
+					}
 					return '候补挂号成功';
 				}
 				if (message.messageType === 'APPOINTMENT_WAITING_JOIN') {
@@ -132,23 +143,23 @@
 				}
 				return message.title;
 			},
-			
+
 			isWaitingSuccess(message) {
 				return message && message.messageType === 'APPOINTMENT_WAITING_SUCCESS';
 			},
-			
+
 			isWaitingJoin(message) {
 				return message && message.messageType === 'APPOINTMENT_WAITING_JOIN';
 			},
-			
+
 			isWaitingMessage(message) {
 				return this.isWaitingSuccess(message) || this.isWaitingJoin(message);
 			},
-			
+
 			isCancelMessage(message) {
 				return message && message.messageType === 'APPOINTMENT_CANCEL';
 			},
-			
+
 			shouldShowReceipt(message) {
 				if (!message) return false;
 				if (this.isWaitingJoin(message)) {
@@ -156,24 +167,24 @@
 				}
 				return !!message.appointmentId;
 			},
-			
+
 			fetchMessageDetail() {
 				// 【重要】调用新的单条消息接口
-				const apiUrl = `http://10.61.62.249:8095/jeecg-boot/api/messages/${this.messageId}`;
+				const apiUrl = `http://localhost:8095/jeecg-boot/api/messages/${this.messageId}`;
 				
 				console.log('📤 请求消息详情, messageId =', this.messageId);
 				console.log('📤 请求URL:', apiUrl);
-				
+
 				uni.request({
 					url: apiUrl,
 					method: 'GET',
 					header:{
-						'X-Access-Token': uni.getStorageSync('token') 
+						'X-Access-Token': uni.getStorageSync('token')
 					},
 					success: (res) => {
 						console.log('📥 响应状态码:', res.statusCode);
 						console.log('📥 响应数据:', res.data);
-						
+
 						if (res.statusCode === 200 && res.data) {
 							// 后端返回的 content 是字符串，需要解析成JSON对象
 							let item = res.data;
@@ -202,11 +213,11 @@
 			goToReceipt(appointmentId) {
 				uni.navigateTo({
 					url: `/subpkg/messages/receipt?id=${appointmentId}`
-					
+
 				});
 				// uni.showToast({ title: '即将跳转到挂号回执单', icon: 'none' });
 			},
-			
+
 			// 格式化日期时间
 			formatDateTime(dateTimeStr) {
 				if (!dateTimeStr) return '';
@@ -244,42 +255,42 @@
 		color: #333;
 		margin-bottom: 24rpx;
 	}
-	
+
 	/* 提醒消息标题样式 */
 	.body-title.title-reminder {
 		color: #ff9900;
 	}
-	
+
 	/* 取消消息标题样式 */
 	.body-title.title-cancel {
 		color: #999;
 	}
-	
+
 	/* 一小时前提醒标题样式 */
 	.body-title.title-onehour {
 		color: #ff4d4f;
 	}
-	
+
 	/* 候补成功标题样式 */
 	.body-title.title-waiting {
 		color: #2f8df6;
 	}
-	
+
 	/* 提醒消息卡片样式 */
 	.detail-card.card-reminder {
 		border-left: 4rpx solid #ff9900;
 	}
-	
+
 	/* 一小时前提醒消息卡片样式 */
 	.detail-card.card-onehour {
 		border-left: 4rpx solid #ff4d4f;
 	}
-	
+
 	/* 候补成功卡片样式 */
 	.detail-card.card-waiting {
 		border-left: 4rpx solid #2f8df6;
 	}
-	
+
 	/* 退号卡片样式 */
 	.detail-card.card-cancel {
 		border-left: 4rpx solid #dcdfe6;

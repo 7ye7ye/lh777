@@ -42,7 +42,8 @@ public class DoctorSchedule {
     @TableField("status")
     private Integer status;
 
-    @TableField("room_number")
+    // 数据库尚无 room_number 字段，保留属性仅用于兼容展示，标记为非持久化
+    @TableField(exist = false)
     private String roomNumber;
 
     // 兼容旧字段（非持久化别名）
@@ -95,6 +96,7 @@ public class DoctorSchedule {
     public String getRoomNumber() { return roomNumber; }
     public void setRoomNumber(String roomNumber) { this.roomNumber = roomNumber; }
 
+    // 最大号源，对应表字段 max_quota（需要持久化到数据库）
     @TableField("max_quota")
     private Integer maxQuota;
 
