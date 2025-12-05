@@ -212,6 +212,8 @@ const pagination = reactive<PaginationProps>({
   showSizeChanger: true,
   showQuickJumper: true,
   showTotal: (total) => `共 ${total} 条数据`,
+  // 确保分页控件显示所有可用页码
+  showLessItems: false,
 });
 
 // 搜索表单
@@ -381,7 +383,7 @@ async function fetchDoctorList() {
   try {
     // 构建查询参数，确保使用正确的字段名
     const params = {
-      pageNum: pagination.current,
+      pageNo: pagination.current,
       pageSize: pagination.pageSize,
       // 支持所有四个搜索条件
       doctorName: searchForm.doctorName || undefined,
@@ -454,7 +456,9 @@ async function fetchDoctorList() {
       }
       
       doctorList.value = records;
-      pagination.total = records.length;
+      // 使用服务器返回的 total 字段，而不是筛选后的记录数
+      // 这样分页控件才能正确显示所有页码
+      pagination.total = response.total ?? response.records?.length ?? 0;
     } else {
       console.warn('API响应格式不符合预期:', response);
       doctorList.value = [];

@@ -9,6 +9,7 @@ import org.jeecg.modules.hospital.entity.DoctorSchedule;
 import org.jeecg.modules.hospital.service.DoctorScheduleService;
 import org.jeecg.modules.hospital.service.DoctorService;
 import org.jeecg.modules.hospital.service.HosUserService;
+import org.jeecg.modules.hospital.service.RegistrationService;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 import org.jeecg.common.constant.CommonConstant;
@@ -39,11 +40,16 @@ public class DoctorScheduleController {
     @Resource
     private HosUserService hosUserService;
 
+    @Resource
+    private RegistrationService registrationService;
+
     // 新增：用于实时统计挂号人数
     @Resource
     private org.jeecg.modules.hospital.mapper.RegistrationRecordMapper registrationRecordMapper;
 
     // ------------------- API 接口 -------------------
+
+
 
     @Operation(summary = "获取今日排班")
     @GetMapping("/schedule/today")

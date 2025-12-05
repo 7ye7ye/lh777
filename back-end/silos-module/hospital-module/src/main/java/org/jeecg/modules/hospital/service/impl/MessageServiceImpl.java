@@ -89,18 +89,19 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
             log.info("[checkAndCreateReminders] 找到 {} 条明天的预约记录（所有用户）", allRecords.size());
             
             // 2. 通过预约成功消息来匹配当前用户的预约记录
+            // ⭐ 同时查询正常挂号成功(APPOINTMENT_SUCCESS)和候补转正成功(APPOINTMENT_WAITING_SUCCESS)两种消息类型
             List<RegistrationDetailDTO> records = new java.util.ArrayList<>();
             for (RegistrationDetailDTO detail : allRecords) {
                 String appointmentId = String.valueOf(detail.getRecordId());
-                // 查询该预约的成功消息，看 userId 是否匹配
+                // 查询该预约的成功消息（正常挂号或候补转正），看 userId 是否匹配
                 Message successMsg = baseMapper.selectOne(new LambdaQueryWrapper<Message>()
                     .eq(Message::getAppointmentId, appointmentId)
-                    .eq(Message::getMessageType, "APPOINTMENT_SUCCESS")
+                    .in(Message::getMessageType, "APPOINTMENT_SUCCESS", "APPOINTMENT_WAITING_SUCCESS")
                     .last("limit 1"));
                 
                 if (successMsg != null && userId.equals(successMsg.getUserId())) {
-                    log.info("[checkAndCreateReminders] ✅ 找到匹配的预约: recordId={}, 成功消息中的userId={}, patientUserId={}", 
-                        detail.getRecordId(), successMsg.getUserId(), detail.getPatientUserId());
+                    log.info("[checkAndCreateReminders] ✅ 找到匹配的预约: recordId={}, 成功消息类型={}, 成功消息中的userId={}, patientUserId={}", 
+                        detail.getRecordId(), successMsg.getMessageType(), successMsg.getUserId(), detail.getPatientUserId());
                     records.add(detail);
                 } else {
                     log.debug("[checkAndCreateReminders] 跳过预约: recordId={}, 成功消息userId={}, 当前userId={}", 
@@ -114,13 +115,15 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
                 log.warn("[checkAndCreateReminders] ❌ 未找到当前用户的预约记录");
                 log.warn("[checkAndCreateReminders] 💡 提示：请检查预约成功消息中的 userId 是否为 {}", userIdLong);
                 for (RegistrationDetailDTO detail : allRecords) {
+                    // ⭐ 同时查询正常挂号成功和候补转正成功两种消息类型
                     Message successMsg = baseMapper.selectOne(new LambdaQueryWrapper<Message>()
                         .eq(Message::getAppointmentId, String.valueOf(detail.getRecordId()))
-                        .eq(Message::getMessageType, "APPOINTMENT_SUCCESS")
+                        .in(Message::getMessageType, "APPOINTMENT_SUCCESS", "APPOINTMENT_WAITING_SUCCESS")
                         .last("limit 1"));
-                    log.warn("[checkAndCreateReminders] 预约记录: recordId={}, patientUserId={}, 成功消息userId={}", 
+                    log.warn("[checkAndCreateReminders] 预约记录: recordId={}, patientUserId={}, 成功消息类型={}, 成功消息userId={}", 
                         detail.getRecordId(), 
                         detail.getPatientUserId(),
+                        successMsg != null ? successMsg.getMessageType() : "null",
                         successMsg != null ? successMsg.getUserId() : "null");
                 }
                 return;
@@ -242,9 +245,10 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         if (detail == null || detail.getRecordId() == null) {
             return false;
         }
+        // ⭐ 同时查询正常挂号成功(APPOINTMENT_SUCCESS)和候补转正成功(APPOINTMENT_WAITING_SUCCESS)两种消息类型
         Message successMsg = baseMapper.selectOne(new LambdaQueryWrapper<Message>()
                 .eq(Message::getAppointmentId, String.valueOf(detail.getRecordId()))
-                .eq(Message::getMessageType, "APPOINTMENT_SUCCESS")
+                .in(Message::getMessageType, "APPOINTMENT_SUCCESS", "APPOINTMENT_WAITING_SUCCESS")
                 .last("limit 1"));
         if (successMsg != null && userId.equals(successMsg.getUserId())) {
             return true;

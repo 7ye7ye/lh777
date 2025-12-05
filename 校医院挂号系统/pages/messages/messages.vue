@@ -1,53 +1,88 @@
 <template>
 	<view class="container">
-		<view v-if="groupedMessages.length > 0" class="message-list">
-			<view v-for="message in groupedMessages" :key="message.messageId" class="message-card" @click="goToDetail(message.messageId)">
-				<view class="card-icon">
-					<image :src="getMessageIcon(message.messageType)" mode="aspectFit"></image>
-				</view>
-				<view class="card-content">
-					<view class="card-title-line">
-						<text class="card-title" :class="getMessageTitleClass(message.messageType)">
-							{{ getMessageCategory(message.messageType) }}
-						</text>
-						<text class="card-time">{{ formatTime(message.createdTime) }}</text>
+		<!-- 未登录提示：使用封装的 LoginPrompt 组件 -->
+		<LoginPrompt
+			mode="inline"
+			message="登录后可查看消息通知"
+			loginText="去登录"
+		/>
+
+		<!-- 只有登录后才展示消息列表 / 空状态 -->
+		<view v-if="isLoggedIn">
+			<view v-if="groupedMessages.length > 0" class="message-list">
+				<view
+					v-for="message in groupedMessages"
+					:key="message.messageId"
+					class="message-card"
+					@click="goToDetail(message.messageId)"
+				>
+					<view class="card-icon">
+						<image :src="getMessageIcon(message.messageType)" mode="aspectFit"></image>
 					</view>
-					<view class="card-summary">{{ getMessageSummary(message) }}</view>
+					<view class="card-content">
+						<view class="card-title-line">
+							<text class="card-title" :class="getMessageTitleClass(message.messageType)">
+								{{ getMessageCategory(message.messageType) }}
+							</text>
+							<text class="card-time">{{ formatTime(message.createdTime) }}</text>
+						</view>
+						<view class="card-summary">{{ getMessageSummary(message) }}</view>
+					</view>
 				</view>
 			</view>
-		</view>
 
-		<view v-else class="empty-container">
-			<image class="empty-icon" src="/static/empty_message.png" mode="aspectFit"></image>
-			<text class="empty-text">暂无任何消息</text>
+			<view v-else class="empty-container">
+				<image class="empty-icon" src="/static/empty_message.png" mode="aspectFit"></image>
+				<text class="empty-text">暂无任何消息</text>
+			</view>
 		</view>
 	</view>
 </template>
 
 <script>
+	import LoginPrompt from '@/components/LoginPrompt.vue'
+	import { useUserStore } from '@/store/user'
+
 	export default {
+		components: {
+			LoginPrompt
+		},
 		data() {
 			return {
 				messageList: [], // 存储从后端获取的原始消息列表
 				loading: false // 加载状态，防止重复请求
 			};
 		},
-	computed: {
-		// 计算属性，直接返回消息列表（不再分组，每条消息独立显示）
-		groupedMessages() {
-			if (this.messageList.length === 0) {
-				return [];
+		computed: {
+			// 是否已登录（从全局 userStore 读取）
+			isLoggedIn() {
+				const userStore = useUserStore()
+				return !!userStore.isLoggedIn
+			},
+			// 计算属性，直接返回消息列表（不再分组，每条消息独立显示）
+			groupedMessages() {
+				if (this.messageList.length === 0) {
+					return [];
+				}
+				// 直接返回消息列表，每条消息显示一个独立的卡片
+				return this.messageList;
 			}
-			// 直接返回消息列表，每条消息显示一个独立的卡片
-			return this.messageList;
-		}
-	},
+		},
 		// uni-app生命周期函数，每次进入页面都会触发
 		onShow() {
+			// 未登录时不请求接口，只显示登录提示组件
+			if (!this.isLoggedIn) {
+				this.messageList = [];
+				return;
+			}
 			this.fetchMessageList();
 		},
 		// uni-app生命周期函数，监听下拉刷新
 		onPullDownRefresh() {
+			if (!this.isLoggedIn) {
+				uni.stopPullDownRefresh();
+				return;
+			}
 			this.fetchMessageList();
 		},
 		methods: {
@@ -74,9 +109,9 @@
 					return userInfo.user_id;
 				}
 
-				// 方式3: 开发测试阶段，如果未登录，使用测试ID（生产环境应删除）
-				console.warn('⚠️ 方式3: 未找到登录用户信息，使用测试ID');
-				return '262'; // 对应你的账号 24301018（hos_user表中的user_id=262）
+				// 没有登录信息，返回空，交由调用方处理未登录逻辑
+				console.warn('⚠️ 未找到登录用户信息，视为未登录');
+				return null;
 			},
 
 			// 根据消息类型返回对应的图标
@@ -127,6 +162,17 @@
 					case 'APPOINTMENT_CANCEL':
 						return '退号成功';
 					case 'APPOINTMENT_WAITING_SUCCESS':
+						// 检查是否为加号场景
+						try {
+							const content = typeof message.content === 'string' 
+								? JSON.parse(message.content) 
+								: message.content;
+							if (content && content.source_type === 'add_quota') {
+								return '加号成功';
+							}
+						} catch (e) {
+							console.warn('解析消息内容失败', e);
+						}
 						return '候补挂号成功';
 					case 'APPOINTMENT_WAITING_JOIN':
 						return '已加入候补队列';
@@ -168,9 +214,8 @@
 					return;
 				}
 
-				// 这里的IP地址和端口需要换成你后端项目运行的实际地址
-				// 不要使用 localhost 或 127.0.0.1，而要使用你电脑的局域网IP 校园网：10.61.62.249
-				const apiUrl = 'http://10.61.192.131:8095/jeecg-boot/api/messages/list';
+				// 这里的IP地址和端口需要换成后端项目运行的实际地址
+				const apiUrl = 'http://localhost:8095/jeecg-boot/api/messages/list';
 				const requestUrl = `${apiUrl}?userId=${userId}`;
 				console.log('📤 请求URL:', requestUrl);
 

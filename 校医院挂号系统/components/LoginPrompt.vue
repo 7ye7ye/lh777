@@ -1,8 +1,16 @@
 <template>
   <!-- 内联提示模式：未登录时才显示 -->
   <view v-if="mode === 'inline' && !isLoggedIn" class="login-inline">
-    <text class="login-msg">{{ message }}</text>
-    <button class="login-btn" size="mini" @click="goLogin">{{ loginText }}</button>
+    <view class="login-left">
+      <image class="login-icon" src="/static/profile.svg" mode="aspectFit" />
+      <view class="login-text-wrap">
+        <text class="login-title">未登录</text>
+        <text class="login-msg">{{ message }}</text>
+      </view>
+    </view>
+    <view class="login-right">
+      <button class="login-btn" @click="goLogin">{{ loginText }}</button>
+    </view>
   </view>
 </template>
 
@@ -46,15 +54,61 @@ defineExpose({ open })
 .login-inline {
   margin: 16rpx 24rpx 0 24rpx;
   padding: 20rpx 24rpx;
-  background: #fff7e6;
-  border: 1rpx solid #ffe7ba;
-  border-radius: 12rpx;
+  background: #f0f7ff;
+  border-radius: 16rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  box-shadow: 0 8rpx 24rpx rgba(58, 156, 255, 0.12);
 }
-.login-msg { color: #ad6800; font-size: 26rpx; }
-.login-btn { background: #3a9cff; color: #fff; border-radius: 999rpx; padding: 0 24rpx; }
+
+.login-left {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.login-icon {
+  width: 56rpx;
+  height: 56rpx;
+  margin-right: 16rpx;
+}
+
+.login-text-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-title {
+  font-size: 26rpx;
+  color: #1d39c4;
+  font-weight: 600;
+  margin-bottom: 4rpx;
+}
+
+.login-msg {
+  color: #5972a7;
+  font-size: 24rpx;
+}
+
+.login-right {
+  margin-left: 16rpx;
+}
+
+.login-btn {
+  padding: 0 32rpx;
+  height: 64rpx;
+  line-height: 64rpx;
+  font-size: 26rpx;
+  color: #fff;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #3a9cff 0%, #1de9b6 100%);
+  box-shadow: 0 6rpx 16rpx rgba(58, 156, 255, 0.35);
+}
+
+.login-btn::after {
+  border: none;
+}
 </style>
 
 

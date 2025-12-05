@@ -3,12 +3,22 @@ package org.jeecg.modules.hospital.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 // 导入 Mybatis-Plus 的 ServiceImpl
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.jeecg.modules.hospital.controller.request.DoctorScheduleUpdateRequest;
+import org.jeecg.modules.hospital.dto.RegistrationDetailDTO;
 import org.jeecg.modules.hospital.entity.DoctorSchedule;
+import org.jeecg.modules.hospital.entity.RegistrationRecord;
+import org.jeecg.modules.hospital.entity.WaitingQueue;
 import org.jeecg.modules.hospital.mapper.DoctorScheduleMapper;
+import org.jeecg.modules.hospital.mapper.RegistrationMapper;
+import org.jeecg.modules.hospital.mapper.WaitingQueueMapper;
 import org.jeecg.modules.hospital.service.DoctorScheduleService;
+import org.jeecg.modules.hospital.service.RegistrationService;
+import org.jeecg.modules.hospital.service.WaitingQueueService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -17,6 +27,7 @@ import java.util.List;
  */
 // class DoctorScheduleServiceImpl
 import com.baomidou.dynamic.datasource.annotation.DS;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @DS("hospital")
@@ -27,6 +38,17 @@ public class DoctorScheduleServiceImpl
     // 【注意】继承 ServiceImpl 后，不再需要 @Resource 注入 Mapper，可以直接使用 this.baseMapper。
     // private DoctorScheduleMapper mapper; // 此行可以删除或注释掉
 
+    @Autowired
+    private WaitingQueueMapper waitingQueueMapper;
+
+    @Autowired
+    private RegistrationMapper registrationMapper;
+
+    @Autowired
+    private RegistrationService registrationService;
+
+    @Autowired
+    private WaitingQueueService waitingQueueService;
     // ------------------- 自定义方法 (保留) -------------------
 
     @Override
@@ -111,6 +133,7 @@ public class DoctorScheduleServiceImpl
         if (schedule.getTimeSlot() != null) origin.setTimeSlot(schedule.getTimeSlot());
         if (schedule.getUsedQuota() != null) origin.setUsedQuota(schedule.getUsedQuota());
         if (schedule.getStatus() != null) origin.setStatus(schedule.getStatus());
+        if (schedule.getMaxQuota() != null) origin.setMaxQuota(schedule.getMaxQuota());
         origin.setUpdateTime(java.time.LocalDateTime.now());
 
         return super.updateById(origin);
@@ -127,4 +150,34 @@ public class DoctorScheduleServiceImpl
         if (scheduleId == null) return null;
         return super.getById(scheduleId);
     }
+
+    @Override
+    @Transactional
+    public boolean addQuotaAndFillQueue(Long scheduleId, int addCount) {
+        // 获取排班信息
+        DoctorSchedule schedule = this.getById(scheduleId);
+        if (schedule == null) return false;
+
+        // 更新 maxQuota
+        int newMaxQuota = (schedule.getMaxQuota() != null ? schedule.getMaxQuota() : 0) + addCount;
+        schedule.setMaxQuota(newMaxQuota);
+
+        // 创建 ScheduleUpdateRequest 来调用 update 方法
+        DoctorScheduleUpdateRequest updateRequest = new DoctorScheduleUpdateRequest();
+        updateRequest.setScheduleId(scheduleId);
+        updateRequest.setMaxQuota(newMaxQuota); // 更新后的最大号源数量
+
+        // 调用 update 方法更新排班
+        boolean updated = update(schedule);  // 调用 update 方法传递排班数据
+        if (!updated) return false;
+
+        // 调用 autoFillFromQueue 实现候补成功，传递 addCount 作为候补人数
+        // ⭐ 标识为加号场景，消息会显示"加号成功提醒"而不是"候补挂号成功提醒"
+        waitingQueueService.autoFillFromQueue(scheduleId, addCount, true);
+
+        return true;
+    }
+
+
+
 }
