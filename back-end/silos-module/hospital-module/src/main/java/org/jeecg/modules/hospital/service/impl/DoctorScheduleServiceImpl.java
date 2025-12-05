@@ -154,24 +154,18 @@ public class DoctorScheduleServiceImpl
     @Override
     @Transactional
     public boolean addQuotaAndFillQueue(Long scheduleId, int addCount) {
-        // 获取排班信息
         DoctorSchedule schedule = this.getById(scheduleId);
         if (schedule == null) return false;
 
-        // 更新 maxQuota
+        // 确保 maxQuota 不为 null
         int newMaxQuota = (schedule.getMaxQuota() != null ? schedule.getMaxQuota() : 0) + addCount;
         schedule.setMaxQuota(newMaxQuota);
 
-        // 创建 ScheduleUpdateRequest 来调用 update 方法
-        DoctorScheduleUpdateRequest updateRequest = new DoctorScheduleUpdateRequest();
-        updateRequest.setScheduleId(scheduleId);
-        updateRequest.setMaxQuota(newMaxQuota); // 更新后的最大号源数量
-
-        // 调用 update 方法更新排班
-        boolean updated = update(schedule);  // 调用 update 方法传递排班数据
+        // 更新数据库
+        boolean updated = this.updateById(schedule);  // 直接调用 ServiceImpl 提供的 updateById
         if (!updated) return false;
 
-        // 调用 autoFillFromQueue 实现候补成功，传递 addCount 作为候补人数
+        // 填充候补队列
         waitingQueueService.autoFillFromQueue(scheduleId, addCount);
 
         return true;

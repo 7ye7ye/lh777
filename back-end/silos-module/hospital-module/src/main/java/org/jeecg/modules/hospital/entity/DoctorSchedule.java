@@ -96,8 +96,8 @@ public class DoctorSchedule {
     public String getRoomNumber() { return roomNumber; }
     public void setRoomNumber(String roomNumber) { this.roomNumber = roomNumber; }
 
-    // 兼容旧逻辑的最大号源字段，未在数据库落库
-    @TableField(exist = false)
+    // 数据库实际字段
+    @TableField("max_quota")
     private Integer maxQuota;
 
     public Integer getMaxQuota() { return maxQuota; }

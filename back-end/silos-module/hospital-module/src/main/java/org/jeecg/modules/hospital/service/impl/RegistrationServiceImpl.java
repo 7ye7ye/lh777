@@ -175,7 +175,7 @@ public class RegistrationServiceImpl implements RegistrationService {
                 }
 
                 // 加入候补队列
-                Result<String> waitRes = addToWaitingQueue(schedule.getScheduleId(), actualPatientId);
+                Result<String> waitRes = addToWaitingQueue(schedule.getScheduleId(), actualPatientId, record.getRecordId());
 
                 if (waitRes.isSuccess()) {
                     return Result.OK("当前号源已满，但您已成功加入候补队列", waitRes.getResult());
@@ -236,9 +236,10 @@ public class RegistrationServiceImpl implements RegistrationService {
     }
 
 
-    private Result<String> addToWaitingQueue(Long scheduleId, Long patientId) {
+    private Result<String> addToWaitingQueue(Long scheduleId, Long patientId,Long recordId) {
         WaitingQueue queue = new WaitingQueue();
         queue.setScheduleId(scheduleId);
+        queue.setRecordId(recordId);
         queue.setPatientId(patientId);
         queue.setQueueTime(LocalDateTime.now());
         Integer maxRank = registrationMapper.selectMaxQueueRank(scheduleId);
