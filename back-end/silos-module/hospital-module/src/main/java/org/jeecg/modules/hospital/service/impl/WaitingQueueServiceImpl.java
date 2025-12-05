@@ -4,6 +4,7 @@ import org.jeecg.modules.hospital.dto.RegistrationDetailDTO;
 import org.jeecg.modules.hospital.entity.*;
 import org.jeecg.modules.hospital.mapper.*;
 import org.jeecg.modules.hospital.service.MessageService;
+import org.jeecg.modules.hospital.task.AppointmentReminderTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,13 +31,22 @@ public class WaitingQueueServiceImpl implements WaitingQueueService {
     private PatientMapper patientMapper;
     @Resource
     private MessageService messageService;
+    @Resource
+    private AppointmentReminderTask appointmentReminderTask;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private static final Logger log = LoggerFactory.getLogger(WaitingQueueServiceImpl.class);
 
     @Override
     public void autoFillFromQueue(Long scheduleId, int n) {
+        // 默认不是加号场景
+        autoFillFromQueue(scheduleId, n, false);
+    }
+
+    @Override
+    public void autoFillFromQueue(Long scheduleId, int n, boolean isAddQuota) {
         // 1. 读取候补队列中排前 n 的人
         for (int i = 0; i < n; i++) {
             WaitingQueue first = waitingQueueMapper.selectFirstWaiting(scheduleId);
@@ -55,8 +66,8 @@ public class WaitingQueueServiceImpl implements WaitingQueueService {
                 first.setTransferTime(LocalDateTime.now());  // 设置转正时间
                 waitingQueueMapper.updateById(first);
 
-                // 5. 发送候补转正成功通知
-                sendWaitingSuccessMessage(candidate, first);
+                // 5. 发送候补转正成功通知（区分加号场景）
+                sendWaitingSuccessMessage(candidate, first, isAddQuota);
 
                 // 6. 更新排班号源（已用号源增加）
                 DoctorSchedule schedule = doctorScheduleMapper.selectById(scheduleId);
@@ -69,6 +80,11 @@ public class WaitingQueueServiceImpl implements WaitingQueueService {
     }
 
     private void sendWaitingSuccessMessage(RegistrationRecord candidate, WaitingQueue queue) {
+        // 默认不是加号场景
+        sendWaitingSuccessMessage(candidate, queue, false);
+    }
+
+    private void sendWaitingSuccessMessage(RegistrationRecord candidate, WaitingQueue queue, boolean isAddQuota) {
         try {
             RegistrationDetailDTO detail = registrationMapper.selectRegistrationDetail(candidate.getRecordId());
             if (detail == null) {
@@ -85,7 +101,14 @@ public class WaitingQueueServiceImpl implements WaitingQueueService {
             message.setUserId(userId);
             message.setAppointmentId(String.valueOf(candidate.getRecordId()));
             message.setMessageType("APPOINTMENT_WAITING_SUCCESS");
-            message.setTitle("候补挂号成功提醒");
+            
+            // 根据是否为加号场景，设置不同的标题和备注
+            if (isAddQuota) {
+                message.setTitle("加号成功提醒");
+            } else {
+                message.setTitle("候补挂号成功提醒");
+            }
+            
             message.setCreatedTime(LocalDateTime.now());
             message.setIsRead(false);
 
@@ -96,14 +119,26 @@ public class WaitingQueueServiceImpl implements WaitingQueueService {
             payload.put("department_name", detail.getDepartmentName());
             payload.put("appointment_time", buildAppointmentTime(detail.getScheduleDate(), detail.getTimeSlot()));
             payload.put("waiting_rank", queue.getQueueRank());
-            payload.put("waiting_join_time", queue.getQueueTime() != null ? queue.getQueueTime().toString() : null);
-            payload.put("promote_time", LocalDateTime.now().toString());
-            payload.put("hospital_remark", "候补已转为正式号，请按时就诊");
+            payload.put("waiting_join_time", queue.getQueueTime() != null ? DATE_TIME_FORMATTER.format(queue.getQueueTime()) : null);
+            payload.put("promote_time", DATE_TIME_FORMATTER.format(LocalDateTime.now()));
+            
+            // 添加来源标识，便于前端区分显示
+            payload.put("source_type", isAddQuota ? "add_quota" : "normal_waiting");
+            
+            // 根据是否为加号场景，设置不同的备注信息
+            if (isAddQuota) {
+                payload.put("hospital_remark", "管理员已为您增加号源，候补已转为正式号，请按时就诊");
+            } else {
+                payload.put("hospital_remark", "候补已转为正式号，请按时就诊");
+            }
 
             message.setContent(objectMapper.writeValueAsString(payload));
 
             boolean saved = messageService.save(message);
-            log.info("候补成功通知已发送，userId={}, appointmentId={}", userId, candidate.getRecordId());
+            log.info("候补成功通知已发送，userId={}, appointmentId={}, isAddQuota={}", userId, candidate.getRecordId(), isAddQuota);
+
+            // 候补转正后同样需要创建提醒（就诊前一天和就诊前一小时），沿用正常挂号的判断逻辑
+            appointmentReminderTask.checkAndCreateImmediateReminder(detail);
         } catch (Exception e) {
             log.error("发送候补成功通知失败", e);
         }
