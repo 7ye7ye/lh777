@@ -34,7 +34,7 @@
         v-for="tab in filterTabs" 
         :key="tab.value"
         class="filter-tab"
-        :class="{ active: currentFilter === tab.value }"
+        :class="{ active: currentFilter.value === tab.value }"
         @click="changeFilter(tab.value)"
       >
         {{ tab.label }}
@@ -122,6 +122,10 @@ const currentFilter = ref('all')
 const doctorDepartmentMap = ref(new Map())
 const userStore = useUserStore()
 
+// 日期范围筛选
+const startDate = ref('')
+const endDate = ref('')
+
 const filterTabs = [
   { label: '全部', value: 'all' },
   { label: '待就诊', value: '待就诊' },
@@ -177,6 +181,29 @@ const STATUS_KEYWORD_RULES = [
 ]
 
 const DAY_IN_MS = 1000 * 60 * 60 * 24
+
+// 格式化日期用于显示
+const formatDateForDisplay = (dateStr) => {
+  if (!dateStr) return ''
+  // 如果是 YYYY-MM-DD 格式，转换为 YYYY年MM月DD日
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (match) {
+    return `${match[1]}年${match[2]}月${match[3]}日`
+  }
+  return dateStr
+}
+
+// 解析日期字符串为Date对象（用于比较）
+const parseDate = (dateStr) => {
+  if (!dateStr) return null
+  // 处理各种日期格式
+  const str = String(dateStr).replace('T', ' ').split(' ')[0] // 取日期部分
+  const date = new Date(str)
+  if (isNaN(date.getTime())) return null
+  // 设置为当天的0点0分0秒
+  date.setHours(0, 0, 0, 0)
+  return date
+}
 
 const parseToDate = (value) => {
   if (!value) return null
@@ -562,11 +589,112 @@ const changeFilter = (filterValue) => {
   currentFilter.value = filterValue
 }
 
-const filteredRecords = computed(() => {
-  if (currentFilter.value === 'all') {
-    return records.value
+// 开始日期变化
+const onStartDateChange = (e) => {
+  const selectedDate = e.detail.value
+  // 验证开始日期不能晚于结束日期
+  if (endDate.value) {
+    const start = parseDate(selectedDate)
+    const end = parseDate(endDate.value)
+    if (start && end && start > end) {
+      uni.showToast({
+        title: '开始日期不能晚于结束日期',
+        icon: 'none'
+      })
+      return
+    }
   }
-  return records.value.filter(record => record.normalizedStatus === currentFilter.value)
+  startDate.value = selectedDate
+}
+
+// 结束日期变化
+const onEndDateChange = (e) => {
+  const selectedDate = e.detail.value
+  // 验证结束日期不能早于开始日期
+  if (startDate.value) {
+    const start = parseDate(startDate.value)
+    const end = parseDate(selectedDate)
+    if (start && end && end < start) {
+      uni.showToast({
+        title: '结束日期不能早于开始日期',
+        icon: 'none'
+      })
+      return
+    }
+  }
+  endDate.value = selectedDate
+}
+
+// 清除日期范围
+const clearDateRange = () => {
+  startDate.value = ''
+  endDate.value = ''
+  uni.showToast({
+    title: '已清除日期筛选',
+    icon: 'success',
+    duration: 1500
+  })
+}
+
+// 在弹窗中重置日期范围
+const handleResetDateRange = () => {
+  startDate.value = ''
+  endDate.value = ''
+  showDatePicker.value = false
+  uni.showToast({
+    title: '已重置日期筛选',
+    icon: 'success',
+    duration: 1500
+  })
+}
+
+// 检查就诊记录是否在日期范围内
+const isRecordInDateRange = (record) => {
+  if (!startDate.value && !endDate.value) {
+    return true // 没有设置日期范围，显示所有记录，包括没有日期信息的记录
+  }
+  
+  // 使用就诊时间作为比较基准
+  const recordDateStr = record.registerTime || record.consultationTime || record.createTime || ''
+  if (!recordDateStr) {
+    return false // 有日期筛选但记录没有日期信息，不显示
+  }
+  
+  const recordDate = parseDate(recordDateStr)
+  if (!recordDate) return false
+  
+  const start = parseDate(startDate.value)
+  const end = parseDate(endDate.value)
+  
+  // 如果只有开始日期，只要记录日期 >= 开始日期即可
+  if (startDate.value && !endDate.value) {
+    return recordDate >= start
+  }
+  
+  // 如果只有结束日期，只要记录日期 <= 结束日期即可
+  if (!startDate.value && endDate.value) {
+    return recordDate <= end
+  }
+  
+  // 如果两个日期都有，记录日期必须在范围内
+  if (start && end) {
+    return recordDate >= start && recordDate <= end
+  }
+  
+  return true
+}
+
+// 过滤就诊记录
+const filteredRecords = computed(() => {
+  return records.value.filter(record => {
+    // 状态筛选
+    if (currentFilter.value !== 'all' && record.statusDisplay !== currentFilter.value) {
+      return false
+    }
+    
+    // 日期范围筛选
+    return isRecordInDateRange(record)
+  })
 })
 
 const viewRecordDetail = (record) => {
