@@ -248,11 +248,11 @@ const addNumber = (record: Schedule) => {
           return;
         }
         try {
-          const newMaxQuota = (record.maxQuota ?? 0) + inputValue.value;
           const ok = await addQuotaAndFillQueue(record.scheduleId, inputValue.value);
           if (ok) {
-            record.maxQuota = newMaxQuota; // 本地表格同步
             message.success(`号源已增加 ${inputValue.value} 个`);
+            // 重新加载排班列表，获取最新的 used_quota 和 max_quota
+            await loadSchedule();
             resolve();
           } else {
             message.error('增加号源失败');

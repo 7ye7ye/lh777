@@ -67,10 +67,17 @@ export const fetchPatientCard = async () => {
 }
 
 export const ensurePatientCard = async () => {
+  const userStore = useUserStore() as any
+  const currentUserId = userStore?.userInfo?.userId
+
   const cached = getCachedPatient()
-  if (cached && cached.patientId) {
+  // 如果缓存里的就诊卡属于当前登录用户，则直接复用
+  if (cached && cached.patientId && (!currentUserId || cached.userId === currentUserId)) {
     return cached
   }
+
+  // 否则清掉旧缓存，按当前登录用户重新拉取
+  clearPatientCache()
   return await fetchPatientCard()
 }
 

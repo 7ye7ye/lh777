@@ -125,6 +125,17 @@
 					return '就诊前一小时提醒';
 				}
 				if (message.messageType === 'APPOINTMENT_WAITING_SUCCESS') {
+					// 检查是否为加号场景
+					try {
+						const content = typeof message.content === 'string' 
+							? JSON.parse(message.content) 
+							: message.content;
+						if (content && content.source_type === 'add_quota') {
+							return '加号成功';
+						}
+					} catch (e) {
+						console.warn('解析消息内容失败', e);
+					}
 					return '候补挂号成功';
 				}
 				if (message.messageType === 'APPOINTMENT_WAITING_JOIN') {
@@ -159,8 +170,8 @@
 
 			fetchMessageDetail() {
 				// 【重要】调用新的单条消息接口
-				const apiUrl = `http://10.61.66.247:8095/jeecg-boot/api/messages/${this.messageId}`;
-
+				const apiUrl = `http://localhost:8095/jeecg-boot/api/messages/${this.messageId}`;
+				
 				console.log('📤 请求消息详情, messageId =', this.messageId);
 				console.log('📤 请求URL:', apiUrl);
 

@@ -172,7 +172,8 @@ public class DoctorScheduleServiceImpl
         if (!updated) return false;
 
         // 调用 autoFillFromQueue 实现候补成功，传递 addCount 作为候补人数
-        waitingQueueService.autoFillFromQueue(scheduleId, addCount);
+        // ⭐ 标识为加号场景，消息会显示"加号成功提醒"而不是"候补挂号成功提醒"
+        waitingQueueService.autoFillFromQueue(scheduleId, addCount, true);
 
         return true;
     }
