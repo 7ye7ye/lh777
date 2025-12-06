@@ -9,6 +9,8 @@ export interface DoctorSchedule {
   scheduleDate: string;
   timeSlot: number; // 1-上午, 2-下午, 3-晚上
   usedQuota?: number;
+  maxQuota?: number;
+  roomNumber?: string;
   status: number;
   createTime?: string;
   updateTime?: string;
@@ -34,8 +36,9 @@ export interface ScheduleListParams {
   doctorId?: number;
   doctorName?: string;
   deptId?: number;
-  startDate?: string;
-  endDate?: string;
+  date?: string;  // 单个日期查询
+  startDate?: string;  // 日期范围查询开始日期
+  endDate?: string;  // 日期范围查询结束日期
   current?: number;
   size?: number;
 }
@@ -47,6 +50,8 @@ export interface ScheduleCreateRequest {
   shift: string;
   slots: number;
   remark?: string;
+  roomNumber?: string;
+  maxQuota?: number;
 }
 
 export interface ScheduleUpdateRequest {
@@ -55,10 +60,13 @@ export interface ScheduleUpdateRequest {
   deptId?: number;
   date?: string;
   shift?: string;
+  timeSlot?: number; // 1-上午, 2-下午, 3-晚上
   slots?: number;
   bookedSlots?: number;
   status?: number;
   remark?: string;
+  roomNumber?: string;
+  maxQuota?: number;
 }
 
 export interface GetSchedulesParams {
@@ -76,12 +84,7 @@ export const getDoctorSchedules = (params: GetSchedulesParams) =>
 
 // 获取医生排班列表
 export const getScheduleList = (params: ScheduleListParams) =>
-  defHttp.get<{
-    records: DoctorSchedule[];
-    total: number;
-    current: number;
-    size: number;
-  }>({
+  defHttp.get<DoctorSchedule[]>({
     url: '/admin/schedule/list',
     params,
   });
@@ -124,6 +127,13 @@ export const deleteSchedule = (scheduleId: number) =>
     url: `/admin/schedule/${scheduleId}`,
   });
 
+// 获取可用诊室（随机分配）
+export const getAvailableRoom = (params: { date: string; timeSlot: number; originalRoomNumber?: string }) =>
+  defHttp.get<string>({
+    url: '/admin/schedule/available-room',
+    params,
+  });
+
 // Excel导入排班数据
 export const importScheduleExcel = (file: File, durationMinutes: number, timeSlotType?: string, maxWorkDays?: number) => {
   const formData = new FormData();
@@ -153,3 +163,51 @@ export const importScheduleExcel = (file: File, durationMinutes: number, timeSlo
     }
   });
 };
+
+// 自动生成排班接口
+export interface GenerateSchedulesRequest {
+  deptIds: number[];
+  scheduleCount: number;
+  timeSlots: number[];
+  maxQuota: number;
+  startDate: string;
+}
+
+export interface GeneratedScheduleItem {
+  doctorId: number;
+  doctorName: string;
+  deptId: number;
+  deptName: string;
+  scheduleDate: string;
+  timeSlot: number;
+  maxQuota: number;
+  roomNumber?: string;
+}
+
+export const generateSchedules = (data: GenerateSchedulesRequest) =>
+  defHttp.post<GeneratedScheduleItem[]>({
+    url: '/admin/schedule/generate',
+    data,
+  });
+
+// 批量创建排班接口
+export interface BatchCreateScheduleItem {
+  doctorId: number;
+  deptId: number;
+  scheduleDate: string;
+  timeSlot: number;
+  maxQuota: number;
+  roomNumber?: string;
+}
+
+export const batchCreateSchedules = (data: BatchCreateScheduleItem[]) =>
+  defHttp.post<{
+    success: boolean;
+    message: string;
+    successCount: number;
+    failCount: number;
+    errors?: string[];
+  }>({
+    url: '/admin/schedule/batch-create',
+    data,
+  });

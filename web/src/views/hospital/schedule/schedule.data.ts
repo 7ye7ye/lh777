@@ -40,6 +40,16 @@ export const columns: BasicColumn[] = [
     width: 80,
   },
   {
+    title: '最大号源数',
+    dataIndex: 'maxQuota',
+    width: 100,
+  },
+  {
+    title: '诊室',
+    dataIndex: 'roomNumber',
+    width: 100,
+  },
+  {
     title: '状态',
     dataIndex: 'status',
     width: 80,
@@ -136,6 +146,26 @@ export const formSchema: FormSchema[] = [
       ],
     },
     required: true,
+  },
+  {
+    field: 'maxQuota',
+    label: '最大号源数',
+    component: 'InputNumber',
+    componentProps: {
+      min: 1,
+      max: 100,
+      placeholder: '请输入最大号源数',
+    },
+    required: true,
+    defaultValue: 50,
+  },
+  {
+    field: 'roomNumber',
+    label: '诊室',
+    component: 'Input',
+    componentProps: {
+      placeholder: '留空则系统随机分配',
+    },
   },
   {
     field: 'status',

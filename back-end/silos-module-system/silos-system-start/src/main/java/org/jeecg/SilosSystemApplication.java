@@ -28,7 +28,6 @@ import java.util.Map;
 */
 @Slf4j
 @SpringBootApplication
-@ComponentScan(basePackages = "org.jeecg")
 @ImportAutoConfiguration(JustAuthAutoConfiguration.class)
 @MapperScan("org.jeecg.modules.hospital.mapper")
 @EnableScheduling
