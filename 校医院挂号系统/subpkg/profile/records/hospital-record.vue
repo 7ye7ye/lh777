@@ -2,9 +2,13 @@
   <view class="page-bg">
     <!-- 标题和刷新按钮区域 -->
     <view class="header-section">
-      <view class="list-header">就诊记录</view>
+      <view class="list-header-wrapper">
+        <view class="header-icon">🔄</view>
+        <view class="list-header">就诊记录</view>
+        <view class="header-badge" v-if="filteredRecords.length > 0">{{ filteredRecords.length }}</view>
+      </view>
       <view class="header-actions">
-        <button class="refresh-btn small" @click="loadHospitalRecords">
+        <button class="refresh-btn small" @click="loadHospitalRecords" :disabled="loading">
           <text class="refresh-icon">⟳</text>
           <text>刷新</text>
         </button>
@@ -34,10 +38,67 @@
         v-for="tab in filterTabs" 
         :key="tab.value"
         class="filter-tab"
-        :class="{ active: currentFilter === tab.value }"
+        :class="{ active: currentFilter.value === tab.value }"
         @click="changeFilter(tab.value)"
       >
         {{ tab.label }}
+      </view>
+    </view>
+
+    <!-- 日期范围筛选 - 紧凑形式 -->
+    <view class="date-filter-compact">
+      <view class="date-filter-btn" @click="showDatePicker = true">
+        <text class="calendar-icon">📅</text>
+        <text class="date-range-text" v-if="startDate && endDate">
+          {{ formatDateForDisplay(startDate) }} 至 {{ formatDateForDisplay(endDate) }}
+        </text>
+        <text class="date-range-text placeholder" v-else>选择日期范围</text>
+      </view>
+      <view v-if="startDate || endDate" class="clear-date-btn" @click.stop="clearDateRange">
+        <text class="clear-date-icon">✕</text>
+        <text class="clear-date-text">清除</text>
+      </view>
+    </view>
+    
+    <!-- 日历选择弹窗 -->
+    <view class="date-picker-modal" v-if="showDatePicker" @click="showDatePicker = false">
+      <view class="date-picker-content" @click.stop>
+        <view class="date-picker-header">
+          <text class="date-picker-title">选择日期范围</text>
+          <text class="date-picker-close" @click="showDatePicker = false">✕</text>
+        </view>
+        <view class="date-picker-body">
+          <view class="date-picker-row">
+            <text class="date-picker-label">开始日期：</text>
+            <picker mode="date" :value="startDate" @change="onStartDateChange" :end="endDate || undefined">
+              <view class="date-picker-view">
+                <text :class="startDate ? 'date-picker-value' : 'date-picker-placeholder'">
+                  {{ startDate ? formatDateForDisplay(startDate) : '选择开始日期' }}
+                </text>
+              </view>
+            </picker>
+          </view>
+          <view class="date-picker-row">
+            <text class="date-picker-label">结束日期：</text>
+            <picker mode="date" :value="endDate" @change="onEndDateChange" :start="startDate || undefined">
+              <view class="date-picker-view">
+                <text :class="endDate ? 'date-picker-value' : 'date-picker-placeholder'">
+                  {{ endDate ? formatDateForDisplay(endDate) : '选择结束日期' }}
+                </text>
+              </view>
+            </picker>
+          </view>
+        </view>
+        <view class="date-picker-footer">
+          <button 
+            v-if="startDate || endDate" 
+            class="date-picker-reset" 
+            @click="handleResetDateRange"
+          >
+            重置
+          </button>
+          <button class="date-picker-confirm" @click="showDatePicker = false">确定</button>
+        </view>
       </view>
     </view>
     
@@ -83,11 +144,18 @@
           </view>
           <view class="referral-wrapper">
             <button 
-              v-if="item.canRefer" 
+              v-if="item.canRefer && !item.hasSuccessfulReferral" 
               class="small-referral-btn blue-btn" 
               @click.stop="goToReferralApplication(item)"
             >
               申请转诊
+            </button>
+            <button 
+              v-else-if="item.hasSuccessfulReferral" 
+              class="small-referral-btn blue-btn" 
+              @click.stop="goToReferralDetail(item)"
+            >
+              转诊详情
             </button>
             <text v-else class="cannot-refer-text">超过5天，无法转诊</text>
           </view>
@@ -109,6 +177,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { getRegistrationRecords } from '@/api/registration'
 import { ensurePatientCard } from '@/utils/patientHelper'
+import { getPatientReferralList } from '@/api/referral'
 
 import { getDoctorDetail } from '@/api/doctor_massage'
 import { getDepartmentDetail } from '@/api/department'
@@ -121,6 +190,12 @@ const selectedPatientId = ref(null)
 const currentFilter = ref('all')
 const doctorDepartmentMap = ref(new Map())
 const userStore = useUserStore()
+const loading = ref(false)
+
+// 日期范围筛选
+const startDate = ref('')
+const endDate = ref('')
+const showDatePicker = ref(false)
 
 const filterTabs = [
   { label: '全部', value: 'all' },
@@ -177,6 +252,29 @@ const STATUS_KEYWORD_RULES = [
 ]
 
 const DAY_IN_MS = 1000 * 60 * 60 * 24
+
+// 格式化日期用于显示
+const formatDateForDisplay = (dateStr) => {
+  if (!dateStr) return ''
+  // 如果是 YYYY-MM-DD 格式，转换为 YYYY年MM月DD日
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (match) {
+    return `${match[1]}年${match[2]}月${match[3]}日`
+  }
+  return dateStr
+}
+
+// 解析日期字符串为Date对象（用于比较）
+const parseDate = (dateStr) => {
+  if (!dateStr) return null
+  // 处理各种日期格式
+  const str = String(dateStr).replace('T', ' ').split(' ')[0] // 取日期部分
+  const date = new Date(str)
+  if (isNaN(date.getTime())) return null
+  // 设置为当天的0点0分0秒
+  date.setHours(0, 0, 0, 0)
+  return date
+}
 
 const parseToDate = (value) => {
   if (!value) return null
@@ -464,6 +562,8 @@ const ensurePatientId = async () => {
 }
 
 const loadHospitalRecords = async () => {
+  if (loading.value) return
+  loading.value = true
   try {
     uni.showLoading({ title: '加载中...' })
     
@@ -489,6 +589,49 @@ const loadHospitalRecords = async () => {
     const recordsWithDepartment = await processRecordsDepartments(list)
     list = recordsWithDepartment
     
+    // 获取所有转诊记录，用于检查就诊记录是否已有成功的转诊
+    let referralMap = new Map()
+    try {
+      const referralParams = {
+        pageNo: 1,
+        pageSize: 1000 // 获取足够多的记录
+      }
+      const referralRes = await getPatientReferralList(referralParams)
+      
+      let referralList = []
+      if (Array.isArray(referralRes?.result?.records)) {
+        referralList = referralRes.result.records
+      } else if (Array.isArray(referralRes?.records)) {
+        referralList = referralRes.records
+      } else if (Array.isArray(referralRes?.data?.records)) {
+        referralList = referralRes.data.records
+      } else if (Array.isArray(referralRes?.data)) {
+        referralList = referralRes.data
+      } else if (Array.isArray(referralRes?.result)) {
+        referralList = referralRes.result
+      } else if (Array.isArray(referralRes)) {
+        referralList = referralRes
+      }
+      
+      // 构建转诊记录映射：registrationRecordId -> 转诊记录
+      referralList.forEach(ref => {
+        const registrationId = ref.registrationRecordId || ref.registration_record_id
+        const status = (ref.status || '').toUpperCase()
+        // 只记录成功的转诊（已批准）
+        if (registrationId && status === 'APPROVED') {
+          const recordId = Number(registrationId)
+          if (!referralMap.has(recordId)) {
+            referralMap.set(recordId, {
+              id: ref.id || ref.referralId,
+              status: status
+            })
+          }
+        }
+      })
+    } catch (error) {
+      console.warn('获取转诊记录失败:', error)
+    }
+    
     records.value = list.map(item => {
       const deptName = (item.departmentName || '').trim()
       const doctorName = pickStringValue(item, [
@@ -509,6 +652,11 @@ const loadHospitalRecords = async () => {
       const displayVisitTime = formatDateTimeForDisplay(rawVisitTime)
       const displayTimeSlot = item.timeSlot || item.time_slot || item.appointmentTimeSlot || displayVisitTime || '-'
       const statusInfo = resolveStatusInfo(rawStatus, rawVisitTime, rawRegisterTime)
+      
+      // 检查是否已有成功的转诊记录
+      const recordId = Number(item.recordId || item.id)
+      const referralInfo = referralMap.get(recordId)
+      const hasSuccessfulReferral = !!referralInfo
 
       return {
         id: item.recordId || item.id,
@@ -530,6 +678,9 @@ const loadHospitalRecords = async () => {
         recordNumber: recordNumber,
         recordNumberDisplay: recordNumber || '无编号',
         canRefer: statusInfo.allowReferral,
+        hasSuccessfulReferral: hasSuccessfulReferral,
+        referralId: referralInfo?.id || null,
+        patientId: item.patientId || item.patient_id || patientId, // 确保使用就诊记录中的patientId
         originalRecord: item
       }
     })
@@ -555,6 +706,7 @@ const loadHospitalRecords = async () => {
     })
   } finally {
     uni.hideLoading()
+    loading.value = false
   }
 }
 
@@ -562,11 +714,112 @@ const changeFilter = (filterValue) => {
   currentFilter.value = filterValue
 }
 
-const filteredRecords = computed(() => {
-  if (currentFilter.value === 'all') {
-    return records.value
+// 开始日期变化
+const onStartDateChange = (e) => {
+  const selectedDate = e.detail.value
+  // 验证开始日期不能晚于结束日期
+  if (endDate.value) {
+    const start = parseDate(selectedDate)
+    const end = parseDate(endDate.value)
+    if (start && end && start > end) {
+      uni.showToast({
+        title: '开始日期不能晚于结束日期',
+        icon: 'none'
+      })
+      return
+    }
   }
-  return records.value.filter(record => record.normalizedStatus === currentFilter.value)
+  startDate.value = selectedDate
+}
+
+// 结束日期变化
+const onEndDateChange = (e) => {
+  const selectedDate = e.detail.value
+  // 验证结束日期不能早于开始日期
+  if (startDate.value) {
+    const start = parseDate(startDate.value)
+    const end = parseDate(selectedDate)
+    if (start && end && end < start) {
+      uni.showToast({
+        title: '结束日期不能早于开始日期',
+        icon: 'none'
+      })
+      return
+    }
+  }
+  endDate.value = selectedDate
+}
+
+// 清除日期范围
+const clearDateRange = () => {
+  startDate.value = ''
+  endDate.value = ''
+  uni.showToast({
+    title: '已清除日期筛选',
+    icon: 'success',
+    duration: 1500
+  })
+}
+
+// 在弹窗中重置日期范围
+const handleResetDateRange = () => {
+  startDate.value = ''
+  endDate.value = ''
+  showDatePicker.value = false
+  uni.showToast({
+    title: '已重置日期筛选',
+    icon: 'success',
+    duration: 1500
+  })
+}
+
+// 检查就诊记录是否在日期范围内
+const isRecordInDateRange = (record) => {
+  if (!startDate.value && !endDate.value) {
+    return true // 没有设置日期范围，显示所有记录，包括没有日期信息的记录
+  }
+  
+  // 使用就诊时间作为比较基准
+  const recordDateStr = record.registerTime || record.consultationTime || record.createTime || ''
+  if (!recordDateStr) {
+    return false // 有日期筛选但记录没有日期信息，不显示
+  }
+  
+  const recordDate = parseDate(recordDateStr)
+  if (!recordDate) return false
+  
+  const start = parseDate(startDate.value)
+  const end = parseDate(endDate.value)
+  
+  // 如果只有开始日期，只要记录日期 >= 开始日期即可
+  if (startDate.value && !endDate.value) {
+    return recordDate >= start
+  }
+  
+  // 如果只有结束日期，只要记录日期 <= 结束日期即可
+  if (!startDate.value && endDate.value) {
+    return recordDate <= end
+  }
+  
+  // 如果两个日期都有，记录日期必须在范围内
+  if (start && end) {
+    return recordDate >= start && recordDate <= end
+  }
+  
+  return true
+}
+
+// 过滤就诊记录
+const filteredRecords = computed(() => {
+  return records.value.filter(record => {
+    // 状态筛选
+    if (currentFilter.value !== 'all' && record.statusDisplay !== currentFilter.value) {
+      return false
+    }
+    
+    // 日期范围筛选
+    return isRecordInDateRange(record)
+  })
 })
 
 const viewRecordDetail = (record) => {
@@ -646,23 +899,50 @@ const goToReferralApplication = async (record) => {
       return
     }
     
+    // 确保使用就诊记录中的patientId，而不是当前登录用户的patientId
+    const recordPatientId = record.patientId || record.originalRecord?.patientId || record.originalRecord?.patient_id
+    
     let patientName = ''
-    try {
-      const patientInfo = await ensurePatientCard()
-      patientName = patientInfo?.patientName || ''
-    } catch (error) {
-      console.warn('获取患者信息失败:', error)
+    let patientInfo = null
+    
+    // 如果就诊记录中有patientId，使用该patientId获取患者信息
+    if (recordPatientId) {
+      try {
+        patientInfo = await patientApi.getPatientDetail({ patientId: recordPatientId })
+        patientName = patientInfo?.patientName || patientInfo?.name || ''
+        console.log('使用就诊记录中的patientId获取患者信息:', recordPatientId, patientName)
+      } catch (error) {
+        console.warn('根据就诊记录patientId获取患者信息失败:', error)
+      }
+    }
+    
+    // 如果获取失败，尝试使用当前登录用户的就诊卡
+    if (!patientName) {
+      try {
+        const card = await ensurePatientCard()
+        patientName = card?.patientName || card?.name || ''
+        console.log('使用当前登录用户的就诊卡信息:', patientName)
+      } catch (error) {
+        console.warn('获取患者信息失败:', error)
+      }
     }
     
     const referralData = {
       recordId: record.id,
       patientName: patientName,
+      patientId: recordPatientId, // 传递就诊记录中的patientId
       department: record.department,
       doctor: record.doctor,
       visitTime: record.visitTime,
       visitId: record.id,
-      originalRecord: record.originalRecord || record
+      originalRecord: {
+        ...(record.originalRecord || record),
+        patientId: recordPatientId, // 确保originalRecord中包含正确的patientId
+        patient_id: recordPatientId
+      }
     }
+    
+    console.log('转诊申请数据:', referralData)
     
     const encodedData = encodeURIComponent(JSON.stringify(referralData))
     
@@ -688,6 +968,28 @@ const goToReferralApplication = async (record) => {
   }
 }
 
+// 跳转到转诊详情
+const goToReferralDetail = (record) => {
+  if (!record || !record.referralId) {
+    uni.showToast({
+      title: '转诊记录信息不完整',
+      icon: 'none'
+    })
+    return
+  }
+  
+  uni.navigateTo({
+    url: `/subpkg/hospital/referral-detail?id=${record.referralId}`,
+    fail: (error) => {
+      console.error('跳转转诊详情失败:', error)
+      uni.showToast({
+        title: '跳转失败，请重试',
+        icon: 'none'
+      })
+    }
+  })
+}
+
 onMounted(() => {
   loadHospitalRecords()
 })
@@ -704,6 +1006,65 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 24rpx 30rpx 20rpx;
+  background: linear-gradient(135deg, #4a90e2 0%, #6ec6ff 100%);
+  border-radius: 0 0 32rpx 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(74, 144, 226, 0.2);
+  margin-bottom: 20rpx;
+}
+
+.list-header-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.header-icon {
+  font-size: 40rpx;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6rpx);
+  }
+}
+
+.list-header {
+  font-size: 42rpx;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 2rpx;
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+
+.list-header::after {
+  content: '';
+  position: absolute;
+  bottom: -4rpx;
+  left: 0;
+  right: 0;
+  height: 4rpx;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  border-radius: 2rpx;
+}
+
+.header-badge {
+  background-color: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10rpx);
+  color: #ffffff;
+  font-size: 22rpx;
+  font-weight: 600;
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.3);
+  min-width: 40rpx;
+  text-align: center;
+  line-height: 1.4;
 }
 
 .patient-card {
@@ -978,27 +1339,30 @@ onMounted(() => {
 }
 
 .refresh-btn.small {
-  padding: 2rpx 32rpx;
-  height: 48rpx;
-  line-height: 44rpx;
-
-  background-color: white;
-  border: 1rpx solid #4a90e2;
-  border-radius: 12rpx;
+  padding: 8rpx 24rpx;
+  height: 52rpx;
+  line-height: 36rpx;
+  background-color: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10rpx);
+  border: 1rpx solid rgba(255, 255, 255, 0.3);
+  border-radius: 26rpx;
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 8rpx; /* 保持与原来相同的间距 */
-  font-size: 28rpx; /* 字体大小保持不变 */
-  color: #4a90e2; /* 文字颜色改为蓝色，与边框一致 */
+  gap: 8rpx;
+  font-size: 26rpx;
+  color: #ffffff;
   width: auto;
   margin: 0;
   transition: all 0.3s ease;
 }
 
 .refresh-btn.small:active {
-  background-color: rgba(74, 144, 226, 0.1); /* 白色背景下的点击效果 */
-  opacity: 0.9;
+  background-color: rgba(255, 255, 255, 0.35);
+}
+
+.refresh-btn.small:disabled {
+  opacity: 0.5;
 }
 
 .refresh-btn .refresh-icon {
@@ -1073,6 +1437,206 @@ onMounted(() => {
 .filter-tab:active::before {
   width: 100%;
   height: 100%;
+}
+
+/* 日期筛选区域样式 - 紧凑形式 */
+.date-filter-compact {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 12rpx 20rpx;
+  margin-bottom: 12rpx;
+  gap: 12rpx;
+}
+
+.date-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 8rpx 16rpx;
+  background-color: #ffffff;
+  border: 1rpx solid #e4e7ed;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+}
+
+.calendar-icon {
+  font-size: 28rpx;
+  color: #4a90e2;
+}
+
+.date-range-text {
+  font-size: 24rpx;
+  color: #333;
+  max-width: 400rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.date-range-text.placeholder {
+  color: #999;
+}
+
+.clear-date-btn {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 8rpx 16rpx;
+  background-color: #fff5f5;
+  border: 1rpx solid #ffcccc;
+  border-radius: 20rpx;
+  transition: all 0.3s ease;
+}
+
+.clear-date-btn:active {
+  background-color: #ffe0e0;
+  border-color: #ffaaaa;
+}
+
+.clear-date-icon {
+  font-size: 24rpx;
+  color: #ff4d4f;
+  line-height: 1;
+}
+
+.clear-date-text {
+  font-size: 24rpx;
+  color: #ff4d4f;
+  line-height: 1;
+}
+
+/* 日历选择弹窗样式 */
+.date-picker-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.date-picker-content {
+  width: 85%;
+  max-width: 600rpx;
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.date-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32rpx 30rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.date-picker-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.date-picker-close {
+  font-size: 36rpx;
+  color: #999;
+  padding: 4rpx;
+  line-height: 1;
+}
+
+.date-picker-body {
+  padding: 30rpx;
+}
+
+.date-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 24rpx;
+}
+
+.date-picker-row:last-child {
+  margin-bottom: 0;
+}
+
+.date-picker-label {
+  font-size: 28rpx;
+  color: #666;
+  min-width: 120rpx;
+}
+
+.date-picker-view {
+  flex: 1;
+  padding: 16rpx 24rpx;
+  background-color: #f5f7fa;
+  border-radius: 12rpx;
+  border: 1rpx solid #e4e7ed;
+}
+
+.date-picker-value {
+  font-size: 28rpx;
+  color: #333;
+}
+
+.date-picker-placeholder {
+  font-size: 28rpx;
+  color: #999;
+}
+
+.date-picker-footer {
+  padding: 24rpx 30rpx;
+  border-top: 1rpx solid #f0f0f0;
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
+}
+
+.date-picker-confirm {
+  flex: 1;
+  padding: 24rpx;
+  background-color: #4a90e2;
+  color: #ffffff;
+  border: none;
+  border-radius: 12rpx;
+  font-size: 30rpx;
+  text-align: center;
+}
+
+.date-picker-confirm:active {
+  background-color: #357abd;
+}
+
+.date-picker-reset {
+  flex: 1;
+  padding: 24rpx;
+  background-color: #ffffff;
+  color: #666666;
+  border: 1rpx solid #e4e7ed;
+  border-radius: 12rpx;
+  font-size: 30rpx;
+  text-align: center;
+}
+
+.date-picker-reset:active {
+  background-color: #f5f7fa;
+  border-color: #d0d7de;
 }
 
 /* 优化记录卡片样式 */

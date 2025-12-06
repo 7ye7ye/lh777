@@ -132,26 +132,45 @@ const getTimeSlotLabel = (slot?: number) => {
 
 export const getScheduleDetailById = async (scheduleId: number) => {
   try {
-    const res = await request.get('/schedule/detail', { scheduleId }) as Result<ScheduleDetail>;
+    const res = await request.get('/schedule/detail', { scheduleId }) as Result<ScheduleDetail> | ScheduleDetail;
 
-    if (!res?.result) {
+    // 处理不同的响应格式
+    let schedule: any = null;
+    
+    // 如果响应拦截器已经解包，res 直接就是 result 对象
+    if (res && typeof res === 'object') {
+      // 检查是否有 schedule_date 或 scheduleDate 字段（说明已经是排班对象）
+      if ('schedule_date' in res || 'scheduleDate' in res || 'scheduleId' in res) {
+        schedule = res;
+      }
+      // 如果有 result 字段，说明响应拦截器没有解包
+      else if ('result' in res && res.result) {
+        schedule = res.result;
+      }
+      // 如果有 data 字段
+      else if ('data' in res && res.data) {
+        schedule = res.data;
+      }
+    }
+
+    if (!schedule) {
+      console.warn('排班详情为空，scheduleId:', scheduleId, '响应:', res);
       return null;
     }
 
-    const schedule = res.result;
-    const slotLabel = getTimeSlotLabel(schedule.time_slot);
+    const slotLabel = getTimeSlotLabel(schedule.time_slot || schedule.timeSlot);
 
     return {
       ...schedule,
-      scheduleDate: schedule.schedule_date,
-      timeSlot: schedule.time_slot,
-      timeSlotValue: schedule.time_slot,
+      scheduleDate: schedule.schedule_date || schedule.scheduleDate,
+      timeSlot: schedule.time_slot || schedule.timeSlot,
+      timeSlotValue: schedule.time_slot || schedule.timeSlot,
       timeSlotText: slotLabel,
       timeSlotLabel: slotLabel,
-      roomNumber: schedule.room_number,
-      deptId: schedule.dept_id,
-      doctorId: schedule.doctor_id,
-      typeId: schedule.type_id
+      roomNumber: schedule.room_number || schedule.roomNumber,
+      deptId: schedule.dept_id || schedule.deptId,
+      doctorId: schedule.doctor_id || schedule.doctorId,
+      typeId: schedule.type_id || schedule.typeId
     };
   } catch (error) {
     console.error('获取排班详情失败:', error);
