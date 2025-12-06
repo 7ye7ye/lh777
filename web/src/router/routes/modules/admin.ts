@@ -2,7 +2,6 @@
 import type { AppRouteModule } from '/@/router/types';
 
 import { LAYOUT } from '/@/router/constant';
-import { t } from '/@/hooks/web/useI18n';
 
 const admin: AppRouteModule = {
   path: '/admin',
@@ -12,7 +11,7 @@ const admin: AppRouteModule = {
   meta: {
     orderNo: 9,
     icon: 'ion:settings-outline',
-    title: t('routes.admin.moduleName'),
+    title: '管理员端',
     ignoreAuth: true,
   },
   children: [
@@ -71,7 +70,7 @@ const admin: AppRouteModule = {
           component: () => import('/@/views/admin/management/referral/ReferralHistory.vue'),
           meta: {
             // 如需仅保留一个菜单页面，可隐藏该菜单入口
-            title: t('routes.admin.referralHistory'),
+            title: 'routes.admin.referralHistory',
             ignoreAuth: true,
             hideMenu: true,
           },
@@ -83,7 +82,7 @@ const admin: AppRouteModule = {
       name: 'AdminScheduleToday',
       component: () => import('/@/views/admin/schedule/ScheduleToday.vue'),
       meta: {
-        title: t('routes.admin.scheduleToday'),
+        title: '排班调整',
         ignoreAuth: true,
       },
     },
@@ -92,7 +91,7 @@ const admin: AppRouteModule = {
       name: 'AdminScheduleCalendar',
       component: () => import('/@/views/admin/schedule/ScheduleCalendar.vue'),
       meta: {
-        title: t('routes.admin.scheduleCalendar'),
+        title: '排班日历',
         ignoreAuth: true,
         hideMenu: true,
       },
@@ -104,8 +103,9 @@ const admin: AppRouteModule = {
       redirect: '/admin/rules/schedule-rules',
       meta: {
         orderNo: 10,
-        title: t('routes.admin.ruleGroup'),
+        title: '规则制定',
         ignoreAuth: true,
+        hideMenu: true,
       },
       children: [
         {
@@ -113,7 +113,7 @@ const admin: AppRouteModule = {
           name: 'AdminScheduleRules',
           component: () => import('/@/views/admin/schedule/RuleSetting.vue'),
           meta: {
-            title: t('routes.admin.scheduleRule'),
+            title: '排班规则制定',
             ignoreAuth: true,
           },
         },
@@ -122,7 +122,7 @@ const admin: AppRouteModule = {
           name: 'AdminNumberType',
           component: () => import('/@/views/admin/schedule/NumberTypeSetting.vue'),
           meta: {
-            title: t('routes.admin.numberType'),
+            title: '号别设置',
             ignoreAuth: true,
           },
         },
@@ -131,7 +131,7 @@ const admin: AppRouteModule = {
           name: 'AdminReservationRule',
           component: () => import('/@/views/admin/schedule/ReservationRule.vue'),
           meta: {
-            title: t('routes.admin.reservationRule'),
+            title: '号源预约规则',
             ignoreAuth: true,
           },
         },
@@ -140,7 +140,7 @@ const admin: AppRouteModule = {
           name: 'AdminRegistrationRule',
           component: () => import('/@/views/admin/business/RegistrationRule.vue'),
           meta: {
-            title: t('routes.admin.registrationRule'),
+            title: '挂号规则制定',
             ignoreAuth: true,
           },
         },
@@ -149,7 +149,7 @@ const admin: AppRouteModule = {
           name: 'AdminRefundRule',
           component: () => import('/@/views/admin/business/RefundRule.vue'),
           meta: {
-            title: t('routes.admin.refundRule'),
+            title: '退号规则制定',
             ignoreAuth: true,
           },
         },
@@ -160,8 +160,9 @@ const admin: AppRouteModule = {
       name: 'AdminScheduleAdjustment',
       component: () => import('/@/views/admin/schedule/Adjustment.vue'),
       meta: {
-        title: t('routes.admin.scheduleAdjustment'),
+        title: '排班调整',
         ignoreAuth: true,
+        hideMenu: true,
       },
     },
     {
@@ -210,7 +211,7 @@ const admin: AppRouteModule = {
       name: 'AdminRole',
       component: () => import('/@/views/admin/access/RoleManage.vue'),
       meta: {
-        title: t('routes.admin.role'),
+        title: '角色管理',
         ignoreAuth: true,
       },
     },
@@ -219,7 +220,7 @@ const admin: AppRouteModule = {
       name: 'AdminDoctorRegister',
       component: () => import('/@/views/admin/doctor/DoctorRegister.vue'),
       meta: {
-        title: t('routes.admin.doctorRegister'),
+        title: '医生注册',
         ignoreAuth: true,
       },
     },
@@ -228,7 +229,7 @@ const admin: AppRouteModule = {
       name: 'AdminDoctorProfileUpdateApproval',
       component: () => import('/@/views/admin/doctor/DoctorProfileUpdateApproval.vue'),
       meta: {
-        title: t('routes.admin.doctorProfileUpdateApproval'),
+        title: '医生资料修改审批',
         ignoreAuth: true,
       },
     },
@@ -237,7 +238,7 @@ const admin: AppRouteModule = {
       name: 'AdminAccountPermission',
       component: () => import('/@/views/admin/access/AccountPermission.vue'),
       meta: {
-        title: t('routes.admin.accountPermission'),
+        title: '账号权限设置',
         ignoreAuth: true,
       },
     },
@@ -246,7 +247,7 @@ const admin: AppRouteModule = {
       name: 'AdminLeaveApproval',
       component: () => import('/@/views/admin/access/LeaveApproval.vue'),
       meta: {
-        title: t('routes.admin.leaveApproval'),
+        title: '请假审批',
         ignoreAuth: true,
       },
     },

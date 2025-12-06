@@ -32,8 +32,15 @@ public class DoctorScheduleUpdateRequest {
     @Schema(description = "备注", example = "调班")
     private String remark;
 
+    @Schema(description = "诊室号", example = "A101")
+    private String roomNumber;
+
     @Schema(description = "最大号源数量", example = "50")
-    private Integer maxQuota; // 新增字段
+    private Integer maxQuota;
+
+    @Schema(description = "时段（1-上午，2-下午，3-晚上）", example = "1")
+    private Integer timeSlot;
+
 
     // getter & setter
     public Long getScheduleId() { return scheduleId; }
@@ -63,6 +70,12 @@ public class DoctorScheduleUpdateRequest {
     public String getRemark() { return remark; }
     public void setRemark(String remark) { this.remark = remark; }
 
+    public String getRoomNumber() { return roomNumber; }
+    public void setRoomNumber(String roomNumber) { this.roomNumber = roomNumber; }
+
     public Integer getMaxQuota() { return maxQuota; }
-    public void setMaxQuota(Integer maxQuota) { this.maxQuota = maxQuota; } // setter
+    public void setMaxQuota(Integer maxQuota) { this.maxQuota = maxQuota; }
+
+    public Integer getTimeSlot() { return timeSlot; }
+    public void setTimeSlot(Integer timeSlot) { this.timeSlot = timeSlot; }
 }

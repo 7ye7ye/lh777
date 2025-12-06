@@ -11,6 +11,8 @@
     <result column="schedule_date" property="scheduleDate"/>
     <result column="time_slot" property="timeSlot"/>
     <result column="used_quota" property="usedQuota"/>
+    <result column="max_quota" property="maxQuota"/>
+    <result column="room_number" property="roomNumber"/>
     <result column="status" property="status"/>
   </resultMap>
 
@@ -24,6 +26,8 @@
       ds.schedule_date,
       ds.time_slot,
       ds.used_quota,
+      ds.max_quota,
+      ds.room_number,
       ds.status
     FROM doctor_schedule ds
     LEFT JOIN doctor d ON d.doctor_id = ds.doctor_id
