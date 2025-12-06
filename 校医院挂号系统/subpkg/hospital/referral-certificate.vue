@@ -6,7 +6,7 @@
     
     <view class="certificate-content" id="certificate-content">
       <view class="form-section">
-        <!-- 第一行：患者姓名、性别、年龄、病历号 -->
+        <!-- 第一行：患者姓名、性别、年龄 -->
         <view class="form-row">
           <view class="form-field">
             <text class="field-label">患者姓名：</text>
@@ -26,15 +26,19 @@
               <text class="field-value">{{ formatFieldValue(patientInfo.age) }}</text>
             </view>
           </view>
+        </view>
+        
+        <!-- 第二行：病历号 -->
+        <view class="form-row">
           <view class="form-field">
             <text class="field-label">病历号：</text>
-            <view class="field-underline">
-              <text class="field-value">{{ formatFieldValue(patientInfo.medicalRecordNo) }}</text>
+            <view class="field-underline medical-record-no">
+              <text class="field-value medical-record-value">{{ formatFieldValue(patientInfo.medicalRecordNo) }}</text>
             </view>
           </view>
         </view>
         
-        <!-- 第二行：就诊时间、就诊地点 -->
+        <!-- 第三行：就诊时间、就诊地点 -->
         <view class="form-row">
           <view class="form-field long">
             <text class="field-label">就诊时间：</text>
@@ -90,18 +94,12 @@
           </view>
         </view>
         
-        <!-- 目标医院和科室 -->
+        <!-- 目标医院 -->
         <view class="form-row">
-          <view class="form-field long">
+          <view class="form-field full">
             <text class="field-label">转诊至医院：</text>
             <view class="field-underline">
               <text class="field-value">{{ formatFieldValue(patientInfo.targetHospital) }}</text>
-            </view>
-          </view>
-          <view class="form-field long">
-            <text class="field-label">转诊至科室：</text>
-            <view class="field-underline">
-              <text class="field-value">{{ formatFieldValue(patientInfo.targetDepartment) }}</text>
             </view>
           </view>
         </view>
@@ -118,20 +116,22 @@
         
         <!-- 签名和日期 -->
         <view class="form-row signature-row">
-          <view class="signature-section">
-            <view class="form-field">
-              <text class="field-label">签名：</text>
-              <view class="field-underline">
-                <text class="field-value">{{ formatFieldValue(patientInfo.signature) }}</text>
-              </view>
-            </view>
-            <view class="form-field">
-              <text class="field-label">日期：</text>
-              <view class="field-underline">
-                <text class="field-value">{{ formatFieldValue(patientInfo.date) }}</text>
-              </view>
+          <view class="form-field signature-field">
+            <text class="field-label">签名：</text>
+            <view class="field-underline signature-underline">
+              <text class="field-value">{{ formatFieldValue(patientInfo.signature) }}</text>
             </view>
           </view>
+          <view class="form-field date-field">
+            <text class="field-label">日期：</text>
+            <view class="field-underline date-underline">
+              <text class="field-value">{{ formatFieldValue(patientInfo.date) }}</text>
+            </view>
+          </view>
+        </view>
+        
+        <!-- 盖章处 -->
+        <view class="form-row seal-row">
           <view class="seal-section">
             <view class="seal-container">
               <view class="seal-circle">
@@ -158,13 +158,13 @@
     </view>
     
     <view class="certificate-actions">
-      <button class="action-btn download-pdf-btn" @click="downloadAsPDF">下载为PDF</button>
-      <button class="action-btn download-img-btn" @click="downloadCertificate">下载为图片</button>
-      <button class="action-btn share-btn" @click="shareCertificate">分享</button>
+      <button class="action-btn" @click="downloadAsPDF">下载PDF</button>
+      <button class="action-btn" @click="downloadCertificate">下载图片</button>
+      <button class="action-btn" @click="previewCertificate">预览</button>
     </view>
     
     <!-- 用于生成图片的Canvas，设置为不可见 -->
-    <canvas canvas-id="certificate-canvas" style="position: absolute; left: -9999rpx; width: 750rpx; height: 2000rpx;"></canvas>
+    <canvas canvas-id="certificate-canvas" style="position: absolute; left: -9999px; width: 600px; height: 1000px;"></canvas>
   </view>
 </template>
 
@@ -284,30 +284,114 @@ const loadReferralDetail = async (referralId) => {
     }
     
     console.log('提取后的数据:', data)
+    console.log('所有字段名:', Object.keys(data || {}))
+    
+    // 打印关键字段的值（用于调试）
+    if (data) {
+      console.log('数据字段详情:', {
+        reviewDoctor: data.reviewDoctor,
+        review_doctor: data.review_doctor,
+        reviewDoctorName: data.reviewDoctorName,
+        originalDoctorName: data.originalDoctorName,
+        original_doctor_name: data.original_doctor_name,
+        registrationNo: data.registrationNo,
+        registration_no: data.registration_no,
+        outpatientNumber: data.outpatientNumber,
+        outpatient_number: data.outpatient_number,
+        registrationRecordId: data.registrationRecordId,
+        registration_record_id: data.registration_record_id
+      })
+    }
     
     if (data && (data.id || data.referralId || data.patientName)) {
+      // 获取医生签名：优先使用审核医生，如果没有则使用原始医生，最后使用默认值
+      // 注意：后端返回的是实体对象，字段是驼峰格式，但可能为null
+      const getDoctorName = () => {
+        // 先尝试审核医生（可能是null，需要检查）
+        if (data.reviewDoctor && String(data.reviewDoctor).trim()) {
+          return String(data.reviewDoctor).trim()
+        }
+        // 尝试审核医生名称字段
+        if (data.reviewDoctorName && String(data.reviewDoctorName).trim()) {
+          return String(data.reviewDoctorName).trim()
+        }
+        // 尝试原始医生名称
+        if (data.originalDoctorName && String(data.originalDoctorName).trim()) {
+          return String(data.originalDoctorName).trim()
+        }
+        // 尝试下划线格式（兼容性）
+        if (data.review_doctor && String(data.review_doctor).trim()) {
+          return String(data.review_doctor).trim()
+        }
+        if (data.original_doctor_name && String(data.original_doctor_name).trim()) {
+          return String(data.original_doctor_name).trim()
+        }
+        // 如果都没有，显示默认值
+        return '系统管理员'
+      }
+      
+      // 获取病历号：优先使用门诊号，如果没有则使用挂号单号
+      const getMedicalRecordNo = () => {
+        // 优先使用门诊号（outpatient_number）
+        if (data.outpatientNumber && String(data.outpatientNumber).trim()) {
+          return String(data.outpatientNumber).trim()
+        }
+        // 尝试下划线格式
+        if (data.outpatient_number && String(data.outpatient_number).trim()) {
+          return String(data.outpatient_number).trim()
+        }
+        // 尝试其他可能的字段名
+        if (data.outpatientNo && String(data.outpatientNo).trim()) {
+          return String(data.outpatientNo).trim()
+        }
+        if (data.outpatient_no && String(data.outpatient_no).trim()) {
+          return String(data.outpatient_no).trim()
+        }
+        // 使用挂号单号作为备选
+        if (data.registrationNo && String(data.registrationNo).trim()) {
+          return String(data.registrationNo).trim()
+        }
+        if (data.registration_no && String(data.registration_no).trim()) {
+          return String(data.registration_no).trim()
+        }
+        // 其他可能的字段
+        if (data.visitNo && String(data.visitNo).trim()) {
+          return String(data.visitNo).trim()
+        }
+        if (data.visit_no && String(data.visit_no).trim()) {
+          return String(data.visit_no).trim()
+        }
+        if (data.medicalRecordNo && String(data.medicalRecordNo).trim()) {
+          return String(data.medicalRecordNo).trim()
+        }
+        if (data.medical_record_no && String(data.medical_record_no).trim()) {
+          return String(data.medical_record_no).trim()
+        }
+        return ''
+      }
+      
       // 填充患者信息
       patientInfo.value = {
         name: formatFieldValue(data.patientName || data.patient_name),
         gender: formatFieldValue(data.gender || data.patientGender),
         age: formatFieldValue(data.age || data.patientAge),
-        // 病历号使用患者的就诊号
-        medicalRecordNo: formatFieldValue(data.visitNo || data.registrationNo || data.medicalRecordNo || data.medical_record_no || data.visitNumber),
-        consultationTime: formatDateTime(data.consultationTime || data.visitTime || data.applyTime || data.createTime),
-        consultationLocation: formatFieldValue(data.consultationLocation || data.sourceHospitalName || '北京交通大学校医院'),
+        medicalRecordNo: formatFieldValue(getMedicalRecordNo()),
+        consultationTime: formatDateTime(data.consultationTime || data.visitTime || data.visit_time || data.applyTime || data.apply_time || data.createTime || data.create_time),
+        consultationLocation: formatFieldValue(data.consultationLocation || data.sourceHospitalName || data.originalDeptName || data.original_dept_name || '北京交通大学校医院'),
         referralReason: formatFieldValue(data.reason || data.referralReason),
         mainSymptoms: formatFieldValue(data.symptoms || data.mainSymptoms),
         diagnosisResult: formatFieldValue(data.diagnosis || data.diagnosisResult),
-        referralAdvice: formatFieldValue(data.referralAdvice || data.reviewComments),
-        targetHospital: formatFieldValue(data.targetHospitalName || data.targetHospital),
-        targetDepartment: formatFieldValue(data.targetDeptName || data.targetDepartment),
-        notes: formatFieldValue(data.notes || data.medicalHistory),
-        // 签名使用医生姓名
-        signature: formatFieldValue(data.reviewDoctor || data.doctorName || data.doctor_name),
-        date: formatDateTime(data.reviewTime || data.createTime || new Date())
+        referralAdvice: formatFieldValue(data.referralAdvice || data.refer_advice || data.reviewComments || data.review_comments),
+        targetHospital: formatFieldValue(data.targetHospitalName || data.target_hospital_name || data.targetHospital),
+        targetDepartment: formatFieldValue(data.targetDeptName || data.target_dept_name || data.targetDepartment),
+        notes: formatFieldValue(data.notes || data.medicalHistory || data.medical_history),
+        signature: formatFieldValue(getDoctorName()),
+        date: formatDateTime(data.reviewTime || data.review_time || data.createTime || data.create_time || new Date())
       }
       
       console.log('转诊信息加载成功:', patientInfo.value)
+      console.log('签名字段值:', patientInfo.value.signature)
+      console.log('病历号字段值:', patientInfo.value.medicalRecordNo)
     } else {
       console.warn('转诊数据格式不正确，无法识别数据:', res)
       uni.showToast({
@@ -355,7 +439,8 @@ const loadFromRecordParam = () => {
                   name: record.patientName || '',
                   gender: record.gender || record.patientGender || '',
                   age: record.age || record.patientAge || '',
-                  medicalRecordNo: record.medicalRecordNo || '',
+                  // 病历号使用患者的门诊号
+                  medicalRecordNo: formatFieldValue(record.outpatientNumber || record.outpatient_number || record.outpatientNo || record.outpatient_no || record.visitNo || record.visit_no || record.registrationNo || record.registration_no || record.cardNumber || record.card_number || record.medicalRecordNo),
                   consultationTime: formatDateTime(record.consultationTime || record.applyTime),
                   consultationLocation: record.consultationLocation || '北京交通大学校医院',
                   referralReason: record.reason || record.referralReason || '',
@@ -365,7 +450,8 @@ const loadFromRecordParam = () => {
                   targetHospital: record.targetHospital || record.targetHospitalName || '',
                   targetDepartment: record.targetDepartment || record.targetDeptName || '',
                   notes: record.notes || record.medicalHistory || '',
-                  signature: record.reviewDoctor || record.doctorName || '',
+                  // 签名使用医生姓名
+                  signature: formatFieldValue(record.reviewDoctor || record.reviewDoctorName || record.doctorName || record.doctor_name || record.physicianName),
                   date: formatDateTime(record.reviewTime || record.applyTime || new Date())
                 }
               }
@@ -409,40 +495,62 @@ const downloadAsPDF = async () => {
         // 后端已经返回完整的PDF URL，直接使用
         const pdfUrl = uploadResult.pdfUrl
         
-        // 下载PDF文件
+        // 直接打开PDF，不保存到本地（避免存储限制）
+        uni.hideLoading()
+        uni.showToast({
+          title: '正在打开PDF...',
+          icon: 'loading',
+          duration: 1000
+        })
+        
+        // 下载PDF文件到临时目录
         uni.downloadFile({
           url: pdfUrl,
           success: (res) => {
             if (res.statusCode === 200) {
-              // 保存文件
-              uni.saveFile({
-                tempFilePath: res.tempFilePath,
-                success: (saveRes) => {
+              // 直接打开PDF，不保存到本地
+              uni.openDocument({
+                filePath: res.tempFilePath,
+                success: () => {
                   uni.hideLoading()
                   uni.showToast({
-                    title: 'PDF已保存',
+                    title: 'PDF已打开',
                     icon: 'success',
                     duration: 2000
                   })
-                  // 打开文件
-                  setTimeout(() => {
-                    uni.openDocument({
-                      filePath: saveRes.savedFilePath,
-                      success: () => {
-                        console.log('打开PDF成功')
-                      },
-                      fail: (err) => {
-                        console.log('打开PDF失败，文件已保存:', err)
-                      }
-                    })
-                  }, 500)
                 },
                 fail: (err) => {
                   uni.hideLoading()
-                  console.error('保存PDF失败:', err)
-                  uni.showToast({
-                    title: '保存PDF失败',
-                    icon: 'none'
+                  console.error('打开PDF失败:', err)
+                  // 如果打开失败，尝试保存
+                  uni.saveFile({
+                    tempFilePath: res.tempFilePath,
+                    success: (saveRes) => {
+                      uni.showToast({
+                        title: 'PDF已保存',
+                        icon: 'success',
+                        duration: 2000
+                      })
+                    },
+                    fail: (saveErr) => {
+                      console.error('保存PDF失败:', saveErr)
+                      uni.showToast({
+                        title: 'PDF文件过大，请使用浏览器打开',
+                        icon: 'none',
+                        duration: 3000
+                      })
+                      // 提供下载链接
+                      uni.setClipboardData({
+                        data: pdfUrl,
+                        success: () => {
+                          uni.showModal({
+                            title: '提示',
+                            content: 'PDF链接已复制到剪贴板，请在浏览器中打开',
+                            showCancel: false
+                          })
+                        }
+                      })
+                    }
                   })
                 }
               })
@@ -497,14 +605,30 @@ const downloadAsPDF = async () => {
 // 上传图片并转换为PDF（需要后端支持）
 const uploadImageAndConvertToPDF = async (imagePath) => {
   return new Promise((resolve, reject) => {
+    // 生成文件名（包含患者姓名和日期）
+    const patientName = formatFieldValue(patientInfo.value.name) || '患者'
+    const dateStr = formatFieldValue(patientInfo.value.date) || new Date().toISOString().split('T')[0]
+    const filename = `转诊记录单_${patientName}_${dateStr}.pdf`
+    
+    // 自定义存储路径（可以根据需要修改）
+    const customPath = 'referral-certificates'
+    
+    console.log('上传PDF参数:', {
+      filename,
+      customPath,
+      imagePath: imagePath.substring(0, 50) + '...'
+    })
+    
     // 使用http.upload方法，它会自动处理baseURL和token
     http.upload('/api/referral/convert-to-pdf', imagePath, {
       name: 'image',
       formData: {
-        'filename': `转诊记录单_${new Date().getTime()}.pdf`
+        'filename': filename,
+        'customPath': customPath
       },
       timeout: 30000
     }).then((response) => {
+      console.log('PDF上传响应:', response)
       // 后端返回Result格式：{ success: true, result: { pdfUrl: "...", filename: "..." } }
       if (response && response.success && response.result && response.result.pdfUrl) {
         resolve({
@@ -520,7 +644,7 @@ const uploadImageAndConvertToPDF = async (imagePath) => {
       } else if (response && response.message) {
         // 后端返回错误信息
         reject(new Error(response.message || 'PDF生成失败'))
-      } else {
+            } else {
         reject(new Error('服务器未返回PDF URL，请稍后重试'))
       }
     }).catch((err) => {
@@ -561,10 +685,17 @@ const generateCertificateImage = () => {
             return
           }
           
-          const { width, height } = res[0]
-          const canvasWidth = 750
-          // 根据内容计算合适的高度，确保所有内容都能显示
-          const canvasHeight = Math.max(2800, height * 2.5) // 增加高度以确保印章和所有内容都能显示
+          // 使用较小的Canvas尺寸以减小文件大小
+          // uni-app中Canvas使用px单位，需要与实际绘制尺寸一致
+          const canvasWidth = 600 // 降低宽度以减小文件大小
+          // 计算实际需要的字段行数（字体缩小到75%后）：
+          // 标题区域：50px（标题+间距）
+          // 12行字段：12 * 42 = 504px
+          // 签名日期区域：35（间距）+ 42（行高）+ 20（间距）= 97px
+          // 盖章区域：75（印章大小）+ 20（底部间距）= 95px
+          // 总计：50 + 504 + 97 + 95 = 746px，加上安全边距约100px
+          const estimatedHeight = 50 + (12 * 42) + 97 + 95 + 100 // 标题 + 12行字段 + 签名日期 + 盖章 + 安全边距
+          const canvasHeight = Math.max(estimatedHeight, 850) // 确保高度足够，至少850px
           
           // 确保createCanvasContext可用
           if (typeof uni.createCanvasContext === 'function') {
@@ -580,14 +711,17 @@ const generateCertificateImage = () => {
             canvas.draw(false, () => {
               setTimeout(() => {
                 try {
+                  // 生成图片，确保完整显示所有内容
                   uni.canvasToTempFilePath({
                     canvasId: 'certificate-canvas',
                     width: canvasWidth,
                     height: canvasHeight,
                     x: 0,
                     y: 0,
-                    destWidth: canvasWidth * 2, // 提高分辨率
-                    destHeight: canvasHeight * 2,
+                    destWidth: canvasWidth, // 使用原始宽度，确保清晰度
+                    destHeight: canvasHeight, // 使用原始高度，确保完整显示
+                    fileType: 'jpg', // 使用jpg格式，文件更小
+                    quality: 0.85, // 质量85%，平衡清晰度和文件大小
                     success: (tempFilePath) => {
                       resolve(tempFilePath.tempFilePath)
                     },
@@ -673,242 +807,311 @@ const downloadCertificate = async () => {
 
 // 绘制转诊单内容到Canvas
 const drawCertificateContent = (canvas, width, height) => {
-  const margin = 80
-  const contentWidth = width - margin * 2
-  let yPosition = margin + 60
+  // 确保使用正确的宽度，避免内容超出Canvas范围
+  const actualWidth = Math.min(width, 600) // 确保不超过Canvas宽度
+  const margin = 40
+  const contentWidth = actualWidth - margin * 2
+  let yPosition = margin + 30
   
-  // 设置字体
-  canvas.setFontSize(36)
-  canvas.setFillStyle('#1a1a1a')
+  // 设置字体（缩小到75%，既清晰又能完整显示）
+  canvas.setFontSize(22)
+  canvas.setFillStyle('#000000')
   
   // 绘制标题
   canvas.setTextAlign('center')
-  canvas.setFontSize(48)
-  // 注意：uni-app canvas不支持setFontWeight，使用更大字体来突出标题
-  canvas.fillText('患者转诊记录单', width / 2, yPosition)
-  yPosition += 120
+  canvas.setFontSize(27)
+  const titleText = '患者转诊记录单'
+  canvas.fillText(titleText, actualWidth / 2, yPosition)
+  yPosition += 50
   
   // 绘制患者信息
   canvas.setTextAlign('left')
-  canvas.setFontSize(32)
+  canvas.setFontSize(21)
   
-  const lineHeight = 80
-  const fieldSpacing = 30
+  const lineHeight = 42
+  const fontSize = 21
+  const textBaselineOffset = 4 // 文字基线相对于yPosition的偏移
+  const underlineOffset = 9 // 下划线相对于文字基线的偏移（下划线在文字下方）
+  const underlineLength = 200 // 下划线长度
   
-  // 第一行：患者姓名、性别、年龄、病历号
+  // 第一行：患者姓名、性别
   let xPos = margin
-  canvas.setFillStyle('#1a1a1a')
-  canvas.fillText('患者姓名：', xPos, yPosition)
-  xPos += 160
-  canvas.setStrokeStyle('#1a1a1a')
-  canvas.setLineWidth(2)
+  canvas.setFillStyle('#000000')
+  const label1 = '患者姓名'
+  canvas.fillText(label1, xPos, yPosition)
+  xPos += 120
+  canvas.setStrokeStyle('#000000')
+  canvas.setLineWidth(1.5)
+  // 下划线位置：文字基线 + 偏移
+  const underlineY1 = yPosition + underlineOffset
   canvas.beginPath()
-  canvas.moveTo(xPos, yPosition - 25)
-  canvas.lineTo(xPos + 140, yPosition - 25)
+  canvas.moveTo(xPos, underlineY1)
+  canvas.lineTo(xPos + underlineLength, underlineY1)
   canvas.stroke()
   const nameText = formatFieldValue(patientInfo.value.name) || ''
   if (nameText) {
-    canvas.fillText(nameText, xPos + 5, yPosition - 8)
+    // 确保文本不会超出下划线范围
+    const maxNameWidth = underlineLength - 10
+    const displayName = nameText.length > 8 ? nameText.substring(0, 8) : nameText
+    // 文字绘制在下划线上方，使用相同的基线
+    canvas.fillText(displayName, xPos + 5, yPosition)
   }
   
-  xPos += 180
-  canvas.fillText('性别：', xPos, yPosition)
-  xPos += 100
+  xPos += 240
+  const label2 = '性别'
+  canvas.fillText(label2, xPos, yPosition)
+  xPos += 80
   canvas.beginPath()
-  canvas.moveTo(xPos, yPosition - 25)
-  canvas.lineTo(xPos + 80, yPosition - 25)
+  canvas.moveTo(xPos, underlineY1)
+  canvas.lineTo(xPos + 80, underlineY1)
   canvas.stroke()
   const genderText = formatFieldValue(patientInfo.value.gender) || ''
   if (genderText) {
-    canvas.fillText(genderText, xPos + 5, yPosition - 8)
-  }
-  
-  xPos += 120
-  canvas.fillText('年龄：', xPos, yPosition)
-  xPos += 100
-  canvas.beginPath()
-  canvas.moveTo(xPos, yPosition - 25)
-  canvas.lineTo(xPos + 80, yPosition - 25)
-  canvas.stroke()
-  const ageText = formatFieldValue(patientInfo.value.age) || ''
-  if (ageText) {
-    canvas.fillText(ageText, xPos + 5, yPosition - 8)
-  }
-  
-  xPos += 120
-  canvas.fillText('病历号：', xPos, yPosition)
-  xPos += 120
-  canvas.beginPath()
-  canvas.moveTo(xPos, yPosition - 25)
-  canvas.lineTo(xPos + 160, yPosition - 25)
-  canvas.stroke()
-  const recordNoText = formatFieldValue(patientInfo.value.medicalRecordNo) || ''
-  if (recordNoText) {
-    canvas.fillText(recordNoText, xPos + 5, yPosition - 8)
+    canvas.fillText(genderText, xPos + 5, yPosition)
   }
   
   yPosition += lineHeight
   
-  // 第二行：就诊时间、就诊地点
+  // 第二行：年龄
   xPos = margin
-  canvas.fillText('就诊时间：', xPos, yPosition)
-  xPos += 160
+  const label3 = '年龄'
+  canvas.fillText(label3, xPos, yPosition)
+  xPos += 80
+  const underlineY2 = yPosition + underlineOffset
   canvas.beginPath()
-  canvas.moveTo(xPos, yPosition - 25)
-  canvas.lineTo(xPos + 240, yPosition - 25)
+  canvas.moveTo(xPos, underlineY2)
+  canvas.lineTo(xPos + 80, underlineY2)
+  canvas.stroke()
+  const ageText = formatFieldValue(patientInfo.value.age) || ''
+  if (ageText) {
+    canvas.fillText(ageText, xPos + 5, yPosition)
+  }
+  
+  yPosition += lineHeight
+  
+  // 第三行：病历号（单独一行）
+  xPos = margin
+  const label4 = '病历号'
+  canvas.fillText(label4, xPos, yPosition)
+  xPos += 100
+  const underlineY3_record = yPosition + underlineOffset
+  const recordNoUnderlineLength = actualWidth - xPos - margin - 10
+  canvas.beginPath()
+  canvas.moveTo(xPos, underlineY3_record)
+  canvas.lineTo(xPos + recordNoUnderlineLength, underlineY3_record)
+  canvas.stroke()
+  const recordNoText = formatFieldValue(patientInfo.value.medicalRecordNo) || ''
+  if (recordNoText) {
+    // 病历号使用稍大的字体
+    canvas.setFontSize(23)
+    canvas.fillText(recordNoText, xPos + 5, yPosition)
+    // 恢复原来的字体大小
+    canvas.setFontSize(fontSize)
+  }
+  
+  yPosition += lineHeight
+  
+  // 第四行：就诊时间
+  xPos = margin
+  const label5 = '就诊时间'
+  canvas.fillText(label5, xPos, yPosition)
+  xPos += 120
+  const underlineY3 = yPosition + underlineOffset
+  const timeUnderlineLength = actualWidth - xPos - margin - 10
+  canvas.beginPath()
+  canvas.moveTo(xPos, underlineY3)
+  canvas.lineTo(xPos + timeUnderlineLength, underlineY3)
   canvas.stroke()
   const timeText = formatFieldValue(patientInfo.value.consultationTime) || ''
   if (timeText) {
-    canvas.fillText(timeText, xPos + 5, yPosition - 8)
+    // 确保文本不会超出边界
+    const maxTimeWidth = timeUnderlineLength - 10
+    const displayTime = timeText.length > 20 ? timeText.substring(0, 20) : timeText
+    canvas.fillText(displayTime, xPos + 5, yPosition)
   }
   
-  xPos += 280
-  canvas.fillText('就诊地点：', xPos, yPosition)
-  xPos += 160
+  yPosition += lineHeight
+  
+  // 第四行：就诊地点
+  xPos = margin
+  const label6 = '就诊地点'
+  canvas.fillText(label6, xPos, yPosition)
+  xPos += 120
+  const underlineY4 = yPosition + underlineOffset
+  const locationUnderlineLength = actualWidth - xPos - margin - 10
   canvas.beginPath()
-  canvas.moveTo(xPos, yPosition - 25)
-  canvas.lineTo(xPos + 240, yPosition - 25)
+  canvas.moveTo(xPos, underlineY4)
+  canvas.lineTo(xPos + locationUnderlineLength, underlineY4)
   canvas.stroke()
   const locationText = formatFieldValue(patientInfo.value.consultationLocation) || ''
   if (locationText) {
-    canvas.fillText(locationText, xPos + 5, yPosition - 8)
+    // 确保文本不会超出边界
+    const maxLocationWidth = locationUnderlineLength - 10
+    const displayLocation = locationText.length > 25 ? locationText.substring(0, 25) : locationText
+    canvas.fillText(displayLocation, xPos + 5, yPosition)
   }
   
   yPosition += lineHeight
   
   // 转诊原因
   xPos = margin
-  canvas.fillText('转诊原因：', xPos, yPosition)
-  xPos += 160
+  const label7 = '转诊原因'
+  canvas.fillText(label7, xPos, yPosition)
+  xPos += 120
+  const underlineY5 = yPosition + underlineOffset
+  const fullWidthUnderline = actualWidth - xPos - margin - 10
   canvas.beginPath()
-  canvas.moveTo(xPos, yPosition - 25)
-  canvas.lineTo(width - margin - 20, yPosition - 25)
+  canvas.moveTo(xPos, underlineY5)
+  canvas.lineTo(xPos + fullWidthUnderline, underlineY5)
   canvas.stroke()
   const reasonText = formatFieldValue(patientInfo.value.referralReason) || ''
   if (reasonText) {
-    canvas.fillText(reasonText, xPos + 5, yPosition - 8)
+    // 处理长文本，确保不超出边界
+    const maxReasonWidth = fullWidthUnderline - 10
+    const displayReason = reasonText.length > 30 ? reasonText.substring(0, 30) : reasonText
+    canvas.fillText(displayReason, xPos + 5, yPosition)
   }
   yPosition += lineHeight
   
   // 主要症状
   xPos = margin
-  canvas.fillText('主要症状：', xPos, yPosition)
-  xPos += 160
+  const label8 = '主要症状'
+  canvas.fillText(label8, xPos, yPosition)
+  xPos += 120
+  const underlineY6 = yPosition + underlineOffset
+  const fullWidthUnderline2 = actualWidth - xPos - margin - 10
   canvas.beginPath()
-  canvas.moveTo(xPos, yPosition - 25)
-  canvas.lineTo(width - margin - 20, yPosition - 25)
+  canvas.moveTo(xPos, underlineY6)
+  canvas.lineTo(xPos + fullWidthUnderline2, underlineY6)
   canvas.stroke()
   const symptomsText = formatFieldValue(patientInfo.value.mainSymptoms) || ''
   if (symptomsText) {
-    canvas.fillText(symptomsText, xPos + 5, yPosition - 8)
+    const displaySymptoms = symptomsText.length > 30 ? symptomsText.substring(0, 30) : symptomsText
+    canvas.fillText(displaySymptoms, xPos + 5, yPosition)
   }
   yPosition += lineHeight
   
   // 诊断结果
   xPos = margin
-  canvas.fillText('诊断结果：', xPos, yPosition)
-  xPos += 160
+  const label9 = '诊断结果'
+  canvas.fillText(label9, xPos, yPosition)
+  xPos += 120
+  const underlineY7 = yPosition + underlineOffset
+  const fullWidthUnderline3 = actualWidth - xPos - margin - 10
   canvas.beginPath()
-  canvas.moveTo(xPos, yPosition - 25)
-  canvas.lineTo(width - margin - 20, yPosition - 25)
+  canvas.moveTo(xPos, underlineY7)
+  canvas.lineTo(xPos + fullWidthUnderline3, underlineY7)
   canvas.stroke()
   const diagnosisText = formatFieldValue(patientInfo.value.diagnosisResult) || ''
   if (diagnosisText) {
-    canvas.fillText(diagnosisText, xPos + 5, yPosition - 8)
+    const displayDiagnosis = diagnosisText.length > 30 ? diagnosisText.substring(0, 30) : diagnosisText
+    canvas.fillText(displayDiagnosis, xPos + 5, yPosition)
   }
   yPosition += lineHeight
   
   // 转诊建议
   xPos = margin
-  canvas.fillText('转诊建议：', xPos, yPosition)
-  xPos += 160
+  const label10 = '转诊建议'
+  canvas.fillText(label10, xPos, yPosition)
+  xPos += 120
+  const underlineY8 = yPosition + underlineOffset
+  const fullWidthUnderline4 = actualWidth - xPos - margin - 10
   canvas.beginPath()
-  canvas.moveTo(xPos, yPosition - 25)
-  canvas.lineTo(width - margin - 20, yPosition - 25)
+  canvas.moveTo(xPos, underlineY8)
+  canvas.lineTo(xPos + fullWidthUnderline4, underlineY8)
   canvas.stroke()
   const adviceText = formatFieldValue(patientInfo.value.referralAdvice) || ''
   if (adviceText) {
-    canvas.fillText(adviceText, xPos + 5, yPosition - 8)
+    const displayAdvice = adviceText.length > 30 ? adviceText.substring(0, 30) : adviceText
+    canvas.fillText(displayAdvice, xPos + 5, yPosition)
   }
   yPosition += lineHeight
   
-  // 目标医院和科室
+  // 转诊至医院
   xPos = margin
-  canvas.fillText('转诊至医院：', xPos, yPosition)
-  xPos += 180
+  const label11 = '转诊至医院'
+  canvas.fillText(label11, xPos, yPosition)
+  xPos += 140
+  const underlineY9 = yPosition + underlineOffset
+  const hospitalUnderlineLength = actualWidth - xPos - margin - 10
   canvas.beginPath()
-  canvas.moveTo(xPos, yPosition - 25)
-  canvas.lineTo(xPos + 260, yPosition - 25)
+  canvas.moveTo(xPos, underlineY9)
+  canvas.lineTo(xPos + hospitalUnderlineLength, underlineY9)
   canvas.stroke()
   const hospitalText = formatFieldValue(patientInfo.value.targetHospital) || ''
   if (hospitalText) {
-    canvas.fillText(hospitalText, xPos + 5, yPosition - 8)
-  }
-  
-  xPos += 300
-  canvas.fillText('转诊至科室：', xPos, yPosition)
-  xPos += 180
-  canvas.beginPath()
-  canvas.moveTo(xPos, yPosition - 25)
-  canvas.lineTo(width - margin - 20, yPosition - 25)
-  canvas.stroke()
-  const deptText = formatFieldValue(patientInfo.value.targetDepartment) || ''
-  if (deptText) {
-    canvas.fillText(deptText, xPos + 5, yPosition - 8)
+    const displayHospital = hospitalText.length > 25 ? hospitalText.substring(0, 25) : hospitalText
+    canvas.fillText(displayHospital, xPos + 5, yPosition)
   }
   yPosition += lineHeight
   
   // 注意事项
   xPos = margin
-  canvas.fillText('注意事项：', xPos, yPosition)
-  xPos += 160
+  const label13 = '注意事项'
+  canvas.fillText(label13, xPos, yPosition)
+  xPos += 120
+  const underlineY11 = yPosition + underlineOffset
+  const fullWidthUnderline5 = actualWidth - xPos - margin - 10
   canvas.beginPath()
-  canvas.moveTo(xPos, yPosition - 25)
-  canvas.lineTo(width - margin - 20, yPosition - 25)
+  canvas.moveTo(xPos, underlineY11)
+  canvas.lineTo(xPos + fullWidthUnderline5, underlineY11)
   canvas.stroke()
   const notesText = formatFieldValue(patientInfo.value.notes) || ''
   if (notesText) {
-    canvas.fillText(notesText, xPos + 5, yPosition - 8)
+    const displayNotes = notesText.length > 30 ? notesText.substring(0, 30) : notesText
+    canvas.fillText(displayNotes, xPos + 5, yPosition)
   }
-  yPosition += lineHeight + 40
+  yPosition += lineHeight + 35
   
-  // 签名和日期（右对齐）
+  // 签名和日期
   const signatureY = yPosition
-  xPos = width - margin - 400
-  canvas.fillText('签名：', xPos, signatureY)
-  xPos += 120
+  xPos = margin
+  const label14 = '签名'
+  canvas.fillText(label14, xPos, signatureY)
+  xPos += 80
+  const underlineY12 = signatureY + underlineOffset
+  // 签名占据左侧一半空间
+  const signatureUnderlineLength = (actualWidth - margin * 2 - 80 - 20) / 2
   canvas.beginPath()
-  canvas.moveTo(xPos, signatureY - 25)
-  canvas.lineTo(xPos + 180, signatureY - 25)
+  canvas.moveTo(xPos, underlineY12)
+  canvas.lineTo(xPos + signatureUnderlineLength, underlineY12)
   canvas.stroke()
   const signatureText = formatFieldValue(patientInfo.value.signature) || ''
-  if (signatureText) {
-    canvas.fillText(signatureText, xPos + 5, signatureY - 8)
+  // 即使签名为空也显示默认值
+  const displaySignature = signatureText || '系统管理员'
+  if (displaySignature) {
+    const finalSignature = displaySignature.length > 20 ? displaySignature.substring(0, 20) : displaySignature
+    canvas.fillText(finalSignature, xPos + 5, signatureY)
   }
   
-  xPos += 220
-  canvas.fillText('日期：', xPos, signatureY)
-  xPos += 120
+  xPos += signatureUnderlineLength + 40
+  const label15 = '日期'
+  canvas.fillText(label15, xPos, signatureY)
+  xPos += 80
+  // 日期占据右侧剩余空间
+  const dateUnderlineLength = actualWidth - xPos - margin - 10
   canvas.beginPath()
-  canvas.moveTo(xPos, signatureY - 25)
-  canvas.lineTo(xPos + 180, signatureY - 25)
+  canvas.moveTo(xPos, underlineY12)
+  canvas.lineTo(xPos + dateUnderlineLength, underlineY12)
   canvas.stroke()
   const dateText = formatFieldValue(patientInfo.value.date) || ''
   if (dateText) {
-    canvas.fillText(dateText, xPos + 5, signatureY - 8)
+    canvas.fillText(dateText, xPos + 5, signatureY)
   }
   
-  // 绘制印章（在签名和日期右侧）
-  const sealY = signatureY - 60
-  const sealX = width - margin - 180
-  const sealSize = 150
+  yPosition += lineHeight + 20
+  
+  // 绘制盖章处（在签名和日期下方）
+  const sealY = yPosition
+  const sealX = actualWidth - margin - 90
+  const sealSize = 75
   
   // 绘制印章圆形边框（使用多个小线段模拟圆形）
   canvas.setStrokeStyle('#d32f2f')
-  canvas.setLineWidth(4)
+  canvas.setLineWidth(2.5)
   const centerX = sealX
   const centerY = sealY + sealSize / 2
-  const radius = sealSize / 2 - 5
+  const radius = sealSize / 2 - 3
   
   // 绘制圆形边框（使用多个点连接成圆形）
   canvas.beginPath()
@@ -924,62 +1127,50 @@ const drawCertificateContent = (canvas, width, height) => {
   }
   canvas.stroke()
   
-  // 绘制印章文字
-  canvas.setFontSize(26)
+  // 绘制印章文字（缩小到75%）
+  canvas.setFontSize(14)
   canvas.setFillStyle('#d32f2f')
   canvas.setTextAlign('center')
-  canvas.fillText('北京交通大学', centerX, centerY - 30)
+  canvas.fillText('北京交通大学', centerX, centerY - 15)
   canvas.fillText('校医院', centerX, centerY)
-  canvas.fillText('转诊专用章', centerX, centerY + 30)
+  canvas.fillText('转诊专用章', centerX, centerY + 15)
   
-  // 尝试绘制印章图片（如果图片存在）
-  try {
-    // uni-app canvas drawImage需要图片路径
-    // 注意：这里需要确保图片路径正确，drawImage需要在draw之前调用
-    const sealImagePath = '/static/bjtu.jpg'
-    // 由于uni-app canvas的限制，drawImage可能需要在特定时机调用
-    // 如果图片加载有问题，使用上面的文字印章
-    // canvas.drawImage(sealImagePath, sealX - sealSize/2, sealY, sealSize, sealSize)
-  } catch (e) {
-    console.warn('绘制印章图片失败，使用文字印章:', e)
+  yPosition = sealY + sealSize + 20
+  
+  // 记录最终绘制位置，用于调试
+  console.log('Canvas绘制完成，最终yPosition:', yPosition, 'Canvas高度:', height)
+  
+  // 如果内容超出Canvas高度，输出警告
+  if (yPosition > height - 50) {
+    console.warn('警告：绘制内容可能超出Canvas高度，建议增加Canvas高度')
   }
   
-  yPosition = sealY + sealSize + 40
+  // 绘制分隔线（可选，根据实际需求）
+  // yPosition += 40
+  // canvas.setStrokeStyle('#e5e5e5')
+  // canvas.setLineWidth(1)
+  // canvas.beginPath()
+  // canvas.moveTo(margin, yPosition)
+  // canvas.lineTo(width - margin, yPosition)
+  // canvas.stroke()
+  // yPosition += 40
   
-  // 绘制分隔线
-  yPosition += 60
-  canvas.setStrokeStyle('#e5e5e5')
-  canvas.setLineWidth(2)
-  canvas.beginPath()
-  canvas.moveTo(margin, yPosition)
-  canvas.lineTo(width - margin, yPosition)
-  canvas.stroke()
-  yPosition += 60
-  
-  // 绘制说明文字
-  canvas.setFontSize(24)
-  canvas.setFillStyle('#666666')
-  
-  const instructions = [
-    '转诊单是为了方便患者转诊时，向其他医疗机构提供患者病情和治疗情况的记录。本转诊单用于描述患者的病情、诊断结果、转诊原因以及转诊建议等信息，以便接收患者的医疗机构能够更好地了解患者的病情，并提供更合适的治疗服务。',
-    '填写本转诊单时，请详细描述患者的症状和诊断结果，明确转诊原因和转诊建议，并注意填写清晰、准确、规范的信息。同时，在转诊过程中，请确保患者携带本转诊单以及相关的医疗证明文件，以便接收患者的医疗机构能够及时获取患者的相关信息。',
-    '本转诊单仅为参考模板，具体内容应根据患者的实际情况进行调整和完善。在使用本转诊单时，请遵循相关法律法规和规定，确保患者的个人隐私和信息安全。'
-  ]
-  
-  instructions.forEach((text, index) => {
-    // 简单的文本换行处理，根据内容宽度调整
-    const maxCharsPerLine = Math.floor((width - margin * 2) / 14) // 根据字体大小估算字符数
-    const lines = wrapText(text, maxCharsPerLine)
-    lines.forEach(line => {
-      if (yPosition < height - 100) { // 确保不超出画布
-        canvas.fillText(line, margin, yPosition)
-        yPosition += 42
-      }
-    })
-    if (index < instructions.length - 1) {
-      yPosition += 30
-    }
-  })
+  // 绘制说明文字（可选，根据实际需求）
+  // canvas.setFontSize(22)
+  // canvas.setFillStyle('#666666')
+  // const instructions = [
+  //   '转诊单是为了方便患者转诊时，向其他医疗机构提供患者病情和治疗情况的记录。'
+  // ]
+  // instructions.forEach((text, index) => {
+  //   const maxCharsPerLine = Math.floor((width - margin * 2) / 14)
+  //   const lines = wrapText(text, maxCharsPerLine)
+  //   lines.forEach(line => {
+  //     if (yPosition < height - 100) {
+  //       canvas.fillText(line, margin, yPosition)
+  //       yPosition += 38
+  //     }
+  //   })
+  // })
 }
 
 // 文本换行处理
@@ -1002,47 +1193,75 @@ const wrapText = (text, maxLength) => {
   return lines
 }
 
-// 分享转诊证明
-const shareCertificate = () => {
-  uni.showToast({
-    title: '分享功能待实现',
-    icon: 'none'
-  })
+// 预览转诊证明
+const previewCertificate = async () => {
+  try {
+    uni.showLoading({
+      title: '正在生成预览...'
+    })
+    
+    // 生成转诊证明图片
+    const imagePath = await generateCertificateImage()
+    if (!imagePath) {
+      uni.hideLoading()
+      return
+    }
+    
+    // 使用uni.previewImage预览图片
+    uni.previewImage({
+      urls: [imagePath],
+      current: imagePath,
+      success: () => {
+        uni.hideLoading()
+      },
+      fail: (err) => {
+        uni.hideLoading()
+        console.error('预览失败:', err)
+        uni.showToast({
+          title: '预览失败，请重试',
+          icon: 'none'
+        })
+      }
+    })
+  } catch (err) {
+    uni.hideLoading()
+    console.error('预览转诊证明异常:', err)
+    uni.showToast({
+      title: '预览失败，请重试',
+      icon: 'none'
+    })
+  }
 }
 </script>
 
 <style scoped>
 .certificate-container {
-  padding: 30rpx 20rpx;
-  background-color: #f8f9fa;
+  padding: 40rpx 30rpx;
+  background-color: #f5f5f5;
   min-height: 100vh;
 }
 
 .certificate-header {
   text-align: center;
   margin-bottom: 30rpx;
-  padding: 30rpx 20rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12rpx;
-  box-shadow: 0 4rpx 20rpx rgba(102, 126, 234, 0.3);
+  padding: 40rpx 20rpx;
+  background-color: #fff;
+  border-bottom: 2rpx solid #e0e0e0;
 }
 
 .certificate-title {
-  font-size: 48rpx;
-  font-weight: bold;
-  color: #ffffff;
-  letter-spacing: 4rpx;
-  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.2);
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+  letter-spacing: 2rpx;
 }
 
 .certificate-content {
   background-color: #fff;
-  padding: 60rpx 50rpx;
-  border-radius: 12rpx;
-  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.08);
+  padding: 50rpx 40rpx;
   line-height: 1.8;
   max-width: 100%;
-  border: 2rpx solid #e9ecef;
+  border: 1rpx solid #e0e0e0;
 }
 
 .form-section {
@@ -1052,7 +1271,7 @@ const shareCertificate = () => {
 .form-row {
   display: flex;
   flex-wrap: wrap;
-  margin-bottom: 40rpx;
+  margin-bottom: 30rpx;
   align-items: flex-end;
 }
 
@@ -1074,19 +1293,41 @@ const shareCertificate = () => {
 }
 
 .signature-row {
-  margin-top: 40rpx;
+  margin-top: 30rpx;
   justify-content: space-between;
   align-items: flex-end;
+  gap: 30rpx;
 }
 
-.signature-section {
-  display: flex;
-  gap: 40rpx;
+.signature-field {
   flex: 1;
+  min-width: 200rpx;
+}
+
+.signature-underline {
+  min-width: 200rpx;
+}
+
+.date-field {
+  flex: 1;
+  min-width: 200rpx;
+}
+
+.date-underline {
+  min-width: 200rpx;
+}
+
+.seal-row {
+  margin-top: 20rpx;
+  justify-content: flex-end;
+  align-items: center;
+  padding-right: 0;
 }
 
 .seal-section {
-  margin-left: 40rpx;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 .seal-container {
@@ -1096,9 +1337,9 @@ const shareCertificate = () => {
 }
 
 .seal-circle {
-  width: 200rpx;
-  height: 200rpx;
-  border: 4rpx solid #d32f2f;
+  width: 180rpx;
+  height: 180rpx;
+  border: 2rpx solid #d32f2f;
   border-radius: 50%;
   display: flex;
   flex-direction: column;
@@ -1108,35 +1349,30 @@ const shareCertificate = () => {
 }
 
 .seal-text {
-  font-size: 24rpx;
+  font-size: 17rpx;
   color: #d32f2f;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.4;
   text-align: center;
 }
 
 .field-label {
-  font-size: 30rpx;
-  color: #2c3e50;
-  font-weight: 600;
+  font-size: 23rpx;
+  color: #333;
+  font-weight: 500;
   white-space: nowrap;
-  margin-right: 16rpx;
+  margin-right: 12rpx;
   min-width: fit-content;
 }
 
 .field-underline {
   position: relative;
   min-width: 120rpx;
-  border-bottom: 2rpx solid #495057;
+  border-bottom: 1rpx solid #333;
   padding-bottom: 8rpx;
   flex: 1;
   display: flex;
   align-items: flex-end;
-  transition: border-color 0.3s;
-}
-
-.field-underline:hover {
-  border-bottom-color: #667eea;
 }
 
 .form-field.full .field-underline {
@@ -1144,19 +1380,31 @@ const shareCertificate = () => {
 }
 
 .field-value {
-  font-size: 30rpx;
-  color: #212529;
+  font-size: 23rpx;
+  color: #333;
   position: absolute;
-  left: 6rpx;
-  bottom: 8rpx;
+  left: 5rpx;
+  bottom: 6rpx;
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: calc(100% - 12rpx);
+  max-width: calc(100% - 10rpx);
   line-height: 1.4;
-  font-weight: 500;
+  font-weight: 400;
   min-height: 1.4em;
+}
+
+/* 病历号特殊样式 - 增大字体 */
+.medical-record-no {
+  min-width: 400rpx;
+  flex: 1;
+}
+
+.medical-record-value {
+  font-size: 24rpx !important;
+  font-weight: 600 !important;
+  letter-spacing: 1rpx;
 }
 
 /* 空值时的样式 - 确保下划线可见 */
@@ -1170,47 +1418,50 @@ const shareCertificate = () => {
 }
 
 .instructions {
-  border-top: 2rpx solid #e5e5e5;
-  padding-top: 40rpx;
-  margin-top: 40rpx;
+  border-top: 1rpx solid #e0e0e0;
+  padding-top: 30rpx;
+  margin-top: 30rpx;
 }
 
 .instructions-text {
-  font-size: 26rpx;
+  font-size: 18rpx;
   color: #666;
-  margin-bottom: 24rpx;
+  margin-bottom: 15rpx;
   text-indent: 0;
-  line-height: 1.8;
+  line-height: 1.6;
   text-align: justify;
 }
 
 .certificate-actions {
   display: flex;
-  justify-content: center;
-  gap: 40rpx;
+  justify-content: space-around;
+  gap: 20rpx;
   margin-top: 40rpx;
+  margin-bottom: 30rpx;
+  padding: 0 30rpx;
+  flex-wrap: wrap;
 }
 
 .action-btn {
-  padding: 20rpx 60rpx;
+  flex: 1;
+  padding: 16rpx 30rpx;
   border-radius: 8rpx;
-  font-size: 30rpx;
-  font-weight: 500;
+  font-size: 28rpx;
+  font-weight: 600;
   border: none;
+  background-color: #1890ff;
+  color: #fff;
+  text-align: center;
+  height: auto;
+  line-height: 1.4;
+  min-width: 200rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.download-pdf-btn {
-  background-color: #4a90e2;
-  color: #fff;
-}
-
-.download-img-btn {
-  background-color: #52c41a;
-  color: #fff;
-}
-
-.share-btn {
-  background-color: #5cb85c;
-  color: #fff;
+.action-btn:active {
+  background-color: #40a9ff;
+  border-color: #40a9ff;
 }
 </style>

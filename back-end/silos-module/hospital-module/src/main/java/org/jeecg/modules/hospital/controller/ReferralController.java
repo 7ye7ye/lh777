@@ -160,17 +160,48 @@ public class ReferralController {
                 return Result.error("图片文件不能为空");
             }
 
+            // 获取自定义存储路径（如果提供）
+            String customPath = multipartRequest.getParameter("customPath");
+            // 获取自定义文件名（如果提供）
+            String customFilename = multipartRequest.getParameter("filename");
+            
+            // 日志输出，便于调试
+            System.out.println("接收到的参数 - customPath: " + customPath + ", customFilename: " + customFilename);
+            
             // 获取原始文件名（不含扩展名）
             String originalFilename = imageFile.getOriginalFilename();
             String baseName = originalFilename != null && originalFilename.contains(".") 
                 ? originalFilename.substring(0, originalFilename.lastIndexOf(".")) 
                 : "转诊记录单";
             
-            // 生成PDF文件名
-            String pdfFileName = baseName + "_" + System.currentTimeMillis() + ".pdf";
+            // 生成PDF文件名（优先使用自定义文件名）
+            final String pdfFileName;
+            if (customFilename != null && !customFilename.trim().isEmpty()) {
+                // 确保文件名以.pdf结尾
+                String tempFileName = customFilename.trim();
+                if (!tempFileName.toLowerCase().endsWith(".pdf")) {
+                    tempFileName += ".pdf";
+                }
+                pdfFileName = tempFileName;
+            } else {
+                pdfFileName = baseName + "_" + System.currentTimeMillis() + ".pdf";
+            }
             
-            // 创建临时目录存储图片和PDF
-            String bizPath = "referral-pdf";
+            // 创建存储目录（优先使用自定义路径）
+            String bizPath;
+            if (customPath != null && !customPath.trim().isEmpty()) {
+                // 清理自定义路径，移除危险字符
+                bizPath = customPath.trim()
+                    .replace("..", "")  // 防止路径遍历
+                    .replace("\\", "/") // 统一使用正斜杠
+                    .replaceAll("^/+", "") // 移除开头的斜杠
+                    .replaceAll("/+", "/"); // 合并多个斜杠
+                if (bizPath.isEmpty()) {
+                    bizPath = "referral-pdf"; // 如果路径无效，使用默认路径
+                }
+            } else {
+                bizPath = "referral-pdf";
+            }
             // 规范化路径，避免路径拼接问题
             File uploadDir = new File(uploadpath);
             // 获取规范化的绝对路径（消除 . 和 .. 等相对路径符号）

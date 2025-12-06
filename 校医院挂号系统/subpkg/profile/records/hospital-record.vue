@@ -144,11 +144,18 @@
           </view>
           <view class="referral-wrapper">
             <button 
-              v-if="item.canRefer" 
+              v-if="item.canRefer && !item.hasSuccessfulReferral" 
               class="small-referral-btn blue-btn" 
               @click.stop="goToReferralApplication(item)"
             >
               申请转诊
+            </button>
+            <button 
+              v-else-if="item.hasSuccessfulReferral" 
+              class="small-referral-btn blue-btn" 
+              @click.stop="goToReferralDetail(item)"
+            >
+              转诊详情
             </button>
             <text v-else class="cannot-refer-text">超过5天，无法转诊</text>
           </view>
@@ -170,6 +177,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { getRegistrationRecords } from '@/api/registration'
 import { ensurePatientCard } from '@/utils/patientHelper'
+import { getPatientReferralList } from '@/api/referral'
 
 import { getDoctorDetail } from '@/api/doctor_massage'
 import { getDepartmentDetail } from '@/api/department'
@@ -581,6 +589,49 @@ const loadHospitalRecords = async () => {
     const recordsWithDepartment = await processRecordsDepartments(list)
     list = recordsWithDepartment
     
+    // 获取所有转诊记录，用于检查就诊记录是否已有成功的转诊
+    let referralMap = new Map()
+    try {
+      const referralParams = {
+        pageNo: 1,
+        pageSize: 1000 // 获取足够多的记录
+      }
+      const referralRes = await getPatientReferralList(referralParams)
+      
+      let referralList = []
+      if (Array.isArray(referralRes?.result?.records)) {
+        referralList = referralRes.result.records
+      } else if (Array.isArray(referralRes?.records)) {
+        referralList = referralRes.records
+      } else if (Array.isArray(referralRes?.data?.records)) {
+        referralList = referralRes.data.records
+      } else if (Array.isArray(referralRes?.data)) {
+        referralList = referralRes.data
+      } else if (Array.isArray(referralRes?.result)) {
+        referralList = referralRes.result
+      } else if (Array.isArray(referralRes)) {
+        referralList = referralRes
+      }
+      
+      // 构建转诊记录映射：registrationRecordId -> 转诊记录
+      referralList.forEach(ref => {
+        const registrationId = ref.registrationRecordId || ref.registration_record_id
+        const status = (ref.status || '').toUpperCase()
+        // 只记录成功的转诊（已批准）
+        if (registrationId && status === 'APPROVED') {
+          const recordId = Number(registrationId)
+          if (!referralMap.has(recordId)) {
+            referralMap.set(recordId, {
+              id: ref.id || ref.referralId,
+              status: status
+            })
+          }
+        }
+      })
+    } catch (error) {
+      console.warn('获取转诊记录失败:', error)
+    }
+    
     records.value = list.map(item => {
       const deptName = (item.departmentName || '').trim()
       const doctorName = pickStringValue(item, [
@@ -601,6 +652,11 @@ const loadHospitalRecords = async () => {
       const displayVisitTime = formatDateTimeForDisplay(rawVisitTime)
       const displayTimeSlot = item.timeSlot || item.time_slot || item.appointmentTimeSlot || displayVisitTime || '-'
       const statusInfo = resolveStatusInfo(rawStatus, rawVisitTime, rawRegisterTime)
+      
+      // 检查是否已有成功的转诊记录
+      const recordId = Number(item.recordId || item.id)
+      const referralInfo = referralMap.get(recordId)
+      const hasSuccessfulReferral = !!referralInfo
 
       return {
         id: item.recordId || item.id,
@@ -622,6 +678,9 @@ const loadHospitalRecords = async () => {
         recordNumber: recordNumber,
         recordNumberDisplay: recordNumber || '无编号',
         canRefer: statusInfo.allowReferral,
+        hasSuccessfulReferral: hasSuccessfulReferral,
+        referralId: referralInfo?.id || null,
+        patientId: item.patientId || item.patient_id || patientId, // 确保使用就诊记录中的patientId
         originalRecord: item
       }
     })
@@ -840,23 +899,50 @@ const goToReferralApplication = async (record) => {
       return
     }
     
+    // 确保使用就诊记录中的patientId，而不是当前登录用户的patientId
+    const recordPatientId = record.patientId || record.originalRecord?.patientId || record.originalRecord?.patient_id
+    
     let patientName = ''
-    try {
-      const patientInfo = await ensurePatientCard()
-      patientName = patientInfo?.patientName || ''
-    } catch (error) {
-      console.warn('获取患者信息失败:', error)
+    let patientInfo = null
+    
+    // 如果就诊记录中有patientId，使用该patientId获取患者信息
+    if (recordPatientId) {
+      try {
+        patientInfo = await patientApi.getPatientDetail({ patientId: recordPatientId })
+        patientName = patientInfo?.patientName || patientInfo?.name || ''
+        console.log('使用就诊记录中的patientId获取患者信息:', recordPatientId, patientName)
+      } catch (error) {
+        console.warn('根据就诊记录patientId获取患者信息失败:', error)
+      }
+    }
+    
+    // 如果获取失败，尝试使用当前登录用户的就诊卡
+    if (!patientName) {
+      try {
+        const card = await ensurePatientCard()
+        patientName = card?.patientName || card?.name || ''
+        console.log('使用当前登录用户的就诊卡信息:', patientName)
+      } catch (error) {
+        console.warn('获取患者信息失败:', error)
+      }
     }
     
     const referralData = {
       recordId: record.id,
       patientName: patientName,
+      patientId: recordPatientId, // 传递就诊记录中的patientId
       department: record.department,
       doctor: record.doctor,
       visitTime: record.visitTime,
       visitId: record.id,
-      originalRecord: record.originalRecord || record
+      originalRecord: {
+        ...(record.originalRecord || record),
+        patientId: recordPatientId, // 确保originalRecord中包含正确的patientId
+        patient_id: recordPatientId
+      }
     }
+    
+    console.log('转诊申请数据:', referralData)
     
     const encodedData = encodeURIComponent(JSON.stringify(referralData))
     
@@ -880,6 +966,28 @@ const goToReferralApplication = async (record) => {
       icon: 'none'
     })
   }
+}
+
+// 跳转到转诊详情
+const goToReferralDetail = (record) => {
+  if (!record || !record.referralId) {
+    uni.showToast({
+      title: '转诊记录信息不完整',
+      icon: 'none'
+    })
+    return
+  }
+  
+  uni.navigateTo({
+    url: `/subpkg/hospital/referral-detail?id=${record.referralId}`,
+    fail: (error) => {
+      console.error('跳转转诊详情失败:', error)
+      uni.showToast({
+        title: '跳转失败，请重试',
+        icon: 'none'
+      })
+    }
+  })
 }
 
 onMounted(() => {
