@@ -9,6 +9,8 @@ import org.jeecg.modules.hospital.controller.request.DoctorScheduleCreateRequest
 import org.jeecg.modules.hospital.controller.request.DoctorScheduleExcelImportDTO;
 import org.jeecg.modules.hospital.controller.request.DoctorScheduleDirectImportDTO;
 import org.jeecg.modules.hospital.controller.request.DoctorScheduleUpdateRequest;
+import org.jeecg.modules.hospital.controller.request.GenerateSchedulesRequest;
+import org.jeecg.modules.hospital.controller.request.BatchCreateSchedulesRequest;
 import org.jeecg.modules.hospital.entity.Doctor;
 import org.jeecg.modules.hospital.entity.DoctorSchedule;
 import org.jeecg.modules.hospital.entity.Department;
@@ -29,10 +31,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.dynamic.datasource.annotation.DS;
@@ -1249,5 +1253,258 @@ public class DoctorScheduleAdminController {
                 currentDate = currentDate.plusDays(1);
             }
         }
+    }
+
+    @Operation(summary = "自动生成排班")
+    @PostMapping("/generate")
+    public Result<List<Map<String, Object>>> generateSchedules(@RequestBody GenerateSchedulesRequest req) {
+        log.info("自动生成排班 - deptIds: {}, scheduleCount: {}, timeSlots: {}, maxQuota: {}, startDate: {}",
+                req.getDeptIds(), req.getScheduleCount(), req.getTimeSlots(), req.getMaxQuota(), req.getStartDate());
+
+        if (req.getDeptIds() == null || req.getDeptIds().isEmpty()) {
+            return Result.error("请选择至少一个科室");
+        }
+        if (req.getScheduleCount() == null || req.getScheduleCount() < 1) {
+            return Result.error("排班数量必须大于0");
+        }
+        if (req.getTimeSlots() == null || req.getTimeSlots().isEmpty()) {
+            return Result.error("请选择至少一个时段");
+        }
+        if (req.getMaxQuota() == null || req.getMaxQuota() < 1) {
+            return Result.error("最大号源数必须大于0");
+        }
+        if (req.getStartDate() == null || req.getStartDate().isEmpty()) {
+            return Result.error("请选择起始日期");
+        }
+
+        LocalDate startDate = LocalDate.parse(req.getStartDate());
+        List<Map<String, Object>> generatedSchedules = new ArrayList<>();
+        
+        // 获取所有科室的医生列表
+        Map<Long, List<Doctor>> deptDoctorsMap = new HashMap<>();
+        for (Long deptId : req.getDeptIds()) {
+            List<Doctor> doctors = doctorService.getDoctorsByDeptId(deptId);
+            if (!doctors.isEmpty()) {
+                deptDoctorsMap.put(deptId, doctors);
+            }
+        }
+
+        if (deptDoctorsMap.isEmpty()) {
+            return Result.error("所选科室没有可用医生");
+        }
+
+        // 查询已存在的排班记录，用于去重和检查每天时段数
+        Set<String> existingScheduleKeys = new HashSet<>();
+        Map<String, Set<Integer>> doctorDateTimeSlots = new HashMap<>(); // key: doctorId_date, value: Set<timeSlot>
+        
+        // 查询未来30天的排班记录
+        LocalDate endDate = startDate.plusDays(30);
+        List<DoctorSchedule> existingSchedules = scheduleService.lambdaQuery()
+                .ge(DoctorSchedule::getScheduleDate, startDate)
+                .le(DoctorSchedule::getScheduleDate, endDate)
+                .list();
+        
+        for (DoctorSchedule schedule : existingSchedules) {
+            String key = String.format("%d_%s_%d", schedule.getDoctorId(), 
+                    schedule.getScheduleDate().toString(), schedule.getTimeSlot());
+            existingScheduleKeys.add(key);
+            
+            String doctorDateKey = String.format("%d_%s", schedule.getDoctorId(), 
+                    schedule.getScheduleDate().toString());
+            doctorDateTimeSlots.computeIfAbsent(doctorDateKey, k -> new HashSet<>())
+                    .add(schedule.getTimeSlot());
+        }
+
+        // 生成排班
+        Random random = new Random();
+        int generatedCount = 0;
+        LocalDate currentDate = startDate;
+        int maxAttempts = req.getScheduleCount() * 10; // 最大尝试次数，避免无限循环
+        int attempts = 0;
+
+        while (generatedCount < req.getScheduleCount() && attempts < maxAttempts) {
+            attempts++;
+            
+            // 随机选择一个科室
+            List<Long> deptIds = new ArrayList<>(deptDoctorsMap.keySet());
+            Long selectedDeptId = deptIds.get(random.nextInt(deptIds.size()));
+            List<Doctor> doctors = deptDoctorsMap.get(selectedDeptId);
+            
+            // 随机选择一个医生
+            Doctor selectedDoctor = doctors.get(random.nextInt(doctors.size()));
+            
+            // 随机选择一个日期（从起始日期开始的30天内）
+            int daysOffset = random.nextInt(30);
+            LocalDate scheduleDate = startDate.plusDays(daysOffset);
+            
+            // 随机选择一个时段
+            List<Integer> availableTimeSlots = new ArrayList<>(req.getTimeSlots());
+            Collections.shuffle(availableTimeSlots);
+            Integer selectedTimeSlot = null;
+            
+            // 检查该医生在该日期已有的时段
+            String doctorDateKey = String.format("%d_%s", selectedDoctor.getDoctorId(), scheduleDate.toString());
+            Set<Integer> existingTimeSlots = doctorDateTimeSlots.getOrDefault(doctorDateKey, new HashSet<>());
+            
+            // 如果该医生当天已有2个或以上时段，跳过
+            if (existingTimeSlots.size() >= 2) {
+                continue;
+            }
+            
+            // 选择一个该医生当天还没有的时段
+            for (Integer timeSlot : availableTimeSlots) {
+                if (!existingTimeSlots.contains(timeSlot)) {
+                    selectedTimeSlot = timeSlot;
+                    break;
+                }
+            }
+            
+            if (selectedTimeSlot == null) {
+                continue; // 该医生当天所有可选时段都已排班
+            }
+            
+            // 检查是否已存在相同的排班记录
+            String scheduleKey = String.format("%d_%s_%d", selectedDoctor.getDoctorId(), 
+                    scheduleDate.toString(), selectedTimeSlot);
+            if (existingScheduleKeys.contains(scheduleKey)) {
+                continue; // 已存在，跳过
+            }
+            
+            // 生成排班记录
+            Map<String, Object> schedule = new HashMap<>();
+            schedule.put("doctorId", selectedDoctor.getDoctorId());
+            schedule.put("doctorName", selectedDoctor.getDoctorName());
+            schedule.put("deptId", selectedDeptId);
+            
+            Department dept = departmentService.getById(selectedDeptId);
+            schedule.put("deptName", dept != null ? dept.getDeptName() : "未知科室");
+            
+            schedule.put("scheduleDate", scheduleDate.toString());
+            schedule.put("timeSlot", selectedTimeSlot);
+            schedule.put("maxQuota", req.getMaxQuota());
+            
+            // 随机分配诊室
+            String roomNumber = getAvailableRoom(scheduleDate, selectedTimeSlot, null);
+            schedule.put("roomNumber", roomNumber);
+            
+            generatedSchedules.add(schedule);
+            generatedCount++;
+            
+            // 更新已存在的排班记录集合
+            existingScheduleKeys.add(scheduleKey);
+            doctorDateTimeSlots.computeIfAbsent(doctorDateKey, k -> new HashSet<>())
+                    .add(selectedTimeSlot);
+        }
+
+        if (generatedCount < req.getScheduleCount()) {
+            log.warn("只生成了 {} 条排班，少于请求的 {} 条", generatedCount, req.getScheduleCount());
+        }
+
+        log.info("成功生成 {} 条排班", generatedCount);
+        return Result.OK(generatedSchedules);
+    }
+
+    @Operation(summary = "批量创建排班")
+    @PostMapping("/batch-create")
+    public Result<Map<String, Object>> batchCreateSchedules(@RequestBody List<BatchCreateSchedulesRequest.ScheduleItem> schedules) {
+        log.info("批量创建排班 - 数量: {}", schedules != null ? schedules.size() : 0);
+
+        if (schedules == null || schedules.isEmpty()) {
+            return Result.error("排班列表不能为空");
+        }
+
+        int successCount = 0;
+        int failCount = 0;
+        List<String> errorMessages = new ArrayList<>();
+
+        for (int i = 0; i < schedules.size(); i++) {
+            BatchCreateSchedulesRequest.ScheduleItem item = schedules.get(i);
+            try {
+                // 验证必填字段
+                if (item.getDoctorId() == null) {
+                    errorMessages.add(String.format("第%d条：医生ID不能为空", i + 1));
+                    failCount++;
+                    continue;
+                }
+                if (item.getDeptId() == null) {
+                    errorMessages.add(String.format("第%d条：科室ID不能为空", i + 1));
+                    failCount++;
+                    continue;
+                }
+                if (item.getScheduleDate() == null || item.getScheduleDate().isEmpty()) {
+                    errorMessages.add(String.format("第%d条：排班日期不能为空", i + 1));
+                    failCount++;
+                    continue;
+                }
+                if (item.getTimeSlot() == null || item.getTimeSlot() < 1 || item.getTimeSlot() > 3) {
+                    errorMessages.add(String.format("第%d条：时段无效", i + 1));
+                    failCount++;
+                    continue;
+                }
+                if (item.getMaxQuota() == null || item.getMaxQuota() < 1) {
+                    errorMessages.add(String.format("第%d条：最大号源数无效", i + 1));
+                    failCount++;
+                    continue;
+                }
+
+                // 检查是否已存在相同的排班记录
+                LocalDate scheduleDate = LocalDate.parse(item.getScheduleDate());
+                LambdaQueryWrapper<DoctorSchedule> queryWrapper = new LambdaQueryWrapper<>();
+                queryWrapper.eq(DoctorSchedule::getDoctorId, item.getDoctorId())
+                        .eq(DoctorSchedule::getDeptId, item.getDeptId())
+                        .eq(DoctorSchedule::getScheduleDate, scheduleDate)
+                        .eq(DoctorSchedule::getTimeSlot, item.getTimeSlot());
+                
+                DoctorSchedule existing = scheduleService.getOne(queryWrapper);
+                if (existing != null) {
+                    errorMessages.add(String.format("第%d条：该医生在%s的%s时段已有排班", 
+                            i + 1, item.getScheduleDate(), 
+                            item.getTimeSlot() == 1 ? "上午" : (item.getTimeSlot() == 2 ? "下午" : "晚上")));
+                    failCount++;
+                    continue;
+                }
+
+                // 创建排班记录
+                DoctorSchedule schedule = new DoctorSchedule();
+                schedule.setDoctorId(item.getDoctorId());
+                schedule.setDeptId(item.getDeptId());
+                schedule.setScheduleDate(scheduleDate);
+                schedule.setTimeSlot(item.getTimeSlot());
+                schedule.setMaxQuota(item.getMaxQuota());
+                schedule.setUsedQuota(0);
+                schedule.setStatus(1);
+                
+                // 设置诊室号
+                if (item.getRoomNumber() != null && !item.getRoomNumber().trim().isEmpty()) {
+                    schedule.setRoomNumber(item.getRoomNumber());
+                } else {
+                    String roomNumber = getAvailableRoom(scheduleDate, item.getTimeSlot(), null);
+                    schedule.setRoomNumber(roomNumber);
+                }
+                
+                schedule.setCreateTime(LocalDateTime.now());
+                schedule.setUpdateTime(LocalDateTime.now());
+                
+                scheduleService.save(schedule);
+                successCount++;
+                
+            } catch (Exception e) {
+                log.error("保存第{}条排班失败", i + 1, e);
+                errorMessages.add(String.format("第%d条：%s", i + 1, e.getMessage()));
+                failCount++;
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", failCount == 0);
+        result.put("successCount", successCount);
+        result.put("failCount", failCount);
+        result.put("message", String.format("成功保存 %d 条，失败 %d 条", successCount, failCount));
+        if (!errorMessages.isEmpty()) {
+            result.put("errors", errorMessages);
+        }
+
+        log.info("批量创建排班完成 - 成功: {}, 失败: {}", successCount, failCount);
+        return Result.OK(result);
     }
 }

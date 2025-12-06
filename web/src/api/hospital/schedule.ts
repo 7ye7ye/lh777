@@ -122,3 +122,51 @@ export const importScheduleExcel = (file: File, durationMinutes: number, timeSlo
     }
   });
 };
+
+// 自动生成排班接口
+export interface GenerateSchedulesRequest {
+  deptIds: number[];
+  scheduleCount: number;
+  timeSlots: number[];
+  maxQuota: number;
+  startDate: string;
+}
+
+export interface GeneratedScheduleItem {
+  doctorId: number;
+  doctorName: string;
+  deptId: number;
+  deptName: string;
+  scheduleDate: string;
+  timeSlot: number;
+  maxQuota: number;
+  roomNumber?: string;
+}
+
+export const generateSchedules = (data: GenerateSchedulesRequest) =>
+  defHttp.post<GeneratedScheduleItem[]>({
+    url: '/admin/schedule/generate',
+    data,
+  });
+
+// 批量创建排班接口
+export interface BatchCreateScheduleItem {
+  doctorId: number;
+  deptId: number;
+  scheduleDate: string;
+  timeSlot: number;
+  maxQuota: number;
+  roomNumber?: string;
+}
+
+export const batchCreateSchedules = (data: BatchCreateScheduleItem[]) =>
+  defHttp.post<{
+    success: boolean;
+    message: string;
+    successCount: number;
+    failCount: number;
+    errors?: string[];
+  }>({
+    url: '/admin/schedule/batch-create',
+    data,
+  });

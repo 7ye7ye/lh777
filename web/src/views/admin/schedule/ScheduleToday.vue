@@ -128,16 +128,6 @@
                 <div class="card-title">
                   <span>筛选条件</span>
                   <a-space>
-                    <a-upload
-                      name="file"
-                      accept=".csv"
-                      :showUploadList="false"
-                      :beforeUpload="handleCsvUpload"
-                    >
-                      <a-button type="primary" size="small" preIcon="ant-design:upload-outlined">
-                        上传CSV排班
-                      </a-button>
-                    </a-upload>
                     <a-button size="small" @click="handleSearch">刷新</a-button>
                   </a-space>
                 </div>
@@ -198,6 +188,10 @@
                 <a-button type="primary" @click="handleAddSchedule">
                   <template #icon><PlusOutlined /></template>
                   添加排班
+                </a-button>
+                <a-button type="primary" style="margin-left: 10px" @click="handleAutoGenerate">
+                  <template #icon><PlusOutlined /></template>
+                  自动生成排班
                 </a-button>
                 <span style="margin-left: 10px; color: #999; font-size: 12px;">(v2.0 - 已更新)</span>
               </div>
@@ -260,6 +254,149 @@
               :rows="4"
               :maxlength="200"
               show-count
+            />
+          </a-form-item>
+        </a-form>
+      </a-modal>
+
+      <!-- 自动生成排班弹窗 -->
+      <a-modal
+        v-model:visible="autoGenerateModal.visible"
+        title="自动生成排班"
+        width="800px"
+        @ok="handleGenerateSchedules"
+        @cancel="handleCancelAutoGenerate"
+        :confirmLoading="autoGenerateModal.loading"
+        okText="生成排班"
+        cancelText="取消"
+      >
+        <a-form :model="autoGenerateForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+          <a-form-item label="选择科室" required>
+            <a-select
+              v-model:value="autoGenerateForm.deptIds"
+              :options="deptOptions"
+              mode="multiple"
+              placeholder="请选择科室（可多选）"
+              show-search
+              :filter-option="filterOption"
+              style="width: 100%"
+            />
+          </a-form-item>
+          <a-form-item label="排班数量" required>
+            <a-input-number
+              v-model:value="autoGenerateForm.scheduleCount"
+              :min="1"
+              :max="100"
+              style="width: 100%"
+              placeholder="请输入要生成的排班数量"
+            />
+          </a-form-item>
+          <a-form-item label="排班时间" required>
+            <a-select
+              v-model:value="autoGenerateForm.timeSlots"
+              mode="multiple"
+              placeholder="请选择时段（可多选）"
+              style="width: 100%"
+            >
+              <a-select-option :value="1">上午</a-select-option>
+              <a-select-option :value="2">下午</a-select-option>
+              <a-select-option :value="3">晚上</a-select-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item label="最大号源数" required>
+            <a-input-number
+              v-model:value="autoGenerateForm.maxQuota"
+              :min="1"
+              :max="200"
+              style="width: 100%"
+              placeholder="请输入最大号源数"
+            />
+          </a-form-item>
+          <a-form-item label="起始日期" required>
+            <a-date-picker
+              v-model:value="autoGenerateForm.startDate"
+              style="width: 100%"
+              format="YYYY-MM-DD"
+              placeholder="选择起始日期"
+            />
+          </a-form-item>
+        </a-form>
+      </a-modal>
+
+      <!-- 生成结果列表弹窗 -->
+      <a-modal
+        v-model:visible="generatedSchedulesModal.visible"
+        title="生成的排班列表"
+        width="1000px"
+        @ok="handleConfirmGeneratedSchedules"
+        @cancel="handleCancelGeneratedSchedules"
+        :confirmLoading="generatedSchedulesModal.loading"
+        okText="确认保存"
+        cancelText="取消"
+      >
+        <a-table
+          :data-source="generatedSchedulesModal.schedules"
+          :columns="generatedSchedulesColumns"
+          row-key="tempId"
+          :pagination="{ pageSize: 10 }"
+          bordered
+          size="small"
+        >
+          <template #bodyCell="{ column, record, index }">
+            <template v-if="column.key === 'index'">
+              {{ index + 1 }}
+            </template>
+            <template v-else-if="column.key === 'timeSlot'">
+              <span :class="['slot-tag', slotClass(record.timeSlot)]">
+                {{ slotLabel(record.timeSlot) }}
+              </span>
+            </template>
+            <template v-else-if="column.key === 'action'">
+              <a-space>
+                <a-button type="link" size="small" @click="handleEditGeneratedSchedule(record)">编辑</a-button>
+                <a-button type="link" size="small" danger @click="handleDeleteGeneratedSchedule(record)">删除</a-button>
+              </a-space>
+            </template>
+          </template>
+        </a-table>
+      </a-modal>
+
+      <!-- 编辑生成排班弹窗 -->
+      <a-modal
+        v-model:visible="editGeneratedScheduleModal.visible"
+        title="编辑排班"
+        width="700px"
+        @ok="handleSaveGeneratedSchedule"
+        @cancel="handleCancelEditGeneratedSchedule"
+      >
+        <a-form :model="editGeneratedScheduleModal.form" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+          <a-form-item label="医生">
+            <a-input v-model:value="editGeneratedScheduleModal.form.doctorName" disabled />
+          </a-form-item>
+          <a-form-item label="科室">
+            <a-input v-model:value="editGeneratedScheduleModal.form.deptName" disabled />
+          </a-form-item>
+          <a-form-item label="排班日期" required>
+            <a-date-picker
+              v-model:value="editGeneratedScheduleModal.form.scheduleDate"
+              style="width: 100%"
+              format="YYYY-MM-DD"
+            />
+          </a-form-item>
+          <a-form-item label="时段" required>
+            <a-select v-model:value="editGeneratedScheduleModal.form.timeSlot" placeholder="选择时段">
+              <a-select-option :value="1">上午</a-select-option>
+              <a-select-option :value="2">下午</a-select-option>
+              <a-select-option :value="3">晚上</a-select-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item label="最大号源数" required>
+            <a-input-number
+              v-model:value="editGeneratedScheduleModal.form.maxQuota"
+              :min="1"
+              :max="200"
+              style="width: 100%"
+              placeholder="请输入最大号源数"
             />
           </a-form-item>
         </a-form>
@@ -353,8 +490,7 @@ import dayjs, { Dayjs } from 'dayjs';
 import { getDepartmentList } from '/@/api/hospital/department';
 import { listSchedulesByDate, type TodayScheduleItem, getDoctorsByDeptFromSchedule } from '/@/api/hospital/scheduleView';
 import { useGo } from '/@/hooks/web/usePage';
-import { getDoctorList } from '/@/api/hospital/doctor';
-import { createSchedule, updateSchedule, deleteSchedule, getAvailableRoom } from '/@/api/hospital/schedule';
+import { createSchedule, updateSchedule, deleteSchedule, getAvailableRoom, generateSchedules, batchCreateSchedules } from '/@/api/hospital/schedule';
 import { getAdjustmentList, approveAdjustment, type AdjustmentRecord, type AdjustmentApprovalRequest } from '/@/api/hospital/adjustment';
 
 export default defineComponent({
@@ -405,6 +541,57 @@ export default defineComponent({
       roomNumber: '' as string,
       status: 1 as number,
     });
+
+    // 自动生成排班相关
+    const autoGenerateModal = reactive({
+      visible: false,
+      loading: false,
+    });
+    const autoGenerateForm = reactive({
+      deptIds: [] as number[],
+      scheduleCount: 10 as number,
+      timeSlots: [] as number[],
+      maxQuota: 50 as number,
+      startDate: null as Dayjs | null,
+    });
+    const generatedSchedulesModal = reactive({
+      visible: false,
+      loading: false,
+      schedules: [] as Array<{
+        tempId: string;
+        doctorId: number;
+        doctorName: string;
+        deptId: number;
+        deptName: string;
+        scheduleDate: string;
+        timeSlot: number;
+        maxQuota: number;
+        roomNumber?: string;
+      }>,
+    });
+    const editGeneratedScheduleModal = reactive({
+      visible: false,
+      form: {
+        tempId: '',
+        doctorId: 0,
+        doctorName: '',
+        deptId: 0,
+        deptName: '',
+        scheduleDate: null as Dayjs | null,
+        timeSlot: undefined as number | undefined,
+        maxQuota: 50 as number,
+      },
+    });
+    const generatedSchedulesColumns = [
+      { title: '序号', key: 'index', width: 80 },
+      { title: '医生', dataIndex: 'doctorName', key: 'doctorName', width: 120 },
+      { title: '科室', dataIndex: 'deptName', key: 'deptName', width: 120 },
+      { title: '日期', dataIndex: 'scheduleDate', key: 'scheduleDate', width: 120 },
+      { title: '时段', dataIndex: 'timeSlot', key: 'timeSlot', width: 100 },
+      { title: '最大号源数', dataIndex: 'maxQuota', key: 'maxQuota', width: 120 },
+      { title: '诊室', dataIndex: 'roomNumber', key: 'roomNumber', width: 120 },
+      { title: '操作', key: 'action', width: 150, fixed: 'right' },
+    ];
 
     // 调班申请表格列 - 调整列宽确保不超出
     const requestColumns = [
@@ -719,190 +906,6 @@ export default defineComponent({
       message.warning('请先选择医生或科室后再查看月排班');
     }
 
-    // 处理CSV文件上传
-    async function handleCsvUpload(file: File) {
-      const fileExtension = file.name.split('.').pop()?.toLowerCase();
-      if (fileExtension !== 'csv') {
-        message.error('请上传CSV文件（.csv格式）');
-        return false;
-      }
-
-      try {
-        // 读取CSV文件
-        const text = await file.text();
-        const lines = text.split('\n').filter(line => line.trim());
-
-        if (lines.length < 2) {
-          message.error('CSV文件至少需要包含表头和数据行');
-          return false;
-        }
-
-        // 解析CSV（简单处理，支持逗号分隔）
-        function parseCSVLine(line: string): string[] {
-          const result: string[] = [];
-          let current = '';
-          let inQuotes = false;
-
-          for (let i = 0; i < line.length; i++) {
-            const char = line[i];
-            if (char === '"') {
-              inQuotes = !inQuotes;
-            } else if (char === ',' && !inQuotes) {
-              result.push(current.trim());
-              current = '';
-            } else {
-              current += char;
-            }
-          }
-          result.push(current.trim());
-          return result;
-        }
-
-        // 解析表头（第一行）
-        const headers = parseCSVLine(lines[0]).map((h: string) => h.toLowerCase().replace(/"/g, ''));
-
-        // 查找列索引
-        const dateIndex = findColumnIndex(headers, ['日期', 'date', '排班日期', 'scheduledate']);
-        const doctorNameIndex = findColumnIndex(headers, ['医生', 'doctor', '医生姓名', 'doctorname', '姓名']);
-        const deptNameIndex = findColumnIndex(headers, ['科室', 'dept', '科室名称', 'deptname', '部门']);
-        const timeSlotIndex = findColumnIndex(headers, ['时段', 'timeslot', '时间段', '班次']);
-        const roomIndex = findColumnIndex(headers, ['诊室', 'room', 'roomnumber', '诊室号', '房间']);
-
-        if (dateIndex === -1 || doctorNameIndex === -1) {
-          message.error('CSV文件必须包含"日期"和"医生"列');
-          return false;
-        }
-
-        // 解析数据行
-        const parsedSchedules: TodayScheduleItem[] = [];
-        const errors: string[] = [];
-
-        for (let i = 1; i < lines.length; i++) {
-          const row = parseCSVLine(lines[i]);
-          if (!row || row.length === 0) continue;
-
-          try {
-            // 解析日期
-            let scheduleDate = '';
-            const dateValue = row[dateIndex]?.replace(/"/g, '').trim();
-            if (dateValue) {
-              scheduleDate = dayjs(dateValue).format('YYYY-MM-DD');
-            }
-
-            if (!scheduleDate || scheduleDate === 'Invalid Date') {
-              errors.push(`第${i + 1}行：日期格式错误`);
-              continue;
-            }
-
-            // 解析医生姓名
-            const doctorName = (row[doctorNameIndex] || '').replace(/"/g, '').trim();
-            if (!doctorName) {
-              errors.push(`第${i + 1}行：医生姓名不能为空`);
-              continue;
-            }
-
-            // 解析科室名称
-            const deptName = deptNameIndex !== -1 ? (row[deptNameIndex] || '').replace(/"/g, '').trim() : '';
-
-            // 解析时段（1-上午，2-下午，3-晚上）
-            let timeSlot = 1;
-            if (timeSlotIndex !== -1) {
-              const timeSlotValue = (row[timeSlotIndex] || '').replace(/"/g, '').trim().toLowerCase();
-              if (timeSlotValue.includes('上午') || timeSlotValue.includes('am') || timeSlotValue === '1') {
-                timeSlot = 1;
-              } else if (timeSlotValue.includes('下午') || timeSlotValue.includes('pm') || timeSlotValue === '2') {
-                timeSlot = 2;
-              } else if (timeSlotValue.includes('晚上') || timeSlotValue.includes('night') || timeSlotValue === '3') {
-                timeSlot = 3;
-              } else if (!isNaN(Number(timeSlotValue))) {
-                timeSlot = Number(timeSlotValue);
-              }
-            }
-
-            // 解析诊室
-            const roomNumber = roomIndex !== -1 ? (row[roomIndex] || '').replace(/"/g, '').trim() : '';
-
-            // 查找医生ID和科室ID
-            let doctorId = 0;
-            let deptId = 0;
-
-            // 从医生列表中找到匹配的医生
-            const doctor = doctorOptions.value.find(d => d.label === doctorName);
-            if (doctor) {
-              doctorId = doctor.value;
-            }
-
-            // 从科室列表中找到匹配的科室
-            if (deptName) {
-              const dept = deptOptions.value.find(d => d.label === deptName);
-              if (dept) {
-                deptId = dept.value;
-              }
-            }
-
-            // 创建排班记录（扩展TodayScheduleItem以包含显示字段）
-            const schedule: TodayScheduleItem & { doctorName?: string; deptName?: string } = {
-              scheduleId: Date.now() + i, // 临时ID
-              doctorId: doctorId || 0,
-              deptId: deptId || 0,
-              scheduleDate: scheduleDate,
-              timeSlot: timeSlot,
-              roomNumber: roomNumber || undefined,
-              status: 1, // 默认有效
-              doctorName: doctorName,
-              deptName: deptName || '未知科室',
-            };
-
-            parsedSchedules.push(schedule);
-          } catch (error: any) {
-            errors.push(`第${i + 1}行：${error.message || '解析失败'}`);
-          }
-        }
-
-        if (parsedSchedules.length === 0) {
-          message.error('未能解析出有效的排班数据');
-          if (errors.length > 0) {
-            console.error('解析错误：', errors);
-          }
-          return false;
-        }
-
-        // 合并到现有排班列表（去重：基于日期+医生+时段）
-        const existingKeys = new Set(
-          rows.value.map(r => `${r.scheduleDate}-${r.doctorName}-${r.timeSlot}`)
-        );
-
-        const newSchedules = parsedSchedules.filter(s => {
-          const key = `${s.scheduleDate}-${(s as any).doctorName || ''}-${s.timeSlot}`;
-          return !existingKeys.has(key);
-        });
-
-        // 添加到列表
-        rows.value = [...rows.value, ...newSchedules];
-
-        message.success(`成功导入 ${newSchedules.length} 条排班记录${parsedSchedules.length - newSchedules.length > 0 ? `，${parsedSchedules.length - newSchedules.length} 条重复记录已跳过` : ''}`);
-
-        if (errors.length > 0) {
-          console.warn('部分数据解析失败：', errors);
-          message.warning(`有 ${errors.length} 行数据解析失败，请查看控制台`);
-        }
-
-        return false; // 阻止默认上传行为
-      } catch (error: any) {
-        console.error('CSV解析失败：', error);
-        message.error('CSV文件解析失败：' + (error.message || '未知错误'));
-        return false;
-      }
-    }
-
-    // 查找列索引（支持多个可能的列名）
-    function findColumnIndex(headers: string[], possibleNames: string[]): number {
-      for (const name of possibleNames) {
-        const index = headers.findIndex(h => h.includes(name.toLowerCase()));
-        if (index !== -1) return index;
-      }
-      return -1;
-    }
 
     onMounted(async () => {
       try {
@@ -1103,6 +1106,158 @@ export default defineComponent({
       editingSchedule.value = null;
     }
 
+    // 自动生成排班相关方法
+    function handleAutoGenerate() {
+      autoGenerateForm.deptIds = [];
+      autoGenerateForm.scheduleCount = 10;
+      autoGenerateForm.timeSlots = [];
+      autoGenerateForm.maxQuota = 50;
+      autoGenerateForm.startDate = filters.date || dayjs();
+      autoGenerateModal.visible = true;
+    }
+
+    function handleCancelAutoGenerate() {
+      autoGenerateModal.visible = false;
+    }
+
+    async function handleGenerateSchedules() {
+      if (!autoGenerateForm.deptIds || autoGenerateForm.deptIds.length === 0) {
+        message.error('请选择至少一个科室');
+        return;
+      }
+      if (!autoGenerateForm.scheduleCount || autoGenerateForm.scheduleCount < 1) {
+        message.error('请输入有效的排班数量');
+        return;
+      }
+      if (!autoGenerateForm.timeSlots || autoGenerateForm.timeSlots.length === 0) {
+        message.error('请选择至少一个时段');
+        return;
+      }
+      if (!autoGenerateForm.maxQuota || autoGenerateForm.maxQuota < 1) {
+        message.error('请输入有效的最大号源数');
+        return;
+      }
+      if (!autoGenerateForm.startDate) {
+        message.error('请选择起始日期');
+        return;
+      }
+
+      autoGenerateModal.loading = true;
+      try {
+        const result = await generateSchedules({
+          deptIds: autoGenerateForm.deptIds,
+          scheduleCount: autoGenerateForm.scheduleCount,
+          timeSlots: autoGenerateForm.timeSlots,
+          maxQuota: autoGenerateForm.maxQuota,
+          startDate: autoGenerateForm.startDate.format('YYYY-MM-DD'),
+        });
+        
+        if (result && Array.isArray(result)) {
+          generatedSchedulesModal.schedules = result.map((item: any, index: number) => ({
+            ...item,
+            tempId: `temp_${Date.now()}_${index}`,
+          }));
+          autoGenerateModal.visible = false;
+          generatedSchedulesModal.visible = true;
+        } else {
+          message.error('生成排班失败：返回数据格式错误');
+        }
+      } catch (error: any) {
+        console.error('生成排班失败:', error);
+        message.error('生成排班失败：' + (error?.message || '未知错误'));
+      } finally {
+        autoGenerateModal.loading = false;
+      }
+    }
+
+    function handleEditGeneratedSchedule(record: any) {
+      editGeneratedScheduleModal.form = {
+        tempId: record.tempId,
+        doctorId: record.doctorId,
+        doctorName: record.doctorName,
+        deptId: record.deptId,
+        deptName: record.deptName,
+        scheduleDate: dayjs(record.scheduleDate),
+        timeSlot: record.timeSlot,
+        maxQuota: record.maxQuota,
+      };
+      editGeneratedScheduleModal.visible = true;
+    }
+
+    function handleDeleteGeneratedSchedule(record: any) {
+      const index = generatedSchedulesModal.schedules.findIndex(s => s.tempId === record.tempId);
+      if (index !== -1) {
+        generatedSchedulesModal.schedules.splice(index, 1);
+        message.success('已删除');
+      }
+    }
+
+    function handleSaveGeneratedSchedule() {
+      if (!editGeneratedScheduleModal.form.scheduleDate) {
+        message.error('请选择排班日期');
+        return;
+      }
+      if (!editGeneratedScheduleModal.form.timeSlot) {
+        message.error('请选择时段');
+        return;
+      }
+      if (!editGeneratedScheduleModal.form.maxQuota || editGeneratedScheduleModal.form.maxQuota < 1) {
+        message.error('请输入有效的最大号源数');
+        return;
+      }
+
+      const index = generatedSchedulesModal.schedules.findIndex(
+        s => s.tempId === editGeneratedScheduleModal.form.tempId
+      );
+      if (index !== -1) {
+        generatedSchedulesModal.schedules[index] = {
+          ...generatedSchedulesModal.schedules[index],
+          scheduleDate: editGeneratedScheduleModal.form.scheduleDate.format('YYYY-MM-DD'),
+          timeSlot: editGeneratedScheduleModal.form.timeSlot,
+          maxQuota: editGeneratedScheduleModal.form.maxQuota,
+        };
+        message.success('修改成功');
+        editGeneratedScheduleModal.visible = false;
+      }
+    }
+
+    function handleCancelEditGeneratedSchedule() {
+      editGeneratedScheduleModal.visible = false;
+    }
+
+    function handleCancelGeneratedSchedules() {
+      generatedSchedulesModal.visible = false;
+      generatedSchedulesModal.schedules = [];
+    }
+
+    async function handleConfirmGeneratedSchedules() {
+      if (generatedSchedulesModal.schedules.length === 0) {
+        message.warning('没有可保存的排班');
+        return;
+      }
+
+      generatedSchedulesModal.loading = true;
+      try {
+        await batchCreateSchedules(generatedSchedulesModal.schedules.map(s => ({
+          doctorId: s.doctorId,
+          deptId: s.deptId,
+          scheduleDate: s.scheduleDate,
+          timeSlot: s.timeSlot,
+          maxQuota: s.maxQuota,
+          roomNumber: s.roomNumber,
+        })));
+        message.success(`成功保存 ${generatedSchedulesModal.schedules.length} 条排班记录`);
+        generatedSchedulesModal.visible = false;
+        generatedSchedulesModal.schedules = [];
+        await loadList();
+      } catch (error: any) {
+        console.error('保存排班失败:', error);
+        message.error('保存排班失败：' + (error?.message || '未知错误'));
+      } finally {
+        generatedSchedulesModal.loading = false;
+      }
+    }
+
     return {
       activeTab,
       filters,
@@ -1125,7 +1280,6 @@ export default defineComponent({
       showRejectModal,
       handleViewDetail,
       handleTabChange,
-      handleCsvUpload,
       slotLabel,
       slotClass,
       getStatusColor,
@@ -1143,6 +1297,20 @@ export default defineComponent({
       handleDoctorIdChange,
       filterOption,
       handleDeptChange,
+      autoGenerateModal,
+      autoGenerateForm,
+      generatedSchedulesModal,
+      editGeneratedScheduleModal,
+      generatedSchedulesColumns,
+      handleAutoGenerate,
+      handleCancelAutoGenerate,
+      handleGenerateSchedules,
+      handleEditGeneratedSchedule,
+      handleDeleteGeneratedSchedule,
+      handleSaveGeneratedSchedule,
+      handleCancelEditGeneratedSchedule,
+      handleCancelGeneratedSchedules,
+      handleConfirmGeneratedSchedules,
     };
   },
 });
