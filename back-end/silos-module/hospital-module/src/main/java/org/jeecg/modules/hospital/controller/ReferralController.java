@@ -2,13 +2,31 @@ package org.jeecg.modules.hospital.controller;
 
 import com.baomidou.dynamic.datasource.annotation.DS;
 import org.jeecg.common.api.vo.Result;
+import org.jeecg.common.constant.CommonConstant;
+import org.jeecg.common.util.CommonUtils;
+import org.jeecg.common.util.oConvertUtils;
 import org.jeecg.modules.hospital.entity.ReferralApplication;
 import org.jeecg.modules.hospital.service.ReferralService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
 
+import com.itextpdf.io.image.ImageData;
+import com.itextpdf.io.image.ImageDataFactory;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.Image;
+
+import jakarta.servlet.http.HttpServletRequest;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -23,6 +41,15 @@ public class ReferralController {
 
     @Autowired
     private ReferralService referralService;
+
+    @Value("${jeecg.path.upload}")
+    private String uploadpath;
+
+    @Value("${jeecg.uploadType}")
+    private String uploadType;
+
+    @Value("${jeecg.domainUrl:http://127.0.0.1:8095}")
+    private String domainUrl;
 
     /**
      * 获取患者已就诊的挂号记录（用于选择转诊）
@@ -116,5 +143,177 @@ public class ReferralController {
     @GetMapping("/target-departments")
     public Result<List<Map<String, Object>>> getTargetDepartments() {
         return referralService.getTargetDepartments();
+    }
+
+    /**
+     * 将图片转换为PDF
+     * @param request HTTP请求，包含上传的图片文件
+     */
+    @Operation(summary = "将图片转换为PDF")
+    @PostMapping("/convert-to-pdf")
+    public Result<Map<String, String>> convertImageToPdf(HttpServletRequest request) {
+        try {
+            MultipartHttpServletRequest multipartRequest = (MultipartHttpServletRequest) request;
+            MultipartFile imageFile = multipartRequest.getFile("image");
+            
+            if (imageFile == null || imageFile.isEmpty()) {
+                return Result.error("图片文件不能为空");
+            }
+
+            // 获取原始文件名（不含扩展名）
+            String originalFilename = imageFile.getOriginalFilename();
+            String baseName = originalFilename != null && originalFilename.contains(".") 
+                ? originalFilename.substring(0, originalFilename.lastIndexOf(".")) 
+                : "转诊记录单";
+            
+            // 生成PDF文件名
+            String pdfFileName = baseName + "_" + System.currentTimeMillis() + ".pdf";
+            
+            // 创建临时目录存储图片和PDF
+            String bizPath = "referral-pdf";
+            // 规范化路径，避免路径拼接问题
+            File uploadDir = new File(uploadpath);
+            // 获取规范化的绝对路径（消除 . 和 .. 等相对路径符号）
+            String normalizedUploadPath;
+            try {
+                normalizedUploadPath = uploadDir.getCanonicalPath();
+            } catch (IOException e) {
+                // 如果规范化失败，使用绝对路径
+                normalizedUploadPath = uploadDir.getAbsolutePath();
+            }
+            File normalizedUploadDir = new File(normalizedUploadPath);
+            File tempDirFile = new File(normalizedUploadDir, bizPath);
+            if (!tempDirFile.exists()) {
+                tempDirFile.mkdirs();
+            }
+            
+            // 保存上传的图片到临时文件
+            String tempImageFileName = "temp_" + System.currentTimeMillis() + ".png";
+            File tempImageFile = new File(tempDirFile, tempImageFileName);
+            imageFile.transferTo(tempImageFile);
+            
+            // 验证文件是否成功保存
+            if (!tempImageFile.exists() || tempImageFile.length() == 0) {
+                return Result.error("图片文件保存失败");
+            }
+            
+            // 使用iText7将图片转换为PDF
+            File pdfFile = new File(tempDirFile, pdfFileName);
+            
+            // 读取图片字节数组（更可靠的方式）
+            byte[] imageBytes;
+            try {
+                imageBytes = java.nio.file.Files.readAllBytes(tempImageFile.toPath());
+            } catch (Exception e) {
+                return Result.error("读取图片文件失败: " + e.getMessage());
+            }
+            
+            try (FileOutputStream fos = new FileOutputStream(pdfFile);
+                 PdfWriter writer = new PdfWriter(fos);
+                 PdfDocument pdf = new PdfDocument(writer);
+                 Document document = new Document(pdf)) {
+                
+                // 设置页边距（左右各36 points，上下各36 points）
+                document.setMargins(36, 36, 36, 36);
+                
+                // 使用字节数组创建图片数据（最可靠的方式）
+                ImageData imageData = ImageDataFactory.create(imageBytes);
+                
+                Image pdfImage = new Image(imageData);
+                
+                // 获取可用区域尺寸（A4页面减去页边距）
+                // A4页面尺寸（points）：595 x 842
+                float availableWidth = 595 - 72;  // 523 points (左右各36)
+                float availableHeight = 842 - 72; // 770 points (上下各36)
+                
+                // 使用 scaleToFit 确保图片完全适应可用区域
+                // 这会自动计算合适的缩放比例，确保图片不会超出边界
+                pdfImage.scaleToFit(availableWidth, availableHeight);
+                
+                // 将图片添加到PDF文档（会自动居中）
+                document.add(pdfImage);
+            }
+            
+            // 删除临时图片文件
+            if (tempImageFile.exists()) {
+                tempImageFile.delete();
+            }
+            
+            // 上传PDF文件并获取URL
+            String pdfUrl;
+            if (CommonConstant.UPLOAD_TYPE_LOCAL.equals(uploadType)) {
+                // 本地存储：构建相对路径（使用URL格式的斜杠）
+                String dbpath = bizPath + "/" + pdfFileName;
+                // 确保路径格式正确（移除开头的斜杠）
+                String cleanPath = dbpath.startsWith("/") ? dbpath.substring(1) : dbpath;
+                // 构建完整的访问URL
+                pdfUrl = domainUrl + "/jeecg-boot/sys/common/static/" + cleanPath;
+            } else {
+                // 使用CommonUtils上传到OSS/MinIO等
+                MultipartFile pdfMultipartFile = new MultipartFile() {
+                    @Override
+                    public String getName() {
+                        return "pdf";
+                    }
+                    
+                    @Override
+                    public String getOriginalFilename() {
+                        return pdfFileName;
+                    }
+                    
+                    @Override
+                    public String getContentType() {
+                        return "application/pdf";
+                    }
+                    
+                    @Override
+                    public boolean isEmpty() {
+                        return false;
+                    }
+                    
+                    @Override
+                    public long getSize() {
+                        return pdfFile.length();
+                    }
+                    
+                    @Override
+                    public byte[] getBytes() throws IOException {
+                        return java.nio.file.Files.readAllBytes(pdfFile.toPath());
+                    }
+                    
+                    @Override
+                    public java.io.InputStream getInputStream() throws IOException {
+                        return new java.io.FileInputStream(pdfFile);
+                    }
+                    
+                    @Override
+                    public void transferTo(File dest) throws IOException, IllegalStateException {
+                        java.nio.file.Files.copy(pdfFile.toPath(), dest.toPath(), 
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    }
+                };
+                
+                pdfUrl = CommonUtils.upload(pdfMultipartFile, bizPath, uploadType);
+                
+                // 删除本地PDF文件（已上传到云存储）
+                if (pdfFile.exists()) {
+                    pdfFile.delete();
+                }
+            }
+            
+            if (oConvertUtils.isEmpty(pdfUrl)) {
+                return Result.error("PDF生成失败，请稍后重试");
+            }
+            
+            Map<String, String> result = new HashMap<>();
+            result.put("pdfUrl", pdfUrl);
+            result.put("filename", pdfFileName);
+            
+            return Result.OK(result);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("PDF转换失败：" + e.getMessage());
+        }
     }
 }

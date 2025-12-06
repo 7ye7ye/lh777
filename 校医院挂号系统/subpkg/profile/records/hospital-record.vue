@@ -2,9 +2,13 @@
   <view class="page-bg">
     <!-- 标题和刷新按钮区域 -->
     <view class="header-section">
-      <view class="list-header">就诊记录</view>
+      <view class="list-header-wrapper">
+        <view class="header-icon">🔄</view>
+        <view class="list-header">就诊记录</view>
+        <view class="header-badge" v-if="filteredRecords.length > 0">{{ filteredRecords.length }}</view>
+      </view>
       <view class="header-actions">
-        <button class="refresh-btn small" @click="loadHospitalRecords">
+        <button class="refresh-btn small" @click="loadHospitalRecords" :disabled="loading">
           <text class="refresh-icon">⟳</text>
           <text>刷新</text>
         </button>
@@ -38,6 +42,63 @@
         @click="changeFilter(tab.value)"
       >
         {{ tab.label }}
+      </view>
+    </view>
+
+    <!-- 日期范围筛选 - 紧凑形式 -->
+    <view class="date-filter-compact">
+      <view class="date-filter-btn" @click="showDatePicker = true">
+        <text class="calendar-icon">📅</text>
+        <text class="date-range-text" v-if="startDate && endDate">
+          {{ formatDateForDisplay(startDate) }} 至 {{ formatDateForDisplay(endDate) }}
+        </text>
+        <text class="date-range-text placeholder" v-else>选择日期范围</text>
+      </view>
+      <view v-if="startDate || endDate" class="clear-date-btn" @click.stop="clearDateRange">
+        <text class="clear-date-icon">✕</text>
+        <text class="clear-date-text">清除</text>
+      </view>
+    </view>
+    
+    <!-- 日历选择弹窗 -->
+    <view class="date-picker-modal" v-if="showDatePicker" @click="showDatePicker = false">
+      <view class="date-picker-content" @click.stop>
+        <view class="date-picker-header">
+          <text class="date-picker-title">选择日期范围</text>
+          <text class="date-picker-close" @click="showDatePicker = false">✕</text>
+        </view>
+        <view class="date-picker-body">
+          <view class="date-picker-row">
+            <text class="date-picker-label">开始日期：</text>
+            <picker mode="date" :value="startDate" @change="onStartDateChange" :end="endDate || undefined">
+              <view class="date-picker-view">
+                <text :class="startDate ? 'date-picker-value' : 'date-picker-placeholder'">
+                  {{ startDate ? formatDateForDisplay(startDate) : '选择开始日期' }}
+                </text>
+              </view>
+            </picker>
+          </view>
+          <view class="date-picker-row">
+            <text class="date-picker-label">结束日期：</text>
+            <picker mode="date" :value="endDate" @change="onEndDateChange" :start="startDate || undefined">
+              <view class="date-picker-view">
+                <text :class="endDate ? 'date-picker-value' : 'date-picker-placeholder'">
+                  {{ endDate ? formatDateForDisplay(endDate) : '选择结束日期' }}
+                </text>
+              </view>
+            </picker>
+          </view>
+        </view>
+        <view class="date-picker-footer">
+          <button 
+            v-if="startDate || endDate" 
+            class="date-picker-reset" 
+            @click="handleResetDateRange"
+          >
+            重置
+          </button>
+          <button class="date-picker-confirm" @click="showDatePicker = false">确定</button>
+        </view>
       </view>
     </view>
     
@@ -121,10 +182,12 @@ const selectedPatientId = ref(null)
 const currentFilter = ref('all')
 const doctorDepartmentMap = ref(new Map())
 const userStore = useUserStore()
+const loading = ref(false)
 
 // 日期范围筛选
 const startDate = ref('')
 const endDate = ref('')
+const showDatePicker = ref(false)
 
 const filterTabs = [
   { label: '全部', value: 'all' },
@@ -491,6 +554,8 @@ const ensurePatientId = async () => {
 }
 
 const loadHospitalRecords = async () => {
+  if (loading.value) return
+  loading.value = true
   try {
     uni.showLoading({ title: '加载中...' })
     
@@ -582,6 +647,7 @@ const loadHospitalRecords = async () => {
     })
   } finally {
     uni.hideLoading()
+    loading.value = false
   }
 }
 
@@ -832,6 +898,65 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 24rpx 30rpx 20rpx;
+  background: linear-gradient(135deg, #4a90e2 0%, #6ec6ff 100%);
+  border-radius: 0 0 32rpx 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(74, 144, 226, 0.2);
+  margin-bottom: 20rpx;
+}
+
+.list-header-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.header-icon {
+  font-size: 40rpx;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6rpx);
+  }
+}
+
+.list-header {
+  font-size: 42rpx;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 2rpx;
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+
+.list-header::after {
+  content: '';
+  position: absolute;
+  bottom: -4rpx;
+  left: 0;
+  right: 0;
+  height: 4rpx;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  border-radius: 2rpx;
+}
+
+.header-badge {
+  background-color: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10rpx);
+  color: #ffffff;
+  font-size: 22rpx;
+  font-weight: 600;
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.3);
+  min-width: 40rpx;
+  text-align: center;
+  line-height: 1.4;
 }
 
 .patient-card {
@@ -1106,27 +1231,30 @@ onMounted(() => {
 }
 
 .refresh-btn.small {
-  padding: 2rpx 32rpx;
-  height: 48rpx;
-  line-height: 44rpx;
-
-  background-color: white;
-  border: 1rpx solid #4a90e2;
-  border-radius: 12rpx;
+  padding: 8rpx 24rpx;
+  height: 52rpx;
+  line-height: 36rpx;
+  background-color: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10rpx);
+  border: 1rpx solid rgba(255, 255, 255, 0.3);
+  border-radius: 26rpx;
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 8rpx; /* 保持与原来相同的间距 */
-  font-size: 28rpx; /* 字体大小保持不变 */
-  color: #4a90e2; /* 文字颜色改为蓝色，与边框一致 */
+  gap: 8rpx;
+  font-size: 26rpx;
+  color: #ffffff;
   width: auto;
   margin: 0;
   transition: all 0.3s ease;
 }
 
 .refresh-btn.small:active {
-  background-color: rgba(74, 144, 226, 0.1); /* 白色背景下的点击效果 */
-  opacity: 0.9;
+  background-color: rgba(255, 255, 255, 0.35);
+}
+
+.refresh-btn.small:disabled {
+  opacity: 0.5;
 }
 
 .refresh-btn .refresh-icon {
@@ -1201,6 +1329,206 @@ onMounted(() => {
 .filter-tab:active::before {
   width: 100%;
   height: 100%;
+}
+
+/* 日期筛选区域样式 - 紧凑形式 */
+.date-filter-compact {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 12rpx 20rpx;
+  margin-bottom: 12rpx;
+  gap: 12rpx;
+}
+
+.date-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 8rpx 16rpx;
+  background-color: #ffffff;
+  border: 1rpx solid #e4e7ed;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+}
+
+.calendar-icon {
+  font-size: 28rpx;
+  color: #4a90e2;
+}
+
+.date-range-text {
+  font-size: 24rpx;
+  color: #333;
+  max-width: 400rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.date-range-text.placeholder {
+  color: #999;
+}
+
+.clear-date-btn {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 8rpx 16rpx;
+  background-color: #fff5f5;
+  border: 1rpx solid #ffcccc;
+  border-radius: 20rpx;
+  transition: all 0.3s ease;
+}
+
+.clear-date-btn:active {
+  background-color: #ffe0e0;
+  border-color: #ffaaaa;
+}
+
+.clear-date-icon {
+  font-size: 24rpx;
+  color: #ff4d4f;
+  line-height: 1;
+}
+
+.clear-date-text {
+  font-size: 24rpx;
+  color: #ff4d4f;
+  line-height: 1;
+}
+
+/* 日历选择弹窗样式 */
+.date-picker-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.date-picker-content {
+  width: 85%;
+  max-width: 600rpx;
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.date-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32rpx 30rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.date-picker-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.date-picker-close {
+  font-size: 36rpx;
+  color: #999;
+  padding: 4rpx;
+  line-height: 1;
+}
+
+.date-picker-body {
+  padding: 30rpx;
+}
+
+.date-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 24rpx;
+}
+
+.date-picker-row:last-child {
+  margin-bottom: 0;
+}
+
+.date-picker-label {
+  font-size: 28rpx;
+  color: #666;
+  min-width: 120rpx;
+}
+
+.date-picker-view {
+  flex: 1;
+  padding: 16rpx 24rpx;
+  background-color: #f5f7fa;
+  border-radius: 12rpx;
+  border: 1rpx solid #e4e7ed;
+}
+
+.date-picker-value {
+  font-size: 28rpx;
+  color: #333;
+}
+
+.date-picker-placeholder {
+  font-size: 28rpx;
+  color: #999;
+}
+
+.date-picker-footer {
+  padding: 24rpx 30rpx;
+  border-top: 1rpx solid #f0f0f0;
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
+}
+
+.date-picker-confirm {
+  flex: 1;
+  padding: 24rpx;
+  background-color: #4a90e2;
+  color: #ffffff;
+  border: none;
+  border-radius: 12rpx;
+  font-size: 30rpx;
+  text-align: center;
+}
+
+.date-picker-confirm:active {
+  background-color: #357abd;
+}
+
+.date-picker-reset {
+  flex: 1;
+  padding: 24rpx;
+  background-color: #ffffff;
+  color: #666666;
+  border: 1rpx solid #e4e7ed;
+  border-radius: 12rpx;
+  font-size: 30rpx;
+  text-align: center;
+}
+
+.date-picker-reset:active {
+  background-color: #f5f7fa;
+  border-color: #d0d7de;
 }
 
 /* 优化记录卡片样式 */

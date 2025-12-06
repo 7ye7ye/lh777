@@ -603,7 +603,7 @@ const downloadReferralCertificate = (record) => {
   console.log('下载转诊证明:', record)
   // 跳转到转诊单页面
   uni.navigateTo({
-    url: `/subpkg/hospital/referral-certificate?record=${encodeURIComponent(JSON.stringify(record))}`
+    url: `/subpkg/hospital/referral-certificate?id=${record.id || record.referralId}`
   })
 }
 
