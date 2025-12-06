@@ -14,6 +14,22 @@ export interface DoctorSchedule {
   status: number;
   createTime?: string;
   updateTime?: string;
+  maxQuota?: number;
+}
+
+export interface Schedule {
+  scheduleId: number;
+  doctorId: number;
+  doctorName?: string;
+  deptId: number;
+  deptName?: string;
+  scheduleDate: string;
+  timeSlot: number; // 1-上午, 2-下午, 3-晚上
+  usedQuota?: number;
+  status: number;
+  createTime?: string;
+  updateTime?: string;
+  maxQuota?: number;
 }
 
 export interface ScheduleListParams {
@@ -53,6 +69,19 @@ export interface ScheduleUpdateRequest {
   maxQuota?: number;
 }
 
+export interface GetSchedulesParams {
+  doctorId: number;
+  startDate: string;
+  days?: number; // 可选，默认 7
+}
+
+// 获取指定医生排班信息
+export const getDoctorSchedules = (params: GetSchedulesParams) =>
+  defHttp.get<DoctorSchedule[]>({
+    url: '/admin/schedule/add',
+    params,
+  });
+
 // 获取医生排班列表
 export const getScheduleList = (params: ScheduleListParams) =>
   defHttp.get<DoctorSchedule[]>({
@@ -79,6 +108,18 @@ export const updateSchedule = (data: ScheduleUpdateRequest) =>
     url: '/admin/schedule/update',
     data,
   });
+
+// 更新排班且候补成功
+export const addQuotaAndFillQueue = (scheduleId: number, addCount: number) =>
+  defHttp.put<boolean>({
+    url: '/admin/schedule/addQuota',
+    data: {
+      scheduleId,
+      addCount,
+    },
+  });
+
+
 
 // 删除排班
 export const deleteSchedule = (scheduleId: number) =>

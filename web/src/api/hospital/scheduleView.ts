@@ -31,7 +31,7 @@ export const listMonthlyScheduleByDept = (params: { deptId: number; year: number
 
 // 根据科室从doctor_schedule表获取医生列表
 export const getDoctorsByDeptFromSchedule = (deptId: number) =>
-  defHttp.get<Array<{ doctorId: number; doctorName: string; deptId: number }>>({ 
-    url: '/admin/schedule/doctors-by-dept', 
-    params: { deptId } 
+  defHttp.get<Array<{ doctorId: number; doctorName: string; deptId: number }>>({
+    url: '/admin/schedule/doctors-by-dept',
+    params: { deptId }
   });

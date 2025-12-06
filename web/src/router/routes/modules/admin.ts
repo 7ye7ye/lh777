@@ -176,6 +176,19 @@ const admin: AppRouteModule = {
       },
     },
     {
+      path: 'add-number-source', // 路由路径（唯一，建议语义化）
+      name: 'AdminAddNumberSource', // 路由名称（唯一，格式与现有一致）
+      component: () => import('/@/views/admin/schedule/AddNumberSource.vue'), // 新增的页面组件
+      meta: {
+        title: '新增号源', // 左侧栏显示的菜单名称
+        ignoreAuth: true,
+        // 可选配置：图标（与现有风格一致，用 ionicons 图标）
+        icon: 'ion:add-circle-outline',
+        // 可选配置：排序（orderNo 控制左侧栏显示顺序，比 schedule-adjustment 大则在后面）
+        orderNo: 11,
+      },
+    },
+    {
       path: 'statistics',
       name: 'AdminStatistics',
       component: () => import('/@/views/admin/report/Statistics.vue'),

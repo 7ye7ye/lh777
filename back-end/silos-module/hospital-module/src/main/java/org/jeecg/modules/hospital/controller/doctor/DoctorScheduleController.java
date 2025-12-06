@@ -9,6 +9,7 @@ import org.jeecg.modules.hospital.entity.DoctorSchedule;
 import org.jeecg.modules.hospital.service.DoctorScheduleService;
 import org.jeecg.modules.hospital.service.DoctorService;
 import org.jeecg.modules.hospital.service.HosUserService;
+import org.jeecg.modules.hospital.service.RegistrationService;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 import org.jeecg.common.constant.CommonConstant;
@@ -39,11 +40,16 @@ public class DoctorScheduleController {
     @Resource
     private HosUserService hosUserService;
 
+    @Resource
+    private RegistrationService registrationService;
+
     // 新增：用于实时统计挂号人数
     @Resource
     private org.jeecg.modules.hospital.mapper.RegistrationRecordMapper registrationRecordMapper;
 
     // ------------------- API 接口 -------------------
+
+
 
     @Operation(summary = "获取今日排班")
     @GetMapping("/schedule/today")
@@ -171,25 +177,25 @@ public class DoctorScheduleController {
             dto.setId(s.getScheduleId() == null ? 0L : s.getScheduleId());
             dto.setDate(s.getScheduleDate() == null ? "" : s.getScheduleDate().toString());
             dto.setTimeRange(mapSlotToTimeRange(s.getTimeSlot()));
-            
+
             // 优先使用数据库doctor_schedule表中的room_number字段
             // 如果数据库值为空，才使用默认值
-            String roomNo = s.getRoomNumber() != null && !s.getRoomNumber().isEmpty() 
-                ? s.getRoomNumber() 
+            String roomNo = s.getRoomNumber() != null && !s.getRoomNumber().isEmpty()
+                ? s.getRoomNumber()
                 : mapSlotToRoomNo(s.getTimeSlot());
             dto.setRoomNo(roomNo);
-            log.debug("[toDTOList] scheduleId={}, roomNumber from DB={}, final roomNo={}", 
+            log.debug("[toDTOList] scheduleId={}, roomNumber from DB={}, final roomNo={}",
                 s.getScheduleId(), s.getRoomNumber(), roomNo);
-            
+
             // 优先使用数据库doctor_schedule表中的max_quota字段
             // 如果数据库值为空，才使用默认值
-            int total = (s.getMaxQuota() != null && s.getMaxQuota() > 0) 
-                ? s.getMaxQuota() 
+            int total = (s.getMaxQuota() != null && s.getMaxQuota() > 0)
+                ? s.getMaxQuota()
                 : defaultTotalSlots(s.getTimeSlot());
             dto.setTotalSlots(total);
-            log.debug("[toDTOList] scheduleId={}, maxQuota from DB={}, final totalSlots={}", 
+            log.debug("[toDTOList] scheduleId={}, maxQuota from DB={}, final totalSlots={}",
                 s.getScheduleId(), s.getMaxQuota(), total);
-            
+
             // 优先使用数据库doctor_schedule表中的used_quota字段
             // 如果数据库值为空，才尝试从registration_record表统计
             int booked;
@@ -207,7 +213,7 @@ public class DoctorScheduleController {
                     log.warn("[toDTOList] scheduleId={}, failed to count from registration_record, using 0", s.getScheduleId());
                 }
             }
-            
+
             dto.setBookedCount(booked);
             res.add(dto);
         }

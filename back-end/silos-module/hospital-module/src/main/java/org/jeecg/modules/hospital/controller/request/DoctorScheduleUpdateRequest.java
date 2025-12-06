@@ -41,22 +41,32 @@ public class DoctorScheduleUpdateRequest {
     @Schema(description = "时段（1-上午，2-下午，3-晚上）", example = "1")
     private Integer timeSlot;
 
+
+    // getter & setter
     public Long getScheduleId() { return scheduleId; }
     public void setScheduleId(Long scheduleId) { this.scheduleId = scheduleId; }
+
     public Long getDoctorId() { return doctorId; }
     public void setDoctorId(Long doctorId) { this.doctorId = doctorId; }
+
     public Long getDeptId() { return deptId; }
     public void setDeptId(Long deptId) { this.deptId = deptId; }
+
     public String getDate() { return date; }
     public void setDate(String date) { this.date = date; }
+
     public String getShift() { return shift; }
     public void setShift(String shift) { this.shift = shift; }
+
     public Integer getSlots() { return slots; }
     public void setSlots(Integer slots) { this.slots = slots; }
+
     public Integer getBookedSlots() { return bookedSlots; }
     public void setBookedSlots(Integer bookedSlots) { this.bookedSlots = bookedSlots; }
+
     public Integer getStatus() { return status; }
     public void setStatus(Integer status) { this.status = status; }
+
     public String getRemark() { return remark; }
     public void setRemark(String remark) { this.remark = remark; }
 

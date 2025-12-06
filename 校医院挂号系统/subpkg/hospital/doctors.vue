@@ -32,9 +32,7 @@
           <view class="specialty">擅长：{{ doctor.specialty }}</view>
           <view class="desc" v-if="doctor.doctorDesc">{{ doctor.doctorDesc }}</view>
         </view>
-        <view class="arrow">
-          <text>></text>
-        </view>
+
       </view>
       
       <view class="empty" v-if="doctorList.length === 0">
@@ -238,11 +236,7 @@ onMounted(() => {
   -webkit-box-orient: vertical;
 }
 
-.arrow {
-  font-size: 32rpx;
-  color: #ccc;
-  margin-left: 16rpx;
-}
+
 
 .empty {
   display: flex;

@@ -43,4 +43,12 @@ public interface DoctorScheduleService extends IService<DoctorSchedule> {
 
     // 新增：更新已使用号源
     boolean updateUsedQuota(Long scheduleId, Integer usedQuota);
+
+    /**
+     * 增加号源，并自动处理候补队列前 n 名
+     * @param scheduleId 排班id+排班max_quota
+     * @param addCount 新增号源数量
+     * @return 是否成功
+     */
+    boolean addQuotaAndFillQueue(Long scheduleId, int addCount);
 }

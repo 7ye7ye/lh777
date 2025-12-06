@@ -18,4 +18,8 @@ public class DoctorProfileUpdateRequest {
     // HosUser
     private String userAccount;
     private String email;
+    // 新增字段
+    private Integer maxQuota;
+
+
 }
