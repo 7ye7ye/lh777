@@ -270,6 +270,15 @@ public class StatisticsServiceImpl implements StatisticsService {
                 .sum();
             summary.put("totalRegistration", totalRegistration);
             
+            // 获取总收入统计（挂号费收入）
+            Double totalIncome = statisticsMapper.getTotalIncome(
+                query.getStartDate(),
+                query.getEndDate(),
+                query.getDeptId(),
+                query.getDoctorId()
+            );
+            summary.put("totalIncome", totalIncome != null ? totalIncome : 0.0);
+            
             return summary;
         } catch (Exception e) {
             log.error("获取统计数据汇总失败", e);

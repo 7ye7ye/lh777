@@ -104,5 +104,15 @@ public interface StatisticsMapper {
         @Param("deptId") Long deptId,
         @Param("periodType") String periodType
     );
+    
+    /**
+     * 统计总收入（挂号费收入）
+     */
+    Double getTotalIncome(
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate,
+        @Param("deptId") Long deptId,
+        @Param("doctorId") Long doctorId
+    );
 }
 

@@ -632,5 +632,26 @@
         ORDER BY date DESC, deptId, targetType
     </select>
 
+    <!-- 统计总收入（挂号费收入） -->
+    <select id="getTotalIncome" resultType="java.lang.Double">
+        SELECT COALESCE(SUM(rr.actual_price), 0) AS totalIncome
+        FROM registration_record rr
+            INNER JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
+            INNER JOIN department d ON ds.dept_id = d.dept_id
+        WHERE rr.status IN (1, 2)  -- 已预约或已就诊
+            <if test="startDate != null">
+                AND DATE(rr.register_time) >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND DATE(rr.register_time) &lt;= #{endDate}
+            </if>
+            <if test="deptId != null">
+                AND (ds.dept_id = #{deptId} OR d.parent_dept_id = #{deptId})
+            </if>
+            <if test="doctorId != null">
+                AND rr.doctor_id = #{doctorId}
+            </if>
+    </select>
+
 </mapper>
 
