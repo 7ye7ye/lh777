@@ -47,6 +47,9 @@ public class ReferralApplyRequest {
     /** 关联的挂号记录ID（就诊后申请转诊时使用） */
     private Long registrationRecordId;
 
+    /** 患者ID（用于验证就诊记录是否属于该患者） */
+    private Long patientId;
+
     private List<ReferralAttachmentPayload> attachments;
 }
 

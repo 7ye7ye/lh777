@@ -380,6 +380,12 @@
 					}
 				},
 				{
+					"path": "referral-certificate",
+					"style": {
+						"navigationBarTitleText": "转诊证明"
+					}
+				},
+				{
 					"path": "visit-records",
 					"style": {
 						"navigationBarTitleText": "就诊记录"
