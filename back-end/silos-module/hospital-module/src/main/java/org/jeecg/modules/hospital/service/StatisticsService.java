@@ -51,5 +51,27 @@ public interface StatisticsService {
      * @return 统计数据汇总
      */
     Map<String, Object> getStatisticsSummary(StatisticsQueryDTO query);
+
+    /**
+     * 按时段统计就诊/挂号量
+     * @param query 查询参数
+     * @return 时段分布列表
+     */
+    List<Map<String, Object>> getTimeSlotDistribution(StatisticsQueryDTO query);
+
+    /**
+     * 收入趋势
+     */
+    List<Map<String, Object>> getIncomeTrend(StatisticsQueryDTO query);
+
+    /**
+     * 科室明细
+     */
+    List<Map<String, Object>> getDeptDetail(StatisticsQueryDTO query);
+
+    /**
+     * 医生明细
+     */
+    List<Map<String, Object>> getDoctorDetail(StatisticsQueryDTO query);
 }
 

@@ -24,7 +24,8 @@
             COUNT(DISTINCT rr.record_id) AS visitCount,
             COUNT(DISTINCT rr.record_id) AS totalVisitCount
         FROM registration_record rr
-            INNER JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
+            INNER JOIN 
+            doctor_schedule ds ON rr.schedule_id = ds.schedule_id
             INNER JOIN department d ON ds.dept_id = d.dept_id
         WHERE rr.visit_time IS NOT NULL
             AND rr.status = 2
@@ -55,7 +56,7 @@
         ORDER BY date DESC, deptId
     </select>
 
-    <!-- 科室负荷统计 -->
+    <!-- 科室负荷统计：改为按科室统计挂号量（status IN 0/1/2） -->
     <select id="getDepartmentLoadStatistics" resultType="org.jeecg.modules.hospital.dto.DepartmentLoadDTO">
         SELECT
             d.dept_id AS deptId,
@@ -68,26 +69,21 @@
                 NULL AS doctorId,
                 NULL AS doctorName,
             </if>
-            CAST(
-                SUM(
-                    CASE ds.time_slot
-                        WHEN 1 THEN 4.0
-                        WHEN 2 THEN 3.0
-                        WHEN 3 THEN 3.0
-                        ELSE 4.0
-                    END
-                ) AS DECIMAL(10, 2)
-            ) AS visitDurationHours,
-            COALESCE(SUM(COALESCE(rt.daily_quota, 0)), 0) AS totalQuota,
-            COALESCE(SUM(ds.used_quota), 0) AS usedQuota,
-            CASE
-                WHEN COALESCE(SUM(COALESCE(rt.daily_quota, 0)), 0) > 0
-                THEN CAST(ROUND(SUM(ds.used_quota) * 100.0 / SUM(COALESCE(rt.daily_quota, 1)), 2) AS DECIMAL(10, 2))
-                ELSE CAST(0 AS DECIMAL(10, 2))
-            END AS quotaUsageRate
+            NULL AS visitDurationHours,
+            NULL AS totalQuota,
+            NULL AS usedQuota,
+            COUNT(rr.record_id) AS quotaUsageRate
         FROM doctor_schedule ds
             INNER JOIN department d ON ds.dept_id = d.dept_id
-            LEFT JOIN registration_type rt ON ds.type_id = rt.type_id
+            LEFT JOIN registration_record rr
+                ON rr.schedule_id = ds.schedule_id
+                AND rr.status IN (0, 1, 2)
+                <if test="startDate != null">
+                    AND DATE(rr.register_time) >= #{startDate}
+                </if>
+                <if test="endDate != null">
+                    AND DATE(rr.register_time) &lt;= #{endDate}
+                </if>
         WHERE ds.status = 1
             <if test="startDate != null">
                 AND ds.schedule_date >= #{startDate}
@@ -252,7 +248,7 @@
                 COUNT(*) AS typeRegistration
             FROM registration_record rr
                 LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
-            WHERE rr.status IN (0, 1, 2)
+            WHERE rr.status IN (1, 2)
                 <if test="startDate != null">
                     AND DATE(rr.register_time) >= #{startDate}
                 </if>
@@ -297,7 +293,7 @@
                 </choose>
                 COUNT(*) AS totalRegistration
             FROM registration_record rr2
-            WHERE rr2.status IN (0, 1, 2)
+            WHERE rr2.status IN (1, 2)
                 <if test="startDate != null">
                     AND DATE(rr2.register_time) >= #{startDate}
                 </if>
@@ -651,6 +647,150 @@
             <if test="doctorId != null">
                 AND rr.doctor_id = #{doctorId}
             </if>
+    </select>
+
+    <!-- 统计就诊量（状态为1/2，按挂号日期） -->
+    <select id="getVisitCountByStatus12" resultType="java.lang.Integer">
+        SELECT COUNT(*) AS cnt
+        FROM registration_record rr
+            INNER JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
+            INNER JOIN department d ON ds.dept_id = d.dept_id
+        WHERE rr.status IN (1, 2)
+            <if test="startDate != null">
+                AND DATE(rr.register_time) >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND DATE(rr.register_time) &lt;= #{endDate}
+            </if>
+            <if test="deptId != null">
+                AND (ds.dept_id = #{deptId} OR d.parent_dept_id = #{deptId})
+            </if>
+    </select>
+
+    <!-- 在岗医护人员数量（按排班，status=1，去重医生/科室组合） -->
+    <select id="getActiveStaffCount" resultType="java.lang.Integer">
+        SELECT COUNT(DISTINCT ds.doctor_id) AS cnt
+        FROM doctor_schedule ds
+            INNER JOIN department d ON ds.dept_id = d.dept_id
+        WHERE ds.status = 1
+            <if test="startDate != null">
+                AND ds.schedule_date >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND ds.schedule_date &lt;= #{endDate}
+            </if>
+            <if test="deptId != null">
+                AND (ds.dept_id = #{deptId} OR d.parent_dept_id = #{deptId})
+            </if>
+    </select>
+
+    <!-- 按时段统计就诊/挂号量（time_slot），状态 1/2 -->
+    <select id="getTimeSlotDistribution" resultType="java.util.Map">
+        SELECT
+            ds.time_slot AS timeSlot,
+            COUNT(*) AS cnt
+        FROM registration_record rr
+            INNER JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
+        WHERE rr.status IN (1, 2)
+            <if test="startDate != null">
+                AND DATE(rr.register_time) >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND DATE(rr.register_time) &lt;= #{endDate}
+            </if>
+        GROUP BY ds.time_slot
+        ORDER BY ds.time_slot
+    </select>
+
+    <!-- 收入趋势（按日/周/月，status 1/2） -->
+    <select id="getIncomeTrend" resultType="java.util.Map">
+        SELECT
+            <choose>
+                <when test="periodType == 'day'">
+                    DATE(rr.register_time) AS date,
+                </when>
+                <when test="periodType == 'week'">
+                    DATE_SUB(DATE(rr.register_time), INTERVAL WEEKDAY(DATE(rr.register_time)) DAY) AS date,
+                </when>
+                <when test="periodType == 'month'">
+                    DATE_FORMAT(rr.register_time, '%Y-%m-01') AS date,
+                </when>
+                <otherwise>
+                    DATE(rr.register_time) AS date,
+                </otherwise>
+            </choose>
+            SUM(rr.actual_price) AS income
+        FROM registration_record rr
+        WHERE rr.status IN (1, 2)
+            <if test="startDate != null">
+                AND DATE(rr.register_time) >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND DATE(rr.register_time) &lt;= #{endDate}
+            </if>
+        GROUP BY
+            <choose>
+                <when test="periodType == 'day'">
+                    DATE(rr.register_time)
+                </when>
+                <when test="periodType == 'week'">
+                    DATE_SUB(DATE(rr.register_time), INTERVAL WEEKDAY(DATE(rr.register_time)) DAY)
+                </when>
+                <when test="periodType == 'month'">
+                    DATE_FORMAT(rr.register_time, '%Y-%m-01')
+                </when>
+                <otherwise>
+                    DATE(rr.register_time)
+                </otherwise>
+            </choose>
+        ORDER BY date
+    </select>
+
+    <!-- 科室明细（挂号/退号/收入） -->
+    <select id="getDeptDetail" resultType="java.util.Map">
+        SELECT
+            d.dept_id AS deptId,
+            d.dept_name AS deptName,
+            SUM(CASE WHEN rr.status IN (1, 2) THEN 1 ELSE 0 END) AS registerCount,
+            SUM(CASE WHEN rr.status IN (3, 4) THEN 1 ELSE 0 END) AS cancelCount,
+            SUM(CASE WHEN rr.status IN (1, 2) THEN rr.actual_price ELSE 0 END) AS income
+        FROM registration_record rr
+            INNER JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
+            INNER JOIN department d ON ds.dept_id = d.dept_id
+        WHERE 1 = 1
+            <if test="startDate != null">
+                AND DATE(rr.register_time) >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND DATE(rr.register_time) &lt;= #{endDate}
+            </if>
+        GROUP BY d.dept_id, d.dept_name
+        ORDER BY income DESC
+    </select>
+
+    <!-- 医生明细（挂号/退号/收入） -->
+    <select id="getDoctorDetail" resultType="java.util.Map">
+        SELECT
+            doc.doctor_id AS doctorId,
+            COALESCE(doc.doctor_name, '未知医生') AS doctorName,
+            d.dept_id AS deptId,
+            d.dept_name AS deptName,
+            SUM(CASE WHEN rr.status IN (1, 2) THEN 1 ELSE 0 END) AS registerCount,
+            SUM(CASE WHEN rr.status IN (3, 4) THEN 1 ELSE 0 END) AS cancelCount,
+            SUM(CASE WHEN rr.status IN (1, 2) THEN rr.actual_price ELSE 0 END) AS income
+        FROM registration_record rr
+            INNER JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
+            INNER JOIN department d ON ds.dept_id = d.dept_id
+            LEFT JOIN doctor doc ON rr.doctor_id = doc.doctor_id
+        WHERE 1 = 1
+            <if test="startDate != null">
+                AND DATE(rr.register_time) >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND DATE(rr.register_time) &lt;= #{endDate}
+            </if>
+        GROUP BY doc.doctor_id, doc.doctor_name, d.dept_id, d.dept_name
+        ORDER BY income DESC
     </select>
 
 </mapper>

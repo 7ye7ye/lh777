@@ -15,7 +15,7 @@
               <a-radio-button value="month">本月</a-radio-button>
             </a-radio-group>
 
-            <a-range-picker v-model="dateRange" />
+          <a-range-picker v-model="dateRange" @change="onRangeChange" />
 
             <a-select
               v-model="dept"
@@ -43,7 +43,7 @@
     <div class="data-screen">
       <!-- 一、顶部 KPI 区 -->
       <a-row :gutter="16" class="kpi-row">
-        <a-col :xs="24" :sm="12" :md="6" v-for="item in kpiCards" :key="item.key">
+        <a-col :xs="24" :sm="12" :md="6" :lg="4" v-for="item in kpiCards" :key="item.key">
           <a-card :bordered="false" class="kpi-card">
             <div class="kpi-title">{{ item.title }}</div>
             <div class="kpi-value" :class="{ 'loading-value': loading }">
@@ -67,20 +67,20 @@
 
           <a-card title="就诊时段分布" :bordered="false" class="block-card">
             <div class="chart-placeholder">
-              柱状图 / 热力图占位：早 / 中 / 晚高峰时段就诊分布
+              <div ref="timeSlotChartRef" class="chart-box"></div>
             </div>
           </a-card>
 
           <a-card title="收入趋势" :bordered="false" class="block-card">
             <div class="chart-placeholder">
-              折线图占位：挂号收入、检查收入、体检收入等按时间变化
+              <div ref="incomeChartRef" class="chart-box"></div>
             </div>
           </a-card>
         </a-col>
 
         <!-- 右侧 -->
         <a-col :xs="24" :lg="8">
-          <a-card title="科室负荷统计" :bordered="false" class="block-card">
+          <a-card title="科室门诊量统计" :bordered="false" class="block-card">
             <div class="chart-placeholder">
               <div ref="deptLoadChartRef" class="chart-box"></div>
             </div>
@@ -106,14 +106,24 @@
       <a-card title="科室 / 医生明细列表" :bordered="false" class="block-card bottom-table-card">
         <a-tabs v-model="activeTab">
           <a-tab-pane key="dept" tab="按科室统计">
-            <div class="table-placeholder">
-              表格占位：科室、挂号数、就诊数、爽约数、收入等明细
-            </div>
+            <a-table
+              :columns="deptColumns"
+              :data-source="deptDetailData"
+              :loading="loading"
+              :pagination="false"
+              size="middle"
+              row-key="deptId"
+            />
           </a-tab-pane>
           <a-tab-pane key="doctor" tab="按医生统计">
-            <div class="table-placeholder">
-              表格占位：医生、科室、就诊人次、平均就诊时长等明细
-            </div>
+            <a-table
+              :columns="doctorColumns"
+              :data-source="doctorDetailData"
+              :loading="loading"
+              :pagination="false"
+              size="middle"
+              row-key="doctorId"
+            />
           </a-tab-pane>
         </a-tabs>
       </a-card>
@@ -125,14 +135,22 @@
 import { ref, reactive, onMounted, watch, nextTick } from 'vue';
 import { PageWrapper } from '/@/components/Page';
 import { message } from 'ant-design-vue';
-import dayjs, { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 import {
   getStatisticsSummary,
   getRegistrationStatistics,
   getDepartmentLoadStatistics,
+  getTimeSlotDistribution,
+  getIncomeTrend,
+  getDeptDetail,
+  getDoctorDetail,
   type StatisticsQuery,
   type RegistrationStatisticsItem,
   type DepartmentLoadItem,
+  type TimeSlotItem,
+  type IncomeTrendItem,
+  type DeptDetailItem,
+  type DoctorDetailItem,
 } from '/@/api/hospital/statistics';
 import * as echarts from 'echarts';
 
@@ -141,7 +159,7 @@ type TabKey = 'dept' | 'doctor';
 
 const loading = ref(false);
 const timeType = ref<TimeType>('today');
-const dateRange = ref<[Dayjs, Dayjs] | null>(null);
+const dateRange = ref<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
 const dept = ref<string | undefined>();
 const doctor = ref<string | undefined>();
 const activeTab = ref<TabKey>('dept');
@@ -151,6 +169,41 @@ const registrationData = ref<RegistrationStatisticsItem[]>([]);
 const deptLoadChartRef = ref<HTMLDivElement>();
 let deptLoadChart: echarts.ECharts | null = null;
 const deptLoadData = ref<DepartmentLoadItem[]>([]);
+const timeSlotData = ref<TimeSlotItem[]>([]);
+const timeSlotChartRef = ref<HTMLDivElement>();
+let timeSlotChart: echarts.ECharts | null = null;
+const incomeTrendData = ref<IncomeTrendItem[]>([]);
+const incomeChartRef = ref<HTMLDivElement>();
+let incomeChart: echarts.ECharts | null = null;
+const deptDetailData = ref<DeptDetailItem[]>([]);
+const doctorDetailData = ref<DoctorDetailItem[]>([]);
+
+const deptColumns = [
+  { title: '科室', dataIndex: 'deptName', key: 'deptName' },
+  { title: '挂号数', dataIndex: 'registerCount', key: 'registerCount', align: 'right' },
+  { title: '退号数', dataIndex: 'cancelCount', key: 'cancelCount', align: 'right' },
+  {
+    title: '收入',
+    dataIndex: 'income',
+    key: 'income',
+    align: 'right',
+    customRender: ({ text }: { text: number }) => `¥${Number(text || 0).toFixed(2)}`,
+  },
+];
+
+const doctorColumns = [
+  { title: '医生', dataIndex: 'doctorName', key: 'doctorName' },
+  { title: '科室', dataIndex: 'deptName', key: 'deptName' },
+  { title: '挂号数', dataIndex: 'registerCount', key: 'registerCount', align: 'right' },
+  { title: '退号数', dataIndex: 'cancelCount', key: 'cancelCount', align: 'right' },
+  {
+    title: '收入',
+    dataIndex: 'income',
+    key: 'income',
+    align: 'right',
+    customRender: ({ text }: { text: number }) => `¥${Number(text || 0).toFixed(2)}`,
+  },
+];
 
 const deptOptions = [
   { label: '全部科室', value: 'all' },
@@ -165,11 +218,17 @@ const doctorOptions = [
 ];
 
 const kpiCards = reactive([
-  { key: 'visit', title: '今日就诊量', value: '——', desc: '含已挂号与已就诊人数' },
-  { key: 'income', title: '今日收入', value: '——', desc: '挂号费 + 检查费等' },
-  { key: 'usage', title: '号源使用率', value: '——', desc: '已预约 / 可预约' },
+  { key: 'visit', title: '累计就诊量', value: '——', desc: '状态1/2，按挂号日期' },
+  { key: 'income', title: '累计收入', value: '——', desc: '挂号费 + 检查费等' },
+  { key: 'usage', title: '号源使用率', value: '——', desc: '已用号源 / 最大号源' },
+  { key: 'staff', title: '在岗医护人员', value: '——', desc: '排班有效（去重医生数）' },
   { key: 'noShow', title: '爽约 / 退号率', value: '——', desc: '爽约人数占比' },
 ]);
+
+// 日期范围变化
+const onRangeChange = (values: [dayjs.Dayjs, dayjs.Dayjs] | null) => {
+  dateRange.value = values;
+};
 
 // 初始化今日日期范围
 const initTodayDateRange = () => {
@@ -185,10 +244,16 @@ const updateDateRangeByTimeType = () => {
       dateRange.value = [today, today];
       break;
     case 'week':
-      dateRange.value = [today.startOf('week'), today.endOf('week')];
+      dateRange.value = [
+        today.startOf('week'),
+        today.endOf('week'),
+      ];
       break;
     case 'month':
-      dateRange.value = [today.startOf('month'), today.endOf('month')];
+      dateRange.value = [
+        today.startOf('month'),
+        today.endOf('month'),
+      ];
       break;
   }
 };
@@ -208,6 +273,8 @@ const renderOutpatientChart = (empty = false) => {
   if (!outpatientChart) {
     outpatientChart = echarts.init(outpatientChartRef.value);
   }
+  // 清除上一次的配置，避免“暂无数据”标题残留
+  outpatientChart.clear();
 
   if (empty || registrationData.value.length === 0) {
     outpatientChart.setOption({
@@ -262,6 +329,8 @@ const renderDeptLoadChart = (empty = false) => {
   if (!deptLoadChart) {
     deptLoadChart = echarts.init(deptLoadChartRef.value);
   }
+  // 清除上一次的配置，避免“暂无数据”标题残留
+  deptLoadChart.clear();
 
   if (empty || deptLoadData.value.length === 0) {
     deptLoadChart.setOption({
@@ -275,24 +344,130 @@ const renderDeptLoadChart = (empty = false) => {
   }
 
   const names = deptLoadData.value.map((item) => item.deptName || '未知科室');
+  // quotaUsageRate 在后端已改为“科室挂号量”，这里直接用作人次
   const usage = deptLoadData.value.map((item) => Number(item.quotaUsageRate || 0));
 
   deptLoadChart.setOption({
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 70, right: 20, bottom: 40, top: 20 },
-    xAxis: { type: 'value', name: '使用率(%)', max: 100 },
+    xAxis: { type: 'value', name: '就诊人数' },
     yAxis: { type: 'category', data: names },
     series: [
       {
         type: 'bar',
         data: usage,
-        label: { show: true, position: 'right', formatter: '{c}%' },
+        label: { show: true, position: 'right', formatter: '{c}' },
         itemStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
             { offset: 0, color: '#6ec6ff' },
             { offset: 1, color: '#1890ff' },
           ]),
         },
+      },
+    ],
+  });
+};
+
+// 渲染就诊时段分布（环形图 + 右侧图注显示人数）
+const renderTimeSlotChart = (empty = false) => {
+  if (!timeSlotChartRef.value) return;
+  if (!timeSlotChart) {
+    timeSlotChart = echarts.init(timeSlotChartRef.value);
+  }
+  timeSlotChart.clear();
+
+  if (empty || timeSlotData.value.length === 0) {
+    timeSlotChart.setOption({
+      title: { text: '暂无数据', left: 'center', top: 'middle', textStyle: { color: '#999', fontSize: 14 } },
+      xAxis: { type: 'category', data: [] },
+      yAxis: { type: 'value' },
+      series: [],
+      grid: { left: 40, right: 20, bottom: 40, top: 20 },
+    });
+    return;
+  }
+
+  const slotLabel = (v: number) => {
+    if (v === 1) return '上午';
+    if (v === 2) return '下午';
+    if (v === 3) return '晚上';
+    return `时段${v}`;
+  };
+
+  const labels = timeSlotData.value.map((item) => slotLabel(item.timeSlot));
+  const counts = timeSlotData.value.map((item) => Number(item.cnt || 0));
+  const data = labels.map((name, idx) => ({ name, value: counts[idx] || 0 }));
+
+  timeSlotChart.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}<br/>{c} 人 ({d}%)' },
+    legend: {
+      orient: 'vertical',
+      right: 10,
+      top: 'middle',
+      formatter: (name: string) => {
+        const idx = labels.indexOf(name);
+        const val = counts[idx] ?? 0;
+        return `${name}  ${val}人`;
+      },
+    },
+    series: [
+      {
+        type: 'pie',
+        radius: ['45%', '70%'],
+        center: ['40%', '50%'],
+        avoidLabelOverlap: false,
+        itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
+        label: { show: true, formatter: '{d}%', color: '#666' },
+        labelLine: { show: true },
+        data,
+        color: ['#91caff', '#5bd8a6', '#ff9f7f'],
+      },
+    ],
+  });
+};
+
+// 渲染收入趋势
+const renderIncomeChart = (empty = false) => {
+  if (!incomeChartRef.value) return;
+  if (!incomeChart) {
+    incomeChart = echarts.init(incomeChartRef.value);
+  }
+  incomeChart.clear();
+
+  if (empty || incomeTrendData.value.length === 0) {
+    incomeChart.setOption({
+      title: { text: '暂无数据', left: 'center', top: 'middle', textStyle: { color: '#999', fontSize: 14 } },
+      xAxis: { type: 'category', data: [] },
+      yAxis: { type: 'value' },
+      series: [],
+      grid: { left: 40, right: 20, bottom: 40, top: 20 },
+    });
+    return;
+  }
+
+  const dates = incomeTrendData.value.map((item) => item.date);
+  const values = incomeTrendData.value.map((item) => Number(item.income || 0));
+
+  incomeChart.setOption({
+    tooltip: { trigger: 'axis', formatter: '{b}<br/>{c} 元' },
+    grid: { left: 40, right: 20, bottom: 40, top: 30 },
+    xAxis: { type: 'category', data: dates, boundaryGap: false },
+    yAxis: { type: 'value', name: '元' },
+    series: [
+      {
+        type: 'line',
+        smooth: true,
+        data: values,
+        showSymbol: true,
+        symbolSize: 8,
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(255, 136, 102, 0.35)' },
+            { offset: 1, color: 'rgba(255, 136, 102, 0.05)' },
+          ]),
+        },
+        lineStyle: { color: '#ff8845', width: 2 },
+        itemStyle: { color: '#ff8845' },
       },
     ],
   });
@@ -322,14 +497,23 @@ const loadStatisticsData = async () => {
 
   loading.value = true;
   try {
-    const [summary, registrationStats, deptLoadStats] = await Promise.all([
+    const [summary, registrationStats, deptLoadStats, timeSlotRes, incomeRes, deptDetailRes, doctorDetailRes] =
+      await Promise.all([
       getStatisticsSummary(queryParams),
       getRegistrationStatistics(queryParams),
       getDepartmentLoadStatistics(queryParams),
+      getTimeSlotDistribution({ startDate, endDate }),
+      getIncomeTrend(queryParams),
+        getDeptDetail({ startDate, endDate }),
+        getDoctorDetail({ startDate, endDate }),
     ]);
     registrationData.value = Array.isArray(registrationStats) ? registrationStats : [];
     deptLoadData.value = Array.isArray(deptLoadStats) ? deptLoadStats : [];
-    
+    timeSlotData.value = Array.isArray(timeSlotRes) ? timeSlotRes : [];
+    incomeTrendData.value = Array.isArray(incomeRes) ? incomeRes : [];
+    deptDetailData.value = Array.isArray(deptDetailRes) ? deptDetailRes : [];
+    doctorDetailData.value = Array.isArray(doctorDetailRes) ? doctorDetailRes : [];
+
     // 更新今日就诊量卡片
     const visitCount = summary.totalVisitCount || summary.totalRegistration || 0;
     const visitCard = kpiCards.find((card) => card.key === 'visit');
@@ -352,16 +536,25 @@ const loadStatisticsData = async () => {
       usageCard.value = `${Number(avgDeptLoad).toFixed(2)}%`;
     }
     
+    // 在岗医护人员
+    const staffCount = summary.activeStaffCount || 0;
+    const staffCard = kpiCards.find((card) => card.key === 'staff');
+    if (staffCard) {
+      staffCard.value = staffCount.toString();
+    }
+
     // 更新爽约/退号率卡片
     const avgCancelRate = summary.avgCancelRate || 0;
     const noShowCard = kpiCards.find((card) => card.key === 'noShow');
     if (noShowCard) {
       noShowCard.value = `${Number(avgCancelRate).toFixed(2)}%`;
     }
-    // 渲染就诊量趋势图
+    // 渲染图表
     await nextTick();
     renderOutpatientChart();
     renderDeptLoadChart();
+    renderTimeSlotChart();
+    renderIncomeChart();
   } catch (error: any) {
     console.error('加载统计数据失败:', error);
     message.error(error?.message || '加载统计数据失败');
@@ -371,9 +564,15 @@ const loadStatisticsData = async () => {
     });
     deptLoadData.value = [];
     registrationData.value = [];
+    timeSlotData.value = [];
+    incomeTrendData.value = [];
+    deptDetailData.value = [];
+    doctorDetailData.value = [];
     await nextTick();
     renderOutpatientChart(true);
     renderDeptLoadChart(true);
+    renderTimeSlotChart(true);
+    renderIncomeChart(true);
   } finally {
     loading.value = false;
   }
@@ -403,6 +602,8 @@ onMounted(() => {
   window.addEventListener('resize', () => {
     outpatientChart?.resize();
     deptLoadChart?.resize();
+  timeSlotChart?.resize();
+  incomeChart?.resize();
 });
 </script>
 

@@ -8,6 +8,7 @@ enum Api {
   ReferralStatistics = '/admin/statistics/referral',
   StatisticsSummary = '/admin/statistics/summary',
   ExportReport = '/admin/statistics/export',
+  IncomeTrend = '/admin/statistics/income-trend',
 }
 
 export interface StatisticsQuery {
@@ -80,6 +81,33 @@ export interface ReferralStatisticsItem {
   completionRate: number;
 }
 
+export interface TimeSlotItem {
+  timeSlot: number;
+  cnt: number;
+}
+
+export interface IncomeTrendItem {
+  date: string;
+  income: number;
+}
+
+export interface DeptDetailItem {
+  deptId: number;
+  deptName: string;
+  registerCount: number;
+  cancelCount: number;
+  income: number;
+}
+
+export interface DoctorDetailItem {
+  doctorId: number;
+  doctorName: string;
+  deptId: number;
+  deptName: string;
+  registerCount: number;
+  cancelCount: number;
+  income: number;
+}
 /**
  * 获取门诊量统计
  */
@@ -129,4 +157,27 @@ export const exportReport = (params: { type: string; query: StatisticsQuery }) =
     { isReturnNativeResponse: true }
   );
 
+/**
+ * 获取就诊时段分布
+ */
+export const getTimeSlotDistribution = (params: { startDate?: string; endDate?: string }) =>
+  defHttp.get<TimeSlotItem[]>({ url: '/admin/statistics/timeslot', params });
+
+/**
+ * 获取收入趋势
+ */
+export const getIncomeTrend = (params: StatisticsQuery) =>
+  defHttp.get<IncomeTrendItem[]>({ url: Api.IncomeTrend, params });
+
+/**
+ * 获取科室明细
+ */
+export const getDeptDetail = (params: { startDate?: string; endDate?: string }) =>
+  defHttp.get<DeptDetailItem[]>({ url: '/admin/statistics/dept-detail', params });
+
+/**
+ * 获取医生明细
+ */
+export const getDoctorDetail = (params: { startDate?: string; endDate?: string }) =>
+  defHttp.get<DoctorDetailItem[]>({ url: '/admin/statistics/doctor-detail', params });
 
