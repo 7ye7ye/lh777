@@ -181,9 +181,9 @@
               <button
                 v-else-if="record.status === 'APPROVED' && record.targetType !== 'INTERNAL'"
                 class="small-action-btn blue-btn"
-                @click.stop="goToHospital(record)"
+                @click.stop="downloadReferralCertificate(record)"
               >
-                前往医院
+                下载转诊证明
               </button>
               <button
                 v-else-if="record.status === 'PENDING'"
@@ -598,12 +598,12 @@ const handleAutoRegister = async (record) => {
   })
 }
 
-// 前往医院
-const goToHospital = (record) => {
-  console.log('前往医院:', record.targetHospital)
-  uni.showToast({
-    title: '前往医院导航功能待实现',
-    icon: 'none'
+// 下载转诊证明
+const downloadReferralCertificate = (record) => {
+  console.log('下载转诊证明:', record)
+  // 跳转到转诊单页面
+  uni.navigateTo({
+    url: `/subpkg/hospital/referral-certificate?id=${record.id || record.referralId}`
   })
 }
 

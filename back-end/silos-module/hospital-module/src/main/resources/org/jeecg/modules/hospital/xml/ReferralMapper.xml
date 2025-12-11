@@ -56,10 +56,10 @@
                 AND r.target_type = #{targetType}
             </if>
             <if test="startDate != null and startDate != ''">
-                AND DATE(r.apply_time) >= #{startDate}
+                AND DATE(r.apply_time) &gt;= #{startDate}
             </if>
             <if test="endDate != null and endDate != ''">
-                AND DATE(r.apply_time) <= #{endDate}
+                AND DATE(r.apply_time) &lt;= #{endDate}
             </if>
         </where>
         ORDER BY r.create_time DESC
@@ -93,10 +93,10 @@
                 AND r.target_type = #{targetType}
             </if>
             <if test="startDate != null and startDate != ''">
-                AND DATE(r.apply_time) >= #{startDate}
+                AND DATE(r.apply_time) &gt;= #{startDate}
             </if>
             <if test="endDate != null and endDate != ''">
-                AND DATE(r.apply_time) <= #{endDate}
+                AND DATE(r.apply_time) &lt;= #{endDate}
             </if>
         </where>
     </select>
@@ -132,6 +132,8 @@
             rr.registration_no,
             rr.register_time,
             rr.visit_time,
+            rr.patient_id,
+            p.outpatient_number,
             r.original_dept_id,
             r.original_dept_name,
             r.original_doctor_id,
@@ -146,6 +148,8 @@
             hospital_referral r
         LEFT JOIN 
             registration_record rr ON r.registration_record_id = rr.record_id
+        LEFT JOIN 
+            patient p ON rr.patient_id = p.patient_id
         WHERE 
             r.id = #{id}
     </select>
@@ -224,3 +228,4 @@
     </update>
 
 </mapper>
+

@@ -24,7 +24,7 @@
             <view class="ecard-label">电子就诊卡</view>
           </view>
           <view class="card-number-row" v-if="cardInfo.patientId">
-            <text class="card-number-text">门诊号: {{ cardInfo.outpatientNumber || cardInfo.cardNumber || cardInfo.idCard || '-' }}</text>
+            <text class="card-number-text">证件号: {{ cardInfo.outpatientNumber || cardInfo.cardNumber || cardInfo.idCard || '-' }}</text>
           </view>
         </view>
         <view class="visit-card-right">

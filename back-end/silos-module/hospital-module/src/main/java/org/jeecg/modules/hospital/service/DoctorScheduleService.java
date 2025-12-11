@@ -15,7 +15,7 @@ public interface DoctorScheduleService extends IService<DoctorSchedule> {
     /**
      * 自定义查询方法：按医生、科室或日期查询排班
      */
-    List<DoctorSchedule> list(Long doctorId, Long deptId, LocalDate date);
+    List<DoctorSchedule> list(Long doctorId, Long deptId, LocalDate date, LocalDate startDate, LocalDate endDate);
 
     DoctorSchedule create(DoctorSchedule schedule);
 
