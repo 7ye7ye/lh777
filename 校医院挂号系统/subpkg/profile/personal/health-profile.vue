@@ -41,7 +41,7 @@
         >
           <view class="picker-input">
             {{ formData.bloodType || '请选择' }}
-            <text class="picker-arrow">></text>
+            <text class="picker-arrow">›</text>
           </view>
         </picker>
       </view>
@@ -55,7 +55,7 @@
         >
           <view class="picker-input">
             {{ formData.maritalStatus || '未婚' }}
-            <text class="picker-arrow">></text>
+            <text class="picker-arrow">›</text>
           </view>
         </picker>
       </view>
@@ -69,7 +69,7 @@
         >
           <view class="picker-input">
             {{ formData.fertilityStatus || '请选择' }}
-            <text class="picker-arrow">></text>
+            <text class="picker-arrow">›</text>
           </view>
         </picker>
       </view>
@@ -109,7 +109,12 @@
 
       <view class="textarea-row">
         <text class="form-label">过敏史</text>
-        <view class="allergy-value">{{ formData.allergyHistory || '无' }}</view>
+        <textarea 
+          v-model="formData.allergyHistory" 
+          class="form-textarea" 
+          placeholder="请填写过敏史，如无可填“无”"
+          maxlength="200"
+        />
       </view>
     </view>
 

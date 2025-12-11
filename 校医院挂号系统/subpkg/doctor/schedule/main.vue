@@ -369,114 +369,122 @@ onMounted(() => {
 <style scoped> 
 .schedule-page { 
   min-height: 100vh; 
-  background: #f7faff; 
+  background: linear-gradient(180deg, #e8f3ff 0%, #f7faff 45%, #ffffff 100%); 
   padding-bottom: 140rpx; 
 } 
 
 /* 顶部医生信息 */ 
 .doctor-header { 
-  background: linear-gradient(90deg, #479fff 0%, #2176ff 100%); 
-  padding: 24rpx; 
+  background: linear-gradient(120deg, #3a9cff 0%, #6ec6ff 100%); 
+  padding: 28rpx 24rpx; 
   display: flex; 
   align-items: center; 
   justify-content: space-between; 
+  box-shadow: 0 10rpx 30rpx rgba(58,156,255,0.22);
 } 
 .doctor-info { color: #fff; } 
-.doctor-name { font-size: 36rpx; font-weight: 700; } 
+.doctor-name { font-size: 36rpx; font-weight: 800; letter-spacing: 1rpx; } 
 .doctor-dept { font-size: 26rpx; opacity: 0.9; margin-top: 6rpx; display: block; } 
-.today-date { color: #fff; font-size: 26rpx; } 
+.today-date { color: #fff; font-size: 26rpx; opacity: 0.92; } 
 
 /* 日期选择器 */ 
-.date-selector { margin-top: 12rpx; background: #fff; } 
-.date-scroll { white-space: nowrap; padding: 12rpx; } 
+.date-selector { margin-top: 12rpx; background: transparent; } 
+.date-scroll { white-space: nowrap; padding: 16rpx 24rpx; } 
 .date-item { 
   display: inline-flex; 
   flex-direction: column; 
   align-items: center; 
   justify-content: center; 
-  width: 120rpx; 
-  height: 120rpx; 
-  margin-right: 12rpx; 
-  background: #f1f5f9; 
-  border-radius: 16rpx; 
-  box-shadow: 0 4rpx 12rpx rgba(33,118,255,0.06); 
+  width: 124rpx; 
+  height: 124rpx; 
+  margin-right: 14rpx; 
+  background: #fff; 
+  border-radius: 18rpx; 
+  box-shadow: 0 10rpx 24rpx rgba(58,156,255,0.12); 
   color: #334155; 
+  border: 2rpx solid transparent;
+  transition: all 0.2s ease;
 } 
 .date-item.active { 
   background: linear-gradient(180deg, #e6f1ff 0%, #ffffff 100%); 
-  border: 2rpx solid #479fff; 
+  border-color: #3a9cff; 
   color: #2176ff; 
+  transform: translateY(-4rpx);
 } 
 .date-weekday { font-size: 24rpx; } 
-.date-day { font-size: 36rpx; font-weight: 700; } 
-.date-month { font-size: 24rpx; } 
+.date-day { font-size: 38rpx; font-weight: 700; } 
+.date-month { font-size: 24rpx; color: #64748b; } 
 
 /* 排班列表 */ 
-.schedule-container { padding: 24rpx; } 
-.section-title .title-text { font-size: 30rpx; color: #1e293b; font-weight: 600; } 
+.schedule-container { padding: 12rpx 24rpx 24rpx; } 
+.section-title .title-text { font-size: 30rpx; color: #1e293b; font-weight: 700; } 
 .empty-state { 
   background: #fff; 
-  border-radius: 16rpx; 
-  padding: 32rpx; 
+  border-radius: 18rpx; 
+  padding: 36rpx; 
   text-align: center; 
   color: #64748b; 
   margin-top: 16rpx; 
+  box-shadow: 0 10rpx 24rpx rgba(58,156,255,0.08);
 } 
 .schedule-list { margin-top: 16rpx; } 
 .schedule-item { 
   background: #fff; 
-  border-radius: 16rpx; 
-  padding: 16rpx; 
-  margin-bottom: 12rpx; 
-  box-shadow: 0 6rpx 16rpx rgba(33,118,255,0.08); 
+  border-radius: 18rpx; 
+  padding: 18rpx; 
+  margin-bottom: 14rpx; 
+  box-shadow: 0 10rpx 24rpx rgba(58,156,255,0.12); 
+  border: 1rpx solid #eef3fb;
 } 
 .schedule-header { display: flex; justify-content: space-between; align-items: center; } 
 .time-period { display: flex; align-items: center; gap: 8rpx; } 
 .period-icon { font-size: 26rpx; } 
-.period-text { font-size: 28rpx; font-weight: 600; color: #0f172a; } 
+.period-text { font-size: 28rpx; font-weight: 700; color: #0f172a; } 
 .status-tag { 
-  padding: 6rpx 12rpx; 
+  padding: 8rpx 16rpx; 
   border-radius: 999rpx; 
   font-size: 24rpx; 
+  font-weight: 600;
 } 
-.status-available { background: #e0f2fe; color: #0369a1; } 
-.status-busy { background: #fef3c7; color: #b45309; } 
-.status-full { background: #fee2e2; color: #b91c1c; } 
+.status-available { background: #e6f4ff; color: #0b6cc9; } 
+.status-busy { background: #fff7e6; color: #b45309; } 
+.status-full { background: #ffecec; color: #b91c1c; } 
 
 .schedule-info { 
   display: grid; 
   grid-template-columns: 1fr 1fr; 
-  gap: 8rpx 12rpx; 
-  margin-top: 12rpx; 
+  gap: 10rpx 14rpx; 
+  margin-top: 14rpx; 
 } 
 .info-item { display: flex; align-items: center; } 
 .info-label { color: #64748b; font-size: 26rpx; } 
-.info-value { color: #0f172a; font-size: 26rpx; font-weight: 600; } 
+.info-value { color: #0f172a; font-size: 26rpx; font-weight: 700; } 
 .appointment-count { color: #0ea5e9; } 
 .remaining { color: #10b981; } 
 .low-remaining { color: #ef4444; } 
 
 /* 操作按钮 */ 
 .action-section { 
-  padding: 0 24rpx 24rpx; 
+  padding: 4rpx 24rpx 24rpx; 
   display: flex; 
-  gap: 16rpx; 
+  gap: 18rpx; 
 } 
 .action-btn { 
   flex: 1; 
   color: #fff; 
-  border-radius: 12rpx; 
-  padding: 16rpx; 
+  border-radius: 16rpx; 
+  padding: 18rpx; 
   font-size: 28rpx; 
   text-align: center;
+  box-shadow: 0 10rpx 24rpx rgba(58,156,255,0.18);
 } 
 .refresh-btn { 
-  background: #10b981; 
-  box-shadow: 0 6rpx 16rpx rgba(16,185,129,0.18); 
+  background: linear-gradient(135deg, #10b981 0%, #34d399 100%); 
+  box-shadow: 0 10rpx 24rpx rgba(16,185,129,0.18); 
 }
 .adjust-btn { 
-  background: #2176ff; 
-  box-shadow: 0 6rpx 16rpx rgba(33,118,255,0.18); 
+  background: linear-gradient(135deg, #3a9cff 0%, #6ec6ff 100%); 
+  box-shadow: 0 10rpx 24rpx rgba(58,156,255,0.22); 
 } 
 
 /* 底部导航 */ 
@@ -488,15 +496,16 @@ onMounted(() => {
   display: flex; 
   padding: 12rpx 24rpx; 
   gap: 12rpx; 
+  box-shadow: 0 -6rpx 18rpx rgba(0,0,0,0.04);
 } 
 .nav-item { 
   flex: 1; 
-  background: linear-gradient(90deg, #479fff 0%, #2176ff 100%); 
+  background: linear-gradient(135deg, #3a9cff 0%, #6ec6ff 100%); 
   color: #fff; 
-  border-radius: 12rpx; 
+  border-radius: 14rpx; 
   padding: 16rpx 0; 
   text-align: center; 
-  box-shadow: 0 6rpx 16rpx rgba(33,118,255,0.18); 
+  box-shadow: 0 8rpx 18rpx rgba(58,156,255,0.2); 
 } 
 .nav-icon { display: block; font-size: 28rpx; } 
 .nav-text { display: block; font-size: 26rpx; font-weight: 600; margin-top: 6rpx; } 
