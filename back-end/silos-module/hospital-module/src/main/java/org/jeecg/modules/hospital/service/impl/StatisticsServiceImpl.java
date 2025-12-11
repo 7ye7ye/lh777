@@ -365,5 +365,22 @@ public class StatisticsServiceImpl implements StatisticsService {
             DynamicDataSourceContextHolder.clear();
         }
     }
+
+    @Override
+    @DS("hospital")
+    public List<Map<String, Object>> getLatestPatientEval(StatisticsQueryDTO query) {
+        try {
+            DynamicDataSourceContextHolder.push("hospital");
+            return statisticsMapper.getLatestPatientEval(
+                query.getStartDate(),
+                query.getEndDate()
+            );
+        } catch (Exception e) {
+            log.error("获取患者评估列表失败", e);
+            return new ArrayList<>();
+        } finally {
+            DynamicDataSourceContextHolder.clear();
+        }
+    }
 }
 

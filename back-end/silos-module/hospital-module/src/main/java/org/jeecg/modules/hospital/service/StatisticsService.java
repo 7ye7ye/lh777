@@ -73,5 +73,10 @@ public interface StatisticsService {
      * 医生明细
      */
     List<Map<String, Object>> getDoctorDetail(StatisticsQueryDTO query);
+
+    /**
+     * 最新患者评估列表
+     */
+    List<Map<String, Object>> getLatestPatientEval(StatisticsQueryDTO query);
 }
 

@@ -354,6 +354,14 @@
 					}
 				},
 				{
+					"path": "navigation-plan",
+					"style": {
+						"navigationBarTitleText": "智能规划",
+						"navigationBarBackgroundColor": "#479fff",
+						"navigationBarTextStyle": "white"
+					}
+				},
+				{
 					"path": "navigation-search",
 					"style": {
 						"navigationBarTitleText": "导航路径",

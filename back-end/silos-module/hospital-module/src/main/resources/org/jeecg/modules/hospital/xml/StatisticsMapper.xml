@@ -793,5 +793,30 @@
         ORDER BY income DESC
     </select>
 
+    <!-- 最新患者评估列表（最近挂号，status 1/2，取前5） -->
+    <select id="getLatestPatientEval" resultType="java.util.Map">
+        SELECT
+            rr.patient_id AS patientId,
+            p.student_id AS studentId,
+            p.staff_id AS staffId,
+            COALESCE(p.patient_name, '') AS patientName,
+            p.gender AS gender,
+            d.dept_name AS deptName,
+            rr.register_time AS registerTime
+        FROM registration_record rr
+            INNER JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
+            INNER JOIN department d ON ds.dept_id = d.dept_id
+            LEFT JOIN patient p ON rr.patient_id = p.patient_id
+        WHERE rr.status IN (1, 2)
+            <if test="startDate != null">
+                AND DATE(rr.register_time) >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND DATE(rr.register_time) &lt;= #{endDate}
+            </if>
+        ORDER BY rr.register_time DESC
+        LIMIT 5
+    </select>
+
 </mapper>
 

@@ -165,5 +165,13 @@ public interface StatisticsMapper {
         @Param("startDate") LocalDate startDate,
         @Param("endDate") LocalDate endDate
     );
+
+    /**
+     * 最新患者评估列表（取最近挂号的前5条，status 1/2）
+     */
+    List<Map<String, Object>> getLatestPatientEval(
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
+    );
 }
 

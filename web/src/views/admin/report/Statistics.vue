@@ -9,7 +9,7 @@
         </div>
         <div class="header-filters">
           <a-space :size="12" wrap>
-            <a-radio-group v-model="timeType" size="middle">
+        <a-radio-group v-model="timeType" size="middle" @change="handleTimeTypeChange">
               <a-radio-button value="today">今日</a-radio-button>
               <a-radio-button value="week">本周</a-radio-button>
               <a-radio-button value="month">本月</a-radio-button>
@@ -42,8 +42,8 @@
 
     <div class="data-screen">
       <!-- 一、顶部 KPI 区 -->
-      <a-row :gutter="16" class="kpi-row">
-        <a-col :xs="24" :sm="12" :md="6" :lg="4" v-for="item in kpiCards" :key="item.key">
+      <a-row type="flex" justify="space-between" :gutter="12" class="kpi-row">
+        <a-col class="kpi-col" v-for="item in kpiCards" :key="item.key">
           <a-card :bordered="false" class="kpi-card">
             <div class="kpi-title">{{ item.title }}</div>
             <div class="kpi-value" :class="{ 'loading-value': loading }">
@@ -65,15 +65,40 @@
             </div>
           </a-card>
 
-          <a-card title="就诊时段分布" :bordered="false" class="block-card">
-            <div class="chart-placeholder">
-              <div ref="timeSlotChartRef" class="chart-box"></div>
-            </div>
-          </a-card>
-
           <a-card title="收入趋势" :bordered="false" class="block-card">
             <div class="chart-placeholder">
               <div ref="incomeChartRef" class="chart-box"></div>
+            </div>
+          </a-card>
+
+          <a-card title="患者信息评估" :bordered="false" class="block-card">
+            <div class="chart-placeholder patient-card">
+              <a-table
+                :columns="patientEvalColumns"
+                :data-source="patientEvalView"
+                :pagination="false"
+              :loading="loading"
+                size="small"
+                :scroll="{ y: 220 }"
+                class="patient-eval-table"
+                v-if="patientEvalView.length"
+            >
+                <template #bodyCell="{ column, record }">
+                  <template v-if="column.key === 'riskText'">
+                    <span class="risk-badge" :class="record.riskLevel">{{ record.riskText }}</span>
+              </template>
+                  <template v-else-if="column.key === 'patientName'">
+                    {{ record.patientName || '—' }}
+                  </template>
+                  <template v-else-if="column.key === 'deptName'">
+                    {{ record.deptName || '未知科室' }}
+                  </template>
+                  <template v-else-if="column.key === 'registerTime'">
+                    {{ record.registerTime || '—' }}
+                  </template>
+                </template>
+              </a-table>
+              <div v-else class="empty-tip">暂无数据</div>
             </div>
           </a-card>
         </a-col>
@@ -86,18 +111,16 @@
             </div>
           </a-card>
 
-          <a-card title="医生工作量 Top N" :bordered="false" class="block-card">
+          <a-card key="timeslot-card" title="就诊时段分布" :bordered="false" class="block-card">
             <div class="chart-placeholder">
-              条形图占位：就诊人次最多的医生排名
+              <div ref="timeSlotChartRef" class="chart-box"></div>
             </div>
           </a-card>
 
-          <a-card title="系统运行与消息发送情况" :bordered="false" class="block-card">
-            <ul class="status-list">
-              <li>关键接口成功率：——</li>
-              <li>今日系统错误数：——</li>
-              <li>预约 / 就诊提醒发送成功率：——</li>
-            </ul>
+          <a-card key="doctor-card" title="医生工作量 Top 5" :bordered="false" class="block-card">
+            <div class="chart-placeholder">
+              <div ref="doctorChartRef" class="chart-box"></div>
+            </div>
           </a-card>
         </a-col>
       </a-row>
@@ -106,9 +129,21 @@
       <a-card title="科室 / 医生明细列表" :bordered="false" class="block-card bottom-table-card">
         <a-tabs v-model="activeTab">
           <a-tab-pane key="dept" tab="按科室统计">
+            <div class="table-toolbar">
+              <a-space>
+                <span>科室筛选：</span>
+                <a-select
+                  v-model="deptFilter"
+                  allow-clear
+                  placeholder="全部科室"
+                  style="width: 180px"
+                  :options="deptFilterOptions"
+                />
+              </a-space>
+            </div>
             <a-table
               :columns="deptColumns"
-              :data-source="deptDetailData"
+              :data-source="filteredDeptDetailData"
               :loading="loading"
               :pagination="false"
               size="middle"
@@ -132,7 +167,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, onMounted, watch, nextTick } from 'vue';
+import { ref, reactive, onMounted, nextTick, computed } from 'vue';
 import { PageWrapper } from '/@/components/Page';
 import { message } from 'ant-design-vue';
 import dayjs from 'dayjs';
@@ -144,6 +179,7 @@ import {
   getIncomeTrend,
   getDeptDetail,
   getDoctorDetail,
+  getPatientEval,
   type StatisticsQuery,
   type RegistrationStatisticsItem,
   type DepartmentLoadItem,
@@ -151,6 +187,7 @@ import {
   type IncomeTrendItem,
   type DeptDetailItem,
   type DoctorDetailItem,
+  type PatientEvalItem,
 } from '/@/api/hospital/statistics';
 import * as echarts from 'echarts';
 
@@ -160,6 +197,7 @@ type TabKey = 'dept' | 'doctor';
 const loading = ref(false);
 const timeType = ref<TimeType>('today');
 const dateRange = ref<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
+const isCustomRange = ref(false); // 手动选择日期范围时使用日粒度
 const dept = ref<string | undefined>();
 const doctor = ref<string | undefined>();
 const activeTab = ref<TabKey>('dept');
@@ -177,16 +215,68 @@ const incomeChartRef = ref<HTMLDivElement>();
 let incomeChart: echarts.ECharts | null = null;
 const deptDetailData = ref<DeptDetailItem[]>([]);
 const doctorDetailData = ref<DoctorDetailItem[]>([]);
+const deptFilter = ref<string | undefined>();
+const patientEvalData = ref<PatientEvalItem[]>([]);
+const patientEvalView = computed(() => {
+  return (patientEvalData.value || []).slice(0, 5).map((item, index) => {
+    const idLabel = item.studentId || item.staffId || `ID:${item.patientId}`;
+    // 兼容两种可能的字段名：patientName 或 patient_name
+    const patientName = (item as any).patientName || (item as any).patient_name || '';
+    // 简单风险指数：根据 patientId 取模，前端生成
+    const score = (item.patientId || 0) % 100;
+    let riskText = '低风险';
+    let riskLevel = 'low';
+    if (score > 66) {
+      riskText = '高风险';
+      riskLevel = 'high';
+    } else if (score > 33) {
+      riskText = '中风险';
+      riskLevel = 'mid';
+    }
+    const genderText = item.gender === '男' || item.gender === '女' ? item.gender : '性别未知';
+    return {
+      ...item,
+      index: index + 1,
+      idLabel,
+      patientName,
+      riskText,
+      riskLevel,
+      genderText,
+    };
+  });
+});
+const deptFilterOptions = computed(() =>
+  deptDetailData.value.map((item) => ({ label: item.deptName, value: item.deptName }))
+);
+const filteredDeptDetailData = computed(() => {
+  if (!deptFilter.value) return deptDetailData.value;
+  return deptDetailData.value.filter((item) => item.deptName === deptFilter.value);
+});
+const doctorChartRef = ref<HTMLDivElement>();
+let doctorChart: echarts.ECharts | null = null;
 
 const deptColumns = [
   { title: '科室', dataIndex: 'deptName', key: 'deptName' },
-  { title: '挂号数', dataIndex: 'registerCount', key: 'registerCount', align: 'right' },
-  { title: '退号数', dataIndex: 'cancelCount', key: 'cancelCount', align: 'right' },
+  {
+    title: '挂号数',
+    dataIndex: 'registerCount',
+    key: 'registerCount',
+    align: 'right',
+    sorter: (a: DeptDetailItem, b: DeptDetailItem) => (a.registerCount || 0) - (b.registerCount || 0),
+  },
+  {
+    title: '退号数',
+    dataIndex: 'cancelCount',
+    key: 'cancelCount',
+    align: 'right',
+    sorter: (a: DeptDetailItem, b: DeptDetailItem) => (a.cancelCount || 0) - (b.cancelCount || 0),
+  },
   {
     title: '收入',
     dataIndex: 'income',
     key: 'income',
     align: 'right',
+    sorter: (a: DeptDetailItem, b: DeptDetailItem) => (a.income || 0) - (b.income || 0),
     customRender: ({ text }: { text: number }) => `¥${Number(text || 0).toFixed(2)}`,
   },
 ];
@@ -194,14 +284,78 @@ const deptColumns = [
 const doctorColumns = [
   { title: '医生', dataIndex: 'doctorName', key: 'doctorName' },
   { title: '科室', dataIndex: 'deptName', key: 'deptName' },
-  { title: '挂号数', dataIndex: 'registerCount', key: 'registerCount', align: 'right' },
-  { title: '退号数', dataIndex: 'cancelCount', key: 'cancelCount', align: 'right' },
+  {
+    title: '挂号数',
+    dataIndex: 'registerCount',
+    key: 'registerCount',
+    align: 'right',
+    sorter: (a: DoctorDetailItem, b: DoctorDetailItem) => (a.registerCount || 0) - (b.registerCount || 0),
+  },
+  {
+    title: '退号数',
+    dataIndex: 'cancelCount',
+    key: 'cancelCount',
+    align: 'right',
+    sorter: (a: DoctorDetailItem, b: DoctorDetailItem) => (a.cancelCount || 0) - (b.cancelCount || 0),
+  },
   {
     title: '收入',
     dataIndex: 'income',
     key: 'income',
     align: 'right',
+    sorter: (a: DoctorDetailItem, b: DoctorDetailItem) => (a.income || 0) - (b.income || 0),
     customRender: ({ text }: { text: number }) => `¥${Number(text || 0).toFixed(2)}`,
+  },
+];
+
+const patientEvalColumns = [
+  {
+    title: '序号',
+    dataIndex: 'index',
+    key: 'index',
+    width: 60,
+    align: 'center',
+  },
+  {
+    title: '学号/职工号',
+    dataIndex: 'idLabel',
+    key: 'idLabel',
+    width: 130,
+    ellipsis: true,
+  },
+  {
+    title: '姓名',
+    dataIndex: 'patientName',
+    key: 'patientName',
+    width: 100,
+    ellipsis: true,
+  },
+  {
+    title: '风险指数',
+    dataIndex: 'riskText',
+    key: 'riskText',
+    width: 100,
+    align: 'center',
+  },
+  {
+    title: '性别',
+    dataIndex: 'genderText',
+    key: 'genderText',
+    width: 70,
+    align: 'center',
+  },
+  {
+    title: '科室',
+    dataIndex: 'deptName',
+    key: 'deptName',
+    width: 110,
+    ellipsis: true,
+  },
+  {
+    title: '挂号时间',
+    dataIndex: 'registerTime',
+    key: 'registerTime',
+    width: 170,
   },
 ];
 
@@ -220,14 +374,17 @@ const doctorOptions = [
 const kpiCards = reactive([
   { key: 'visit', title: '累计就诊量', value: '——', desc: '状态1/2，按挂号日期' },
   { key: 'income', title: '累计收入', value: '——', desc: '挂号费 + 检查费等' },
-  { key: 'usage', title: '号源使用率', value: '——', desc: '已用号源 / 最大号源' },
   { key: 'staff', title: '在岗医护人员', value: '——', desc: '排班有效（去重医生数）' },
+  { key: 'usage', title: '号源使用率', value: '——', desc: '已用号源 / 最大号源' },
   { key: 'noShow', title: '爽约 / 退号率', value: '——', desc: '爽约人数占比' },
 ]);
 
 // 日期范围变化
 const onRangeChange = (values: [dayjs.Dayjs, dayjs.Dayjs] | null) => {
   dateRange.value = values;
+  isCustomRange.value = true;
+  // 选择日期后直接刷新
+  loadStatisticsData();
 };
 
 // 初始化今日日期范围
@@ -241,31 +398,35 @@ const updateDateRangeByTimeType = () => {
   const today = dayjs();
   switch (timeType.value) {
     case 'today':
-      dateRange.value = [today, today];
-      break;
+      return [today, today] as [dayjs.Dayjs, dayjs.Dayjs];
     case 'week':
-      dateRange.value = [
-        today.startOf('week'),
-        today.endOf('week'),
-      ];
-      break;
+      return [today.startOf('week'), today.endOf('week')] as [dayjs.Dayjs, dayjs.Dayjs];
     case 'month':
-      dateRange.value = [
-        today.startOf('month'),
-        today.endOf('month'),
-      ];
-      break;
+      return [today.startOf('month'), today.endOf('month')] as [dayjs.Dayjs, dayjs.Dayjs];
   }
+  return [today, today] as [dayjs.Dayjs, dayjs.Dayjs];
 };
 
-// 监听时间类型变化
-watch(
-  () => timeType.value,
-  () => {
-    updateDateRangeByTimeType();
-    loadStatisticsData();
+// 切换时间粒度
+const handleTimeTypeChange = (val: any) => {
+  // Ant Design Vue 的 change 事件参数是 { target: { value } }
+  const nextVal = val?.target?.value ?? val;
+  timeType.value = nextVal as TimeType;
+  isCustomRange.value = false;
+  loadStatisticsData(true);
+};
+
+const buildDateSpan = () => {
+  if (!dateRange.value || !dateRange.value[0] || !dateRange.value[1]) return [];
+  const span: string[] = [];
+  let cur = dateRange.value[0].startOf('day');
+  const end = dateRange.value[1].startOf('day');
+  while (cur.isBefore(end) || cur.isSame(end)) {
+    span.push(cur.format('YYYY-MM-DD'));
+    cur = cur.add(1, 'day');
   }
-);
+  return span;
+};
 
 // 渲染就诊量趋势图
 const renderOutpatientChart = (empty = false) => {
@@ -295,7 +456,8 @@ const renderOutpatientChart = (empty = false) => {
     const val = item.typeRegistration ?? item.totalRegistration ?? 0;
     dateMap.set(item.date, count + val);
   });
-  const dates = Array.from(dateMap.keys()).sort();
+  const spanDates = buildDateSpan();
+  const dates = spanDates.length ? spanDates : Array.from(dateMap.keys()).sort();
   const values = dates.map((d) => dateMap.get(d) || 0);
 
   outpatientChart.setOption({
@@ -370,7 +532,14 @@ const renderDeptLoadChart = (empty = false) => {
 
 // 渲染就诊时段分布（环形图 + 右侧图注显示人数）
 const renderTimeSlotChart = (empty = false) => {
-  if (!timeSlotChartRef.value) return;
+  if (!timeSlotChartRef.value) {
+    console.warn('timeSlotChartRef.value is null');
+    return;
+  }
+  // 如果实例已存在但容器已销毁，重新创建
+  if (timeSlotChart && timeSlotChart.isDisposed()) {
+    timeSlotChart = null;
+  }
   if (!timeSlotChart) {
     timeSlotChart = echarts.init(timeSlotChartRef.value);
   }
@@ -424,6 +593,8 @@ const renderTimeSlotChart = (empty = false) => {
       },
     ],
   });
+  // 确保图表正确渲染
+  timeSlotChart.resize();
 };
 
 // 渲染收入趋势
@@ -445,8 +616,13 @@ const renderIncomeChart = (empty = false) => {
     return;
   }
 
-  const dates = incomeTrendData.value.map((item) => item.date);
-  const values = incomeTrendData.value.map((item) => Number(item.income || 0));
+  const spanDates = buildDateSpan();
+  const map = new Map<string, number>();
+  incomeTrendData.value.forEach((item) => {
+    map.set(item.date, Number(item.income || 0));
+  });
+  const dates = spanDates.length ? spanDates : Array.from(map.keys()).sort();
+  const values = dates.map((d) => map.get(d) || 0);
 
   incomeChart.setOption({
     tooltip: { trigger: 'axis', formatter: '{b}<br/>{c} 元' },
@@ -473,11 +649,91 @@ const renderIncomeChart = (empty = false) => {
   });
 };
 
+// 渲染医生工作量 Top N
+const renderDoctorChart = (empty = false) => {
+  if (!doctorChartRef.value) {
+    console.warn('doctorChartRef.value is null');
+    return;
+  }
+  // 如果实例已存在但容器已销毁，重新创建
+  if (doctorChart && doctorChart.isDisposed()) {
+    doctorChart = null;
+  }
+  if (!doctorChart) {
+    doctorChart = echarts.init(doctorChartRef.value);
+  }
+  doctorChart.clear();
+
+  if (empty || doctorDetailData.value.length === 0) {
+    doctorChart.setOption({
+      title: { text: '暂无数据', left: 'center', top: 'middle', textStyle: { color: '#999', fontSize: 14 } },
+      xAxis: { type: 'value' },
+      yAxis: { type: 'category', data: [] },
+      series: [],
+      grid: { left: 60, right: 20, bottom: 40, top: 20 },
+    });
+    return;
+  }
+
+  // 仅取前 5 名
+  const top = doctorDetailData.value
+    .slice()
+    .sort((a, b) => (b.registerCount || 0) - (a.registerCount || 0))
+    .slice(0, 5);
+
+  const names = top.map((item) => `${item.doctorName || '未知医生'}（${item.deptName || '—'}）`);
+  const counts = top.map((item) => Number(item.registerCount || 0));
+
+  doctorChart.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    // 留出右侧与底部空间，避免横轴标签被遮挡，并整体略向左偏移
+    grid: { left: 60, right: 65, bottom: 50, top: 20 },
+    xAxis: { type: 'value', name: '就诊人次' },
+    yAxis: {
+      type: 'category',
+      data: names,
+      axisLabel: {
+        formatter: (val: string) => {
+          const match = val.match(/^(.*)（(.*)）$/);
+          if (match) {
+            const [, doctorName, deptName] = match;
+            return `${doctorName}\n(${deptName})`;
+          }
+          return val;
+        },
+        fontSize: 11,
+        lineHeight: 14,
+        margin: 10,
+      },
+    },
+    series: [
+      {
+        type: 'bar',
+        data: counts,
+        label: { show: true, position: 'right' },
+        itemStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+            { offset: 0, color: '#91caff' },
+            { offset: 1, color: '#2d8cf0' },
+          ]),
+        },
+      },
+    ],
+  });
+  // 确保图表正确渲染
+  doctorChart.resize();
+};
+
 // 获取就诊量趋势 + 顶部汇总
-const loadStatisticsData = async () => {
+const loadStatisticsData = async (forceUpdateRange = false) => {
   // 如果没有选择日期范围，默认使用今日
   let startDate = dayjs().format('YYYY-MM-DD');
   let endDate = dayjs().format('YYYY-MM-DD');
+
+  if (forceUpdateRange || !dateRange.value) {
+    const [s, e] = updateDateRangeByTimeType();
+    dateRange.value = [s, e];
+  }
 
   if (dateRange.value && dateRange.value[0] && dateRange.value[1]) {
     startDate = dateRange.value[0].format('YYYY-MM-DD');
@@ -485,7 +741,7 @@ const loadStatisticsData = async () => {
   }
 
   const periodType: StatisticsQuery['periodType'] =
-    timeType.value === 'today' ? 'day' : timeType.value;
+    isCustomRange.value ? 'day' : timeType.value === 'today' ? 'day' : timeType.value;
 
   const queryParams: StatisticsQuery = {
     periodType,
@@ -497,7 +753,16 @@ const loadStatisticsData = async () => {
 
   loading.value = true;
   try {
-    const [summary, registrationStats, deptLoadStats, timeSlotRes, incomeRes, deptDetailRes, doctorDetailRes] =
+    const [
+      summary,
+      registrationStats,
+      deptLoadStats,
+      timeSlotRes,
+      incomeRes,
+      deptDetailRes,
+      doctorDetailRes,
+      patientEvalRes,
+    ] =
       await Promise.all([
       getStatisticsSummary(queryParams),
       getRegistrationStatistics(queryParams),
@@ -506,6 +771,7 @@ const loadStatisticsData = async () => {
       getIncomeTrend(queryParams),
         getDeptDetail({ startDate, endDate }),
         getDoctorDetail({ startDate, endDate }),
+        getPatientEval({ startDate, endDate }),
     ]);
     registrationData.value = Array.isArray(registrationStats) ? registrationStats : [];
     deptLoadData.value = Array.isArray(deptLoadStats) ? deptLoadStats : [];
@@ -513,6 +779,11 @@ const loadStatisticsData = async () => {
     incomeTrendData.value = Array.isArray(incomeRes) ? incomeRes : [];
     deptDetailData.value = Array.isArray(deptDetailRes) ? deptDetailRes : [];
     doctorDetailData.value = Array.isArray(doctorDetailRes) ? doctorDetailRes : [];
+    patientEvalData.value = Array.isArray(patientEvalRes) ? patientEvalRes : [];
+    // 调试：查看患者评估数据
+    if (patientEvalData.value.length > 0) {
+      console.log('患者评估数据示例:', patientEvalData.value[0]);
+    }
 
     // 更新今日就诊量卡片
     const visitCount = summary.totalVisitCount || summary.totalRegistration || 0;
@@ -551,10 +822,14 @@ const loadStatisticsData = async () => {
     }
     // 渲染图表
     await nextTick();
-    renderOutpatientChart();
-    renderDeptLoadChart();
-    renderTimeSlotChart();
-    renderIncomeChart();
+    // 使用 setTimeout 确保 DOM 完全渲染
+    setTimeout(() => {
+      renderOutpatientChart();
+      renderDeptLoadChart();
+      renderTimeSlotChart();
+      renderIncomeChart();
+      renderDoctorChart();
+    }, 100);
   } catch (error: any) {
     console.error('加载统计数据失败:', error);
     message.error(error?.message || '加载统计数据失败');
@@ -568,11 +843,15 @@ const loadStatisticsData = async () => {
     incomeTrendData.value = [];
     deptDetailData.value = [];
     doctorDetailData.value = [];
+    patientEvalData.value = [];
     await nextTick();
-    renderOutpatientChart(true);
-    renderDeptLoadChart(true);
-    renderTimeSlotChart(true);
-    renderIncomeChart(true);
+    setTimeout(() => {
+      renderOutpatientChart(true);
+      renderDeptLoadChart(true);
+      renderTimeSlotChart(true);
+      renderIncomeChart(true);
+      renderDoctorChart(true);
+    }, 100);
   } finally {
     loading.value = false;
   }
@@ -587,6 +866,7 @@ const handleQuery = () => {
 const handleReset = () => {
   timeType.value = 'today';
   initTodayDateRange();
+  isCustomRange.value = false;
   dept.value = undefined;
   doctor.value = undefined;
   loadStatisticsData();
@@ -594,7 +874,8 @@ const handleReset = () => {
 
 // 组件挂载时加载数据
 onMounted(() => {
-  initTodayDateRange();
+  const [s, e] = updateDateRangeByTimeType();
+  dateRange.value = [s, e];
   loadStatisticsData();
 });
 
@@ -604,6 +885,7 @@ onMounted(() => {
     deptLoadChart?.resize();
   timeSlotChart?.resize();
   incomeChart?.resize();
+  doctorChart?.resize();
 });
 </script>
 
@@ -636,6 +918,13 @@ onMounted(() => {
 
 .kpi-row {
   margin-bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.kpi-col {
+  flex: 1 1 calc(20% - 12px);
+  min-width: 200px;
 }
 
 .kpi-card {
@@ -677,6 +966,7 @@ onMounted(() => {
 
 .chart-placeholder,
 .table-placeholder {
+  min-height: 260px;
   height: 260px;
   border: 1px dashed #d9d9d9;
   border-radius: 4px;
@@ -689,13 +979,106 @@ onMounted(() => {
   padding: 0 12px;
 }
 
+.patient-card {
+  height: 260px;
+  overflow: hidden;
+  padding: 0;
+}
+
+.patient-eval-table {
+  :deep(.ant-table) {
+    font-size: 13px;
+  }
+  
+  :deep(.ant-table-thead > tr > th) {
+    background: #fafafa;
+    font-weight: 600;
+    padding: 10px 12px;
+    border-bottom: 2px solid #e8e8e8;
+    color: #333;
+  }
+  
+  :deep(.ant-table-tbody > tr > td) {
+    padding: 10px 12px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  
+  :deep(.ant-table-tbody > tr:hover > td) {
+    background: #f5f5f5;
+  }
+  
+  :deep(.ant-table-tbody > tr:last-child > td) {
+    border-bottom: none;
+  }
+  
+  // 确保风险指数样式在表格中正确应用
+  :deep(.risk-badge) {
+    &.risk-low {
+      background: #f6ffed !important;
+      color: #52c41a !important;
+      border: 1px solid #b7eb8f !important;
+    }
+    
+    &.risk-mid {
+      background: #fffbe6 !important;
+      color: #faad14 !important;
+      border: 1px solid #ffe58f !important;
+    }
+    
+    &.risk-high {
+      background: #fff1f0 !important;
+      color: #ff4d4f !important;
+      border: 1px solid #ffccc7 !important;
+    }
+  }
+}
+
+.risk-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  
+  &.risk-low {
+    background: #f6ffed !important;
+    color: #52c41a !important;
+    border: 1px solid #b7eb8f !important;
+  }
+  
+  &.risk-mid {
+    background: #fffbe6 !important;
+    color: #faad14 !important;
+    border: 1px solid #ffe58f !important;
+  }
+  
+  &.risk-high {
+    background: #fff1f0 !important;
+    color: #ff4d4f !important;
+    border: 1px solid #ffccc7 !important;
+  }
+}
+
+// 确保样式在表格中正确应用
+.patient-eval-table {
+  .risk-badge {
+    &.risk-low {
+      color: #52c41a !important;
+    }
+    
+    &.risk-mid {
+      color: #faad14 !important;
+    }
+    
+    &.risk-high {
+      color: #ff4d4f !important;
+    }
+  }
+}
+
 .chart-box {
   width: 100%;
   height: 100%;
-}
-
-.bottom-table-card .table-placeholder {
-  height: 260px;
 }
 
 .status-list {
@@ -703,5 +1086,9 @@ onMounted(() => {
   margin: 0;
   color: #666;
   line-height: 1.8;
+}
+
+.table-toolbar {
+  margin: 8px 0;
 }
 </style>

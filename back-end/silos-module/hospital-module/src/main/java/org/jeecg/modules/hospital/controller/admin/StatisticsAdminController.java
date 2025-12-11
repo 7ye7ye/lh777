@@ -203,5 +203,19 @@ public class StatisticsAdminController {
         List<Map<String, Object>> result = statisticsService.getDoctorDetail(query);
         return Result.ok(result);
     }
+
+    @Operation(summary = "获取最新患者评估列表（前5条）")
+    @GetMapping("/patient-eval")
+    public Result<List<Map<String, Object>>> getPatientEval(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+
+        StatisticsQueryDTO query = new StatisticsQueryDTO();
+        query.setStartDate(startDate);
+        query.setEndDate(endDate);
+
+        List<Map<String, Object>> result = statisticsService.getLatestPatientEval(query);
+        return Result.ok(result);
+    }
 }
 

@@ -108,6 +108,16 @@ export interface DoctorDetailItem {
   cancelCount: number;
   income: number;
 }
+
+export interface PatientEvalItem {
+  patientId: number;
+  studentId?: string;
+  staffId?: string;
+  patientName?: string;
+  deptName?: string;
+  gender?: string;
+  registerTime?: string;
+}
 /**
  * 获取门诊量统计
  */
@@ -180,4 +190,10 @@ export const getDeptDetail = (params: { startDate?: string; endDate?: string }) 
  */
 export const getDoctorDetail = (params: { startDate?: string; endDate?: string }) =>
   defHttp.get<DoctorDetailItem[]>({ url: '/admin/statistics/doctor-detail', params });
+
+/**
+ * 获取患者评估列表
+ */
+export const getPatientEval = (params: { startDate?: string; endDate?: string }) =>
+  defHttp.get<PatientEvalItem[]>({ url: '/admin/statistics/patient-eval', params });
 
