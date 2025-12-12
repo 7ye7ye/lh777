@@ -463,4 +463,114 @@ public class PatientController {
             }});
         }
     }
+
+    /**
+     * 健康档案 - 获取
+     * 对应前端 patientApi.getHealthProfile({ patientId })
+     */
+    @PostMapping("/health/get")
+    public ResponseEntity<HashMap<String, Object>> getHealthProfile(@RequestBody Map<String, Object> body) {
+        HashMap<String, Object> result = new HashMap<>();
+
+        Object patientIdObj = body == null ? null : body.get("patientId");
+        if (patientIdObj == null) {
+            result.put("code", 400);
+            result.put("message", "patientId 不能为空");
+            return ResponseEntity.ok(result);
+        }
+
+        Long patientId = Long.valueOf(patientIdObj.toString());
+        Patient patient = patientService.getById(patientId);
+        if (patient == null) {
+            result.put("code", 404);
+            result.put("message", "未找到对应就诊卡");
+            return ResponseEntity.ok(result);
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("height", patient.getHeight());
+        data.put("weight", patient.getWeight());
+        data.put("bloodType", patient.getBloodType());
+        data.put("maritalStatus", patient.getMaritalStatus());
+        data.put("fertilityStatus", patient.getFertilityStatus());
+        data.put("currentIllness", patient.getPresentIllness());
+        data.put("pastHistory", patient.getPastIllness());
+        data.put("familyHistory", patient.getFamilyIllness());
+        data.put("allergyHistory", patient.getAllergyHistory());
+
+        result.put("code", 200);
+        result.put("message", "查询成功");
+        result.put("data", data);
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 健康档案 - 更新
+     * 对应前端 patientApi.updateHealthProfile
+     */
+    @PostMapping("/health/update")
+    public ResponseEntity<HashMap<String, Object>> updateHealthProfile(@RequestBody Map<String, Object> body) {
+        HashMap<String, Object> result = new HashMap<>();
+
+        Object patientIdObj = body == null ? null : body.get("patientId");
+        if (patientIdObj == null) {
+            result.put("code", 400);
+            result.put("message", "patientId 不能为空");
+            return ResponseEntity.ok(result);
+        }
+
+        Long patientId = Long.valueOf(patientIdObj.toString());
+        Patient patient = patientService.getById(patientId);
+        if (patient == null) {
+            result.put("code", 404);
+            result.put("message", "未找到对应就诊卡");
+            return ResponseEntity.ok(result);
+        }
+
+        try {
+            if (body.get("height") != null && !body.get("height").toString().trim().isEmpty()) {
+                patient.setHeight(new java.math.BigDecimal(body.get("height").toString()));
+            }
+            if (body.get("weight") != null && !body.get("weight").toString().trim().isEmpty()) {
+                patient.setWeight(new java.math.BigDecimal(body.get("weight").toString()));
+            }
+            if (body.get("bloodType") != null) {
+                patient.setBloodType(body.get("bloodType").toString());
+            }
+            if (body.get("maritalStatus") != null) {
+                patient.setMaritalStatus(body.get("maritalStatus").toString());
+            }
+            if (body.get("fertilityStatus") != null) {
+                patient.setFertilityStatus(body.get("fertilityStatus").toString());
+            }
+            if (body.get("currentIllness") != null) {
+                patient.setPresentIllness(body.get("currentIllness").toString());
+            }
+            if (body.get("pastHistory") != null) {
+                patient.setPastIllness(body.get("pastHistory").toString());
+            }
+            if (body.get("familyHistory") != null) {
+                patient.setFamilyIllness(body.get("familyHistory").toString());
+            }
+            if (body.get("allergyHistory") != null) {
+                patient.setAllergyHistory(body.get("allergyHistory").toString());
+            }
+
+            boolean updated = patientService.updateById(patient);
+            if (!updated) {
+                result.put("code", 500);
+                result.put("message", "保存失败，请稍后重试");
+                return ResponseEntity.ok(result);
+            }
+
+            result.put("code", 200);
+            result.put("message", "保存成功");
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new HashMap<String, Object>() {{
+                put("code", 500);
+                put("message", "保存失败，系统异常，请稍后重试");
+            }});
+        }
+    }
 }

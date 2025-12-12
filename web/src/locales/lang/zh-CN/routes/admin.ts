@@ -19,4 +19,3 @@ export default {
   referralReview: '转诊审核',
   referralHistory: '转诊记录',
 };
-
