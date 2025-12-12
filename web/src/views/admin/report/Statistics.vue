@@ -1,6 +1,6 @@
 <template>
   <PageWrapper>
-    <!-- 头部：标题 + 筛选栏，放在原 PageWrapper 标题区域 -->
+    <!-- 头部：标题 + 筛选栏 -->
     <template #headerContent>
       <div class="page-header">
         <div class="header-left">
@@ -16,22 +16,6 @@
             </a-radio-group>
 
           <a-range-picker v-model="dateRange" @change="onRangeChange" />
-
-            <a-select
-              v-model="dept"
-              placeholder="选择科室"
-              style="width: 160px"
-              :options="deptOptions"
-              allow-clear
-            />
-
-            <a-select
-              v-model="doctor"
-              placeholder="选择医生"
-              style="width: 160px"
-              :options="doctorOptions"
-              allow-clear
-            />
 
             <a-button type="primary" @click="handleQuery" :loading="loading">查询</a-button>
             <a-button @click="handleReset">重置</a-button>
@@ -59,7 +43,7 @@
       <a-row :gutter="16" class="main-row">
         <!-- 左侧 -->
         <a-col :xs="24" :lg="16">
-          <a-card title="就诊量趋势（按日 / 周 / 月）" :bordered="false" class="block-card">
+          <a-card title="就诊量趋势" :bordered="false" class="block-card">
             <div class="chart-placeholder">
               <div ref="outpatientChartRef" class="chart-box"></div>
             </div>
@@ -198,8 +182,6 @@ const loading = ref(false);
 const timeType = ref<TimeType>('today');
 const dateRange = ref<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
 const isCustomRange = ref(false); // 手动选择日期范围时使用日粒度
-const dept = ref<string | undefined>();
-const doctor = ref<string | undefined>();
 const activeTab = ref<TabKey>('dept');
 const outpatientChartRef = ref<HTMLDivElement>();
 let outpatientChart: echarts.ECharts | null = null;
@@ -359,22 +341,10 @@ const patientEvalColumns = [
   },
 ];
 
-const deptOptions = [
-  { label: '全部科室', value: 'all' },
-  { label: '口腔内科', value: 'kouqiang' },
-  { label: '全科门诊', value: 'quanke' },
-];
-
-const doctorOptions = [
-  { label: '全部医生', value: 'all' },
-  { label: '张三', value: 'zhangsan' },
-  { label: '李四', value: 'lisi' },
-];
-
 const kpiCards = reactive([
-  { key: 'visit', title: '累计就诊量', value: '——', desc: '状态1/2，按挂号日期' },
-  { key: 'income', title: '累计收入', value: '——', desc: '挂号费 + 检查费等' },
-  { key: 'staff', title: '在岗医护人员', value: '——', desc: '排班有效（去重医生数）' },
+  { key: 'visit', title: '累计就诊量', value: '——', desc: '已挂号&已就诊，按挂号日期统计' },
+  { key: 'income', title: '累计收入', value: '——', desc: '挂号费' },
+  { key: 'staff', title: '在岗医护人员', value: '——', desc: '排班有效且不重复' },
   { key: 'usage', title: '号源使用率', value: '——', desc: '已用号源 / 最大号源' },
   { key: 'noShow', title: '爽约 / 退号率', value: '——', desc: '爽约人数占比' },
 ]);
@@ -740,15 +710,16 @@ const loadStatisticsData = async (forceUpdateRange = false) => {
     endDate = dateRange.value[1].format('YYYY-MM-DD');
   }
 
+  // “本周 / 本月 / 今日 / 自定义”均按天取数，避免聚合到首日
   const periodType: StatisticsQuery['periodType'] =
-    isCustomRange.value ? 'day' : timeType.value === 'today' ? 'day' : timeType.value;
+    isCustomRange.value || timeType.value === 'month' || timeType.value === 'week' || timeType.value === 'today'
+      ? 'day'
+      : timeType.value;
 
   const queryParams: StatisticsQuery = {
     periodType,
     startDate,
     endDate,
-    deptId: dept.value && dept.value !== 'all' ? Number(dept.value) : undefined,
-    doctorId: doctor.value && doctor.value !== 'all' ? Number(doctor.value) : undefined,
   };
 
   loading.value = true;
@@ -867,8 +838,6 @@ const handleReset = () => {
   timeType.value = 'today';
   initTodayDateRange();
   isCustomRange.value = false;
-  dept.value = undefined;
-  doctor.value = undefined;
   loadStatisticsData();
 };
 

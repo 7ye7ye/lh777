@@ -41,23 +41,41 @@
       </button>
     </view>
 
-    <!-- 地图区域 -->
-    <view class="map-wrapper" :style="{ height: mapHeight + 'px' }">
-      <!-- 底图 -->
-      <image 
-        src="/static/医院地图new.png" 
-        class="map-image" 
+    <!-- 地图区域 (movable-view 支持双指缩放/拖拽) -->
+    <movable-area class="map-container" :style="{ height: mapHeight + 'px' }">
+      <movable-view 
+        class="map-content"
+        direction="all" 
+        :scale="true" 
+        :scale-min="1" 
+        :scale-max="3"
+        :x="mapX"
+        :y="mapY"
+        :scale-value="mapScale"
         :style="{ width: '100%', height: mapHeight + 'px' }"
-        mode="scaleToFill"
-        @load="onMapLoad"
-      />
-      <!-- 路径绘制层 -->
-      <canvas 
-        canvas-id="navCanvas" 
-        class="nav-canvas"
-        :style="{ width: '100%', height: mapHeight + 'px' }"
-      />
-    </view>
+      >
+        <!-- 底图 -->
+        <image 
+          src="/static/医院地图new.png" 
+          class="map-image" 
+          :style="{ width: '100%', height: mapHeight + 'px' }"
+          mode="scaleToFill"
+          @load="onMapLoad"
+        />
+        <!-- 路径绘制层：与底图同尺寸叠加 -->
+        <canvas 
+          canvas-id="navCanvas" 
+          class="nav-canvas"
+          :style="{ width: '100%', height: mapHeight + 'px' }"
+        />
+      </movable-view>
+
+      <!-- 缩放按钮 -->
+      <view class="zoom-controls">
+        <button class="zoom-btn" size="mini" @tap.stop="zoomIn">+</button>
+        <button class="zoom-btn" size="mini" @tap.stop="zoomOut">-</button>
+      </view>
+    </movable-area>
 
     <!-- 导航提示 -->
     <view class="nav-tips" v-if="pathFound">
@@ -67,16 +85,9 @@
 </template>
 
 <script>
-/**
- * 院内导航路径规划组件
- * 包含Dijkstra最短路径算法和Canvas绘图逻辑
- */
-
-// --- 静态路网数据定义 ---
-// 节点定义：x, y 为基于 900x650 图纸的像素坐标
+// --- 静态路网数据---
 const mapNodes = {
-    // 路网骨架节点
-    'NODE_ENTRY': { x: 450, y: 580, name: '入口' },
+    'NODE_ENTRY': { x: 450, y: 580, name: '入口' }, // 骨架节点
     'NODE_LOBBY_JUNC': { x: 450, y: 560, name: '大厅十字路口' },
     'NODE_SOUTH_WEST': { x: 180, y: 560, name: '西南角' },
     'NODE_SOUTH_EAST': { x: 720, y: 560, name: '东南角' },
@@ -88,8 +99,6 @@ const mapNodes = {
     'NODE_CENTER_SOUTH': { x: 450, y: 460, name: '中轴南端' },
     'NODE_CENTER_MID': { x: 450, y: 300, name: '中轴中心' },
     'NODE_CENTER_NORTH': { x: 450, y: 220, name: '中轴北端' },
-
-    // 具体房间/功能区
     'N_PHARM': { x: 180, y: 530, name: '西药房' }, 
     'N_REG': { x: 720, y: 530, name: '挂号处' }, 
     'N_NURSE': { x: 450, y: 480, name: '护士站' },
@@ -111,7 +120,6 @@ const mapNodes = {
     'N_CT': { x: 540, y: 140, name: 'CT室' }
 };
 
-// 邻接表（权重为大致距离）
 const mapGraph = {
     'NODE_ENTRY': { 'NODE_LOBBY_JUNC': 20 },
     'NODE_LOBBY_JUNC': { 'NODE_ENTRY': 20, 'NODE_SOUTH_WEST': 270, 'NODE_SOUTH_EAST': 270, 'NODE_CENTER_SOUTH': 100 },
@@ -149,26 +157,24 @@ const mapGraph = {
 export default {
   data() {
     return {
-      // 原始设计尺寸
       ORIGIN_WIDTH: 900,
       ORIGIN_HEIGHT: 650,
-      
-      // 当前设备屏幕信息
       screenWidth: 375,
-      scaleRatio: 1, // 缩放比例
-      mapHeight: 0, // 计算后的地图高度
+      scaleRatio: 1,
+      mapHeight: 0,
       
-      // 导航相关数据
-      poiList: [], // 可选地点列表
-      startIndex: 0, // 默认选中入口
-      endIndex: -1, // 终点
-      
+      poiList: [],
+      startIndex: 0,
+      endIndex: -1,
       isNavigating: false,
       pathFound: false,
       pathDistance: 0,
-      
-      // Canvas上下文
-      ctx: null
+      ctx: null,
+
+      // 地图缩放控制
+      mapX: 0,
+      mapY: 0,
+      mapScale: 1
     }
   },
   
@@ -182,22 +188,16 @@ export default {
   },
   
   methods: {
-    // 1. 初始化地图配置，计算缩放比
     initMapConfig() {
       const sysInfo = uni.getSystemInfoSync()
       this.screenWidth = sysInfo.windowWidth
-      // 计算缩放比例：当前屏幕宽度 / 设计图宽度
       this.scaleRatio = this.screenWidth / this.ORIGIN_WIDTH
-      // 计算自适应后的地图高度
       this.mapHeight = this.ORIGIN_HEIGHT * this.scaleRatio
     },
     
-    // 2. 初始化POI列表 (过滤掉不需要展示的路口节点)
     initPoiList() {
       const list = []
       for (let key in mapNodes) {
-        // 通过key的前缀判断是否为展示节点
-        // 这里简单规则：所有N_开头的都是具体房间，或者NODE_ENTRY入口
         if (key.startsWith('N_') || key === 'NODE_ENTRY') {
           list.push({
             id: key,
@@ -208,31 +208,23 @@ export default {
         }
       }
       this.poiList = list
-      
-      // 默认设置入口为起点
       const entryIdx = list.findIndex(item => item.id === 'NODE_ENTRY')
       if (entryIdx >= 0) this.startIndex = entryIdx
     },
     
-    // 起点变更
     onStartChange(e) {
       this.startIndex = Number(e.detail.value)
     },
     
-    // 终点变更
     onEndChange(e) {
       this.endIndex = Number(e.detail.value)
-      // 如果选了终点，自动触发导航
-      // this.startNavigation() 
     },
     
-    // 3. 开始导航
     startNavigation() {
       if (this.startIndex < 0 || this.endIndex < 0) {
         uni.showToast({ title: '请选择起点和终点', icon: 'none' })
         return
       }
-      
       if (this.startIndex === this.endIndex) {
         uni.showToast({ title: '起点和终点不能相同', icon: 'none' })
         return
@@ -241,29 +233,47 @@ export default {
       const startNodeId = this.poiList[this.startIndex].id
       const endNodeId = this.poiList[this.endIndex].id
       
-      this.isNavigating = true
-      
-      // 计算最短路径
-      const result = this.dijkstra(startNodeId, endNodeId)
-      
-      if (result.path.length > 0) {
-        this.pathFound = true
-        this.pathDistance = result.distance
-        this.drawPath(result.path)
-      } else {
-        uni.showToast({ title: '未找到路径', icon: 'none' })
-      }
-      
-      this.isNavigating = false
+      // 重置缩放
+      this.mapX = 0
+      this.mapY = 0
+      this.mapScale = 1
+
+      this.$nextTick(() => {
+        this.isNavigating = true
+        const result = this.dijkstra(startNodeId, endNodeId)
+        
+        if (result.path.length > 0) {
+          this.pathFound = true
+          this.pathDistance = result.distance
+          this.drawPath(result.path)
+        } else {
+          uni.showToast({ title: '未找到路径', icon: 'none' })
+        }
+        
+        this.isNavigating = false
+      })
     },
     
-    // 4. Dijkstra 最短路径算法 implementation
+    // 缩放控制：更新 movable-view 的 scale-value，canvas 会随容器一起缩放
+    zoomIn() {
+      const step = 0.2
+      const max = 3
+      const next = Math.min(max, this.mapScale + step)
+      this.mapScale = Number(next.toFixed(2))
+    },
+    zoomOut() {
+      const step = 0.2
+      const min = 1
+      const next = Math.max(min, this.mapScale - step)
+      this.mapScale = Number(next.toFixed(2))
+    },
+    
+    // Dijkstra 最短路径：返回 { path: [nodeId...], distance: number }
     dijkstra(startId, endId) {
-      const distances = {} // 各节点到起点的距离
-      const previous = {} // 前驱节点，用于回溯路径
-      const pq = new PriorityQueue() // 优先队列
+      const distances = {}
+      const previous = {}
+      const pq = new PriorityQueue()
       
-      // 初始化
       for (let node in mapNodes) {
         if (node === startId) {
           distances[node] = 0
@@ -277,16 +287,13 @@ export default {
       
       while (!pq.isEmpty()) {
         const currentId = pq.dequeue().element
-        
-        if (currentId === endId) break // 找到终点，提前退出
-        if (distances[currentId] === Infinity) break // 剩下的不可达
+        if (currentId === endId) break
+        if (distances[currentId] === Infinity) break
         
         const neighbors = mapGraph[currentId] || {}
-        
         for (let neighborId in neighbors) {
           const weight = neighbors[neighborId]
           const alt = distances[currentId] + weight
-          
           if (alt < distances[neighborId]) {
             distances[neighborId] = alt
             previous[neighborId] = currentId
@@ -295,14 +302,9 @@ export default {
         }
       }
       
-      // 回溯路径
       const path = []
       let current = endId
-      
-      // 如果终点不可达
-      if (distances[endId] === Infinity) {
-        return { path: [], distance: 0 }
-      }
+      if (distances[endId] === Infinity) return { path: [], distance: 0 }
       
       while (current !== null) {
         path.unshift(current)
@@ -312,47 +314,38 @@ export default {
       return { path, distance: distances[endId] }
     },
     
-    // 5. 绘制路径
+    // 按当前缩放比把节点坐标映射到屏幕像素，绘制路径+起终点
     drawPath(nodeIdList) {
       if (!this.ctx) return
-      
-      // 清空画布
       this.ctx.clearRect(0, 0, this.screenWidth, this.mapHeight)
-      
       if (nodeIdList.length < 2) return
       
       const ratio = this.scaleRatio
       
-      // 绘制路径线
       this.ctx.beginPath()
-      this.ctx.setStrokeStyle('#FF3333') // 红色路径
+      this.ctx.setStrokeStyle('#FF3333')
       this.ctx.setLineWidth(4)
       this.ctx.setLineCap('round')
       this.ctx.setLineJoin('round')
       
-      // 移动到起点
       const startNode = mapNodes[nodeIdList[0]]
       this.ctx.moveTo(startNode.x * ratio, startNode.y * ratio)
       
-      // 连接后续节点
       for (let i = 1; i < nodeIdList.length; i++) {
         const node = mapNodes[nodeIdList[i]]
         this.ctx.lineTo(node.x * ratio, node.y * ratio)
       }
       this.ctx.stroke()
       
-      // 绘制起点小圆点 (绿色)
       const start = mapNodes[nodeIdList[0]]
       this.drawPoint(start.x * ratio, start.y * ratio, '#09BB07')
       
-      // 绘制终点小圆点 (红色)
       const end = mapNodes[nodeIdList[nodeIdList.length - 1]]
       this.drawPoint(end.x * ratio, end.y * ratio, '#FF3333')
       
       this.ctx.draw()
     },
     
-    // 辅助绘制点
     drawPoint(x, y, color) {
       this.ctx.beginPath()
       this.ctx.arc(x, y, 6, 0, 2 * Math.PI)
@@ -369,12 +362,9 @@ export default {
   }
 }
 
-// 简单的优先队列实现
 class PriorityQueue {
-  constructor() {
-    this.items = []
-  }
-  
+  // 简单双向插入的优先队列（小顶堆逻辑用数组插入保持有序）
+  constructor() { this.items = [] }
   enqueue(element, priority) {
     const queueElement = { element, priority }
     let added = false
@@ -385,18 +375,10 @@ class PriorityQueue {
         break
       }
     }
-    if (!added) {
-      this.items.push(queueElement)
-    }
+    if (!added) this.items.push(queueElement)
   }
-  
-  dequeue() {
-    return this.items.shift()
-  }
-  
-  isEmpty() {
-    return this.items.length === 0
-  }
+  dequeue() { return this.items.shift() }
+  isEmpty() { return this.items.length === 0 }
 }
 </script>
 
@@ -414,63 +396,25 @@ class PriorityQueue {
   border-bottom: 2rpx solid #eeeeee;
 }
 
-.picker-group {
-  margin-bottom: 30rpx;
-}
+.picker-group { margin-bottom: 30rpx; }
+.picker-item { display: flex; align-items: center; margin-bottom: 20rpx; font-size: 28rpx; }
+.label { width: 100rpx; color: #333; font-weight: bold; }
+.picker-view { flex: 1; height: 80rpx; background: #f5f7fb; border-radius: 12rpx; display: flex; align-items: center; justify-content: space-between; padding: 0 24rpx; color: #333; }
+.arrow { color: #999; font-size: 24rpx; }
 
-.picker-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 20rpx;
-  font-size: 28rpx;
-}
+.nav-btn { background: #479fff; color: #ffffff; font-size: 32rpx; border-radius: 44rpx; height: 88rpx; line-height: 88rpx; margin-top: 20rpx; }
 
-.picker-item:last-child {
-  margin-bottom: 0;
-}
-
-.label {
-  width: 100rpx;
-  color: #333;
-  font-weight: bold;
-}
-
-.picker-view {
-  flex: 1;
-  height: 80rpx;
-  background: #f5f7fb;
-  border-radius: 12rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24rpx;
-  color: #333;
-}
-
-.arrow {
-  color: #999;
-  font-size: 24rpx;
-}
-
-.nav-btn {
-  background: #479fff;
-  color: #ffffff;
-  font-size: 32rpx;
-  border-radius: 44rpx;
-  height: 88rpx;
-  line-height: 88rpx;
-  margin-top: 20rpx;
-}
-
-.nav-btn:active {
-  opacity: 0.9;
-}
-
-.map-wrapper {
-  position: relative;
+/* 地图区域样式更新 */
+.map-container {
   width: 100%;
-  margin-top: 20rpx;
-  background: #fff;
+  background-color: #f0f0f0;
+  overflow: hidden;
+}
+
+.map-content {
+  width: 100%;
+  position: relative;
+  transform-origin: center center;
 }
 
 .map-image {
@@ -478,6 +422,7 @@ class PriorityQueue {
   top: 0;
   left: 0;
   z-index: 1;
+  display: block;
 }
 
 .nav-canvas {
@@ -485,14 +430,34 @@ class PriorityQueue {
   top: 0;
   left: 0;
   z-index: 2;
-  pointer-events: none; /* 让事件穿透到下一层，如果需要地图交互的话 */
+  pointer-events: none; /* 让触摸事件穿透到 movable-view */
 }
 
-.nav-tips {
-  padding: 24rpx 30rpx;
-  background: #e6f3ff;
-  color: #479fff;
-  font-size: 26rpx;
-  text-align: center;
+.zoom-controls {
+  position: absolute;
+  right: 24rpx;
+  bottom: 24rpx;
+  z-index: 3;
+  display: flex;
+  flex-direction: row;
+  gap: 16rpx;
 }
+
+.zoom-btn {
+  min-width: 72rpx;
+  height: 56rpx;
+  line-height: 56rpx;
+  padding: 0 18rpx;
+  border-radius: 999rpx;
+  background: #479fff;
+  color: #fff;
+  font-size: 30rpx;
+  border: none;
+}
+
+.zoom-btn:active {
+  background: #227aff;
+}
+
+.nav-tips { padding: 24rpx 30rpx; background: #e6f3ff; color: #479fff; font-size: 26rpx; text-align: center; }
 </style>
