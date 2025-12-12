@@ -919,6 +919,17 @@ export default {
           }
         }
         
+        // 获取就诊记录中的patientId，确保使用与就诊记录匹配的患者ID
+        let recordPatientId = null;
+        if (this.selectedVisitRecord) {
+          recordPatientId = this.selectedVisitRecord.patientId || 
+                           this.selectedVisitRecord.originalRecord?.patientId || 
+                           this.selectedVisitRecord.originalRecord?.patient_id;
+        }
+        
+        // 如果没有从就诊记录中获取到patientId，则使用currentPatientId作为备选
+        const finalPatientId = recordPatientId || this.currentPatientId;
+        
         const payload = {
           patientName: this.formData.patientName,
           gender: this.formData.gender,
@@ -933,7 +944,7 @@ export default {
           targetDeptName: isInternal ? this.formData.targetDepartment : null,
           targetHospitalName: isInternal ? '校医院' : this.formData.targetHospital,
           registrationRecordId: registrationRecordId,
-          patientId: this.currentPatientId,
+          patientId: finalPatientId,
           attachments: this.formData.attachments.map((item, index) => ({
             name: item.name || `附件${index + 1}`,
             url: item.url,
