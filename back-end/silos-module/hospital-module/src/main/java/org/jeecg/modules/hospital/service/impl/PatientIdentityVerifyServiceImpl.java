@@ -28,6 +28,7 @@ public class PatientIdentityVerifyServiceImpl extends ServiceImpl<PatientIdentit
     public boolean applyIdentity(Long userId,
                                  Long patientId,
                                  String identityPhoto,
+                                 String handheldIdentityPhoto,
                                  String realName,
                                  String idCardNo) {
         Patient dbPatient = patientService.getById(patientId);
@@ -48,6 +49,7 @@ public class PatientIdentityVerifyServiceImpl extends ServiceImpl<PatientIdentit
             entity.setPatientId(patientId);
             entity.setUserId(userId);
             entity.setIdentityPhoto(identityPhoto);
+            entity.setHandheldIdentityPhoto(handheldIdentityPhoto);
             entity.setRealName(realName);
             entity.setIdCardNo(idCardNo);
             entity.setStatus(0);
@@ -57,6 +59,7 @@ public class PatientIdentityVerifyServiceImpl extends ServiceImpl<PatientIdentit
             this.save(entity);
         } else {
             exist.setIdentityPhoto(identityPhoto);
+            exist.setHandheldIdentityPhoto(handheldIdentityPhoto);
             exist.setRealName(realName);
             exist.setIdCardNo(idCardNo);
             exist.setStatus(0);

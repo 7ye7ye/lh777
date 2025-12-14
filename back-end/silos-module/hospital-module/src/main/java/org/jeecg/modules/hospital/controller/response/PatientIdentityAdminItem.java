@@ -9,6 +9,7 @@ public class PatientIdentityAdminItem {
     private String staffId;
     private Integer identityVerify;
     private String identityPhoto;
+    private String handheldIdentityPhoto;
 
     public Long getPatientId() {
         return patientId;
@@ -72,5 +73,13 @@ public class PatientIdentityAdminItem {
 
     public void setIdentityPhoto(String identityPhoto) {
         this.identityPhoto = identityPhoto;
+    }
+
+    public String getHandheldIdentityPhoto() {
+        return handheldIdentityPhoto;
+    }
+
+    public void setHandheldIdentityPhoto(String handheldIdentityPhoto) {
+        this.handheldIdentityPhoto = handheldIdentityPhoto;
     }
 }

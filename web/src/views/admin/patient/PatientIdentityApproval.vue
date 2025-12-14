@@ -35,6 +35,17 @@
             />
             <span v-else>-</span>
           </template>
+
+          <!-- 手持证件照片列 -->
+          <template v-if="column.dataIndex === 'handheldIdentityPhoto'">
+            <img
+              v-if="record.handheldIdentityPhoto"
+              :src="record.handheldIdentityPhoto"
+              style="width: 80px; height: 80px; object-fit: cover; cursor: pointer; border-radius: 4px;"
+              @click="previewImage(record.handheldIdentityPhoto)"
+            />
+            <span v-else>-</span>
+          </template>
           
           <!-- 状态列 -->
           <template v-else-if="column.dataIndex === 'identityVerify'">
@@ -97,6 +108,7 @@ interface PatientRecord {
   staffId?: string;
   identityVerify?: number;
   identityPhoto?: string;
+  handheldIdentityPhoto?: string;
 }
 
 const dataSource = ref<PatientRecord[]>([]);
@@ -125,6 +137,7 @@ const columns = [
   { title: '学号', dataIndex: 'studentId', width: 120 },
   { title: '工号', dataIndex: 'staffId', width: 120 },
   { title: '证件照片', dataIndex: 'identityPhoto', width: 120 },
+  { title: '手持证件照片', dataIndex: 'handheldIdentityPhoto', width: 120 },
   { title: '状态', dataIndex: 'identityVerify', width: 100 },
   { title: '操作', key: 'action', width: 160 },
 ];

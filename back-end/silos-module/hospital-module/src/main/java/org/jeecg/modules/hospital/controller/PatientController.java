@@ -157,6 +157,7 @@ public class PatientController {
                 vo.setIdentityVerify(patient.getIdentityVerify());
                 // 将相对路径转换为完整 URL
                 vo.setIdentityPhoto(buildFullImageUrl(item.getIdentityPhoto()));
+                vo.setHandheldIdentityPhoto(buildFullImageUrl(item.getHandheldIdentityPhoto()));
                 resultList.add(vo);
             }
         }
@@ -363,11 +364,17 @@ public class PatientController {
                 result.put("message", "请先上传证件照片");
                 return ResponseEntity.ok(result);
             }
+            if (request.getHandheldIdentityPhoto() == null || request.getHandheldIdentityPhoto().trim().isEmpty()) {
+                result.put("code", 400);
+                result.put("message", "请先上传手持证件照片");
+                return ResponseEntity.ok(result);
+            }
 
             boolean success = patientIdentityVerifyService.applyIdentity(
                     dbPatient.getUserId(),
                     dbPatient.getPatientId(),
                     request.getIdentityPhoto(),
+                    request.getHandheldIdentityPhoto(),
                     dbPatient.getPatientName(),
                     dbPatient.getIdCard()
             );
@@ -430,8 +437,13 @@ public class PatientController {
                 update.setIdentityVerify(1);
                 update.setVerifyTime(LocalDateTime.now());
                 // 审核通过时，将照片路径同步到 patient 表
-                if (record != null && record.getIdentityPhoto() != null) {
-                    update.setIdentityPhoto(record.getIdentityPhoto());
+                if (record != null) {
+                    if (record.getIdentityPhoto() != null) {
+                        update.setIdentityPhoto(record.getIdentityPhoto());
+                    }
+                    if (record.getHandheldIdentityPhoto() != null) {
+                        update.setHandheldIdentityPhoto(record.getHandheldIdentityPhoto());
+                    }
                 }
             } else {
                 update.setIdentityVerify(2);

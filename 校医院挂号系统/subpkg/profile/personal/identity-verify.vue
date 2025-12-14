@@ -62,6 +62,18 @@
             <text v-if="isVerified && !isReapplying" class="photo-tip verified-tip">已通过认证，点击照片可查看大图</text>
             <text v-if="isReapplying" class="photo-tip reapply-tip">重新认证模式，点击上传新的证件照</text>
           </view>
+
+          <view class="photo-section">
+            <text class="label">本人手持证件照片</text>
+            <view class="photo-box" @click="isVerified && !isReapplying ? previewHandheldPhoto() : chooseHandheldImage()">
+              <image v-if="form.handheldIdentityPhoto" :src="form.handheldIdentityPhoto" mode="aspectFill" class="photo" />
+              <view v-else class="photo-placeholder">
+                <text>点击上传手持证件照</text>
+              </view>
+            </view>
+            <text v-if="isVerified && !isReapplying" class="photo-tip verified-tip">已通过认证，点击照片可查看大图</text>
+            <text v-if="isReapplying" class="photo-tip reapply-tip">重新认证模式，点击上传新的手持证件照</text>
+          </view>
         </template>
       </view>
 
@@ -110,7 +122,8 @@ const form = ref({
   patientId: null,
   studentId: '',
   staffId: '',
-  identityPhoto: ''
+  identityPhoto: '',
+  handheldIdentityPhoto: ''
 })
 
 const isReapplying = ref(false)
@@ -177,6 +190,13 @@ const loadCardInfo = async () => {
           : buildImageUrl(res.identityPhoto)
       } else {
         form.value.identityPhoto = ''
+      }
+      if (res.handheldIdentityPhoto) {
+        form.value.handheldIdentityPhoto = res.handheldIdentityPhoto.startsWith('http') 
+          ? res.handheldIdentityPhoto 
+          : buildImageUrl(res.handheldIdentityPhoto)
+      } else {
+        form.value.handheldIdentityPhoto = ''
       }
     }
   } catch (e) {
@@ -250,6 +270,43 @@ const chooseImage = () => {
   })
 }
 
+const chooseHandheldImage = () => {
+  if (isVerified.value && !isReapplying.value) {
+    uniShowToast({ title: '已通过认证，如需修改请点击"重新认证"按钮', icon: 'none' })
+    return
+  }
+
+  uni.chooseImage({
+    count: 1,
+    sizeType: ['compressed'],
+    sourceType: ['album', 'camera'],
+    success: async (res) => {
+      const filePath = res.tempFilePaths[0]
+      try {
+        const payload = await uploadIdentityPhoto(filePath)
+        const relative = payload && (payload.url || (payload.data && payload.data.url))
+        if (relative) {
+          form.value.handheldIdentityPhoto = buildImageUrl(relative)
+        } else {
+          uniShowToast({ title: '上传失败，请重试', icon: 'none' })
+        }
+      } catch (err) {
+        console.error(err)
+        uniShowToast({ title: '上传失败，请稍后重试', icon: 'none' })
+      }
+    }
+  })
+}
+
+const previewHandheldPhoto = () => {
+  if (form.value.handheldIdentityPhoto) {
+    uni.previewImage({
+      urls: [form.value.handheldIdentityPhoto],
+      current: 0
+    })
+  }
+}
+
 const previewPhoto = () => {
   if (form.value.identityPhoto) {
     uni.previewImage({
@@ -292,6 +349,10 @@ const submitApply = async () => {
     uniShowToast({ title: '请先上传证件照片', icon: 'none' })
     return
   }
+  if (!form.value.handheldIdentityPhoto) {
+    uniShowToast({ title: '请先上传手持证件照片', icon: 'none' })
+    return
+  }
 
   loading.value = true
   try {
@@ -301,6 +362,7 @@ const submitApply = async () => {
       studentId: form.value.studentId,
       staffId: form.value.staffId,
       identityPhoto: form.value.identityPhoto,
+      handheldIdentityPhoto: form.value.handheldIdentityPhoto,
     })
     const msg = isReapplying.value 
       ? '重新认证申请已提交，待管理员审核' 

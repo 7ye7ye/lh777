@@ -10,6 +10,7 @@ public interface PatientIdentityVerifyService extends IService<PatientIdentityVe
     boolean applyIdentity(Long userId,
                           Long patientId,
                           String identityPhoto,
+                          String handheldIdentityPhoto,
                           String realName,
                           String idCardNo);
 
