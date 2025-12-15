@@ -10,7 +10,12 @@
       <view class="doctor-info">
         <view class="name-title">
           <text class="name">{{ doctor.doctorName }}</text>
-          <text class="title">{{ doctor.title }}</text>
+          <view class="title-row">
+            <text class="title">{{ doctor.title }}</text>
+            <text v-if="doctorTypeNames" class="type-name">
+              {{ doctorTypeNames }}
+            </text>
+          </view>
         </view>
         <view class="specialty">擅长：{{ doctor.specialty }}</view>
         <view class="status" v-if="doctor.isActive === 1">
@@ -58,10 +63,12 @@ import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { doctorApi } from '../../api/doctor_massage'
 import { getDepartmentDetail } from '../../api/department'
+import { getDoctorSchedules } from '../../api/registration'
 
 const doctorId = ref('')
 const doctor = ref({})
 const departmentInfo = ref(null)
+const doctorTypeNames = ref('')
 
 // 加载医生详情
 const loadDoctorDetail = async () => {
@@ -82,6 +89,10 @@ const loadDoctorDetail = async () => {
       // 加载所属科室信息
       if (data.deptId) {
         loadDepartmentInfo(data.deptId)
+      }
+      // 加载号别类型信息
+      if (data.doctorId) {
+        loadDoctorTypeNames(data.doctorId)
       }
     } else {
       console.warn('医生详情数据格式异常:', res)
@@ -180,6 +191,32 @@ const handleConsult = () => {
   })
 }
 
+// 加载医生的号别类型
+const loadDoctorTypeNames = async (doctorId) => {
+  try {
+    // 获取未来7天的排班信息
+    const today = new Date().toISOString().split('T')[0]
+    const res = await getDoctorSchedules(doctorId, today, 7)
+    
+    let schedules = []
+    if (Array.isArray(res?.result)) schedules = res.result
+    else if (Array.isArray(res?.data)) schedules = res.data
+    else if (Array.isArray(res)) schedules = res
+    
+    // 提取所有不同的号别类型
+    const typeNames = schedules
+      .map(schedule => schedule.doctor_title_type_name || schedule.doctorTitleTypeName)
+      .filter(typeName => typeName && typeName.trim() !== '')
+      .filter((value, index, self) => self.indexOf(value) === index) // 去重
+    
+    doctorTypeNames.value = typeNames.length > 0 ? typeNames.join(' / ') : ''
+  } catch (error) {
+    console.error('加载医生号别类型失败:', error)
+    // 失败时不显示号别类型，不影响其他功能
+    doctorTypeNames.value = ''
+  }
+}
+
 onLoad((query) => {
   // 优先使用id参数（从department-booking页面传递），其次使用doctorId
   doctorId.value = query?.id || query?.doctorId || ''
@@ -233,6 +270,8 @@ onLoad((query) => {
   display: flex;
   align-items: center;
   margin-bottom: 12rpx;
+  flex-wrap: wrap;
+  gap: 8rpx;
 }
 
 .name {
@@ -242,12 +281,28 @@ onLoad((query) => {
   margin-right: 16rpx;
 }
 
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  flex-wrap: wrap;
+}
+
 .title {
   font-size: 24rpx;
   color: #fff;
   background: rgba(255,255,255,0.3);
   padding: 4rpx 12rpx;
   border-radius: 4rpx;
+}
+
+.type-name {
+  font-size: 22rpx;
+  color: #fff;
+  background: rgba(255, 107, 107, 0.4);
+  padding: 4rpx 10rpx;
+  border-radius: 4rpx;
+  font-weight: 500;
 }
 
 .specialty {

@@ -124,7 +124,12 @@
                   <view class="doctor-avatar">{{ getDoctorInitial(doctor.name || doctor.doctorName || '未知医生') }}</view>
                   <view class="doctor-details">
                     <view class="doctor-name">{{ doctor.name || doctor.doctorName || '未知医生' }}</view>
-                    <view class="doctor-title">{{ doctor.title || '医师' }}</view>
+                    <view class="doctor-title-row">
+                      <text class="doctor-title">{{ doctor.title || '医师' }}</text>
+                      <text v-if="getDoctorTypeName(doctor)" class="doctor-type-name">
+                        {{ getDoctorTypeName(doctor) }}
+                      </text>
+                    </view>
                     <view class="doctor-specialty">擅长: {{ doctor.specialty || '内科' }}</view>
                   </view>
                 </view>
@@ -232,7 +237,7 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { getDepartmentTree } from '@/api/department'
 import { getDoctorsByDeptId, getDoctorDetail } from '@/api/doctor'
 import { scheduleApi } from '@/api/schedule'
-import { getDoctorSchedules } from '@/api/registration'
+import { getDoctorSchedules, getRegistrationTypes } from '@/api/registration'
 
 // 生成医生头像初始化字母
 const getDoctorInitial = (name) => {
@@ -253,6 +258,24 @@ const doctors = ref([])
 const doctorSchedules = ref({})
 const selectedDate = ref('')
 const dateList = ref([])
+const registrationTypeNameMap = ref({})
+
+const loadRegistrationTypeNameMap = async () => {
+  if (registrationTypeNameMap.value && Object.keys(registrationTypeNameMap.value).length > 0) return
+  try {
+    const res = await getRegistrationTypes()
+    const types = Array.isArray(res?.result) ? res.result : Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+    const map = {}
+    types.forEach((t) => {
+      const id = t?.typeId ?? t?.type_id ?? t?.id
+      const name = t?.typeName ?? t?.type_name ?? t?.name
+      if (id != null && name) map[String(id)] = name
+    })
+    registrationTypeNameMap.value = map
+  } catch (e) {
+    registrationTypeNameMap.value = {}
+  }
+}
 
 // 初始化日期列表（未来7天）
 const initDateList = () => {
@@ -456,6 +479,28 @@ const viewDoctorDetail = async (doctor) => {
     return schedules.find(slot => slot.timeRange === timeRange);
   };
 
+  // 获取医生的号别类型名称（从排班数据中提取）
+  const getDoctorTypeName = (doctorOrId) => {
+    const doctor = typeof doctorOrId === 'object' ? doctorOrId : (doctors.value || []).find(d => d.id === doctorOrId || d.doctorId === doctorOrId)
+    const doctorId = typeof doctorOrId === 'object' ? (doctorOrId.id || doctorOrId.doctorId) : doctorOrId
+    const schedules = doctorSchedules.value[doctorId] || [];
+    if (schedules.length === 0) {
+      const titleId = doctor?.titleId ?? doctor?.title_id ?? doctor?.doctorTitleTypeId ?? doctor?.doctor_title_type_id
+      return titleId != null ? (registrationTypeNameMap.value[String(titleId)] || '') : '';
+    }
+    
+    // 从排班数据中提取所有不同的号别类型（严格使用职称映射字段）
+    const typeNames = schedules
+      .map(schedule => schedule.doctorTitleTypeName || schedule.doctor_title_type_name)
+      .filter(typeName => typeName && typeName.trim() !== '')
+      .filter((value, index, self) => self.indexOf(value) === index); // 去重
+    
+    // 如果有多个号别类型，用斜杠分隔显示；如果只有一个，直接显示
+    if (typeNames.length > 0) return typeNames.join(' / ');
+    const titleId = doctor?.titleId ?? doctor?.title_id ?? doctor?.doctorTitleTypeId ?? doctor?.doctor_title_type_id
+    return titleId != null ? (registrationTypeNameMap.value[String(titleId)] || '') : '';
+  };
+
   // 跳转到支付页面
   const navigateToPayment = (doctor, schedule, timeText) => {
     if (!doctor || !schedule || !schedule.availableSlots) {
@@ -559,7 +604,8 @@ const viewDoctorDetail = async (doctor) => {
             date: scheduleDate || date,
             timeRange: timeRangeText,
             typeId: resolvedTypeId != null ? Number(resolvedTypeId) : null,
-            typeName: schedule.type_name || schedule.typeName || schedule.type?.name || '普通门诊',
+            typeName: schedule.type_name || schedule.typeName || schedule.type?.name || null,
+            doctorTitleTypeName: schedule.doctor_title_type_name || schedule.doctorTitleTypeName || null,
             fee: Number(schedule.price || schedule.fee || 50),
             availableSlots,
             roomNo: schedule.room_number || schedule.roomNumber || '诊室1',
@@ -692,6 +738,7 @@ const clearSelection = (departments) => {
 onMounted(() => {
   initDateList()
   initDepartmentTree()
+  loadRegistrationTypeNameMap()
 })
 
 // 递归查找科室
@@ -790,6 +837,7 @@ const callConsult = () => {
 onMounted(() => {
   initDateList()
   initDepartmentTree()
+  loadRegistrationTypeNameMap()
 })
 </script>
 
@@ -1223,10 +1271,26 @@ onMounted(() => {
   margin-bottom: 6rpx;
 }
 
+.doctor-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 6rpx;
+  flex-wrap: wrap;
+}
+
 .doctor-title {
   font-size: 26rpx;
   color: #4a90e2;
-  margin-bottom: 6rpx;
+  font-weight: 500;
+}
+
+.doctor-type-name {
+  font-size: 24rpx;
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+  padding: 2rpx 10rpx;
+  border-radius: 4rpx;
   font-weight: 500;
 }
 

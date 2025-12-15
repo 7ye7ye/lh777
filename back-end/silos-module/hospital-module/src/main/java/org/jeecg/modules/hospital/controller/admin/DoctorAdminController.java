@@ -63,7 +63,12 @@ public class DoctorAdminController {
         LambdaQueryWrapper<Doctor> queryWrapper = new LambdaQueryWrapper<>();
         
         if (StringUtils.hasText(keyword)) {
-            queryWrapper.like(Doctor::getDoctorName, keyword).or().like(Doctor::getSpecialty, keyword);
+            // 使用and包装or条件，确保or只影响姓名和专长的查询，不影响其他条件
+            queryWrapper.and(wrapper -> wrapper
+                .like(Doctor::getDoctorName, keyword)
+                .or()
+                .like(Doctor::getSpecialty, keyword)
+            );
         }
         
         if (deptId != null) {

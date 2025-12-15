@@ -47,17 +47,36 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { createRegistration } from '../../api/registration' // 挂号接口
+import { getRegistrationTypes } from '../../api/registration'
 import { ensurePatientCard } from '@/utils/patientHelper'
 
 // ------------------ 挂号信息 ------------------
 const dept = ref('')
 const doctor = ref('')
 const time = ref('')
-const fee = ref(20)
+const fee = ref(0)
 const doctorId = ref(null)
 const typeId = ref(null)
 const scheduleId = ref(null)
+const deptId = ref(null)
 const currentPatient = ref(null)
+
+const loadFeeByTypeId = async () => {
+  const resolvedTypeId = Number(typeId.value || 0)
+  if (!resolvedTypeId) {
+    fee.value = 0
+    return
+  }
+  try {
+    const res = await getRegistrationTypes()
+    const types = Array.isArray(res?.result) ? res.result : Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+    const found = types.find(t => Number(t?.typeId ?? t?.type_id ?? t?.id) === resolvedTypeId)
+    const price = found?.priceOriginal ?? found?.price_original
+    fee.value = price != null ? Number(price) : 0
+  } catch (e) {
+    fee.value = 0
+  }
+}
 
 // ------------------ 支付方式 ------------------
 const paymentMethods = ref([
@@ -115,6 +134,7 @@ onMounted(() => {
   deptId.value = Number(options.deptId || 0)
   
   console.log('支付页接收参数:', { dept: options.dept, doctor: options.doctor, time: options.time, doctorId: options.doctorId, typeId: options.typeId, scheduleId: options.scheduleId, deptId: options.deptId })
+  loadFeeByTypeId()
   loadPatientInfo()
 })
 
@@ -162,8 +182,6 @@ const onPay = async () => {
       registrationNo: generateRegistrationNo(), // 前端生成或后端生成都可以
       registerTime: formatLocalDateTime(new Date()), // YYYY-MM-DD HH:mm:ss
       status: 1, // 已预约
-      priceOriginal: fee.value,
-      actualPrice: fee.value,
       isAdd: 0 // 正常号
     }
 
