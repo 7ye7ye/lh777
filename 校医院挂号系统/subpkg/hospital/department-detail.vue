@@ -45,7 +45,12 @@
         <view class="doctor-info">
           <view class="name-title">
             <text class="name">{{ doctor.doctorName }}</text>
-            <text class="title">{{ doctor.title }}</text>
+            <view class="title-row">
+              <text class="title">{{ doctor.title }}</text>
+              <text v-if="doctorTypeNames[doctor.doctorId]" class="type-name">
+                {{ doctorTypeNames[doctor.doctorId] }}
+              </text>
+            </view>
           </view>
           <view class="specialty">擅长：{{ doctor.specialty }}</view>
         </view>
@@ -64,10 +69,30 @@ import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getDepartmentDetail } from '../../api/department'
 import { getDoctorsByDeptId } from '../../api/doctor_massage'
+import { getRegistrationTypes } from '../../api/registration'
 
 const deptId = ref('')
 const department = ref({ deptName: '加载中...', deptDesc: '', location: '' })
 const doctorList = ref([])
+const doctorTypeNames = ref({}) // 存储每个医生的号别类型
+const registrationTypeNameMap = ref({})
+
+const loadRegistrationTypeNameMap = async () => {
+  if (registrationTypeNameMap.value && Object.keys(registrationTypeNameMap.value).length > 0) return
+  try {
+    const res = await getRegistrationTypes()
+    const types = Array.isArray(res?.result) ? res.result : Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+    const map = {}
+    types.forEach((t) => {
+      const id = t?.typeId ?? t?.type_id ?? t?.id
+      const name = t?.typeName ?? t?.type_name ?? t?.name
+      if (id != null && name) map[String(id)] = name
+    })
+    registrationTypeNameMap.value = map
+  } catch (e) {
+    registrationTypeNameMap.value = {}
+  }
+}
 
 // 加载科室详情
 const loadDepartmentDetail = async () => {
@@ -218,6 +243,8 @@ const loadDoctorsByDeptId = async () => {
     
     // 确保即使是空数组也能正常显示
     doctorList.value = data
+    // 异步加载每个医生的号别类型
+    loadDoctorTypeNamesForList(data)
   } catch (error) {
     console.error('加载科室医生列表失败:', error)
     doctorList.value = []
@@ -230,6 +257,23 @@ const navigateToDoctorDetail = (doctor) => {
   uni.navigateTo({
     url: `/subpkg/hospital/doctor-detail?doctorId=${doctor.doctorId}`
   })
+}
+
+// 加载医生列表的号别类型
+const loadDoctorTypeNamesForList = async (doctors) => {
+  if (!Array.isArray(doctors)) return
+
+  await loadRegistrationTypeNameMap()
+  const map = registrationTypeNameMap.value || {}
+  const result = {}
+  doctors.forEach((doctor) => {
+    const doctorId = doctor?.doctorId ?? doctor?.id
+    if (!doctorId) return
+    const titleId = doctor?.titleId ?? doctor?.title_id ?? doctor?.doctorTitleTypeId ?? doctor?.doctor_title_type_id
+    const typeName = titleId != null ? (map[String(titleId)] || '') : ''
+    if (typeName) result[String(doctorId)] = typeName
+  })
+  doctorTypeNames.value = result
 }
 
 // 跳转到体检套餐页面
@@ -399,6 +443,8 @@ onLoad((query) => {
   display: flex;
   align-items: center;
   margin-bottom: 8rpx;
+  flex-wrap: wrap;
+  gap: 8rpx;
 }
 
 .name {
@@ -408,12 +454,28 @@ onLoad((query) => {
   color: #222;
 }
 
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  flex-wrap: wrap;
+}
+
 .title {
   font-size: 24rpx;
   color: #666;
   background-color: #f0f0f0;
   padding: 4rpx 12rpx;
   border-radius: 4rpx;
+}
+
+.type-name {
+  font-size: 22rpx;
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+  padding: 4rpx 10rpx;
+  border-radius: 4rpx;
+  font-weight: 500;
 }
 
 .specialty {

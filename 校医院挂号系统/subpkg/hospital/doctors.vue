@@ -27,7 +27,12 @@
         <view class="doctor-info">
           <view class="name-title">
             <text class="name">{{ doctor.doctorName }}</text>
-            <text class="title">{{ doctor.title }}</text>
+            <view class="title-row">
+              <text class="title">{{ doctor.title }}</text>
+              <text v-if="doctorTypeNames[doctor.doctorId]" class="type-name">
+                {{ doctorTypeNames[doctor.doctorId] }}
+              </text>
+            </view>
           </view>
           <view class="specialty">擅长：{{ doctor.specialty }}</view>
           <view class="desc" v-if="doctor.doctorDesc">{{ doctor.doctorDesc }}</view>
@@ -48,10 +53,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getAllDoctors, searchDoctors } from '../../api/doctor_massage'
+import { getDoctorSchedules } from '../../api/registration'
 
 const keyword = ref('')
 const doctorList = ref([])
 const originalList = ref([]) // 用于搜索备份
+const doctorTypeNames = ref({}) // 存储每个医生的号别类型
 
 // 加载医生列表
 const loadDoctors = async () => {
@@ -70,9 +77,13 @@ const loadDoctors = async () => {
     if (data && Array.isArray(data)) {
       doctorList.value = data
       originalList.value = [...data]
+      // 异步加载每个医生的号别类型
+      loadDoctorTypeNamesForList(data)
     } else if (Array.isArray(res)) {
       doctorList.value = res
       originalList.value = [...res]
+      // 异步加载每个医生的号别类型
+      loadDoctorTypeNamesForList(res)
     } else {
       console.warn('医生列表数据格式异常:', res)
       uni.showToast({
@@ -111,8 +122,12 @@ const handleSearch = async () => {
     
     if (data && Array.isArray(data)) {
       doctorList.value = data
+      // 异步加载每个医生的号别类型
+      loadDoctorTypeNamesForList(data)
     } else if (Array.isArray(res)) {
       doctorList.value = res
+      // 异步加载每个医生的号别类型
+      loadDoctorTypeNamesForList(res)
     } else {
       console.warn('搜索结果格式异常:', res)
       uni.showToast({
@@ -127,6 +142,39 @@ const handleSearch = async () => {
       icon: 'none'
     })
   }
+}
+
+// 加载医生列表的号别类型
+const loadDoctorTypeNamesForList = async (doctors) => {
+  if (!Array.isArray(doctors)) return
+  
+  const today = new Date().toISOString().split('T')[0]
+  
+  // 并行加载所有医生的号别类型
+  const promises = doctors.map(async (doctor) => {
+    if (!doctor.doctorId) return
+    
+    try {
+      const res = await getDoctorSchedules(doctor.doctorId, today, 7)
+      let schedules = []
+      if (Array.isArray(res?.result)) schedules = res.result
+      else if (Array.isArray(res?.data)) schedules = res.data
+      else if (Array.isArray(res)) schedules = res
+      
+      const typeNames = schedules
+        .map(schedule => schedule.type_name || schedule.typeName)
+        .filter(typeName => typeName && typeName.trim() !== '')
+        .filter((value, index, self) => self.indexOf(value) === index)
+      
+      if (typeNames.length > 0) {
+        doctorTypeNames.value[doctor.doctorId] = typeNames.join(' / ')
+      }
+    } catch (error) {
+      console.error(`加载医生${doctor.doctorId}的号别类型失败:`, error)
+    }
+  })
+  
+  await Promise.all(promises)
 }
 
 // 跳转到医生详情
@@ -200,6 +248,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   margin-bottom: 8rpx;
+  flex-wrap: wrap;
+  gap: 8rpx;
 }
 
 .name {
@@ -209,13 +259,28 @@ onMounted(() => {
   color: #222;
 }
 
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  flex-wrap: wrap;
+}
+
 .title {
   font-size: 24rpx;
-  color: #666;
-  background-color: #e6f2ff;
   color: #3a9cff;
+  background-color: #e6f2ff;
   padding: 4rpx 12rpx;
   border-radius: 4rpx;
+}
+
+.type-name {
+  font-size: 22rpx;
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+  padding: 4rpx 10rpx;
+  border-radius: 4rpx;
+  font-weight: 500;
 }
 
 .specialty {
