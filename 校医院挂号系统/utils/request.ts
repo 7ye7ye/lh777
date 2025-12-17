@@ -39,6 +39,8 @@ const requestInterceptor = (options) => {
     }
     options.url = baseURL + path;
   }
+  console.log('最终请求 URL:', options.url);
+
   // 2. params 合并到 URL（GET/DELETE）
   const method = (options.method || 'GET').toUpperCase();
   if (options.params && (method === 'GET' || method === 'DELETE')) {

@@ -133,9 +133,11 @@
                 :disabled="submitting">
           {{ submitting ? '处理中...' : '自动挂号' }}
         </button>
+
         <button class="secondary-btn" @click="createNewReferral">创建新申请</button>
       </view>
     </scroll-view>
+    <canvas canvas-id="certificateCanvas" class="hidden-canvas"></canvas>
   </view>
 </template>
 
@@ -336,6 +338,199 @@ const autoRegister = async () => {
       }
     }
   })
+}
+
+const drawFallbackStamp = (ctx, x, y, r) => {
+  ctx.save()
+  ctx.beginPath()
+  ctx.arc(x, y, r, 0, Math.PI * 2)
+  ctx.strokeStyle = '#1f5caa'
+  ctx.lineWidth = 8
+  ctx.stroke()
+  ctx.fillStyle = '#1f5caa'
+  ctx.font = 'bold 36px sans-serif'
+  ctx.textAlign = 'center'
+  ctx.fillText('北京交通大学', x, y - 10)
+  ctx.font = 'bold 28px sans-serif'
+  ctx.fillText('校医院', x, y + 30)
+  ctx.restore()
+}
+
+const drawFallbackStampMP = (ctx, x, y, r) => {
+  ctx.setLineWidth(8)
+  ctx.setStrokeStyle('#1f5caa')
+  ctx.beginPath()
+  ctx.arc(x, y, r, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.setFillStyle('#1f5caa')
+  ctx.setFontSize(36)
+  ctx.fillText('北京交通大学', x - 110, y - 10)
+  ctx.setFontSize(28)
+  ctx.fillText('校医院', x - 40, y + 30)
+}
+
+const downloadExternalReferralCertificate = async () => {
+  try {
+    submitting.value = true
+    const platform = typeof process !== 'undefined' && process.env && process.env.UNI_PLATFORM ? process.env.UNI_PLATFORM : 'h5'
+    if (platform === 'h5' && typeof window !== 'undefined' && typeof document !== 'undefined') {
+      const w = 1000
+      const h = 1400
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d')
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, w, h)
+      ctx.fillStyle = '#0b4ea2'
+      ctx.font = 'bold 56px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('院外转诊证明', w / 2, 120)
+      ctx.strokeStyle = '#0b4ea2'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.moveTo(120, 160)
+      ctx.lineTo(w - 120, 160)
+      ctx.stroke()
+      ctx.textAlign = 'left'
+      ctx.fillStyle = '#333333'
+      ctx.font = '36px sans-serif'
+      const left = 140
+      let y = 240
+      const line = (label, value) => { ctx.fillText(`${label}：${value || '-'}`, left, y); y += 64 }
+      line('申请编号', referralDetail.value.id)
+      line('患者姓名', referralDetail.value.patientName)
+      line('性别/年龄', `${referralDetail.value.gender || '-'} / ${referralDetail.value.age || '-'}`)
+      line('联系电话', referralDetail.value.phone || '-')
+      line('目标医院', referralDetail.value.targetHospital || '-')
+      line('目标科室', referralDetail.value.targetDepartment || '-')
+      ctx.font = '34px sans-serif'
+      line('症状描述', referralDetail.value.symptoms || '-')
+      line('既往病史', referralDetail.value.medicalHistory || '-')
+      line('转诊原因', referralDetail.value.reason || '-')
+      ctx.font = '36px sans-serif'
+      line('申请时间', referralDetail.value.applyTime || '-')
+      line('审核时间', referralDetail.value.reviewTime || '-')
+      line('审核医生', referralDetail.value.reviewDoctor || '系统管理员')
+      ctx.fillStyle = '#666666'
+      ctx.font = '28px sans-serif'
+      ctx.fillText('本证明用于患者院外就诊使用。', left, y + 20)
+      const stampX = w - 260
+      const stampY = h - 300
+      const stampR = 120
+      await new Promise((resolve) => {
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        img.onload = () => { ctx.save(); ctx.globalAlpha = 0.96; ctx.drawImage(img, stampX - stampR, stampY - stampR, stampR * 2, stampR * 2); ctx.restore(); resolve(null) }
+        img.onerror = () => { drawFallbackStamp(ctx, stampX, stampY, stampR); resolve(null) }
+        img.src = '/static/bjtu_logo.png'
+      })
+      const dataUrl = canvas.toDataURL('image/png')
+      try {
+        const blob = await (await fetch(dataUrl)).blob()
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `转诊证明_${referralDetail.value.id}.png`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        uni.showToast({ title: '已生成并下载', icon: 'success' })
+      } catch (err) {
+        uni.previewImage({ urls: [dataUrl] })
+        uni.showToast({ title: '下载失败，已打开预览', icon: 'none' })
+      }
+    } else {
+      const w = 1000
+      const h = 1400
+      const ctx = uni.createCanvasContext('certificateCanvas')
+      ctx.setFillStyle('#ffffff')
+      ctx.fillRect(0, 0, w, h)
+      ctx.setFillStyle('#0b4ea2')
+      ctx.setFontSize(56)
+      ctx.fillText('院外转诊证明', w / 2 - 180, 120)
+      ctx.setStrokeStyle('#0b4ea2')
+      ctx.setLineWidth(2)
+      ctx.beginPath()
+      ctx.moveTo(120, 160)
+      ctx.lineTo(w - 120, 160)
+      ctx.stroke()
+      ctx.setFillStyle('#333333')
+      ctx.setFontSize(36)
+      const left = 140
+      let y = 240
+      const line = (label, value) => { ctx.fillText(`${label}：${value || '-'}`, left, y); y += 64 }
+      line('申请编号', referralDetail.value.id)
+      line('患者姓名', referralDetail.value.patientName)
+      line('性别/年龄', `${referralDetail.value.gender || '-'} / ${referralDetail.value.age || '-'}`)
+      line('联系电话', referralDetail.value.phone || '-')
+      line('目标医院', referralDetail.value.targetHospital || '-')
+      line('目标科室', referralDetail.value.targetDepartment || '-')
+      ctx.setFontSize(34)
+      line('症状描述', referralDetail.value.symptoms || '-')
+      line('既往病史', referralDetail.value.medicalHistory || '-')
+      line('转诊原因', referralDetail.value.reason || '-')
+      ctx.setFontSize(36)
+      line('申请时间', referralDetail.value.applyTime || '-')
+      line('审核时间', referralDetail.value.reviewTime || '-')
+      line('审核医生', referralDetail.value.reviewDoctor || '系统管理员')
+      ctx.setFillStyle('#666666')
+      ctx.setFontSize(28)
+      ctx.fillText('本证明用于患者院外就诊使用。', left, y + 20)
+      const stampX = w - 260
+      const stampY = h - 300
+      const stampR = 120
+      uni.getImageInfo({
+        src: '/static/bjtu_logo.png',
+        success: (info) => {
+          ctx.drawImage(info.path, stampX - stampR, stampY - stampR, stampR * 2, stampR * 2)
+          ctx.draw(false, () => {
+            uni.canvasToTempFilePath({
+              canvasId: 'certificateCanvas',
+              destWidth: w,
+              destHeight: h,
+              width: w,
+              height: h,
+              success: (res) => {
+                const filePath = res.tempFilePath
+                uni.previewImage({ urls: [filePath] })
+                uni.showToast({ title: '图片预览中，长按保存', icon: 'none' })
+              },
+              fail: () => {
+                uni.showToast({ title: '下载失败', icon: 'none' })
+              }
+            })
+          })
+        },
+        fail: () => {
+          drawFallbackStampMP(ctx, stampX, stampY, stampR)
+          ctx.draw(false, () => {
+            uni.canvasToTempFilePath({
+              canvasId: 'certificateCanvas',
+              destWidth: w,
+              destHeight: h,
+              width: w,
+              height: h,
+              success: (res) => {
+                const filePath = res.tempFilePath
+                uni.previewImage({ urls: [filePath] })
+                uni.showToast({ title: '图片预览中，长按保存', icon: 'none' })
+              },
+              fail: () => {
+                uni.showToast({ title: '下载失败', icon: 'none' })
+              }
+            })
+          })
+        }
+      })
+    }
+  } catch (e) {
+    console.error('生成失败', e)
+    uni.showToast({ title: '下载失败', icon: 'none' })
+  } finally {
+    submitting.value = false
+  }
 }
 
 // 加载转诊详情
@@ -633,15 +828,15 @@ onLoad((options) => {
     font-size: 16px;
   }
   
-  .register-btn {
-    flex: 1;
-    height: 44px;
-    background: linear-gradient(90deg, #4caf50, #66bb6a);
-    color: #fff;
-    border: none;
-    border-radius: 22px;
-    font-size: 16px;
-  }
+.register-btn {
+  flex: 1;
+  height: 44px;
+  background: linear-gradient(90deg, #4caf50, #66bb6a);
+  color: #fff;
+  border: none;
+  border-radius: 22px;
+  font-size: 16px;
+}
 
 .cancel-btn {
   flex: 1;
@@ -664,5 +859,12 @@ onLoad((options) => {
 
 .secondary-btn:active {
   background-color: #f0f0f0;
+}
+.hidden-canvas {
+  position: absolute;
+  left: -9999rpx;
+  top: -9999rpx;
+  width: 1000px;
+  height: 1400px;
 }
 </style>

@@ -173,14 +173,15 @@ const handleSave = async () => {
   min-height: 100vh;
   padding: 24rpx;
   box-sizing: border-box;
-  background: #f5f7fb;
+  background: linear-gradient(180deg, #e8f3ff 0%, #f7faff 45%, #ffffff 100%);
 }
 
 .edit-card {
   background: #fff;
-  border-radius: 16rpx;
+  border-radius: 18rpx;
   padding: 24rpx;
-  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.06);
+  box-shadow: 0 10rpx 24rpx rgba(58, 156, 255, 0.12);
+  border: 1rpx solid #eef3fb;
 }
 
 .edit-header {
@@ -189,8 +190,8 @@ const handleSave = async () => {
 
 .edit-title {
   font-size: 32rpx;
-  font-weight: 700;
-  color: #111827;
+  font-weight: 800;
+  color: #0f172a;
 }
 
 .edit-subtitle {
@@ -200,34 +201,37 @@ const handleSave = async () => {
 }
 
 .form-group {
-  margin-top: 16rpx;
+  margin-top: 18rpx;
 }
 
 .label {
   font-size: 26rpx;
   color: #4b5563;
+  font-weight: 600;
 }
 
 .input {
-  margin-top: 8rpx;
+  margin-top: 10rpx;
   width: 100%;
   height: 72rpx;
   padding: 0 16rpx;
   box-sizing: border-box;
-  border-radius: 12rpx;
-  background: #f9fafb;
+  border-radius: 14rpx;
+  background: #f6f9ff;
   font-size: 26rpx;
+  border: 1rpx solid #e6edfb;
 }
 
 .textarea {
-  margin-top: 8rpx;
+  margin-top: 10rpx;
   width: 100%;
   min-height: 120rpx;
   padding: 12rpx 16rpx;
   box-sizing: border-box;
-  border-radius: 12rpx;
-  background: #f9fafb;
+  border-radius: 14rpx;
+  background: #f6f9ff;
   font-size: 26rpx;
+  border: 1rpx solid #e6edfb;
 }
 
 .btn-bar {
@@ -243,6 +247,7 @@ const handleSave = async () => {
   border-radius: 999rpx;
   padding: 22rpx 0;
   font-size: 28rpx;
+  box-shadow: 0 8rpx 18rpx rgba(0,0,0,0.06);
 }
 
 .btn.cancel {
@@ -251,7 +256,8 @@ const handleSave = async () => {
 }
 
 .btn.save {
-  background: #2563eb;
+  background: linear-gradient(135deg, #3a9cff 0%, #6ec6ff 100%);
   color: #fff;
+  box-shadow: 0 10rpx 24rpx rgba(58,156,255,0.2);
 }
 </style>

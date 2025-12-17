@@ -1,88 +1,116 @@
 <template>
   <view class="page-bg">
-    <view class="form-container">
+    <view class="hero-card">
+      <view class="hero-left">
+        <view class="hero-name">{{ formData.name || '未填写姓名' }}</view>
+        <view class="hero-meta">
+          <text class="hero-tag">{{ formData.gender || '性别未填' }}</text>
+          <text class="hero-dot">•</text>
+          <text class="hero-tag">{{ formData.birthDate || '生日未填' }}</text>
+        </view>
+        <view class="hero-id">证件号：{{ formData.idNumber || '未填写' }}</view>
+      </view>
+      <view class="hero-right">
+        <view class="hero-pill">
+          <text class="pill-label">联系电话</text>
+          <text class="pill-value">{{ formData.phone || '未填写' }}</text>
+        </view>
+        <button class="pill-btn" size="mini" @click="goToHealthProfile">
+          健康档案
+        </button>
+      </view>
+    </view>
+
+    <view class="card form-container">
+      <view class="card-title">基本信息</view>
       <view class="form-item">
-        <text class="form-label">姓名：</text>
+        <text class="form-label">姓名</text>
         <input class="form-input" v-model="formData.name" placeholder="请输入姓名" />
       </view>
       
       <view class="form-item">
-        <text class="form-label">证件类型：</text>
+        <text class="form-label">证件类型</text>
         <picker @change="onIdTypeChange" :value="idTypeIndex" :range="idTypeOptions">
           <view class="form-picker">
             {{ formData.idType || '请选择证件类型' }}
-            <text class="picker-arrow">></text>
+            <text class="picker-arrow">›</text>
           </view>
         </picker>
       </view>
       
       <view class="form-item">
-        <text class="form-label">证件号码：</text>
+        <text class="form-label">证件号码</text>
         <input class="form-input" v-model="formData.idNumber" placeholder="请输入证件号码" />
       </view>
       
       <view class="form-item">
-        <text class="form-label">性别：</text>
+        <text class="form-label">性别</text>
         <picker @change="onGenderChange" :value="genderIndex" :range="genderOptions">
           <view class="form-picker">
             {{ formData.gender || '请选择性别' }}
-            <text class="picker-arrow">></text>
+            <text class="picker-arrow">›</text>
           </view>
         </picker>
       </view>
       
       <view class="form-item">
-        <text class="form-label">出生日期：</text>
+        <text class="form-label">出生日期</text>
         <picker mode="date" @change="onBirthDateChange" :value="formData.birthDate">
           <view class="form-picker">
             {{ formData.birthDate || '请选择出生日期' }}
-            <text class="picker-arrow">></text>
+            <text class="picker-arrow">›</text>
           </view>
         </picker>
       </view>
-      
+    </view>
+
+    <view class="card form-container">
+      <view class="card-title">身份信息</view>
       <view class="form-item">
-        <text class="form-label">民族：</text>
+        <text class="form-label">民族</text>
         <picker @change="onNationChange" :value="nationIndex" :range="nationOptions">
           <view class="form-picker">
             {{ formData.nation || '请选择民族' }}
-            <text class="picker-arrow">></text>
+            <text class="picker-arrow">›</text>
           </view>
         </picker>
       </view>
       
       <view class="form-item">
-        <text class="form-label">国籍：</text>
+        <text class="form-label">国籍</text>
         <picker @change="onNationalityChange" :value="nationalityIndex" :range="nationalityOptions">
           <view class="form-picker">
             {{ formData.nationality || '请选择国籍' }}
-            <text class="picker-arrow">></text>
+            <text class="picker-arrow">›</text>
           </view>
         </picker>
       </view>
       
       <view class="form-item">
-        <text class="form-label">所在地区：</text>
+        <text class="form-label">所在地区</text>
         <picker mode="region" @change="onRegionChange" :value="regionValue">
           <view class="form-picker">
             {{ formData.region || '请选择所在地区' }}
-            <text class="picker-arrow">></text>
+            <text class="picker-arrow">›</text>
           </view>
         </picker>
       </view>
       
       <view class="form-item">
-        <text class="form-label">详细住址：</text>
+        <text class="form-label">详细住址</text>
         <input class="form-input" v-model="formData.address" placeholder="请输入详细住址" />
       </view>
-      
+    </view>
+
+    <view class="card form-container">
+      <view class="card-title">联系与验证</view>
       <view class="form-item">
-        <text class="form-label">电话号码：</text>
+        <text class="form-label">电话号码</text>
         <input class="form-input" v-model="formData.phone" placeholder="请输入电话号码" />
       </view>
       
       <view class="form-item">
-        <text class="form-label">短信验证码：</text>
+        <text class="form-label">短信验证码</text>
         <view class="verification-group">
           <input class="form-input verification-input" v-model="formData.verificationCode" placeholder="请填写验证码" />
           <button class="verification-btn" @click="getVerificationCode" :disabled="countdown > 0">
@@ -91,13 +119,15 @@
         </view>
       </view>
       
-      <view class="form-item" @click="goToHealthProfile">
+      <view class="form-item archive-row" @click="goToHealthProfile">
         <view class="health-archive">
           <view class="archive-icon">📋</view>
-          <text class="archive-label">健康档案</text>
-          <text class="archive-optional">选填</text>
-          <text class="picker-arrow">></text>
+          <view class="archive-info">
+            <text class="archive-label">健康档案</text>
+            <text class="archive-optional">可选填，补充血型/婚育等信息</text>
+          </view>
         </view>
+        <text class="picker-arrow">›</text>
       </view>
     </view>
     
@@ -314,58 +344,138 @@ onMounted(() => {
 <style scoped>
 .page-bg {
   min-height: 100vh;
-  background: #f8faff;
+  background: linear-gradient(180deg, #e7f3ff 0%, #f7faff 45%, #ffffff 100%);
   padding: 24rpx;
+  box-sizing: border-box;
+}
+
+.hero-card {
+  background: linear-gradient(135deg, #4a90e2 0%, #6ec6ff 100%);
+  border-radius: 24rpx;
+  padding: 28rpx;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 10rpx 30rpx rgba(58, 156, 255, 0.28);
+  margin-bottom: 24rpx;
+}
+.hero-left {
+  flex: 1;
+}
+.hero-name {
+  font-size: 36rpx;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+}
+.hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  opacity: 0.92;
+}
+.hero-tag {
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.18);
+}
+.hero-dot {
+  opacity: 0.7;
+}
+.hero-id {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  opacity: 0.86;
+}
+.hero-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12rpx;
+  flex-shrink: 0;
+  margin-left: 24rpx;
+}
+.hero-pill {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1rpx solid rgba(255, 255, 255, 0.3);
+  padding: 10rpx 16rpx;
+  border-radius: 18rpx;
+  min-width: 220rpx;
+}
+.pill-label {
+  font-size: 24rpx;
+  opacity: 0.8;
+}
+.pill-value {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  margin-top: 6rpx;
+}
+.pill-btn {
+  background: #fff;
+  color: #3a9cff;
+  border-radius: 18rpx;
+  padding: 10rpx 18rpx;
+  font-size: 24rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+}
+
+.card {
+  background: #fff;
+  border-radius: 18rpx;
+  padding: 12rpx 24rpx 12rpx;
+  margin-bottom: 18rpx;
+  box-shadow: 0 6rpx 18rpx rgba(58, 156, 255, 0.08);
+}
+.card-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+  padding: 18rpx 0 8rpx;
 }
 
 .form-container {
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 32rpx;
-  margin-bottom: 40rpx;
-  box-shadow: 0 4rpx 16rpx rgba(58, 156, 255, 0.08);
+  padding: 0 4rpx 12rpx;
 }
-
 .form-item {
   display: flex;
   align-items: center;
-  padding: 24rpx 0;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 22rpx 0;
+  border-bottom: 1px solid #f0f2f5;
 }
-
 .form-item:last-child {
   border-bottom: none;
 }
-
 .form-label {
   width: 180rpx;
   font-size: 28rpx;
-  color: #333;
+  color: #2f3b52;
   flex-shrink: 0;
+  font-weight: 600;
 }
-
 .form-input {
   flex: 1;
   font-size: 28rpx;
-  color: #333;
-  padding: 8rpx 0;
+  color: #2f3b52;
+  padding: 10rpx 0;
   border: none;
   outline: none;
 }
-
 .form-picker {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   font-size: 28rpx;
-  color: #333;
-  padding: 8rpx 0;
+  color: #2f3b52;
 }
-
 .picker-arrow {
-  color: #999;
-  font-size: 24rpx;
+  color: #9aa7c0;
+  font-size: 28rpx;
+  margin-left: 12rpx;
 }
 
 .verification-group {
@@ -374,66 +484,71 @@ onMounted(() => {
   align-items: center;
   gap: 16rpx;
 }
-
 .verification-input {
   flex: 1;
 }
-
 .verification-btn {
   padding: 16rpx 24rpx;
-  background: #3a9cff;
+  background: linear-gradient(135deg, #3a9cff 0%, #6ec6ff 100%);
   color: #fff;
   border: none;
-  border-radius: 8rpx;
+  border-radius: 12rpx;
   font-size: 24rpx;
   white-space: nowrap;
+  box-shadow: 0 4rpx 12rpx rgba(58, 156, 255, 0.25);
 }
-
 .verification-btn:disabled {
-  background: #ccc;
+  background: #c8d7f2;
+  box-shadow: none;
 }
 
+.archive-row {
+  align-items: center;
+  justify-content: space-between;
+}
 .health-archive {
-  flex: 1;
   display: flex;
   align-items: center;
-  padding: 8rpx 0;
+  gap: 14rpx;
 }
-
 .archive-icon {
-  font-size: 32rpx;
-  margin-right: 12rpx;
-}
-
-.archive-label {
-  flex: 1;
-  font-size: 28rpx;
-  color: #333;
-}
-
-.archive-optional {
-  font-size: 24rpx;
-  color: #999;
-  margin-right: 8rpx;
-}
-
-.submit-btn {
-  width: 100%;
-  height: 88rpx;
-  background: #3a9cff;
-  color: #fff;
-  border: none;
-  border-radius: 16rpx;
-  font-size: 32rpx;
-  font-weight: 500;
+  width: 56rpx;
+  height: 56rpx;
+  background: rgba(58, 156, 255, 0.12);
+  border-radius: 14rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s;
+  font-size: 30rpx;
+}
+.archive-info {
+  display: flex;
+  flex-direction: column;
+}
+.archive-label {
+  font-size: 28rpx;
+  color: #2f3b52;
+  font-weight: 600;
+}
+.archive-optional {
+  font-size: 24rpx;
+  color: #7a8aa0;
+  margin-top: 4rpx;
 }
 
+.submit-btn {
+  width: calc(100% - 48rpx);
+  margin: 12rpx 24rpx 32rpx;
+  height: 92rpx;
+  background: linear-gradient(135deg, #3a9cff 0%, #57b7ff 50%, #6ec6ff 100%);
+  color: #fff;
+  border: none;
+  border-radius: 46rpx;
+  font-size: 32rpx;
+  font-weight: 700;
+  box-shadow: 0 10rpx 28rpx rgba(58, 156, 255, 0.32);
+}
 .submit-btn:active {
-  background: #2980e6;
   transform: scale(0.98);
 }
 </style>

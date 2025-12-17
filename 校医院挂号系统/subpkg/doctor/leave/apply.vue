@@ -264,19 +264,21 @@ onMounted(() => {
 <style scoped>
 .apply-page {
   min-height: 100vh;
-  background: #f7faff;
+  background: linear-gradient(180deg, #e8f3ff 0%, #f7faff 45%, #ffffff 100%);
   padding-bottom: 24rpx;
 }
 
 .header {
-  padding: 24rpx;
-  background: linear-gradient(90deg, #479fff 0%, #2176ff 100%);
+  padding: 26rpx 24rpx;
+  background: linear-gradient(120deg, #3a9cff 0%, #6ec6ff 100%);
   color: #fff;
+  box-shadow: 0 12rpx 28rpx rgba(58,156,255,0.25);
 }
 
 .title {
   font-size: 36rpx;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: 1rpx;
 }
 
 .subtitle {
@@ -287,10 +289,11 @@ onMounted(() => {
 
 .card {
   background: #fff;
-  border-radius: 16rpx;
-  margin: 16rpx;
+  border-radius: 18rpx;
+  margin: 18rpx;
   padding: 24rpx;
-  box-shadow: 0 6rpx 16rpx rgba(33, 118, 255, 0.08);
+  box-shadow: 0 10rpx 24rpx rgba(58, 156, 255, 0.12);
+  border: 1rpx solid #eef3fb;
 }
 
 .card-title {
@@ -306,30 +309,32 @@ onMounted(() => {
 
 .label {
   font-size: 26rpx;
-  color: #64748b;
+  color: #475569;
   margin-bottom: 8rpx;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .picker {
-  background: #f1f5f9;
-  border-radius: 12rpx;
+  background: #f6f9ff;
+  border-radius: 14rpx;
   padding: 16rpx;
   font-size: 28rpx;
   color: #334155;
   min-height: 48rpx;
   display: flex;
   align-items: center;
+  border: 1rpx solid #e1e9f6;
 }
 
 .input {
-  background: #f1f5f9;
-  border-radius: 12rpx;
+  background: #f6f9ff;
+  border-radius: 14rpx;
   padding: 16rpx;
   font-size: 28rpx;
   color: #334155;
   width: 100%;
   box-sizing: border-box;
+  border: 1rpx solid #e1e9f6;
 }
 
 .input[disabled] {
@@ -340,24 +345,26 @@ onMounted(() => {
 .textarea {
   width: 100%;
   min-height: 160rpx;
-  background: #f1f5f9;
-  border-radius: 12rpx;
+  background: #f6f9ff;
+  border-radius: 14rpx;
   padding: 16rpx;
   font-size: 28rpx;
   color: #334155;
   box-sizing: border-box;
+  border: 1rpx solid #e1e9f6;
 }
 
 .btn {
   width: 100%;
-  background: linear-gradient(90deg, #479fff 0%, #2176ff 100%);
+  background: linear-gradient(135deg, #3a9cff 0%, #6ec6ff 100%);
   color: #fff;
-  border-radius: 12rpx;
+  border-radius: 16rpx;
   padding: 24rpx;
   font-size: 30rpx;
-  font-weight: 600;
+  font-weight: 700;
   margin-top: 24rpx;
   border: none;
+  box-shadow: 0 10rpx 24rpx rgba(58,156,255,0.2);
 }
 
 .btn[disabled] {

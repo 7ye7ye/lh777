@@ -20,9 +20,11 @@ import org.jeecg.modules.hospital.enums.ReferralQuotaAction;
 import org.jeecg.modules.hospital.enums.ReferralSourceType;
 import org.jeecg.modules.hospital.enums.ReferralStatus;
 import org.jeecg.modules.hospital.enums.ReferralTargetType;
+import org.jeecg.modules.hospital.entity.RegistrationRecord;
 import org.jeecg.modules.hospital.mapper.DepartmentMapper;
 import org.jeecg.modules.hospital.mapper.DoctorScheduleMapper;
 import org.jeecg.modules.hospital.mapper.ReferralApplicationMapper;
+import org.jeecg.modules.hospital.mapper.RegistrationRecordMapper;
 import org.jeecg.modules.hospital.service.IReferralApplicationService;
 import org.jeecg.modules.hospital.vo.referral.ReferralOptionsVO;
 import org.springframework.stereotype.Service;
@@ -47,13 +49,31 @@ public class ReferralApplicationServiceImpl extends ServiceImpl<ReferralApplicat
 
     private final DoctorScheduleMapper doctorScheduleMapper;
     private final DepartmentMapper departmentMapper;
+    private final RegistrationRecordMapper registrationRecordMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ReferralApplication createReferral(ReferralApplyRequest request) {
         // 如果有关联的挂号记录ID，检查是否已有转诊申请
         Long registrationRecordId = request.getRegistrationRecordId();
+        Long requestPatientId = request.getPatientId();
+        
         if (registrationRecordId != null) {
+            // 验证就诊记录是否存在，以及是否属于正确的患者
+            RegistrationRecord registrationRecord = registrationRecordMapper.selectById(registrationRecordId);
+            if (registrationRecord == null) {
+                throw new IllegalStateException("就诊记录不存在");
+            }
+            
+            // 如果传递了patientId，验证就诊记录是否属于该患者
+            if (requestPatientId != null) {
+                Long recordPatientId = registrationRecord.getPatientId();
+                if (!requestPatientId.equals(recordPatientId)) {
+                    throw new IllegalStateException("就诊记录不属于指定的患者，无法申请转诊");
+                }
+            }
+            
+            // 检查是否已有转诊申请
             LambdaQueryWrapper<ReferralApplication> checkWrapper = new LambdaQueryWrapper<>();
             checkWrapper.eq(ReferralApplication::getRegistrationRecordId, registrationRecordId)
                     .and(wrapper -> wrapper

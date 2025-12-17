@@ -22,23 +22,46 @@
       
       <scroll-view class="card-content" scroll-y>
         <view class="content-wrapper">
+          <!-- 挂号须知 -->
+          <view class="section">
+            <view class="section-title">【挂号须知】</view>
+            <view class="paragraph">1. 我院实行全预约挂号制度，请提前通过本系统预约就诊时间。</view>
+            <view class="paragraph">2. 可预约时间范围为：自今日起七天之内。</view>
+            <view class="paragraph">3. 挂号前请确保已创建并绑定电子就诊卡，否则无法完成挂号操作。</view>
+            <view class="paragraph">4. 挂号费用根据患者类型（学生/职工）自动计算，支持微信支付。</view>
+            <view class="paragraph">5. 挂号成功以系统消息中心显示挂号成功消息为准，请及时查看。</view>
+          </view>
+          
+          <!-- 候补队列说明 -->
+          <view class="section">
+            <view class="section-title">【候补队列】</view>
+            <view class="paragraph">当所选时段号源已满时，您可以选择加入候补队列。如有其他患者退号，系统将按候补顺序自动为您补位，并通过消息中心通知您。</view>
+          </view>
+          
+          <!-- 退号说明 -->
+          <view class="section">
+            <view class="section-title">【退号说明】</view>
+            <view class="paragraph">1. 已预约的挂号记录可以在就诊前通过系统申请退号。</view>
+            <view class="paragraph">2. 退号成功后，挂号费用将原路退回，号源将自动释放给候补队列中的患者。</view>
+            <view class="paragraph">3. 已就诊或已过期的挂号记录无法退号。</view>
+          </view>
+          
+          <!-- 就诊须知 -->
+          <view class="section">
+            <view class="section-title">【就诊须知】</view>
+            <view class="paragraph">1. 请按照预约时间准时到院就诊，建议提前10-15分钟到达。</view>
+            <view class="paragraph">2. 就诊时请出示电子就诊码，可通过首页就诊卡查看。</view>
+            <view class="paragraph">3. 医院是特殊公共场所，为了您和他人的健康安全，请全程佩戴口罩，建议一名患者一名陪护。</view>
+            <view class="paragraph">4. 如病情危急，请直接前往急诊科就诊，无需预约。</view>
+          </view>
+          
           <!-- 温馨提示 -->
           <view class="section">
             <view class="section-title">【温馨提示】</view>
-            <view class="paragraph">选择自费挂号的患者，不享受北京市医保统筹待遇。</view>
-            <view class="paragraph">选择医保挂号的患者：</view>
-            <view class="paragraph paragraph-indent">1. 支付宝北京交通大学校医院挂号小程序，选择北京市医保线上支付。</view>
-            <view class="paragraph paragraph-indent">2. 微信小程序，手机挂医保号需要现场缴费，等待时间较长，就诊当日至少提前1小时到收费窗口缴费取号（北京市医保患者可到医院各楼层自助机缴费取号，特慢病、产科孕妇、计划生育、特药除外）。</view>
-          </view>
-          
-          <!-- 医院政策 -->
-          <view class="section">
-            <view class="paragraph">我院门诊实行全预约挂号，医院是特殊公共场所，为了您和他人的安全，建议全程佩戴口罩一名患者一名陪护。如病情危急，请您到急诊就诊，感谢您的理解和配合！</view>
-          </view>
-          
-          <!-- 挂号确认和退款 -->
-          <view class="section">
-            <view class="paragraph">挂号成功以在挂号单中查询到挂号成功的消息为准。如您未收到挂号成功的消息，并已付款，可等待半小时后系统会自动退款，长时间未退款可拨打电话96615给予解决。</view>
+            <view class="paragraph">1. 挂号成功后，如未收到成功消息但已付款，系统将在30分钟内自动处理退款。</view>
+            <view class="paragraph">2. 如遇系统异常或长时间未收到退款，请联系医院客服或前往收费窗口咨询。</view>
+            <view class="paragraph">3. 请妥善保管您的就诊卡信息，避免泄露给他人。</view>
+            <view class="paragraph">4. 感谢您的理解与配合，祝您就诊顺利！</view>
           </view>
         </view>
       </scroll-view>
