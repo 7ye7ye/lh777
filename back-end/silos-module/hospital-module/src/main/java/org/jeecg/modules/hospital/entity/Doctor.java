@@ -1,5 +1,6 @@
 package org.jeecg.modules.hospital.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -28,6 +29,9 @@ public class Doctor {
      * 职称（如“主治医师”“主任医师”）
      */
     private String title;
+
+     @TableField("title_id")
+     private Long titleId;
 
     /**
      * 擅长领域（如“胃炎、胃溃疡诊疗”）
@@ -151,6 +155,14 @@ public class Doctor {
     public void setTitle(String title) {
         this.title = title;
     }
+
+     public Long getTitleId() {
+         return titleId;
+     }
+
+     public void setTitleId(Long titleId) {
+         this.titleId = titleId;
+     }
 
     public String getSpecialty() {
         return specialty;

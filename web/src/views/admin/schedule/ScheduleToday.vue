@@ -411,30 +411,29 @@
         @cancel="handleCancelSchedule"
       >
         <a-form :model="scheduleForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
-          <a-form-item label="医生ID" required>
-            <a-input-number
-              v-model:value="scheduleForm.doctorId"
-              :min="1"
-              style="width: 100%"
-              placeholder="请输入医生ID"
-              @change="handleDoctorIdChange"
-            />
-          </a-form-item>
-          <a-form-item label="医生姓名">
+          <a-form-item label="医生姓名" required>
             <a-input
               v-model:value="scheduleForm.doctorName"
-              placeholder="请输入医生姓名（可选，系统会自动查找）"
-              :disabled="!!scheduleForm.doctorId"
+              placeholder="请输入医生姓名"
+              @blur="handleDoctorNameBlur"
+              @input="handleDoctorNameInput"
+              allow-clear
             />
+            <div v-if="scheduleForm.selectedDoctorInfo" style="color: #52c41a; font-size: 12px; margin-top: 4px;">
+              已选择：{{ scheduleForm.selectedDoctorInfo.doctorName }} (ID: {{ scheduleForm.selectedDoctorInfo.doctorId }}, 科室: {{ scheduleForm.selectedDoctorInfo.deptName }})
+            </div>
           </a-form-item>
           <a-form-item label="科室" required>
             <a-select
               v-model:value="scheduleForm.deptId"
               :options="deptOptions"
-              placeholder="选择科室"
+              placeholder="选择科室（选择医生后会自动填充，可修改）"
               show-search
               :filter-option="filterOption"
             />
+            <div v-if="scheduleForm.selectedDoctorInfo && scheduleForm.deptId" style="color: #52c41a; font-size: 12px; margin-top: 4px;">
+              已自动填充：{{ scheduleForm.selectedDoctorInfo.deptName || '科室ID: ' + scheduleForm.deptId }}
+            </div>
           </a-form-item>
           <a-form-item label="排班日期" required>
             <a-date-picker
@@ -477,6 +476,53 @@
           </a-form-item>
         </a-form>
       </a-modal>
+
+      <!-- 医生选择弹窗（当医生姓名重复时显示） -->
+      <a-modal
+        v-model:visible="doctorSelectModal.visible"
+        title="选择医生"
+        width="800px"
+        @ok="handleSelectDoctor"
+        @cancel="handleCancelSelectDoctor"
+        okText="确认选择"
+        cancelText="取消"
+      >
+        <div style="margin-bottom: 16px;">
+          <a-alert
+            message="检测到多个同名医生，请选择其中一个"
+            type="warning"
+            show-icon
+            style="margin-bottom: 16px;"
+          />
+          <a-table
+            :data-source="doctorSelectModal.doctors"
+            :columns="doctorSelectColumns"
+            row-key="doctorId"
+            :pagination="{ pageSize: 5 }"
+            :row-selection="{
+              type: 'radio',
+              selectedRowKeys: doctorSelectModal.selectedDoctorId ? [doctorSelectModal.selectedDoctorId] : [],
+              onChange: (selectedRowKeys) => {
+                doctorSelectModal.selectedDoctorId = selectedRowKeys[0] as number;
+              }
+            }"
+            bordered
+            size="small"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'deptName'">
+                {{ record.deptName || '未知科室' }}
+              </template>
+              <template v-else-if="column.key === 'title'">
+                {{ record.title || '-' }}
+              </template>
+              <template v-else-if="column.key === 'specialty'">
+                {{ record.specialty || '-' }}
+              </template>
+            </template>
+          </a-table>
+        </div>
+      </a-modal>
     </div>
   </PageWrapper>
 </template>
@@ -492,6 +538,7 @@ import { listSchedulesByDate, type TodayScheduleItem, getDoctorsByDeptFromSchedu
 import { useGo } from '/@/hooks/web/usePage';
 import { createSchedule, updateSchedule, deleteSchedule, getAvailableRoom, generateSchedules, batchCreateSchedules } from '/@/api/hospital/schedule';
 import { getAdjustmentList, approveAdjustment, type AdjustmentRecord, type AdjustmentApprovalRequest } from '/@/api/hospital/adjustment';
+import { getDoctorList, type Doctor } from '/@/api/hospital/doctor';
 
 export default defineComponent({
   name: 'AdminScheduleAdjustment',
@@ -534,6 +581,7 @@ export default defineComponent({
       scheduleId: undefined as number | undefined,
       doctorId: undefined as number | undefined,
       doctorName: '' as string,
+      selectedDoctorInfo: null as { doctorId: number; doctorName: string; deptId: number; deptName: string } | null,
       deptId: undefined as number | undefined,
       scheduleDate: null as Dayjs | null,
       timeSlot: undefined as number | undefined,
@@ -541,6 +589,23 @@ export default defineComponent({
       roomNumber: '' as string,
       status: 1 as number,
     });
+
+    // 医生选择弹窗相关
+    const doctorSelectModal = reactive({
+      visible: false,
+      doctors: [] as Doctor[],
+      selectedDoctorId: undefined as number | undefined,
+      currentDoctorName: '' as string,
+    });
+
+    // 医生选择表格列
+    const doctorSelectColumns = [
+      { title: '医生ID', dataIndex: 'doctorId', key: 'doctorId', width: 100 },
+      { title: '医生姓名', dataIndex: 'doctorName', key: 'doctorName', width: 120 },
+      { title: '科室', key: 'deptName', width: 150 },
+      { title: '职称', key: 'title', width: 120 },
+      { title: '专业', key: 'specialty', width: 150 },
+    ];
 
     // 自动生成排班相关
     const autoGenerateModal = reactive({
@@ -966,6 +1031,7 @@ export default defineComponent({
       scheduleForm.scheduleId = undefined;
       scheduleForm.doctorId = undefined;
       scheduleForm.doctorName = '';
+      scheduleForm.selectedDoctorInfo = null;
       scheduleForm.deptId = undefined;
       scheduleForm.scheduleDate = filters.date || dayjs();
       scheduleForm.timeSlot = undefined;
@@ -980,6 +1046,12 @@ export default defineComponent({
       scheduleForm.scheduleId = record.scheduleId;
       scheduleForm.doctorId = record.doctorId;
       scheduleForm.doctorName = record.doctorName || '';
+      scheduleForm.selectedDoctorInfo = record.doctorId && record.doctorName ? {
+        doctorId: record.doctorId,
+        doctorName: record.doctorName,
+        deptId: record.deptId,
+        deptName: record.deptName || '',
+      } : null;
       scheduleForm.deptId = record.deptId;
       scheduleForm.scheduleDate = dayjs(record.scheduleDate);
       scheduleForm.timeSlot = record.timeSlot;
@@ -1005,18 +1077,226 @@ export default defineComponent({
       });
     }
 
-    async function handleDoctorIdChange() {
-      if (scheduleForm.doctorId) {
-        try {
-          // 尝试从医生列表中查找医生信息
-          const doctor = doctorOptions.value.find(d => d.value === scheduleForm.doctorId);
-          if (doctor) {
-            scheduleForm.doctorName = doctor.label;
-          }
-        } catch (error) {
-          console.error('获取医生信息失败:', error);
-        }
+    // 处理医生姓名输入
+    function handleDoctorNameInput() {
+      // 输入时清空已选择的医生信息
+      scheduleForm.selectedDoctorInfo = null;
+      scheduleForm.doctorId = undefined;
+    }
+
+    // 处理医生姓名失焦，查询医生
+    async function handleDoctorNameBlur() {
+      const doctorName = scheduleForm.doctorName?.trim();
+      if (!doctorName) {
+        scheduleForm.selectedDoctorInfo = null;
+        scheduleForm.doctorId = undefined;
+        return;
       }
+
+      try {
+        console.log('开始查询医生:', { doctorName });
+        
+        // 查询医生列表 - 后端API使用keyword参数，且支持模糊查询
+        // 设置较大的pageSize以确保能获取到所有匹配的医生
+        // 只查询激活的医生（isActive=1）
+        const response = await getDoctorList({ 
+          keyword: doctorName,  // 使用keyword参数，后端会进行模糊查询
+          isActive: 1,           // 只查询激活的医生
+          pageNum: 1,
+          pageSize: 100  // 设置较大的页面大小以获取所有匹配结果
+        } as any);
+        
+        console.log('API请求参数:', { keyword: doctorName, isActive: 1, pageNum: 1, pageSize: 100 });
+        
+        console.log('API原始返回:', response);
+        console.log('API返回类型:', typeof response);
+        console.log('API返回键:', response ? Object.keys(response) : []);
+        
+        let doctorList: Doctor[] = [];
+        
+        // 处理API返回的数据结构
+        // defHttp的transformRequestHook会提取result字段，所以response已经是分页对象
+        // 后端返回格式: { code: 200, success: true, result: { records: [...], total: ... } }
+        // 经过transformRequestHook处理后，返回的是result部分: { records: [...], total: ... }
+        if (response) {
+          // 如果response本身就是数组（直接返回）
+          if (Array.isArray(response)) {
+            doctorList = response;
+            console.log('✓ 数据是数组格式，数量:', doctorList.length);
+          } 
+          // 如果response直接有records字段（分页对象，这是最常见的情况）
+          else if (response.records && Array.isArray(response.records)) {
+            doctorList = response.records;
+            console.log('✓ 数据在records中，数量:', doctorList.length);
+          }
+          // 如果response有result字段（可能是未经过transformRequestHook处理的原始响应）
+          else if (response.result) {
+            // result可能是分页对象，有records字段
+            if (response.result.records && Array.isArray(response.result.records)) {
+              doctorList = response.result.records;
+              console.log('✓ 数据在result.records中，数量:', doctorList.length);
+            }
+            // result本身可能是数组
+            else if (Array.isArray(response.result)) {
+              doctorList = response.result;
+              console.log('✓ 数据在result中（数组），数量:', doctorList.length);
+            }
+            // result可能是IPage对象，需要检查其他字段
+            else if (response.result.list && Array.isArray(response.result.list)) {
+              doctorList = response.result.list;
+              console.log('✓ 数据在result.list中，数量:', doctorList.length);
+            }
+          }
+          // 其他可能的数据结构
+          else if (response.list && Array.isArray(response.list)) {
+            doctorList = response.list;
+            console.log('✓ 数据在list中，数量:', doctorList.length);
+          } 
+          else if (response.data && Array.isArray(response.data)) {
+            doctorList = response.data;
+            console.log('✓ 数据在data中，数量:', doctorList.length);
+          }
+          
+          // 如果还是没有找到数据，打印完整的response结构用于调试
+          if (doctorList.length === 0) {
+            console.error('❌ 未找到医生数据！');
+            console.error('完整响应结构:', JSON.stringify(response, null, 2));
+            console.error('响应类型:', typeof response);
+            console.error('响应键:', response ? Object.keys(response) : []);
+            if (response && typeof response === 'object') {
+              console.error('响应值:', response);
+              if ((response as any).result) {
+                console.error('result类型:', typeof (response as any).result);
+                console.error('result键:', Object.keys((response as any).result));
+                console.error('result值:', (response as any).result);
+              }
+            }
+          }
+        } else {
+          console.error('❌ API返回为空！');
+        }
+
+        console.log('解析后的医生列表:', doctorList);
+        console.log('医生列表数量:', doctorList.length);
+
+        // 过滤出姓名完全匹配的医生（后端是模糊查询，需要前端精确匹配）
+        // 使用更宽松的匹配逻辑，处理可能的空格、全角半角等问题
+        const matchedDoctors = doctorList.filter(d => {
+          // 处理可能的字段名差异（doctorName 或 doctor_name）
+          const name = (d.doctorName || (d as any).doctor_name || (d as any).name)?.toString().trim();
+          // 移除所有空格后比较（处理可能的空格问题）
+          const normalizedName = name?.replace(/\s+/g, '');
+          const normalizedInput = doctorName.replace(/\s+/g, '');
+          
+          // 精确匹配
+          const exactMatch = name && name === doctorName;
+          // 去除空格后匹配
+          const normalizedMatch = normalizedName && normalizedName === normalizedInput;
+          
+          const match = exactMatch || normalizedMatch;
+          
+          if (match) {
+            console.log('✓ 匹配到医生:', { 
+              原始姓名: name, 
+              输入姓名: doctorName,
+              医生ID: d.doctorId || (d as any).doctor_id,
+              完整数据: d 
+            });
+          } else if (name) {
+            // 打印不匹配的医生信息，用于调试
+            console.log('✗ 不匹配:', { 
+              数据库姓名: name, 
+              输入姓名: doctorName,
+              是否包含: name.includes(doctorName) || doctorName.includes(name)
+            });
+          }
+          
+          return match;
+        });
+
+        console.log('最终匹配的医生数量:', matchedDoctors.length);
+        if (matchedDoctors.length > 0) {
+          console.log('匹配的医生列表:', matchedDoctors);
+        }
+
+        if (matchedDoctors.length === 0) {
+          message.warning('未找到该医生，请检查姓名是否正确');
+          scheduleForm.selectedDoctorInfo = null;
+          scheduleForm.doctorId = undefined;
+        } else if (matchedDoctors.length === 1) {
+          // 只有一个匹配的医生，直接选择
+          const doctor = matchedDoctors[0];
+          // 如果医生信息中没有科室名称，从deptOptions中查找
+          let deptName = doctor.deptName || '';
+          if (!deptName && doctor.deptId) {
+            const dept = deptOptions.value.find(d => d.value === doctor.deptId);
+            deptName = dept ? dept.label : '';
+          }
+          
+          scheduleForm.selectedDoctorInfo = {
+            doctorId: doctor.doctorId,
+            doctorName: doctor.doctorName,
+            deptId: doctor.deptId,
+            deptName: deptName,
+          };
+          scheduleForm.doctorId = doctor.doctorId;
+          scheduleForm.deptId = doctor.deptId;
+          message.success(`已选择医生：${doctor.doctorName}（${deptName || '科室ID: ' + doctor.deptId}）`);
+        } else {
+          // 有多个同名医生，显示选择弹窗
+          doctorSelectModal.doctors = matchedDoctors;
+          doctorSelectModal.currentDoctorName = doctorName;
+          doctorSelectModal.selectedDoctorId = undefined;
+          doctorSelectModal.visible = true;
+        }
+      } catch (error: any) {
+        console.error('查询医生失败:', error);
+        message.error('查询医生失败：' + (error?.message || '未知错误'));
+        scheduleForm.selectedDoctorInfo = null;
+        scheduleForm.doctorId = undefined;
+      }
+    }
+
+    // 处理选择医生
+    function handleSelectDoctor() {
+      if (!doctorSelectModal.selectedDoctorId) {
+        message.warning('请选择一个医生');
+        return;
+      }
+
+      const selectedDoctor = doctorSelectModal.doctors.find(
+        d => d.doctorId === doctorSelectModal.selectedDoctorId
+      );
+
+      if (selectedDoctor) {
+        // 如果医生信息中没有科室名称，从deptOptions中查找
+        let deptName = selectedDoctor.deptName || '';
+        if (!deptName && selectedDoctor.deptId) {
+          const dept = deptOptions.value.find(d => d.value === selectedDoctor.deptId);
+          deptName = dept ? dept.label : '';
+        }
+        
+        scheduleForm.selectedDoctorInfo = {
+          doctorId: selectedDoctor.doctorId,
+          doctorName: selectedDoctor.doctorName,
+          deptId: selectedDoctor.deptId,
+          deptName: deptName,
+        };
+        scheduleForm.doctorId = selectedDoctor.doctorId;
+        scheduleForm.deptId = selectedDoctor.deptId;
+        doctorSelectModal.visible = false;
+        message.success(`已选择医生：${selectedDoctor.doctorName}（${deptName || '科室ID: ' + selectedDoctor.deptId}）`);
+      }
+    }
+
+    // 取消选择医生
+    function handleCancelSelectDoctor() {
+      doctorSelectModal.visible = false;
+      doctorSelectModal.selectedDoctorId = undefined;
+      // 清空表单中的医生信息
+      scheduleForm.doctorName = '';
+      scheduleForm.selectedDoctorInfo = null;
+      scheduleForm.doctorId = undefined;
     }
 
     function filterOption(input: string, option: any) {
@@ -1024,8 +1304,12 @@ export default defineComponent({
     }
 
     async function handleSaveSchedule() {
+      if (!scheduleForm.doctorName || !scheduleForm.doctorName.trim()) {
+        message.error('请输入医生姓名');
+        return;
+      }
       if (!scheduleForm.doctorId) {
-        message.error('请选择医生ID');
+        message.error('请先通过医生姓名选择医生');
         return;
       }
       if (!scheduleForm.deptId) {
@@ -1294,7 +1578,12 @@ export default defineComponent({
       handleDeleteSchedule,
       handleSaveSchedule,
       handleCancelSchedule,
-      handleDoctorIdChange,
+      handleDoctorNameBlur,
+      handleDoctorNameInput,
+      handleSelectDoctor,
+      handleCancelSelectDoctor,
+      doctorSelectModal,
+      doctorSelectColumns,
       filterOption,
       handleDeptChange,
       autoGenerateModal,
