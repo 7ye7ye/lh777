@@ -657,6 +657,9 @@ const loadHospitalRecords = async () => {
       const recordId = Number(item.recordId || item.id)
       const referralInfo = referralMap.get(recordId)
       const hasSuccessfulReferral = !!referralInfo
+      
+      // 如果有成功的转诊记录，强制将状态设置为已完成
+      const finalStatusInfo = hasSuccessfulReferral ? STATUS_DEFINITIONS.completed : statusInfo
 
       return {
         id: item.recordId || item.id,
@@ -670,11 +673,11 @@ const loadHospitalRecords = async () => {
         displayVisitTime,
         timeSlot: displayTimeSlot,
         status: rawStatus,
-        statusDisplay: statusInfo.label,
-        normalizedStatus: statusInfo.label,
-        statusCode: statusInfo.code,
-        statusKey: statusInfo.key,
-        statusDescription: statusInfo.description,
+        statusDisplay: finalStatusInfo.label,
+        normalizedStatus: finalStatusInfo.label,
+        statusCode: finalStatusInfo.code,
+        statusKey: finalStatusInfo.key,
+        statusDescription: finalStatusInfo.description,
         recordNumber: recordNumber,
         recordNumberDisplay: recordNumber || '无编号',
         canRefer: statusInfo.allowReferral,
