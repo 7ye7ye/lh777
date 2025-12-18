@@ -91,7 +91,7 @@
     <view class="action-section">
       <button v-if="canRefer && !hasReferral" class="action-btn referral-btn" @click="goToReferral">申请转诊</button>
       <button v-else-if="hasReferral" class="action-btn referral-btn" @click="goToReferralStatus">查看转诊情况</button>
-      <text v-else-if="statusDisplay === '待就诊'" class="action-btn cannot-refer-btn">未就诊，无转诊权限</text>
+      <text v-else-if="statusDisplay === '待就诊'" class="action-btn cannot-refer-btn">未就诊，不能转诊</text>
       <text v-else class="action-btn cannot-refer-btn">超过5天，无法转诊</text>
     </view>
   </view>
@@ -341,19 +341,25 @@ const resolveStatusInfo = (rawStatusValue, visitTimeStr, registerTimeStr, schedu
     return cloneStatus(STATUS_DEFINITIONS.cancelled)
   }
 
-  // 优先检查是否有实际就诊时间（如果有实际就诊时间，说明已经就诊过，应判定为已完成）
-  // 这个检查要在状态码映射之前，确保有实际就诊时间的记录不会被错误判定
-  const visitDate = parseToDate(visitTimeStr)
-  if (visitDate) {
-    // 拥有实际就诊时间的应被判定为已就诊（已完成）
-    // 判断是否超过5天
-    const diffDays = (now.getTime() - visitDate.getTime()) / DAY_IN_MS
-    if (diffDays <= 5) {
-      return cloneStatus(STATUS_DEFINITIONS.completed)
+  // 优先检查是否有实际就诊时间
+    // 这个检查要在状态码映射之前，确保有实际就诊时间的记录不会被错误判定
+    const visitDate = parseToDate(visitTimeStr)
+    if (visitDate) {
+      // 检查就诊时间是否在未来
+      if (now < visitDate) {
+        // 未来的就诊时间，应判定为待就诊
+        return cloneStatus(STATUS_DEFINITIONS.pending)
+      }
+      
+      // 过去的就诊时间，才判定为已完成或已过期
+      // 判断是否超过5天
+      const diffDays = (now.getTime() - visitDate.getTime()) / DAY_IN_MS
+      if (diffDays <= 5) {
+        return cloneStatus(STATUS_DEFINITIONS.completed)
+      }
+      // 超过5天 → 已过期
+      return cloneStatus(STATUS_DEFINITIONS.expired)
     }
-    // 超过5天 → 已过期
-    return cloneStatus(STATUS_DEFINITIONS.expired)
-  }
 
   // 如果状态码是3或4，但没有取消时间和原因，不判定为已取消
   // 状态码3（已退号）和4（已取消）需要同时有cancel_time和cancel_reason才能判定为已取消
@@ -1282,6 +1288,8 @@ const checkReferralStatus = async () => {
       canRefer.value = false // 已申请过转诊，不能再次申请
       // 保存关联的转诊记录ID，供"查看转诊情况"使用
       record.value.referralId = referral.id || referral.referralId || null
+      // 如果有转诊记录，强制将状态设置为已完成
+      statusDisplay.value = '已完成'
     }
   } catch (error) {
     console.warn('检查转诊状态失败:', error)

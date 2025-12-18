@@ -558,21 +558,23 @@ const handleAutoRegister = async (record) => {
           const result = await autoRegisterInternalReferral(record.id)
           
           if (result) {
-            uni.showToast({
-              title: '自动挂号成功！',
-              icon: 'success'
-            })
-            // 重新加载转诊记录
-            setTimeout(() => {
-              currentPage.value = 1
-              loadReferralRecords()
-            }, 1500)
-          } else {
-            uni.showToast({
-              title: '自动挂号失败',
-              icon: 'none'
-            })
-          }
+              uni.showToast({
+                title: '自动挂号成功！',
+                icon: 'success'
+              })
+              // 重新加载转诊记录和就诊记录
+              setTimeout(() => {
+                currentPage.value = 1
+                loadReferralRecords()
+                // 通知就诊记录页面刷新数据
+                uni.$emit('refreshHospitalRecords')
+              }, 1500)
+            } else {
+              uni.showToast({
+                title: '自动挂号失败',
+                icon: 'none'
+              })
+            }
         } catch (error) {
           console.error('自动挂号失败:', error)
           let errorMsg = '自动挂号失败，请稍后重试'
