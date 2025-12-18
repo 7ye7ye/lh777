@@ -12,7 +12,8 @@ import { getMenus } from '/@/router/menus';
  * Listening to page changes and dynamically changing site titles
  */
 export function useTitle() {
-  const { title } = useGlobSetting();
+  // 直接使用我们设置的标题，不再依赖环境变量
+  const title = '北京交通大学校医院管理系统';
   const { t } = useI18n();
   const { currentRoute } = useRouter();
   const localeStore = useLocaleStore();

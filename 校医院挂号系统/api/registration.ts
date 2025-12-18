@@ -132,7 +132,7 @@ const getTimeSlotLabel = (slot?: number) => {
 
 export const getScheduleDetailById = async (scheduleId: number) => {
   try {
-    const res = await request.get('/schedule/detail', { scheduleId }) as Result<ScheduleDetail> | ScheduleDetail;
+    const res = await request.get('/schedule/detail', { scheduleId });
 
     // 处理不同的响应格式
     let schedule: any = null;
@@ -184,8 +184,8 @@ export const getScheduleDetailById = async (scheduleId: number) => {
  */
 export const getPatientDetailById = async (patientId: number) => {
   try {
-    const res = await request.get('/patient/detail', { patientId }) as Result<any>;
-    return res?.result ?? null;
+    const res = await request.get('/patient/detail', { patientId });
+    return res ?? null;
   } catch (error) {
     console.error('获取患者详情失败:', error);
     return null;

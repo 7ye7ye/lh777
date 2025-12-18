@@ -157,6 +157,7 @@
             >
               转诊详情
             </button>
+            <text v-else-if="item.statusDisplay === '待就诊'" class="cannot-refer-text">未就诊，不能转诊</text>
             <text v-else class="cannot-refer-text">超过5天，无法转诊</text>
           </view>
         </view>
@@ -174,7 +175,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { getRegistrationRecords } from '@/api/registration'
 import { ensurePatientCard } from '@/utils/patientHelper'
 import { getPatientReferralList } from '@/api/referral'
@@ -235,13 +236,13 @@ const STATUS_DEFINITIONS = {
     allowReferral: false
   }
 }
-
+// 状态码映射（根据数据库：0-候补；1-已预约；2-已就诊；3-已退号；4-已取消）
 const RAW_STATUS_CODE_MAP = new Map([
-  ['0', STATUS_DEFINITIONS.pending],
-  ['1', STATUS_DEFINITIONS.completed],
-  ['2', STATUS_DEFINITIONS.cancelled],
-  ['3', STATUS_DEFINITIONS.expired],
-  ['4', STATUS_DEFINITIONS.expired]
+  ['0', STATUS_DEFINITIONS.pending],   // 候补
+  ['1', STATUS_DEFINITIONS.pending],   // 已预约（待就诊）
+  ['2', STATUS_DEFINITIONS.completed], // 已就诊（已完成）
+  ['3', STATUS_DEFINITIONS.cancelled], // 已退号
+  ['4', STATUS_DEFINITIONS.cancelled]  // 已取消
 ])
 
 const STATUS_KEYWORD_RULES = [
@@ -305,49 +306,54 @@ const parseToDate = (value) => {
 const cloneStatus = (statusDefinition) => ({ ...statusDefinition })
 
 const resolveStatusInfo = (rawStatusValue, visitTimeStr, registerTimeStr) => {
-  const rawText = String(rawStatusValue ?? '').trim()
+		const rawText = String(rawStatusValue ?? '').trim()
+		// 只使用visitTimeStr，不使用registerTimeStr作为备选，因为registerTimeStr是挂号时间，不是就诊时间
+		const visitDate = parseToDate(visitTimeStr)
+		const now = new Date()
 
-  if (RAW_STATUS_CODE_MAP.has(rawText)) {
-    return cloneStatus(RAW_STATUS_CODE_MAP.get(rawText))
-  }
+		// 优先处理取消状态
+		if (rawText && /(取消|退号|作废|关闭|失败|拒绝|撤销)/.test(rawText)) {
+			return cloneStatus(STATUS_DEFINITIONS.cancelled)
+		}
+		
+		// 优先处理过期状态
+		if (rawText && /(过期|失效)/.test(rawText)) {
+			return cloneStatus(STATUS_DEFINITIONS.expired)
+		}
 
-  if (rawText && RAW_STATUS_CODE_MAP.has(String(Number(rawText)))) {
-    return cloneStatus(RAW_STATUS_CODE_MAP.get(String(Number(rawText))))
-  }
+		// 如果有就诊时间，优先根据时间判定状态
+		if (visitDate) {
+			if (now < visitDate) {
+				// 未来的就诊，应该是待就诊
+				return cloneStatus(STATUS_DEFINITIONS.pending)
+			}
+			const diffDays = (now.getTime() - visitDate.getTime()) / DAY_IN_MS
+			if (diffDays <= 5) {
+				return cloneStatus(STATUS_DEFINITIONS.completed)
+			}
+			return cloneStatus(STATUS_DEFINITIONS.expired)
+		}
 
-  const visitDate = parseToDate(visitTimeStr || registerTimeStr)
-  const now = new Date()
+		// 然后才根据状态码判定
+		if (RAW_STATUS_CODE_MAP.has(rawText)) {
+			return cloneStatus(RAW_STATUS_CODE_MAP.get(rawText))
+		}
 
-  if (rawText) {
-    if (/(取消|退号|作废|关闭|失败|拒绝|撤销)/.test(rawText)) {
-      return cloneStatus(STATUS_DEFINITIONS.cancelled)
-    }
-    if (/(过期|失效)/.test(rawText)) {
-      return cloneStatus(STATUS_DEFINITIONS.expired)
-    }
-  }
+		if (rawText && RAW_STATUS_CODE_MAP.has(String(Number(rawText)))) {
+			return cloneStatus(RAW_STATUS_CODE_MAP.get(String(Number(rawText))))
+		}
 
-  if (visitDate) {
-    if (now < visitDate) {
-      return cloneStatus(STATUS_DEFINITIONS.pending)
-    }
-    const diffDays = (now.getTime() - visitDate.getTime()) / DAY_IN_MS
-    if (diffDays <= 5) {
-      return cloneStatus(STATUS_DEFINITIONS.completed)
-    }
-    return cloneStatus(STATUS_DEFINITIONS.expired)
-  }
+		// 最后根据关键字规则判定
+		if (rawText) {
+			for (const rule of STATUS_KEYWORD_RULES) {
+				if (rule.regex.test(rawText)) {
+					return cloneStatus(rule.status)
+				}
+			}
+		}
 
-  if (rawText) {
-    for (const rule of STATUS_KEYWORD_RULES) {
-      if (rule.regex.test(rawText)) {
-        return cloneStatus(rule.status)
-      }
-    }
-  }
-
-  return cloneStatus(STATUS_DEFINITIONS.pending)
-}
+		return cloneStatus(STATUS_DEFINITIONS.pending)
+	}
 
 const pickStringValue = (obj, paths) => {
   for (const path of paths) {
@@ -993,8 +999,21 @@ const goToReferralDetail = (record) => {
   })
 }
 
+// 事件监听回调函数
+const handleRefreshRecords = () => {
+  console.log('收到刷新就诊记录事件')
+  loadHospitalRecords()
+}
+
 onMounted(() => {
   loadHospitalRecords()
+  // 监听自动挂号成功事件，刷新就诊记录
+  uni.$on('refreshHospitalRecords', handleRefreshRecords)
+})
+
+onUnmounted(() => {
+  // 移除事件监听，避免内存泄漏
+  uni.$off('refreshHospitalRecords', handleRefreshRecords)
 })
 </script>
 
