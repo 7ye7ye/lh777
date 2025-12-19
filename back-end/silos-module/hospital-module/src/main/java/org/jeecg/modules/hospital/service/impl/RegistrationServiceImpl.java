@@ -32,11 +32,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
+
 /**
  * 挂号业务实现类
  */
 @Slf4j
 @Service
+@DS("hospital")
 public class RegistrationServiceImpl implements RegistrationService {
 
     private static final String DEFAULT_HOSPITAL_ADDRESS = "北京市西直门外上园村3号 · 北京交通大学社区卫生服务中心";
