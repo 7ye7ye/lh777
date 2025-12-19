@@ -22,6 +22,7 @@ import org.jeecg.modules.hospital.task.AppointmentReminderTask;
 import org.jeecg.modules.hospital.vo.RegistrationVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -78,6 +79,7 @@ public class RegistrationServiceImpl implements RegistrationService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public Result<String> createRegistration(RegistrationRecord record, Long patientId, boolean joinWaitingQueue) {
         try {
             if (record.getScheduleId() == null || record.getTypeId() == null) {
@@ -93,8 +95,7 @@ public class RegistrationServiceImpl implements RegistrationService {
                 List<Patient> patientsByUserId = patientMapper.selectList(
                         new LambdaQueryWrapper<Patient>()
                                 .eq(Patient::getUserId, Long.valueOf(currentUserId))
-                                .orderByDesc(Patient::getPatientId)
-                );
+                                .orderByDesc(Patient::getPatientId));
 
                 if (patientsByUserId != null && !patientsByUserId.isEmpty()) {
                     if (patientsByUserId.size() > 1) {
@@ -139,19 +140,20 @@ public class RegistrationServiceImpl implements RegistrationService {
                 return Result.error("未找到对应挂号类型");
             }
 
-            int usedQuota = schedule.getUsedQuota() != null ? schedule.getUsedQuota() : 0;
-
             // ☆☆☆━━━━━━━━━━━━━━━━━━━━━━━━━━
-            // 号源已满 + joinWaitingQueue = true
-            // 必须写挂号记录(status=0) → 加候补队列
+            // 核心并发控制：尝试原子更新库存
+            // 尝试 +1，数据库会保证只有 quota < max 时才成功，且返回 1
             // ☆☆☆━━━━━━━━━━━━━━━━━━━━━━━━━━
-            if (usedQuota >= type.getDailyQuota()) {
+            int affectedRows = registrationMapper.incrementUsedQuota(schedule.getScheduleId());
 
+            // 如果更新行数为 0，说明库存已满（或被瞬间抢完）
+            if (affectedRows == 0) {
+                // 号源已满，处理候补逻辑
                 if (!joinWaitingQueue) {
                     return Result.error("该号源已满，是否加入候补？");
                 }
 
-                log.info("号源已满，但用户选择加入候补，写入候补挂号记录…");
+                log.info("号源已满(并发争抢)，用户选择加入候补，写入候补挂号记录…");
 
                 // 写入“候补挂号记录”
                 record.setRegisterTime(LocalDateTime.now());
@@ -170,71 +172,84 @@ public class RegistrationServiceImpl implements RegistrationService {
                 registrationMapper.insertRegistration(record);
 
                 if (record.getRecordId() == null) {
+                    // 这里理论上很少发生，因为 insert 这里没竞争（除了主键冲突，但主键是自增），如果 insert 失败会抛错回滚
                     log.error("候补挂号创建失败：recordId 为空！");
-                    return Result.error("候补挂号失败，请稍后重试");
+                    throw new RuntimeException("候补挂号记录创建失败");
                 }
 
-                // 加入候补队列（务必带上对应的挂号记录 ID，便于后续自动补位）
-                Result<String> waitRes = addToWaitingQueue(schedule.getScheduleId(), actualPatientId, record.getRecordId());
+                // 加入候补队列
+                Result<String> waitRes = addToWaitingQueue(schedule.getScheduleId(), actualPatientId,
+                        record.getRecordId());
 
                 if (waitRes.isSuccess()) {
                     return Result.OK("当前号源已满，但您已成功加入候补队列", waitRes.getResult());
                 } else {
-                    return Result.error("挂号记录已创建，但加入候补队列失败：" + waitRes.getMessage());
+                    // 候补加入失败，回滚
+                    throw new RuntimeException("加入候补队列失败：" + waitRes.getMessage());
                 }
             }
 
             // ☆☆☆━━━━━━━━━━━━━━━━━━━━━━━━━━
-            // 正常号源流程
+            // 更新成功（拿到号了），继续写入挂号记录
             // ☆☆☆━━━━━━━━━━━━━━━━━━━━━━━━━━
+            try {
+                Patient patient = patientMapper.selectById(actualPatientId);
+                if (patient == null) {
+                    throw new RuntimeException("患者信息未找到");
+                }
 
-            Patient patient = patientMapper.selectById(actualPatientId);
-            if (patient == null) {
-                return Result.error("患者信息未找到");
-            }
+                record.setRegisterTime(LocalDateTime.now());
+                record.setStatus(1); // 正常挂号
+                record.setVisitTime(null);
+                record.setPriceOriginal(type.getPriceOriginal());
+                record.setActualPrice(
+                        switch (patient.getPatientType()) {
+                            case 1 -> type.getStudentPrice();
+                            case 2, 3 -> type.getStaffPrice();
+                            default -> type.getPriceOriginal();
+                        });
 
-            record.setRegisterTime(LocalDateTime.now());
-            record.setStatus(1); // 正常挂号
-            record.setVisitTime(null);
-            record.setPriceOriginal(type.getPriceOriginal());
-            record.setActualPrice(
-                    switch (patient.getPatientType()) {
-                        case 1 -> type.getStudentPrice();
-                        case 2, 3 -> type.getStaffPrice();
-                        default -> type.getPriceOriginal();
+                if (record.getRegistrationNo() == null) {
+                    record.setRegistrationNo(generateRegistrationNo(actualPatientId));
+                }
+                if (record.getIsAdd() == null) {
+                    record.setIsAdd(0);
+                }
+
+                registrationMapper.insertRegistration(record);
+
+                // 成功后的消息与提醒
+                if (record.getRecordId() != null) {
+                    RegistrationDetailDTO detail = registrationMapper.selectRegistrationDetail(record.getRecordId());
+                    if (detail != null) {
+                        createSuccessMessage(detail);
+                        appointmentReminderTask.checkAndCreateImmediateReminder(detail);
                     }
-            );
-
-            if (record.getRegistrationNo() == null) {
-                record.setRegistrationNo(generateRegistrationNo(actualPatientId));
-            }
-            if (record.getIsAdd() == null) {
-                record.setIsAdd(0);
-            }
-
-            registrationMapper.insertRegistration(record);
-
-            // 更新已使用号源
-            schedule.setUsedQuota(usedQuota + 1);
-            registrationMapper.updateScheduleUsedQuota(schedule);
-
-            // 成功后的消息与提醒
-            if (record.getRecordId() != null) {
-                RegistrationDetailDTO detail = registrationMapper.selectRegistrationDetail(record.getRecordId());
-                if (detail != null) {
-                    createSuccessMessage(detail);
-                    appointmentReminderTask.checkAndCreateImmediateReminder(detail);
                 }
-            }
 
-            return Result.OK("挂号成功");
+                return Result.OK("挂号成功");
+
+            } catch (Exception e) {
+                // 如果后续步骤失败（比如写记录报错），事务会回滚，刚才扣掉的库存也会自动加回来
+                log.error("Create registration record failed", e);
+                throw e;
+            }
 
         } catch (Exception e) {
             log.error("createRegistration error", e);
+            // 手动捕捉异常后如果只返回 Result.error，事务可能不会回滚（取决于 transaction 配置），
+            // 但这里加上 rollbackFor 以及在 catch 里并没有再次 throw，
+            // 实际上 Spring Transaction 默认只在抛出 RuntimeException 时回滚。
+            // 为了安全起见，这里应该要把异常抛出去让切面感知，或者手动 setRollbackOnly。
+            // 但通常 Controller 层需要 Result，所以最优雅的做法是：
+            // 让外层 Controller 捕获，或者在这里显式回滚。
+            // 鉴于架构，这里抛出 RuntimeException 是最稳妥的回滚触发方式。
+            // 不过为了不让前端崩掉，我们可以返回 Result.error，但在返回前要确保回滚。
+            TransactionAspectSupport.currentTransactionStatus()
+                    .setRollbackOnly();
             return Result.error("挂号失败：" + e.getMessage());
         }
     }
-
 
     private Result<String> addToWaitingQueue(Long scheduleId, Long patientId, Long recordId) {
         WaitingQueue queue = new WaitingQueue();
@@ -340,15 +355,12 @@ public class RegistrationServiceImpl implements RegistrationService {
             registrationMapper.updateScheduleUsedQuota(schedule);
         }
         // ⭐⭐⭐ 自动候补补位
-        waitingQueueService.autoFillFromQueue(record.getScheduleId(),1);
+        waitingQueueService.autoFillFromQueue(record.getScheduleId(), 1);
 
-
-
-
-//            // 发送候补成功通知
-//            RegistrationDetailDTO candidateDetail = registrationMapper.selectRegistrationDetail(candidate.getId());
-//            createQueueSuccessMessage(candidateDetail);
-
+        // // 发送候补成功通知
+        // RegistrationDetailDTO candidateDetail =
+        // registrationMapper.selectRegistrationDetail(candidate.getId());
+        // createQueueSuccessMessage(candidateDetail);
 
         // 7. 发送退号成功通知
         String cancelUserId = resolveCurrentUserId();
@@ -380,7 +392,6 @@ public class RegistrationServiceImpl implements RegistrationService {
         }
     }
 
-
     @Override
     public Long getDepartmentIdBySchedule(Long scheduleId) {
         if (scheduleId == null) {
@@ -410,8 +421,6 @@ public class RegistrationServiceImpl implements RegistrationService {
         }
         return patient;
     }
-
-
 
     @Override
     public List<RegistrationVO> listByDisease(String disease) {
@@ -475,7 +484,8 @@ public class RegistrationServiceImpl implements RegistrationService {
             Message message = new Message();
             String userId = resolveUserIdForMessages(detail, overrideUserId);
             if (StringUtils.isBlank(userId)) {
-                log.warn("createWaitingSuccessMessage skip due to empty userId, recordId={}", detail != null ? detail.getRecordId() : null);
+                log.warn("createWaitingSuccessMessage skip due to empty userId, recordId={}",
+                        detail != null ? detail.getRecordId() : null);
                 return;
             }
             message.setUserId(userId);
@@ -492,7 +502,9 @@ public class RegistrationServiceImpl implements RegistrationService {
             payload.put("department_name", detail.getDepartmentName());
             payload.put("appointment_time", buildAppointmentTime(detail.getScheduleDate(), detail.getTimeSlot()));
             payload.put("waiting_rank", queue != null ? queue.getQueueRank() : null);
-            payload.put("waiting_join_time", queue != null && queue.getQueueTime() != null ? DATE_TIME_FORMATTER.format(queue.getQueueTime()) : null);
+            payload.put("waiting_join_time",
+                    queue != null && queue.getQueueTime() != null ? DATE_TIME_FORMATTER.format(queue.getQueueTime())
+                            : null);
             payload.put("promote_time", DATE_TIME_FORMATTER.format(LocalDateTime.now()));
             payload.put("hospital_remark", "候补已转为正式号，请按时就诊");
 
@@ -501,7 +513,8 @@ public class RegistrationServiceImpl implements RegistrationService {
             boolean saved = messageService.save(message);
             log.info("waiting message saved={}, userId={}, appointmentId={}", saved, userId, detail.getRecordId());
         } catch (Exception e) {
-            log.error("createWaitingSuccessMessage error, recordId={}", detail != null ? detail.getRecordId() : null, e);
+            log.error("createWaitingSuccessMessage error, recordId={}", detail != null ? detail.getRecordId() : null,
+                    e);
         }
     }
 
@@ -513,7 +526,8 @@ public class RegistrationServiceImpl implements RegistrationService {
             }
             Patient patient = patientMapper.selectById(patientId);
             Doctor doctor = schedule.getDoctorId() != null ? doctorMapper.selectById(schedule.getDoctorId()) : null;
-            Department department = schedule.getDeptId() != null ? departmentMapper.selectById(schedule.getDeptId()) : null;
+            Department department = schedule.getDeptId() != null ? departmentMapper.selectById(schedule.getDeptId())
+                    : null;
 
             Message message = new Message();
             String currentUserId = resolveCurrentUserId();
@@ -525,7 +539,8 @@ public class RegistrationServiceImpl implements RegistrationService {
                 userId = "262";
             }
             message.setUserId(userId);
-            message.setAppointmentId("WAITING_" + (queue != null && queue.getQueueId() != null ? queue.getQueueId() : scheduleId));
+            message.setAppointmentId(
+                    "WAITING_" + (queue != null && queue.getQueueId() != null ? queue.getQueueId() : scheduleId));
             message.setMessageType(MESSAGE_TYPE_WAITING_JOIN);
             message.setTitle("候补排队成功提醒");
             message.setCreatedTime(LocalDateTime.now());
@@ -538,7 +553,9 @@ public class RegistrationServiceImpl implements RegistrationService {
             payload.put("department_name", department != null ? department.getDeptName() : null);
             payload.put("appointment_time", buildAppointmentTime(schedule.getScheduleDate(), schedule.getTimeSlot()));
             payload.put("waiting_rank", queue != null ? queue.getQueueRank() : null);
-            payload.put("waiting_join_time", queue != null && queue.getQueueTime() != null ? DATE_TIME_FORMATTER.format(queue.getQueueTime()) : null);
+            payload.put("waiting_join_time",
+                    queue != null && queue.getQueueTime() != null ? DATE_TIME_FORMATTER.format(queue.getQueueTime())
+                            : null);
             payload.put("hospital_remark", "您已成功加入候补队列，系统将在有号源时自动通知");
 
             message.setContent(objectMapper.writeValueAsString(payload));
