@@ -78,119 +78,114 @@ public class RegistrationServiceImpl implements RegistrationService {
     }
 
     @Override
-    public Result<String> createRegistration(RegistrationRecord record, Long patientId, boolean joinWaitingQueue) {
+    public Result<String> createRegistration(
+            RegistrationRecord record,
+            Long patientId,
+            boolean joinWaitingQueue) {
+
         try {
+            // ------------------------------
+            // 1. 基础校验
+            // ------------------------------
+            if (record == null) {
+                return Result.error("挂号信息不能为空");
+            }
             if (record.getScheduleId() == null || record.getTypeId() == null) {
                 return Result.error("缺少必要的挂号信息");
             }
+            if (patientId == null) {
+                return Result.error("未获取到患者ID");
+            }
 
             // ------------------------------
-            // 获取实际 patientId（Token 优先）
+            // 2. 校验 patientId 是否属于当前用户（不覆盖）
             // ------------------------------
-            Long actualPatientId = patientId;
             String currentUserId = resolveCurrentUserId();
             if (currentUserId != null) {
-                List<Patient> patientsByUserId = patientMapper.selectList(
-                        new LambdaQueryWrapper<Patient>()
-                                .eq(Patient::getUserId, Long.valueOf(currentUserId))
-                                .orderByDesc(Patient::getPatientId)
-                );
-
-                if (patientsByUserId != null && !patientsByUserId.isEmpty()) {
-                    if (patientsByUserId.size() > 1) {
-                        log.warn("Token解析到的userId={}存在{}条患者记录，默认取最新一条", currentUserId, patientsByUserId.size());
-                    }
-                    Patient patientByUserId = patientsByUserId.get(0);
-                    if (patientByUserId != null && patientByUserId.getPatientId() != null) {
-                        actualPatientId = patientByUserId.getPatientId();
-                        log.info("根据Token解析的userId={}找到对应的patientId={}", currentUserId, actualPatientId);
-                    }
-                } else {
-                    log.warn("Token解析到的userId={}未找到对应patient，使用前端patientId={}", currentUserId, patientId);
+                Patient patient = patientMapper.selectById(patientId);
+                if (patient == null) {
+                    return Result.error("患者信息不存在");
+                }
+                if (!patient.getUserId().equals(Long.valueOf(currentUserId))) {
+                    return Result.error("非法患者信息，请重新选择就诊人");
                 }
             }
 
-            if (actualPatientId == null) {
-                return Result.error("未获取到患者ID，请登录后再挂号");
-            }
-            record.setPatientId(actualPatientId);
+            // ✅ 只使用前端传来的 patientId
+            record.setPatientId(patientId);
+            log.info("本次挂号使用 patientId={}", patientId);
 
             // ------------------------------
-            // 获取排班
+            // 3. 获取排班信息
             // ------------------------------
-            DoctorSchedule schedule = registrationMapper.selectScheduleById(record.getScheduleId());
+            DoctorSchedule schedule =
+                    registrationMapper.selectScheduleById(record.getScheduleId());
             if (schedule == null) {
                 return Result.error("未找到对应排班信息");
             }
             record.setDoctorId(schedule.getDoctorId());
 
             // ------------------------------
-            // 防重复预约
+            // 4. 防止同一患者重复预约同一排班（关键）
             // ------------------------------
-            if (checkDuplicateBySchedule(actualPatientId, schedule.getScheduleId())) {
+            if (checkDuplicateBySchedule(patientId, schedule.getScheduleId())) {
                 return Result.error("您已预约过该时段，请勿重复挂号");
             }
 
             // ------------------------------
-            // 获取挂号类型
+            // 5. 获取挂号类型
             // ------------------------------
-            RegistrationType type = registrationMapper.selectTypeById(record.getTypeId());
+            RegistrationType type =
+                    registrationMapper.selectTypeById(record.getTypeId());
             if (type == null) {
                 return Result.error("未找到对应挂号类型");
             }
 
-            int usedQuota = schedule.getUsedQuota() != null ? schedule.getUsedQuota() : 0;
+            int usedQuota = schedule.getUsedQuota() == null ? 0 : schedule.getUsedQuota();
 
-            // ☆☆☆━━━━━━━━━━━━━━━━━━━━━━━━━━
-            // 号源已满 + joinWaitingQueue = true
-            // 必须写挂号记录(status=0) → 加候补队列
-            // ☆☆☆━━━━━━━━━━━━━━━━━━━━━━━━━━
+            // ------------------------------
+            // 6. 号源已满 → 候补流程
+            // ------------------------------
             if (usedQuota >= type.getDailyQuota()) {
 
                 if (!joinWaitingQueue) {
                     return Result.error("该号源已满，是否加入候补？");
                 }
 
-                log.info("号源已满，但用户选择加入候补，写入候补挂号记录…");
-
-                // 写入“候补挂号记录”
                 record.setRegisterTime(LocalDateTime.now());
                 record.setStatus(0); // 候补
                 record.setVisitTime(null);
                 record.setPriceOriginal(type.getPriceOriginal());
-                record.setActualPrice(type.getPriceOriginal()); // 候补统一使用原价
+                record.setActualPrice(type.getPriceOriginal());
+                record.setIsAdd(0);
 
                 if (record.getRegistrationNo() == null) {
-                    record.setRegistrationNo(generateRegistrationNo(actualPatientId));
-                }
-                if (record.getIsAdd() == null) {
-                    record.setIsAdd(0);
+                    record.setRegistrationNo(generateRegistrationNo(patientId));
                 }
 
                 registrationMapper.insertRegistration(record);
 
                 if (record.getRecordId() == null) {
-                    log.error("候补挂号创建失败：recordId 为空！");
-                    return Result.error("候补挂号失败，请稍后重试");
+                    return Result.error("候补挂号创建失败");
                 }
 
-                // 加入候补队列
-                Result<String> waitRes = addToWaitingQueue(schedule.getScheduleId(), actualPatientId, record.getRecordId());
+                Result<String> waitRes = addToWaitingQueue(
+                        schedule.getScheduleId(),
+                        patientId,
+                        record.getRecordId()
+                );
 
-                if (waitRes.isSuccess()) {
-                    return Result.OK("当前号源已满，但您已成功加入候补队列", waitRes.getResult());
-                } else {
-                    return Result.error("挂号记录已创建，但加入候补队列失败：" + waitRes.getMessage());
-                }
+                return waitRes.isSuccess()
+                        ? Result.OK("当前号源已满，已加入候补队列", waitRes.getResult())
+                        : Result.error("加入候补队列失败：" + waitRes.getMessage());
             }
 
-            // ☆☆☆━━━━━━━━━━━━━━━━━━━━━━━━━━
-            // 正常号源流程
-            // ☆☆☆━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-            Patient patient = patientMapper.selectById(actualPatientId);
+            // ------------------------------
+            // 7. 正常挂号流程
+            // ------------------------------
+            Patient patient = patientMapper.selectById(patientId);
             if (patient == null) {
-                return Result.error("患者信息未找到");
+                return Result.error("患者信息不存在");
             }
 
             record.setRegisterTime(LocalDateTime.now());
@@ -204,23 +199,26 @@ public class RegistrationServiceImpl implements RegistrationService {
                         default -> type.getPriceOriginal();
                     }
             );
+            record.setIsAdd(0);
 
             if (record.getRegistrationNo() == null) {
-                record.setRegistrationNo(generateRegistrationNo(actualPatientId));
-            }
-            if (record.getIsAdd() == null) {
-                record.setIsAdd(0);
+                record.setRegistrationNo(generateRegistrationNo(patientId));
             }
 
             registrationMapper.insertRegistration(record);
 
-            // 更新已使用号源
+            // ------------------------------
+            // 8. 更新排班已用号源
+            // ------------------------------
             schedule.setUsedQuota(usedQuota + 1);
             registrationMapper.updateScheduleUsedQuota(schedule);
 
-            // 成功后的消息与提醒
+            // ------------------------------
+            // 9. 成功后的通知
+            // ------------------------------
             if (record.getRecordId() != null) {
-                RegistrationDetailDTO detail = registrationMapper.selectRegistrationDetail(record.getRecordId());
+                RegistrationDetailDTO detail =
+                        registrationMapper.selectRegistrationDetail(record.getRecordId());
                 if (detail != null) {
                     createSuccessMessage(detail);
                     appointmentReminderTask.checkAndCreateImmediateReminder(detail);

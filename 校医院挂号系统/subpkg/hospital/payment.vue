@@ -58,6 +58,8 @@ const doctorId = ref(null)
 const typeId = ref(null)
 const scheduleId = ref(null)
 const currentPatient = ref(null)
+const deptId = ref(0)
+
 
 // ------------------ 支付方式 ------------------
 const paymentMethods = ref([
@@ -105,6 +107,21 @@ onMounted(() => {
   const currentPage = pages[pages.length - 1]
   const options = currentPage.options || {}
 
+  // 只使用挂号页传过来的 patientId
+  const patientIdFromRoute = Number(options.patientId || 0)
+  if (patientIdFromRoute) {
+    currentPatient.value = { patientId: patientIdFromRoute }
+  } else {
+    // 如果没有传，直接提示错误
+    uni.showModal({
+      title: '患者信息缺失',
+      content: '未获取到挂号患者信息，请返回挂号页重新选择患者',
+      showCancel: false
+    })
+    return
+  }
+
+  // 其他挂号信息
   dept.value = decodeURIComponent(options.dept || '未知科室')
   doctor.value = decodeURIComponent(options.doctor || '未知医生')
   time.value = decodeURIComponent(options.time || '未知时间')
@@ -113,12 +130,18 @@ onMounted(() => {
   typeId.value = Number(options.typeId || 0)
   scheduleId.value = Number(options.scheduleId || 0)
   deptId.value = Number(options.deptId || 0)
-  
-  console.log('支付页接收参数:', { dept: options.dept, doctor: options.doctor, time: options.time, doctorId: options.doctorId, typeId: options.typeId, scheduleId: options.scheduleId, deptId: options.deptId })
-  loadPatientInfo()
-})
 
-  
+  console.log('支付页接收参数:', {
+    dept: options.dept,
+    doctor: options.doctor,
+    time: options.time,
+    doctorId: options.doctorId,
+    typeId: options.typeId,
+    scheduleId: options.scheduleId,
+    deptId: options.deptId,
+    patientId: patientIdFromRoute
+  })
+})
 
 
 
@@ -141,30 +164,29 @@ const onPay = async () => {
     return
   }
 
+  const patientId = currentPatient.value?.patientId
+  if (!patientId) {
+    uni.showToast({ title: '患者信息缺失', icon: 'none' })
+    return
+  }
+
   uni.showLoading({ title: '正在支付...' })
 
   setTimeout(async () => {
     uni.hideLoading()
     uni.showToast({ title: '支付成功！', icon: 'success', duration: 1500 })
 
-    // 支付成功后写入挂号表
-    const patientId = await ensurePatientId()
-    if (!patientId) {
-      return
-    }
-
-    // 构建挂号记录对象
     const record = {
       scheduleId: scheduleId.value,
       patientId,
       doctorId: doctorId.value,
       typeId: typeId.value,
-      registrationNo: generateRegistrationNo(), // 前端生成或后端生成都可以
-      registerTime: formatLocalDateTime(new Date()), // YYYY-MM-DD HH:mm:ss
-      status: 1, // 已预约
+      registrationNo: generateRegistrationNo(),
+      registerTime: formatLocalDateTime(new Date()),
+      status: 1,
       priceOriginal: fee.value,
       actualPrice: fee.value,
-      isAdd: 0 // 正常号
+      isAdd: 0
     }
 
     try {
@@ -182,12 +204,11 @@ const onPay = async () => {
 
     // 跳转首页
     setTimeout(() => {
-      uni.switchTab({
-        url: '/pages/home/home'
-      })
+      uni.switchTab({ url: '/pages/home/home' })
     }, 1500)
   }, 2000)
 }
+
 
 // 工具函数：生成挂号单号（前端简单示例）
 function generateRegistrationNo() {

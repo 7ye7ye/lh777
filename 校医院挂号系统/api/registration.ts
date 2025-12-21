@@ -165,13 +165,17 @@ export const getScheduleDetailById = async (scheduleId: number) => {
  */
 export const getPatientDetailById = async (patientId: number) => {
   try {
-    const res = await request.get('/patient/detail', { patientId }) as Result<any>;
+    const res = await request.get(
+      `/patient/detail?patientId=${patientId}`
+    ) as Result<any>;
+
     return res?.result ?? null;
   } catch (error) {
     console.error('获取患者详情失败:', error);
     return null;
   }
 };
+
 
 
 
