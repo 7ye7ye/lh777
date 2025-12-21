@@ -170,4 +170,24 @@ public class RegistrationAppletController {
         }
     }
 
+    @Operation(summary = "根据患者ID获取患者类型")
+    @GetMapping("/patient/type")
+    public Result<Integer> getPatientType(@RequestParam Long patientId) {
+        try {
+            Integer patientType = registrationService.getPatientTypeById(patientId);
+            if (patientType == null) {
+                // 返回统一的 Result 对象
+                return Result.error("未找到患者类型");
+            }
+            // 包装成 Result 对象返回
+            return Result.OK(patientType);
+        } catch (Exception e) {
+            e.printStackTrace();
+            // 返回统一的 Result 对象
+            return Result.error("获取患者类型失败：" + e.getMessage());
+        }
+    }
+
+
+
 }

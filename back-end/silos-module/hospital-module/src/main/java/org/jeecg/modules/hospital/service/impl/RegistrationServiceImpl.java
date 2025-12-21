@@ -401,12 +401,27 @@ public class RegistrationServiceImpl implements RegistrationService {
 
     @Override
     public Patient getPatientDetailById(Long patientId) {
+        System.out.println("查询患者 patientId = " + patientId);
         Patient patient = registrationMapper.selectPatientById(patientId);
+        System.out.println("查询结果 = " + patient);
         if (patient == null) {
             throw new RuntimeException("患者不存在，patientId=" + patientId);
         }
         return patient;
     }
+
+    @Override
+    public int getPatientTypeById(Long patientId) {
+        System.out.println("查询患者类型 patientId = " + patientId);
+        Integer patientType = registrationMapper.selectPatientTypeById(patientId);
+        System.out.println("查询结果 patientType = " + patientType);
+        if (patientType == null) {
+            throw new RuntimeException("患者不存在，patientId=" + patientId);
+        }
+        return patientType;
+    }
+
+
 
 
 
