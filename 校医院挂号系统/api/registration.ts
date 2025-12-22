@@ -184,13 +184,54 @@ export const getScheduleDetailById = async (scheduleId: number) => {
  */
 export const getPatientDetailById = async (patientId: number) => {
   try {
+<<<<<<< HEAD
+    const res = await request.get(`/patient/detail`, { patientId })as Result<any>;
+
+    console.log('患者详情接口原始返回:', res); // ✅ 打印查看完整数据
+
+    if (!res || res.code !== 200) {
+      console.warn('获取患者失败：', res?.message);
+      return null;
+    }
+
+    return res.result ?? null; // 取 result
+=======
     const res = await request.get('/patient/detail', { patientId });
     return res ?? null;
+>>>>>>> main
   } catch (error) {
     console.error('获取患者详情失败:', error);
     return null;
   }
 };
+
+// api/registration.ts
+/**
+ * 根据患者ID获取患者类型
+ * @param patientId 患者ID
+ * @returns number | null
+ */
+export const getPatientTypeById = async (patientId: number): Promise<number | null> => {
+  try {
+    // 直接请求接口
+    const res = await request.get(`/patient/type`, { patientId }) as number;
+
+    // ✅ 直接打印原始返回
+    console.log('患者类型接口原始返回：', res);
+
+    return res; // 直接返回数字类型
+  } catch (error: any) {
+    console.error('获取患者类型失败:', error?.message ?? error);
+    return null;
+  }
+};
+
+
+
+
+
+
+
 
 
 

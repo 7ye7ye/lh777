@@ -96,4 +96,11 @@ public interface RegistrationService {
      */
     Patient getPatientDetailById(Long patientId);
 
+    /**
+     * 根据患者ID获取患者类型
+     * @param patientId 患者ID
+     * @return 患者类型（1-学生，2-教师，3-职工）
+     */
+    int getPatientTypeById(Long patientId);
+
 }

@@ -131,7 +131,8 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
     @Select("SELECT * FROM patient WHERE patient_id = #{patientId}")
     Patient selectPatientById(@Param("patientId") Long patientId);
 
-
+    @Select("SELECT patient_type FROM patient WHERE patient_id = #{patientId}")
+    int selectPatientTypeById(@Param("patientId") Long patientId);
     /**
      * 查询挂号详情（用于消息 / 回执）
      */

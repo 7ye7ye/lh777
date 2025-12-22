@@ -95,6 +95,10 @@ public class DoctorSchedule {
     public String getRoomNumber() { return roomNumber; }
     public void setRoomNumber(String roomNumber) { this.roomNumber = roomNumber; }
 
+<<<<<<< HEAD
+    // 数据库实际字段
+=======
+>>>>>>> main
     @TableField("max_quota")
     private Integer maxQuota;
 
