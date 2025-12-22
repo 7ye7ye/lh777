@@ -677,4 +677,62 @@ public class RegistrationServiceImpl implements RegistrationService {
         };
         return date.toString() + " " + slotText;
     }
+
+    @Override
+    public void sendBatchScheduleCancellationMessages(List<RegistrationRecord> records) {
+        if (records == null || records.isEmpty()) {
+            return;
+        }
+        log.info("开始批量发送排班调整通知，共 {} 条记录", records.size());
+        for (RegistrationRecord record : records) {
+            try {
+                // 跳过非正常预约状态（只通知候补(0)和已预约(1)的用户）
+                // if (record.getStatus() != 1 && record.getStatus() != 0) continue;
+                // 但外面传进来的可能已经是筛选过的，这里再保险起见查一次详情
+
+                RegistrationDetailDTO detail = registrationMapper.selectRegistrationDetail(record.getRecordId());
+                if (detail == null)
+                    continue;
+
+                Message message = new Message();
+                String userId = resolveUserIdForDetail(detail, null);
+
+                if (StringUtils.isBlank(userId)) {
+                    log.warn("无法获取用户ID，跳过通知 sendBatchScheduleCancellationMessages recordId={}", record.getRecordId());
+                    continue;
+                }
+
+                message.setUserId(userId);
+                message.setAppointmentId(String.valueOf(detail.getRecordId()));
+                // 复用 APPOINTMENT_CANCEL 类型以保证前端卡片显示正常
+                message.setMessageType(MESSAGE_TYPE_CANCEL);
+                message.setTitle("排班调整提醒");
+                message.setCreatedTime(LocalDateTime.now());
+                message.setIsRead(false);
+
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("patient_card_no", detail.getPatientCardNo());
+                payload.put("patient_name", detail.getPatientName());
+                payload.put("doctor_name", detail.getDoctorName());
+                payload.put("department_name", detail.getDepartmentName());
+                payload.put("appointment_time", buildAppointmentTime(detail.getScheduleDate(), detail.getTimeSlot()));
+                payload.put("cancel_time", DATE_TIME_FORMATTER.format(LocalDateTime.now()));
+                payload.put("cancel_reason", "医生排班调整");
+                payload.put("hospital_remark", "因医生排班调整，您的预约已被取消，请重新预约");
+
+                try {
+                    message.setContent(objectMapper.writeValueAsString(payload));
+                } catch (JsonProcessingException e) {
+                    log.error("serialize message content failed", e);
+                    message.setContent("{}");
+                }
+
+                boolean saved = messageService.save(message);
+                log.info("排班调整通知已发送 saved={}, userId={}, recordId={}", saved, userId, detail.getRecordId());
+
+            } catch (Exception e) {
+                log.error("发送排班调整通知失败 recordId={}", record.getRecordId(), e);
+            }
+        }
+    }
 }
