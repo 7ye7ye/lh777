@@ -108,7 +108,7 @@ public interface RegistrationService {
      * 批量发送排班取消通知
      * 
      * @param records 挂号记录列表
+     * @param reason  取消/退号原因
      */
-    void sendBatchScheduleCancellationMessages(List<RegistrationRecord> records);
-
+    void sendBatchScheduleCancellationMessages(List<RegistrationRecord> records, String reason);
 }

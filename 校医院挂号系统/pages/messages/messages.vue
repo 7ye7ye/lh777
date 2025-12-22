@@ -21,7 +21,7 @@
 					</view>
 					<view class="card-content">
 						<view class="card-title-line">
-							<text class="card-title" :class="getMessageTitleClass(message.messageType)">
+							<text class="card-title" :class="getMessageTitleClass(message)">
 								{{ getMessageCategory(message.messageType) }}
 							</text>
 							<text class="card-time">{{ formatTime(message.createdTime) }}</text>
@@ -199,6 +199,41 @@
 				}
 			},
 
+			// 新增：专门判断是否为排班调整消息
+			isScheduleChange(message) {
+				if (message.messageType !== 'APPOINTMENT_CANCEL') return false;
+				try {
+					const content = typeof message.content === 'string' ? JSON.parse(message.content) : message.content;
+					return content && (content.cancel_reason === '医生排班调整' || content.cancel_reason === '医生临时停诊');
+				} catch (e) {
+					return false;
+				}
+			},
+
+			// 修改后的 getMessageTitleClass
+			getMessageTitleClass(message) {
+				// 先单独处理排班调整
+				if (this.isScheduleChange(message)) {
+					return 'title-schedule-change';
+				}
+
+				const messageType = message.messageType;
+				switch (messageType) {
+					case 'APPOINTMENT_REMINDER':
+						return 'title-reminder';
+					case 'APPOINTMENT_ONE_HOUR':
+						return 'title-onehour';
+					case 'APPOINTMENT_WAITING_SUCCESS':
+						return 'title-waiting';
+					case 'APPOINTMENT_WAITING_JOIN':
+						return 'title-waiting';
+					case 'APPOINTMENT_CANCEL':
+						return 'title-cancel';
+					default:
+						return '';
+				}
+			},
+
 			// 从后端接口获取消息列表
 			fetchMessageList() {
 				if (this.loading) return;
@@ -334,6 +369,13 @@
 	/* 取消消息标题样式 */
 	.card-title.title-cancel {
 		color: #999;
+	}
+
+	/* 排班调整标题样式 - 醒目红/紫色，区别于普通退号 */
+	.card-title.title-schedule-change {
+		color: #e02f2f;
+		/* 这里的颜色可以根据你需要调整，比如更深一点的红色 */
+		font-weight: 900;
 	}
 
 	.card-time {

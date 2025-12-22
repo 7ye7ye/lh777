@@ -349,7 +349,7 @@ public class DoctorAdjustmentAdminController {
             // 发送排班调整通知
             // 必须在状态更新之前或之后均可，只要能查到userId
             try {
-                registrationService.sendBatchScheduleCancellationMessages(records);
+                registrationService.sendBatchScheduleCancellationMessages(records, "医生排班调整");
             } catch (Exception e) {
                 log.error("批量发送通知失败", e);
             }

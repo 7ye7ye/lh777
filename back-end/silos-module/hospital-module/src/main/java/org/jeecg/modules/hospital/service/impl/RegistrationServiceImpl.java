@@ -679,11 +679,11 @@ public class RegistrationServiceImpl implements RegistrationService {
     }
 
     @Override
-    public void sendBatchScheduleCancellationMessages(List<RegistrationRecord> records) {
+    public void sendBatchScheduleCancellationMessages(List<RegistrationRecord> records, String reason) {
         if (records == null || records.isEmpty()) {
             return;
         }
-        log.info("开始批量发送排班调整通知，共 {} 条记录", records.size());
+        log.info("开始批量发送排班调整通知，共 {} 条记录，原因：{}", records.size(), reason);
         for (RegistrationRecord record : records) {
             try {
                 // 跳过非正常预约状态（只通知候补(0)和已预约(1)的用户）
@@ -717,8 +717,8 @@ public class RegistrationServiceImpl implements RegistrationService {
                 payload.put("department_name", detail.getDepartmentName());
                 payload.put("appointment_time", buildAppointmentTime(detail.getScheduleDate(), detail.getTimeSlot()));
                 payload.put("cancel_time", DATE_TIME_FORMATTER.format(LocalDateTime.now()));
-                payload.put("cancel_reason", "医生排班调整");
-                payload.put("hospital_remark", "因医生排班调整，您的预约已被取消，请重新预约");
+                payload.put("cancel_reason", StringUtils.defaultIfBlank(reason, "医生排班调整"));
+                payload.put("hospital_remark", "因" + StringUtils.defaultIfBlank(reason, "医生排班调整") + "，您的预约已被取消，请重新预约");
 
                 try {
                     message.setContent(objectMapper.writeValueAsString(payload));
