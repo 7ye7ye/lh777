@@ -3,12 +3,12 @@
     <!-- 标题和刷新按钮区域 -->
     <view class="header-section">
       <view class="list-header-wrapper">
-        <view class="header-icon">📋</view>
+        <view class="header-icon">🔄</view>
         <view class="list-header">就诊记录</view>
-        <view class="header-badge" v-if="records.length > 0">{{ records.length }}</view>
+        <view class="header-badge" v-if="filteredRecords.length > 0">{{ filteredRecords.length }}</view>
       </view>
       <view class="header-actions">
-        <button class="refresh-btn small" @click="loadHospitalRecords">
+        <button class="refresh-btn small" @click="loadHospitalRecords" :disabled="loading">
           <text class="refresh-icon">⟳</text>
           <text>刷新</text>
         </button>
@@ -38,13 +38,13 @@
         v-for="tab in filterTabs" 
         :key="tab.value"
         class="filter-tab"
-        :class="{ active: currentFilter === tab.value }"
+        :class="{ active: currentFilter.value === tab.value }"
         @click="changeFilter(tab.value)"
       >
         {{ tab.label }}
       </view>
     </view>
-    
+
     <!-- 日期范围筛选 - 紧凑形式 -->
     <view class="date-filter-compact">
       <view class="date-filter-btn" @click="showDatePicker = true">
@@ -129,12 +129,12 @@
             <text class="info-label">状态</text>
             <text class="info-value status-text">{{ item.statusDisplay }}</text>
           </view>
-          <view class="info-row" v-if="item.appointmentTimeSlot">
-            <text class="info-label">就诊时间段</text>
-            <text class="info-value">{{ item.appointmentTimeSlot }}</text>
+          <view class="info-row">
+            <text class="info-label">挂号时间</text>
+            <text class="info-value">{{ item.displayRegisterTime }}</text>
           </view>
-          <view class="info-row" v-if="item.displayVisitTime && item.displayVisitTime !== '-'">
-            <text class="info-label">实际就诊时间</text>
+          <view class="info-row">
+            <text class="info-label">就诊时间</text>
             <text class="info-value">{{ item.displayVisitTime }}</text>
           </view>
         </view>
@@ -142,25 +142,22 @@
           <view class="detail-section">
             <button class="detail-btn" @click.stop="viewRecordDetail(item)">查看详情</button>
           </view>
-          <!-- 仅非“待就诊”状态才显示转诊相关操作 -->
-          <view class="referral-wrapper" v-if="item.statusKey !== 'pending'">
-            <!-- 可申请转诊 -->
+          <view class="referral-wrapper">
             <button 
-              v-if="item.canRefer && !item.hasReferral" 
+              v-if="item.canRefer && !item.hasSuccessfulReferral" 
               class="small-referral-btn blue-btn" 
               @click.stop="goToReferralApplication(item)"
             >
               申请转诊
             </button>
-            <!-- 已经发生过转诊：改为“查看转诊情况”按钮 -->
-            <button
-              v-else-if="item.hasReferral"
-              class="small-referral-btn blue-btn"
-              @click.stop="goToReferralStatus(item)"
+            <button 
+              v-else-if="item.hasSuccessfulReferral" 
+              class="small-referral-btn blue-btn" 
+              @click.stop="goToReferralDetail(item)"
             >
-              查看转诊情况
+              转诊详情
             </button>
-            <!-- 其它情况（超过5天等） -->
+            <text v-else-if="item.statusDisplay === '待就诊'" class="cannot-refer-text">未就诊，不能转诊</text>
             <text v-else class="cannot-refer-text">超过5天，无法转诊</text>
           </view>
         </view>
@@ -178,11 +175,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { getRegistrationRecords, getScheduleDetailById } from '@/api/registration'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { getRegistrationRecords } from '@/api/registration'
 import { ensurePatientCard } from '@/utils/patientHelper'
 import { getPatientReferralList } from '@/api/referral'
-import http from '@/utils/request'
 
 import { getDoctorDetail } from '@/api/doctor_massage'
 import { getDepartmentDetail } from '@/api/department'
@@ -195,8 +191,9 @@ const selectedPatientId = ref(null)
 const currentFilter = ref('all')
 const doctorDepartmentMap = ref(new Map())
 const userStore = useUserStore()
+const loading = ref(false)
 
-// 日期范围筛选相关变量
+// 日期范围筛选
 const startDate = ref('')
 const endDate = ref('')
 const showDatePicker = ref(false)
@@ -239,24 +236,46 @@ const STATUS_DEFINITIONS = {
     allowReferral: false
   }
 }
-
 // 状态码映射（根据数据库：0-候补；1-已预约；2-已就诊；3-已退号；4-已取消）
-// 注意：状态码3和4需要结合cancel_time和cancel_reason判断，不能仅凭状态码判定为已取消
 const RAW_STATUS_CODE_MAP = new Map([
   ['0', STATUS_DEFINITIONS.pending],   // 候补
   ['1', STATUS_DEFINITIONS.pending],   // 已预约（待就诊）
   ['2', STATUS_DEFINITIONS.completed], // 已就诊（已完成）
-  // '3' 和 '4' 不在这里映射，需要检查 cancel_time 和 cancel_reason
+  ['3', STATUS_DEFINITIONS.cancelled], // 已退号
+  ['4', STATUS_DEFINITIONS.cancelled]  // 已取消
 ])
 
 const STATUS_KEYWORD_RULES = [
-  // 注意：取消状态不再通过关键字匹配，只能通过 cancel_time 和 cancel_reason 判断
+  { regex: /(取消|退号|作废|关闭|失败|拒绝|撤销)/, status: STATUS_DEFINITIONS.cancelled },
   { regex: /(过期|失效)/, status: STATUS_DEFINITIONS.expired },
   { regex: /(完成|成功|已支付|已就诊|诊疗|结束)/, status: STATUS_DEFINITIONS.completed },
   { regex: /(待|未支付|预约|排队|未就诊|确认中)/, status: STATUS_DEFINITIONS.pending }
 ]
 
 const DAY_IN_MS = 1000 * 60 * 60 * 24
+
+// 格式化日期用于显示
+const formatDateForDisplay = (dateStr) => {
+  if (!dateStr) return ''
+  // 如果是 YYYY-MM-DD 格式，转换为 YYYY年MM月DD日
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (match) {
+    return `${match[1]}年${match[2]}月${match[3]}日`
+  }
+  return dateStr
+}
+
+// 解析日期字符串为Date对象（用于比较）
+const parseDate = (dateStr) => {
+  if (!dateStr) return null
+  // 处理各种日期格式
+  const str = String(dateStr).replace('T', ' ').split(' ')[0] // 取日期部分
+  const date = new Date(str)
+  if (isNaN(date.getTime())) return null
+  // 设置为当天的0点0分0秒
+  date.setHours(0, 0, 0, 0)
+  return date
+}
 
 const parseToDate = (value) => {
   if (!value) return null
@@ -286,113 +305,55 @@ const parseToDate = (value) => {
 
 const cloneStatus = (statusDefinition) => ({ ...statusDefinition })
 
-// 根据时间段获取就诊开始时间（小时）
-const getTimeSlotStartHour = (timeSlot) => {
-  const slotNum = Number(timeSlot)
-  if (slotNum === 1) return 8   // 上午 08:00
-  if (slotNum === 2) return 14  // 下午 14:00
-  if (slotNum === 3) return 18  // 晚上 18:00
-  return null
-}
+const resolveStatusInfo = (rawStatusValue, visitTimeStr, registerTimeStr) => {
+		const rawText = String(rawStatusValue ?? '').trim()
+		// 只使用visitTimeStr，不使用registerTimeStr作为备选，因为registerTimeStr是挂号时间，不是就诊时间
+		const visitDate = parseToDate(visitTimeStr)
+		const now = new Date()
 
-// 根据排班日期和时段构建就诊时间
-const buildAppointmentTime = (scheduleDateStr, timeSlot) => {
-  if (!scheduleDateStr || !timeSlot) return null
-  
-  const scheduleDate = parseToDate(scheduleDateStr)
-  if (!scheduleDate) return null
-  
-  const startHour = getTimeSlotStartHour(timeSlot)
-  if (startHour === null) return null
-  
-  const appointmentTime = new Date(scheduleDate)
-  appointmentTime.setHours(startHour, 0, 0, 0)
-  return appointmentTime
-}
+		// 优先处理取消状态
+		if (rawText && /(取消|退号|作废|关闭|失败|拒绝|撤销)/.test(rawText)) {
+			return cloneStatus(STATUS_DEFINITIONS.cancelled)
+		}
+		
+		// 优先处理过期状态
+		if (rawText && /(过期|失效)/.test(rawText)) {
+			return cloneStatus(STATUS_DEFINITIONS.expired)
+		}
 
-const resolveStatusInfo = (rawStatusValue, visitTimeStr, registerTimeStr, scheduleDateStr = null, timeSlot = null, cancelTime = null, cancelReason = null) => {
-  const rawText = String(rawStatusValue ?? '').trim()
-  const now = new Date()
+		// 如果有就诊时间，优先根据时间判定状态
+		if (visitDate) {
+			if (now < visitDate) {
+				// 未来的就诊，应该是待就诊
+				return cloneStatus(STATUS_DEFINITIONS.pending)
+			}
+			const diffDays = (now.getTime() - visitDate.getTime()) / DAY_IN_MS
+			if (diffDays <= 5) {
+				return cloneStatus(STATUS_DEFINITIONS.completed)
+			}
+			return cloneStatus(STATUS_DEFINITIONS.expired)
+		}
 
-  // 优先检查是否取消（取消状态优先级最高）
-  // 只有 cancel_time 和 cancel_reason 都有合理数值时，才判定为已取消
-  const hasCancelTime = cancelTime && String(cancelTime).trim() !== ''
-  const hasCancelReason = cancelReason && String(cancelReason).trim() !== ''
-  
-  if (hasCancelTime && hasCancelReason) {
-    return cloneStatus(STATUS_DEFINITIONS.cancelled)
-  }
+		// 然后才根据状态码判定
+		if (RAW_STATUS_CODE_MAP.has(rawText)) {
+			return cloneStatus(RAW_STATUS_CODE_MAP.get(rawText))
+		}
 
-  // 优先检查是否有实际就诊时间（如果有实际就诊时间，说明已经就诊过，应判定为已完成）
-  // 这个检查要在状态码映射之前，确保有实际就诊时间的记录不会被错误判定
-  const visitDate = parseToDate(visitTimeStr)
-  if (visitDate) {
-    // 拥有实际就诊时间的应被判定为已就诊（已完成）
-    // 判断是否超过5天
-    const diffDays = (now.getTime() - visitDate.getTime()) / DAY_IN_MS
-    if (diffDays <= 5) {
-      return cloneStatus(STATUS_DEFINITIONS.completed)
-    }
-    // 超过5天 → 已过期
-    return cloneStatus(STATUS_DEFINITIONS.expired)
-  }
+		if (rawText && RAW_STATUS_CODE_MAP.has(String(Number(rawText)))) {
+			return cloneStatus(RAW_STATUS_CODE_MAP.get(String(Number(rawText))))
+		}
 
-  // 检查排班时间：如果已经超过预约的排班中规定的就诊时间，也判定为"已完成"
-  // 这个检查要在状态码映射之前，确保即使状态码是"待就诊"，超过排班时间也会被判定为"已完成"
-  if (scheduleDateStr && timeSlot) {
-    const appointmentTime = buildAppointmentTime(scheduleDateStr, timeSlot)
-    if (appointmentTime) {
-      // 如果当前时间已经超过排班时间 → 已就诊（已完成）
-      if (now >= appointmentTime) {
-        // 判断是否超过5天
-        const diffDays = (now.getTime() - appointmentTime.getTime()) / DAY_IN_MS
-        if (diffDays <= 5) {
-          return cloneStatus(STATUS_DEFINITIONS.completed)
-        }
-        // 超过5天 → 已过期
-        return cloneStatus(STATUS_DEFINITIONS.expired)
-      }
-      // 如果当前时间还没到排班时间 → 待就诊（但继续后续判断，可能被状态码覆盖）
-    }
-  }
+		// 最后根据关键字规则判定
+		if (rawText) {
+			for (const rule of STATUS_KEYWORD_RULES) {
+				if (rule.regex.test(rawText)) {
+					return cloneStatus(rule.status)
+				}
+			}
+		}
 
-  // 如果状态码是3或4，但没有取消时间和原因，不判定为已取消
-  // 状态码3（已退号）和4（已取消）需要同时有cancel_time和cancel_reason才能判定为已取消
-  if (rawText === '3' || rawText === '4' || rawText === 3 || rawText === 4) {
-    // 如果没有取消时间和原因，根据其他信息判断状态
-    // 继续后续判断逻辑
-  } else {
-    // 对于其他状态码，使用状态码映射
-    // 注意：如果已经通过排班时间判定为"已完成"，上面的逻辑已经返回了
-    // 这里只处理还没有被排班时间判定的情况
-    if (RAW_STATUS_CODE_MAP.has(rawText)) {
-      return cloneStatus(RAW_STATUS_CODE_MAP.get(rawText))
-    }
-
-    if (rawText && RAW_STATUS_CODE_MAP.has(String(Number(rawText)))) {
-      return cloneStatus(RAW_STATUS_CODE_MAP.get(String(Number(rawText))))
-    }
-  }
-  
-  // 如果没有取消时间和原因，再检查状态文本关键字
-  if (rawText) {
-    if (/(过期|失效)/.test(rawText)) {
-      return cloneStatus(STATUS_DEFINITIONS.expired)
-    }
-  }
-
-  // 根据关键字匹配状态
-  if (rawText) {
-    for (const rule of STATUS_KEYWORD_RULES) {
-      if (rule.regex.test(rawText)) {
-        return cloneStatus(rule.status)
-      }
-    }
-  }
-
-  // 默认：如果没有就诊时间和排班信息，默认视为待就诊
-  return cloneStatus(STATUS_DEFINITIONS.pending)
-}
+		return cloneStatus(STATUS_DEFINITIONS.pending)
+	}
 
 const pickStringValue = (obj, paths) => {
   for (const path of paths) {
@@ -607,6 +568,8 @@ const ensurePatientId = async () => {
 }
 
 const loadHospitalRecords = async () => {
+  if (loading.value) return
+  loading.value = true
   try {
     uni.showLoading({ title: '加载中...' })
     
@@ -632,10 +595,50 @@ const loadHospitalRecords = async () => {
     const recordsWithDepartment = await processRecordsDepartments(list)
     list = recordsWithDepartment
     
-    // 先映射记录，同时收集需要查询排班信息的记录
-    const recordsNeedingScheduleInfo = []
+    // 获取所有转诊记录，用于检查就诊记录是否已有成功的转诊
+    let referralMap = new Map()
+    try {
+      const referralParams = {
+        pageNo: 1,
+        pageSize: 1000 // 获取足够多的记录
+      }
+      const referralRes = await getPatientReferralList(referralParams)
+      
+      let referralList = []
+      if (Array.isArray(referralRes?.result?.records)) {
+        referralList = referralRes.result.records
+      } else if (Array.isArray(referralRes?.records)) {
+        referralList = referralRes.records
+      } else if (Array.isArray(referralRes?.data?.records)) {
+        referralList = referralRes.data.records
+      } else if (Array.isArray(referralRes?.data)) {
+        referralList = referralRes.data
+      } else if (Array.isArray(referralRes?.result)) {
+        referralList = referralRes.result
+      } else if (Array.isArray(referralRes)) {
+        referralList = referralRes
+      }
+      
+      // 构建转诊记录映射：registrationRecordId -> 转诊记录
+      referralList.forEach(ref => {
+        const registrationId = ref.registrationRecordId || ref.registration_record_id
+        const status = (ref.status || '').toUpperCase()
+        // 只记录成功的转诊（已批准）
+        if (registrationId && status === 'APPROVED') {
+          const recordId = Number(registrationId)
+          if (!referralMap.has(recordId)) {
+            referralMap.set(recordId, {
+              id: ref.id || ref.referralId,
+              status: status
+            })
+          }
+        }
+      })
+    } catch (error) {
+      console.warn('获取转诊记录失败:', error)
+    }
     
-    records.value = list.map((item, index) => {
+    records.value = list.map(item => {
       const deptName = (item.departmentName || '').trim()
       const doctorName = pickStringValue(item, [
         'doctorName',
@@ -654,40 +657,18 @@ const loadHospitalRecords = async () => {
       const displayRegisterTime = formatDateTimeForDisplay(rawRegisterTime)
       const displayVisitTime = formatDateTimeForDisplay(rawVisitTime)
       const displayTimeSlot = item.timeSlot || item.time_slot || item.appointmentTimeSlot || displayVisitTime || '-'
+      const statusInfo = resolveStatusInfo(rawStatus, rawVisitTime, rawRegisterTime)
       
-      // 获取排班信息用于状态判断
-      const scheduleDateStr = item.scheduleDate || item.schedule_date || item.scheduleDateStr || null
-      const timeSlot = item.timeSlot || item.time_slot || null
-      const scheduleId = item.scheduleId || item.schedule_id || null
+      // 检查是否已有成功的转诊记录
+      const recordId = Number(item.recordId || item.id)
+      const referralInfo = referralMap.get(recordId)
+      const hasSuccessfulReferral = !!referralInfo
       
-      // 获取取消相关字段
-      const cancelTime = item.cancelTime || item.cancel_time || null
-      const cancelReason = item.cancelReason || item.cancel_reason || null
-      
-      // 对于所有有scheduleId的记录，都尝试查询排班详情以确保时间段能正确显示
-      const needsScheduleInfo = scheduleId !== null && scheduleId !== undefined
-      
-      const statusInfo = resolveStatusInfo(rawStatus, rawVisitTime, rawRegisterTime, scheduleDateStr, timeSlot, cancelTime, cancelReason)
-      
-      // 构建就诊时间段显示（如果有排班信息）
-      let appointmentTimeSlot = null
-      if (scheduleDateStr && timeSlot) {
-        const timeSlotText = timeSlot === 1 ? '上午' : timeSlot === 2 ? '下午' : timeSlot === 3 ? '晚上' : ''
-        if (timeSlotText) {
-          // 格式化日期：将 YYYY-MM-DD 转换为 YYYY年MM月DD日
-          const dateStr = String(scheduleDateStr).substring(0, 10)
-          const dateParts = dateStr.split('-')
-          if (dateParts.length === 3) {
-            appointmentTimeSlot = `${dateParts[0]}年${dateParts[1]}月${dateParts[2]}日 ${timeSlotText}`
-          } else {
-            appointmentTimeSlot = `${dateStr} ${timeSlotText}`
-          }
-        }
-      }
+      // 如果有成功的转诊记录，强制将状态设置为已完成
+      const finalStatusInfo = hasSuccessfulReferral ? STATUS_DEFINITIONS.completed : statusInfo
 
-      const record = {
+      return {
         id: item.recordId || item.id,
-        patientId: item.patientId || item.patient_id || null,
         department: deptName || '-',
         departmentId: item.departmentId || item.deptId || item.dept_id || null,
         doctor: resolvedDoctor || '-',
@@ -697,97 +678,21 @@ const loadHospitalRecords = async () => {
         displayRegisterTime,
         displayVisitTime,
         timeSlot: displayTimeSlot,
-        appointmentTimeSlot: appointmentTimeSlot, // 就诊时间段
         status: rawStatus,
-        statusDisplay: statusInfo.label,
-        normalizedStatus: statusInfo.label,
-        statusCode: statusInfo.code,
-        statusKey: statusInfo.key,
-        statusDescription: statusInfo.description,
+        statusDisplay: finalStatusInfo.label,
+        normalizedStatus: finalStatusInfo.label,
+        statusCode: finalStatusInfo.code,
+        statusKey: finalStatusInfo.key,
+        statusDescription: finalStatusInfo.description,
         recordNumber: recordNumber,
         recordNumberDisplay: recordNumber || '无编号',
         canRefer: statusInfo.allowReferral,
-        hasReferral: false, // 标记是否已申请过转诊
-        originalRecord: item,
-        scheduleId: scheduleId,
-        scheduleDateStr: scheduleDateStr,
-        timeSlotValue: timeSlot,
-        cancelTime: cancelTime,
-        cancelReason: cancelReason
+        hasSuccessfulReferral: hasSuccessfulReferral,
+        referralId: referralInfo?.id || null,
+        patientId: item.patientId || item.patient_id || patientId, // 确保使用就诊记录中的patientId
+        originalRecord: item
       }
-      
-      if (needsScheduleInfo) {
-        recordsNeedingScheduleInfo.push({ recordIndex: index, scheduleId: scheduleId })
-      }
-      
-      return record
     })
-    
-    // 对于需要查询排班信息的记录，异步查询并更新状态
-    if (recordsNeedingScheduleInfo.length > 0) {
-      const updatePromises = recordsNeedingScheduleInfo.map(async ({ recordIndex, scheduleId }) => {
-        try {
-          // 使用 getScheduleDetailById 获取排班详情原始数据，以便获取数字类型的timeSlot
-          const res = await getScheduleDetailById(scheduleId)
-          const schedule = res?.result || res?.data || res
-          
-          if (schedule && schedule.schedule_date) {
-            const record = records.value[recordIndex]
-            const scheduleDateStr = schedule.schedule_date || schedule.scheduleDate
-            // 从原始响应中获取数字类型的 timeSlot
-            const timeSlot = schedule.time_slot || schedule.timeSlot || record.timeSlotValue
-            
-            // 从记录中获取取消相关字段
-            const cancelTime = record.cancelTime || record.originalRecord?.cancelTime || record.originalRecord?.cancel_time || null
-            const cancelReason = record.cancelReason || record.originalRecord?.cancelReason || record.originalRecord?.cancel_reason || null
-            
-            // 重新计算状态（使用更新后的排班信息）
-            const updatedStatusInfo = resolveStatusInfo(
-              record.status,
-              record.visitTime,
-              record.registerTime,
-              scheduleDateStr,
-              timeSlot,
-              cancelTime,
-              cancelReason
-            )
-            
-            // 更新记录状态
-            record.statusDisplay = updatedStatusInfo.label
-            record.normalizedStatus = updatedStatusInfo.label
-            record.statusCode = updatedStatusInfo.code
-            record.statusKey = updatedStatusInfo.key
-            record.statusDescription = updatedStatusInfo.description
-            record.canRefer = updatedStatusInfo.allowReferral
-            record.scheduleDateStr = scheduleDateStr
-            record.timeSlotValue = timeSlot
-            
-            // 更新就诊时间段显示（根据排班日期和时间段构建）
-            if (scheduleDateStr && timeSlot) {
-              const timeSlotText = timeSlot === 1 ? '上午' : timeSlot === 2 ? '下午' : timeSlot === 3 ? '晚上' : ''
-              if (timeSlotText) {
-                // 格式化日期：将 YYYY-MM-DD 转换为 YYYY年MM月DD日
-                const dateStr = String(scheduleDateStr).substring(0, 10)
-                const dateParts = dateStr.split('-')
-                if (dateParts.length === 3) {
-                  record.appointmentTimeSlot = `${dateParts[0]}年${dateParts[1]}月${dateParts[2]}日 ${timeSlotText}`
-                } else {
-                  record.appointmentTimeSlot = `${dateStr} ${timeSlotText}`
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.warn(`查询排班详情失败 (scheduleId: ${scheduleId}):`, error)
-        }
-      })
-      
-      // 等待所有排班信息查询完成
-      await Promise.all(updatePromises)
-    }
-    
-    // 检查每个就诊记录是否已申请过转诊
-    await checkReferralStatus()
 
     if (records.value.length === 0) {
       uni.showToast({
@@ -810,88 +715,12 @@ const loadHospitalRecords = async () => {
     })
   } finally {
     uni.hideLoading()
-  }
-}
-
-// 检查每个就诊记录是否已申请过转诊
-const checkReferralStatus = async () => {
-  if (!records.value || records.value.length === 0) {
-    return
-  }
-  
-  try {
-    // 查询所有转诊记录
-    const referralParams = {
-      pageNo: 1,
-      pageSize: 100 // 获取足够多的记录
-    }
-    const referralRes = await getPatientReferralList(referralParams)
-    
-    let referralList = []
-    if (Array.isArray(referralRes?.records)) {
-      referralList = referralRes.records
-    } else if (Array.isArray(referralRes?.result?.records)) {
-      referralList = referralRes.result.records
-    } else if (Array.isArray(referralRes?.data?.records)) {
-      referralList = referralRes.data.records
-    } else if (Array.isArray(referralRes)) {
-      referralList = referralRes
-    }
-    
-    // 创建就诊记录ID到转诊记录的映射（排除已取消和已拒绝的）
-    const recordIdToReferralMap = new Map()
-    referralList.forEach(referral => {
-      const registrationId = referral.registrationRecordId || referral.registration_record_id
-      const status = (referral.status || '').toUpperCase()
-      
-      // 只统计非取消和非拒绝的转诊申请
-      if (registrationId && status !== 'CANCELLED' && status !== 'REJECTED') {
-        recordIdToReferralMap.set(Number(registrationId), referral)
-      }
-    })
-    
-    // 更新每个就诊记录的转诊状态，并记录对应的转诊ID，便于“查看转诊情况”
-    records.value.forEach(record => {
-      const recordId = Number(record.id)
-      const referral = recordIdToReferralMap.get(recordId)
-      if (referral) {
-        record.hasReferral = true
-        record.canRefer = false // 已申请过转诊，不能再次申请
-        // 保存关联的转诊记录ID，供“查看转诊情况”使用
-        record.referralId = referral.id || referral.referralId || null
-      }
-    })
-  } catch (error) {
-    console.warn('检查转诊状态失败:', error)
-    // 检查失败不影响显示，允许用户尝试申请
+    loading.value = false
   }
 }
 
 const changeFilter = (filterValue) => {
   currentFilter.value = filterValue
-}
-
-// 格式化日期用于显示
-const formatDateForDisplay = (dateStr) => {
-  if (!dateStr) return ''
-  // 如果是 YYYY-MM-DD 格式，转换为 YYYY年MM月DD日
-  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/)
-  if (match) {
-    return `${match[1]}年${match[2]}月${match[3]}日`
-  }
-  return dateStr
-}
-
-// 解析日期字符串为Date对象（用于比较）
-const parseDate = (dateStr) => {
-  if (!dateStr) return null
-  // 处理各种日期格式
-  const str = String(dateStr).replace('T', ' ').split(' ')[0] // 取日期部分
-  const date = new Date(str)
-  if (isNaN(date.getTime())) return null
-  // 设置为当天的0点0分0秒
-  date.setHours(0, 0, 0, 0)
-  return date
 }
 
 // 开始日期变化
@@ -953,22 +782,16 @@ const handleResetDateRange = () => {
   })
 }
 
-// 检查记录是否在日期范围内
-// 优先按排班日期（预约日期）筛选，其次才按挂号时间/就诊时间
+// 检查就诊记录是否在日期范围内
 const isRecordInDateRange = (record) => {
   if (!startDate.value && !endDate.value) {
-    return true // 没有设置日期范围，显示所有
+    return true // 没有设置日期范围，显示所有记录，包括没有日期信息的记录
   }
   
-  // 优先使用排班日期（scheduleDateStr）作为比较基准
-  // 如果没有排班日期，再使用挂号时间 / 就诊时间
-  const recordDateStr =
-    record.scheduleDateStr ||
-    record.registerTime ||
-    record.visitTime ||
-    record.displayRegisterTime
-  if (!recordDateStr || recordDateStr === '-') {
-    return false // 没有日期信息，不显示
+  // 使用就诊时间作为比较基准
+  const recordDateStr = record.registerTime || record.consultationTime || record.createTime || ''
+  if (!recordDateStr) {
+    return false // 有日期筛选但记录没有日期信息，不显示
   }
   
   const recordDate = parseDate(recordDateStr)
@@ -995,55 +818,23 @@ const isRecordInDateRange = (record) => {
   return true
 }
 
+// 过滤就诊记录
 const filteredRecords = computed(() => {
-  let filtered = records.value
-  
-  // 按状态筛选
-  if (currentFilter.value !== 'all') {
-    filtered = filtered.filter(record => record.normalizedStatus === currentFilter.value)
-  }
-  
-  // 按日期范围筛选
-  filtered = filtered.filter(record => isRecordInDateRange(record))
-  
-  return filtered
+  return records.value.filter(record => {
+    // 状态筛选
+    if (currentFilter.value !== 'all' && record.statusDisplay !== currentFilter.value) {
+      return false
+    }
+    
+    // 日期范围筛选
+    return isRecordInDateRange(record)
+  })
 })
 
 const viewRecordDetail = (record) => {
   uni.navigateTo({
     url: `/subpkg/profile/records/hospital-record-detail?record=${encodeURIComponent(JSON.stringify(record))}`
   })
-}
-
-// 查看某条就诊记录对应的转诊情况
-const goToReferralStatus = (record) => {
-  try {
-    const referralId = record?.referralId
-    if (!referralId) {
-      uni.showToast({
-        title: '未找到对应的转诊记录',
-        icon: 'none'
-      })
-      return
-    }
-    
-    uni.navigateTo({
-      url: `/subpkg/hospital/referral-detail?id=${referralId}`,
-      fail: (error) => {
-        console.error('跳转转诊详情页面失败:', error)
-        uni.showToast({
-          title: '跳转失败，请重试',
-          icon: 'none'
-        })
-      }
-    })
-  } catch (error) {
-    console.error('查看转诊情况失败:', error)
-    uni.showToast({
-      title: '操作失败，请重试',
-      icon: 'none'
-    })
-  }
 }
 
 const updateCurrentPatientInfo = async (patientId) => {
@@ -1117,115 +908,51 @@ const goToReferralApplication = async (record) => {
       return
     }
     
-    // 获取就诊记录的原始数据（与就诊详情页保持一致）
-    const originalRecord = record.originalRecord || record
+    // 确保使用就诊记录中的patientId，而不是当前登录用户的patientId
+    const recordPatientId = record.patientId || record.originalRecord?.patientId || record.originalRecord?.patient_id
     
-    // 优先从就诊记录的originalRecord中获取patientId（这是最准确的）
-    let patientId = originalRecord.patientId || originalRecord.patient_id || record.patientId || null
     let patientName = ''
-    let patientPhone = ''
-    let patientGender = ''
-    let patientAge = ''
+    let patientInfo = null
     
-    // 如果没有patientId，使用当前选择的就诊人ID
-    if (!patientId && selectedPatientId.value) {
-      patientId = selectedPatientId.value
-    }
-    
-    // 根据patientId获取该就诊人的就诊卡信息（这是关键！与就诊详情页逻辑一致）
-    if (patientId) {
+    // 如果就诊记录中有patientId，使用该patientId获取患者信息
+    if (recordPatientId) {
       try {
-        const cardData = await patientApi.getCard({ patientId: patientId })
-        if (cardData && cardData.patientId) {
-          patientName = cardData.patientName || cardData.name || ''
-          patientPhone = cardData.phone || ''
-          patientGender = cardData.gender || ''
-          
-          // 计算年龄
-          if (cardData.birthDate) {
-            const birthDate = new Date(cardData.birthDate)
-            const now = new Date()
-            const age = now.getFullYear() - birthDate.getFullYear()
-            const monthDiff = now.getMonth() - birthDate.getMonth()
-            if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birthDate.getDate())) {
-              patientAge = String(age - 1)
-            } else {
-              patientAge = String(age)
-            }
-          }
-          
-          console.log('根据patientId获取就诊卡信息成功:', { patientId, patientName, patientPhone, patientGender, patientAge })
-        }
-      } catch (cardError) {
-        console.warn('根据patientId获取就诊卡信息失败:', cardError)
-      }
-    }
-    
-    // 如果还是没有patientName，尝试从就诊人列表获取
-    if (!patientName && patientId) {
-      try {
-        const patientList = await fetchPatientList()
-        const matchedPatient = patientList.find(p => Number(p.patientId) === Number(patientId))
-        if (matchedPatient) {
-          patientName = matchedPatient.patientName || matchedPatient.name || ''
-          if (!patientPhone) {
-            patientPhone = matchedPatient.phone || ''
-          }
-          if (!patientGender) {
-            patientGender = matchedPatient.gender || ''
-          }
-          if (!patientAge && matchedPatient.age) {
-            patientAge = String(matchedPatient.age)
-          }
-        }
+        patientInfo = await patientApi.getPatientDetail({ patientId: recordPatientId })
+        patientName = patientInfo?.patientName || patientInfo?.name || ''
+        console.log('使用就诊记录中的patientId获取患者信息:', recordPatientId, patientName)
       } catch (error) {
-        console.warn('获取就诊人列表失败:', error)
+        console.warn('根据就诊记录patientId获取患者信息失败:', error)
       }
     }
     
-    // 如果还是没有，使用当前就诊人的姓名作为备选
-    if (!patientName && currentPatientInfo.value.name) {
-      patientName = currentPatientInfo.value.name
-    }
-    
-    // 构建转诊数据，与就诊详情页保持一致
-    // 确保 originalRecord 中包含正确的 patientId（与就诊详情页逻辑一致）
-    const enhancedOriginalRecord = {
-      ...originalRecord,
-      patientId: patientId || originalRecord.patientId || originalRecord.patient_id || null,
-      patient_id: patientId || originalRecord.patient_id || originalRecord.patientId || null
-    }
-    
-    // 构建完整的原始记录对象，包含所有必要字段（参考就诊详情页的 record.value）
-    const completeOriginalRecord = {
-      ...enhancedOriginalRecord,
-      id: record.id,
-      recordId: record.id,
-      patientId: patientId,
-      patient_id: patientId,
-      visitTime: record.visitTime || record.displayVisitTime || '',
-      department: record.department || record.departmentName || '',
-      departmentId: record.departmentId || originalRecord.departmentId || null,
-      doctor: record.doctor || record.doctorName || '',
-      doctorId: originalRecord.doctorId || record.doctorId || null
+    // 如果获取失败，尝试使用当前登录用户的就诊卡
+    if (!patientName) {
+      try {
+        const card = await ensurePatientCard()
+        patientName = card?.patientName || card?.name || ''
+        console.log('使用当前登录用户的就诊卡信息:', patientName)
+      } catch (error) {
+        console.warn('获取患者信息失败:', error)
+      }
     }
     
     const referralData = {
       recordId: record.id,
+      patientName: patientName,
+      patientId: recordPatientId, // 传递就诊记录中的patientId
+      department: record.department,
+      doctor: record.doctor,
+      visitTime: record.visitTime,
       visitId: record.id,
-      patientId: patientId, // 直接传递patientId
-      patientName: patientName, // 直接传递patientName（从就诊卡获取）
-      department: record.department || record.departmentName || '',
-      doctor: record.doctor || record.doctorName || '',
-      visitTime: record.visitTime || record.displayVisitTime || '',
-      diagnosis: originalRecord.diagnosis || '',
-      // 传递完整的原始记录，确保包含patientId（与就诊详情页保持一致）
-      originalRecord: completeOriginalRecord
+      originalRecord: {
+        ...(record.originalRecord || record),
+        patientId: recordPatientId, // 确保originalRecord中包含正确的patientId
+        patient_id: recordPatientId
+      }
     }
     
-    console.log('跳转到转诊申请，传递的数据:', referralData)
-    console.log('就诊记录关联的patientId:', patientId)
-    console.log('就诊记录关联的patientName:', patientName)
+    console.log('转诊申请数据:', referralData)
+    
     const encodedData = encodeURIComponent(JSON.stringify(referralData))
     
     uni.navigateTo({
@@ -1250,8 +977,43 @@ const goToReferralApplication = async (record) => {
   }
 }
 
+// 跳转到转诊详情
+const goToReferralDetail = (record) => {
+  if (!record || !record.referralId) {
+    uni.showToast({
+      title: '转诊记录信息不完整',
+      icon: 'none'
+    })
+    return
+  }
+  
+  uni.navigateTo({
+    url: `/subpkg/hospital/referral-detail?id=${record.referralId}`,
+    fail: (error) => {
+      console.error('跳转转诊详情失败:', error)
+      uni.showToast({
+        title: '跳转失败，请重试',
+        icon: 'none'
+      })
+    }
+  })
+}
+
+// 事件监听回调函数
+const handleRefreshRecords = () => {
+  console.log('收到刷新就诊记录事件')
+  loadHospitalRecords()
+}
+
 onMounted(() => {
   loadHospitalRecords()
+  // 监听自动挂号成功事件，刷新就诊记录
+  uni.$on('refreshHospitalRecords', handleRefreshRecords)
+})
+
+onUnmounted(() => {
+  // 移除事件监听，避免内存泄漏
+  uni.$off('refreshHospitalRecords', handleRefreshRecords)
 })
 </script>
 
@@ -1433,11 +1195,6 @@ onMounted(() => {
   padding: 32rpx;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
-  position: relative;
-}
-
-.record-card::after {
-  display: none !important;
 }
 
 .record-card:active {
@@ -1519,11 +1276,6 @@ onMounted(() => {
   font-size: 28rpx;
   flex: 1;
   text-align: right;
-}
-
-.info-value::after {
-  display: none !important;
-  content: none !important;
 }
 
 .info-value.doctor-name {
@@ -1629,7 +1381,10 @@ onMounted(() => {
 
 .refresh-btn.small:active {
   background-color: rgba(255, 255, 255, 0.35);
-  opacity: 0.9;
+}
+
+.refresh-btn.small:disabled {
+  opacity: 0.5;
 }
 
 .refresh-btn .refresh-icon {

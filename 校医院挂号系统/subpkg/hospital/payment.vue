@@ -53,6 +53,7 @@
 </template>
 
 <script setup>
+<<<<<<< HEAD
 import {
 	ref,
 	onMounted
@@ -68,17 +69,28 @@ import {
 	getPatientTypeById // ✅ 新增接口
 } from '../../api/registration'
 
+=======
+import { ref, onMounted } from 'vue'
+import { createRegistration } from '../../api/registration' // 挂号接口
+import { getRegistrationTypes } from '../../api/registration'
+import { ensurePatientCard } from '@/utils/patientHelper'
+>>>>>>> main
 
 // ------------------ 挂号信息 ------------------
 const dept = ref('')
 const doctor = ref('')
 const time = ref('')
+<<<<<<< HEAD
 const originalFee = 50 // 挂号原价
 const fee = ref(0) // 实际支付金额
 const patientType = ref(0) // 患者类型
+=======
+const fee = ref(0)
+>>>>>>> main
 const doctorId = ref(null)
 const typeId = ref(null)
 const scheduleId = ref(null)
+const deptId = ref(null)
 const currentPatient = ref(null)
 const deptId = ref(0)
 
@@ -89,6 +101,23 @@ const patientTypeList = ref([
   { value: 3, label: '职工', icon: '/static/icons/staff.png' }
 ])
 
+
+const loadFeeByTypeId = async () => {
+  const resolvedTypeId = Number(typeId.value || 0)
+  if (!resolvedTypeId) {
+    fee.value = 0
+    return
+  }
+  try {
+    const res = await getRegistrationTypes()
+    const types = Array.isArray(res?.result) ? res.result : Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+    const found = types.find(t => Number(t?.typeId ?? t?.type_id ?? t?.id) === resolvedTypeId)
+    const price = found?.priceOriginal ?? found?.price_original
+    fee.value = price != null ? Number(price) : 0
+  } catch (e) {
+    fee.value = 0
+  }
+}
 
 // ------------------ 支付方式 ------------------
 const paymentMethods = ref([{
@@ -171,6 +200,7 @@ onMounted(() => {
 	    return
 	  }
 
+<<<<<<< HEAD
 	  patientType.value = type
 	  fee.value = calculateFeeByPatientType(patientType.value)
 	}
@@ -213,6 +243,16 @@ onMounted(() => {
 		deptId: options.deptId,
 		patientId: patientIdFromRoute
 	})
+=======
+  doctorId.value = Number(options.doctorId || 0)
+  typeId.value = Number(options.typeId || 0)
+  scheduleId.value = Number(options.scheduleId || 0)
+  deptId.value = Number(options.deptId || 0)
+  
+  console.log('支付页接收参数:', { dept: options.dept, doctor: options.doctor, time: options.time, doctorId: options.doctorId, typeId: options.typeId, scheduleId: options.scheduleId, deptId: options.deptId })
+  loadFeeByTypeId()
+  loadPatientInfo()
+>>>>>>> main
 })
 
 
@@ -260,6 +300,7 @@ const onPay = async () => {
 			duration: 1500
 		})
 
+<<<<<<< HEAD
 		const record = {
 		  scheduleId: scheduleId.value,
 		  patientId,
@@ -272,6 +313,19 @@ const onPay = async () => {
 		  actualPrice: fee.value,
 		  isAdd: 0
 		}
+=======
+    // 构建挂号记录对象
+    const record = {
+      scheduleId: scheduleId.value,
+      patientId,
+      doctorId: doctorId.value,
+      typeId: typeId.value,
+      registrationNo: generateRegistrationNo(), // 前端生成或后端生成都可以
+      registerTime: formatLocalDateTime(new Date()), // YYYY-MM-DD HH:mm:ss
+      status: 1, // 已预约
+      isAdd: 0 // 正常号
+    }
+>>>>>>> main
 
 
 		try {

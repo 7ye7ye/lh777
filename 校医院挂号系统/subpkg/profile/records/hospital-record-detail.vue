@@ -20,6 +20,10 @@
           <text class="info-label">就诊时间段</text>
           <text class="info-value">{{ appointmentTimeSlot }}</text>
         </view>
+        <view class="info-row-full" v-if="appointmentTime">
+          <text class="info-label">就诊时间</text>
+          <text class="info-value">{{ appointmentTime }}</text>
+        </view>
         <view class="info-row-full" v-if="record?.visitTime && formatTime(record.visitTime) !== '-'">
           <text class="info-label">实际就诊时间</text>
           <text class="info-value">{{ formatTime(record.visitTime) }}</text>
@@ -87,7 +91,7 @@
     <view class="action-section">
       <button v-if="canRefer && !hasReferral" class="action-btn referral-btn" @click="goToReferral">申请转诊</button>
       <button v-else-if="hasReferral" class="action-btn referral-btn" @click="goToReferralStatus">查看转诊情况</button>
-      <text v-else-if="statusDisplay === '待就诊'" class="action-btn cannot-refer-btn">未就诊，无转诊权限</text>
+      <text v-else-if="statusDisplay === '待就诊'" class="action-btn cannot-refer-btn">未就诊，不能转诊</text>
       <text v-else class="action-btn cannot-refer-btn">超过5天，无法转诊</text>
     </view>
   </view>
@@ -162,6 +166,7 @@ const hasReferral = ref(false)
 const doctorName = ref('')
 const departmentName = ref('-')
 const appointmentTimeSlot = ref('') // 就诊时间段
+const appointmentTime = ref('') // 就诊时间（具体时间点）
 const statusDisplay = ref('') // 解析后的状态显示文本
 
 // 转换日期字符串为iOS兼容格式
@@ -249,8 +254,48 @@ const getTimeSlotStartHour = (timeSlot) => {
   return null
 }
 
-// 根据排班日期和时段构建就诊时间
-const buildAppointmentTime = (scheduleDateStr, timeSlot) => {
+// 根据时间段获取完整的时间范围文本
+const getTimeSlotRange = (timeSlot) => {
+  const slotNum = Number(timeSlot)
+  if (slotNum === 1) return '08:00-12:00'  // 上午
+  if (slotNum === 2) return '14:00-17:00'  // 下午
+  if (slotNum === 3) return '18:00-20:00'  // 晚上
+  return ''
+}
+
+// 根据时间段获取时段标签
+const getTimeSlotLabel = (timeSlot) => {
+  const slotNum = Number(timeSlot)
+  if (slotNum === 1) return '上午'
+  if (slotNum === 2) return '下午'
+  if (slotNum === 3) return '晚上'
+  return ''
+}
+
+// 构建完整的就诊时间段显示（包含时间范围）
+const buildAppointmentTimeSlot = (scheduleDateStr, timeSlot) => {
+  if (!scheduleDateStr || !timeSlot) return ''
+  
+  const timeSlotLabel = getTimeSlotLabel(timeSlot)
+  const timeSlotRange = getTimeSlotRange(timeSlot)
+  
+  if (!timeSlotLabel || !timeSlotRange) return ''
+  
+  // 格式化日期
+  const dateStr = String(scheduleDateStr).substring(0, 10)
+  const dateParts = dateStr.split('-')
+  
+  let formattedDate = dateStr
+  if (dateParts.length === 3) {
+    formattedDate = `${dateParts[0]}年${dateParts[1]}月${dateParts[2]}日`
+  }
+  
+  // 返回完整格式：日期 + 时段 + 时间范围
+  return `${formattedDate} ${timeSlotLabel} (${timeSlotRange})`
+}
+
+// 根据排班日期和时段构建就诊时间（返回Date对象）
+const buildAppointmentDateTime = (scheduleDateStr, timeSlot) => {
   if (!scheduleDateStr || !timeSlot) return null
   
   const scheduleDate = parseToDate(scheduleDateStr)
@@ -262,6 +307,24 @@ const buildAppointmentTime = (scheduleDateStr, timeSlot) => {
   const appointmentTime = new Date(scheduleDate)
   appointmentTime.setHours(startHour, 0, 0, 0)
   return appointmentTime
+}
+
+// 构建就诊时间显示文本（具体时间点：日期 + 时段开始时间）
+const buildAppointmentTimeDisplay = (scheduleDateStr, timeSlot) => {
+  if (!scheduleDateStr || !timeSlot) return ''
+  
+  const appointmentDate = buildAppointmentDateTime(scheduleDateStr, timeSlot)
+  if (!appointmentDate) return ''
+  
+  // 格式化日期时间
+  const year = appointmentDate.getFullYear()
+  const month = (appointmentDate.getMonth() + 1).toString().padStart(2, '0')
+  const day = appointmentDate.getDate().toString().padStart(2, '0')
+  const hours = appointmentDate.getHours().toString().padStart(2, '0')
+  const minutes = appointmentDate.getMinutes().toString().padStart(2, '0')
+  
+  // 返回格式：YYYY年MM月DD日 HH:mm
+  return `${year}年${month}月${day}日 ${hours}:${minutes}`
 }
 
 // 解析状态信息（与就诊记录列表页面一致）
@@ -278,19 +341,25 @@ const resolveStatusInfo = (rawStatusValue, visitTimeStr, registerTimeStr, schedu
     return cloneStatus(STATUS_DEFINITIONS.cancelled)
   }
 
-  // 优先检查是否有实际就诊时间（如果有实际就诊时间，说明已经就诊过，应判定为已完成）
-  // 这个检查要在状态码映射之前，确保有实际就诊时间的记录不会被错误判定
-  const visitDate = parseToDate(visitTimeStr)
-  if (visitDate) {
-    // 拥有实际就诊时间的应被判定为已就诊（已完成）
-    // 判断是否超过5天
-    const diffDays = (now.getTime() - visitDate.getTime()) / DAY_IN_MS
-    if (diffDays <= 5) {
-      return cloneStatus(STATUS_DEFINITIONS.completed)
+  // 优先检查是否有实际就诊时间
+    // 这个检查要在状态码映射之前，确保有实际就诊时间的记录不会被错误判定
+    const visitDate = parseToDate(visitTimeStr)
+    if (visitDate) {
+      // 检查就诊时间是否在未来
+      if (now < visitDate) {
+        // 未来的就诊时间，应判定为待就诊
+        return cloneStatus(STATUS_DEFINITIONS.pending)
+      }
+      
+      // 过去的就诊时间，才判定为已完成或已过期
+      // 判断是否超过5天
+      const diffDays = (now.getTime() - visitDate.getTime()) / DAY_IN_MS
+      if (diffDays <= 5) {
+        return cloneStatus(STATUS_DEFINITIONS.completed)
+      }
+      // 超过5天 → 已过期
+      return cloneStatus(STATUS_DEFINITIONS.expired)
     }
-    // 超过5天 → 已过期
-    return cloneStatus(STATUS_DEFINITIONS.expired)
-  }
 
   // 如果状态码是3或4，但没有取消时间和原因，不判定为已取消
   // 状态码3（已退号）和4（已取消）需要同时有cancel_time和cancel_reason才能判定为已取消
@@ -317,7 +386,7 @@ const resolveStatusInfo = (rawStatusValue, visitTimeStr, registerTimeStr, schedu
 
   // 如果没有实际就诊时间，使用排班时间判断状态（根据用户要求：超过预约挂号的排班时间的自动认定为已就诊）
   if (scheduleDateStr && timeSlot) {
-    const appointmentTime = buildAppointmentTime(scheduleDateStr, timeSlot)
+    const appointmentTime = buildAppointmentDateTime(scheduleDateStr, timeSlot)
     if (appointmentTime) {
       // 如果当前时间还没到排班时间 → 待就诊
       if (now < appointmentTime) {
@@ -353,7 +422,7 @@ const checkCanRefer = (rawStatusValue, visitTimeStr, registerTimeStr, scheduleDa
   
   // 优先使用排班时间判断（与状态判断逻辑一致）
   if (scheduleDateStr && timeSlot) {
-    const appointmentTime = buildAppointmentTime(scheduleDateStr, timeSlot)
+    const appointmentTime = buildAppointmentDateTime(scheduleDateStr, timeSlot)
     if (appointmentTime) {
       // 如果还没到排班时间，不能转诊（待就诊状态）
       if (now < appointmentTime) {
@@ -365,7 +434,7 @@ const checkCanRefer = (rawStatusValue, visitTimeStr, registerTimeStr, scheduleDa
     }
   }
   
-  // 如果没有排班信息，使用实际就诊时间判断（作为备选）
+      // 如果没有排班信息，使用实际就诊时间判断（作为备选）
   const visitDate = parseToDate(visitTimeStr)
   if (visitDate) {
     // 如果当前时间还没到就诊时间，不能转诊（待就诊状态）
@@ -441,6 +510,11 @@ const loadRecordDetails = async () => {
         appointmentTimeSlot.value = routeData.appointmentTimeSlot
       }
       
+      // 优先使用传递过来的就诊时间（如果已计算好）
+      if (routeData.appointmentTime) {
+        appointmentTime.value = routeData.appointmentTime
+      }
+      
       // 优先使用传递过来的转诊状态
       if (routeData.canRefer !== undefined && routeData.canRefer !== null) {
         canRefer.value = routeData.canRefer
@@ -455,27 +529,52 @@ const loadRecordDetails = async () => {
       const cancelTime = routeData.cancelTime || routeData.cancel_time || routeData.originalRecord?.cancelTime || routeData.originalRecord?.cancel_time || null
       const cancelReason = routeData.cancelReason || routeData.cancel_reason || routeData.originalRecord?.cancelReason || routeData.originalRecord?.cancel_reason || null
       
-      // 如果有 scheduleId，且还没有时间段或状态，则查询以确保数据最新
-      if (scheduleId && (!appointmentTimeSlot.value || !statusDisplay.value)) {
+      // 如果有 scheduleId，查询排班详情以获取就诊时间
+      if (scheduleId) {
         try {
+          console.log('查询排班详情，scheduleId:', scheduleId)
           const scheduleRes = await getScheduleDetailById(scheduleId)
-          const schedule = scheduleRes?.result || scheduleRes?.data || scheduleRes
-          if (schedule && schedule.schedule_date) {
-            const fetchedScheduleDateStr = schedule.schedule_date || schedule.scheduleDate || scheduleDateStr
-            const fetchedTimeSlot = schedule.time_slot || schedule.timeSlot || timeSlot
+          console.log('排班详情原始响应:', scheduleRes)
+          
+          // 处理不同的响应格式
+          let schedule = null
+          if (scheduleRes) {
+            // 如果 scheduleRes 本身就是排班对象（有 schedule_date 字段）
+            if (scheduleRes.schedule_date || scheduleRes.scheduleDate) {
+              schedule = scheduleRes
+            }
+            // 如果 scheduleRes 有 result 字段
+            else if (scheduleRes.result) {
+              schedule = scheduleRes.result
+            }
+            // 如果 scheduleRes 有 data 字段
+            else if (scheduleRes.data) {
+              schedule = scheduleRes.data
+            }
+            // 否则直接使用 scheduleRes
+            else {
+              schedule = scheduleRes
+            }
+          }
+          
+          console.log('排班详情提取后:', schedule)
+          
+          if (schedule) {
+            const fetchedScheduleDateStr = schedule.schedule_date || schedule.scheduleDate || schedule.scheduleDateStr || scheduleDateStr
+            const fetchedTimeSlot = schedule.time_slot || schedule.timeSlot || schedule.timeSlotValue || timeSlot
             
-            // 构建就诊时间段显示（如果还没有）
+            console.log('提取的排班信息:', { fetchedScheduleDateStr, fetchedTimeSlot })
+            
+            // 构建就诊时间段显示（如果还没有）- 使用完整的时间范围
             if (!appointmentTimeSlot.value && fetchedScheduleDateStr && fetchedTimeSlot) {
-              const timeSlotText = fetchedTimeSlot === 1 ? '上午' : fetchedTimeSlot === 2 ? '下午' : fetchedTimeSlot === 3 ? '晚上' : ''
-              if (timeSlotText) {
-                const dateStr = String(fetchedScheduleDateStr).substring(0, 10)
-                const dateParts = dateStr.split('-')
-                if (dateParts.length === 3) {
-                  appointmentTimeSlot.value = `${dateParts[0]}年${dateParts[1]}月${dateParts[2]}日 ${timeSlotText}`
-                } else {
-                  appointmentTimeSlot.value = `${dateStr} ${timeSlotText}`
-                }
-              }
+              appointmentTimeSlot.value = buildAppointmentTimeSlot(fetchedScheduleDateStr, fetchedTimeSlot)
+              console.log('设置就诊时间段:', appointmentTimeSlot.value)
+            }
+            
+            // 构建就诊时间（具体时间点）- 优先使用查询到的排班信息
+            if (!appointmentTime.value && fetchedScheduleDateStr && fetchedTimeSlot) {
+              appointmentTime.value = buildAppointmentTimeDisplay(fetchedScheduleDateStr, fetchedTimeSlot)
+              console.log('设置就诊时间:', appointmentTime.value)
             }
             
             // 解析状态信息（如果没有从列表页传递过来）
@@ -505,6 +604,8 @@ const loadRecordDetails = async () => {
                 )
               }
             }
+          } else {
+            console.warn('排班详情为空或缺少schedule_date字段')
           }
         } catch (error) {
           console.warn('查询排班详情失败:', error)
@@ -528,18 +629,14 @@ const loadRecordDetails = async () => {
         }
       }
       
-      // 如果没有查询到时间段，使用现有排班信息构建
+      // 如果没有查询到时间段，使用现有排班信息构建 - 使用完整的时间范围
       if (!appointmentTimeSlot.value && scheduleDateStr && timeSlot) {
-        const timeSlotText = timeSlot === 1 ? '上午' : timeSlot === 2 ? '下午' : timeSlot === 3 ? '晚上' : ''
-        if (timeSlotText) {
-          const dateStr = String(scheduleDateStr).substring(0, 10)
-          const dateParts = dateStr.split('-')
-          if (dateParts.length === 3) {
-            appointmentTimeSlot.value = `${dateParts[0]}年${dateParts[1]}月${dateParts[2]}日 ${timeSlotText}`
-          } else {
-            appointmentTimeSlot.value = `${dateStr} ${timeSlotText}`
-          }
-        }
+        appointmentTimeSlot.value = buildAppointmentTimeSlot(scheduleDateStr, timeSlot)
+      }
+      
+      // 如果没有查询到就诊时间，使用现有排班信息构建
+      if (!appointmentTime.value && scheduleDateStr && timeSlot) {
+        appointmentTime.value = buildAppointmentTimeDisplay(scheduleDateStr, timeSlot)
       }
       
       // 如果还没有解析状态（说明前面都没有设置），使用默认逻辑解析
@@ -1191,6 +1288,8 @@ const checkReferralStatus = async () => {
       canRefer.value = false // 已申请过转诊，不能再次申请
       // 保存关联的转诊记录ID，供"查看转诊情况"使用
       record.value.referralId = referral.id || referral.referralId || null
+      // 如果有转诊记录，强制将状态设置为已完成
+      statusDisplay.value = '已完成'
     }
   } catch (error) {
     console.warn('检查转诊状态失败:', error)

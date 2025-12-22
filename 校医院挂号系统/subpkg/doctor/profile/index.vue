@@ -20,44 +20,6 @@
       </view>
     </view>
 
-    <!-- 个人信息 -->
-    <view class="info-section">
-      <view class="section-title">
-        <text class="title-text">个人信息</text>
-      </view>
-      <view class="info-list">
-        <view class="info-item">
-          <view class="item-left">
-            <text class="item-icon">👤</text>
-            <text class="item-label">姓名</text>
-          </view>
-          <view class="item-right">
-            <text class="item-value">{{ doctorInfo.name }}</text>
-          </view>
-        </view>
-
-        <view class="info-item">
-          <view class="item-left">
-            <text class="item-icon">🏥</text>
-            <text class="item-label">科室</text>
-          </view>
-          <view class="item-right">
-            <text class="item-value">{{ doctorInfo.department }}</text>
-          </view>
-        </view>
-
-        <view class="info-item">
-          <view class="item-left">
-            <text class="item-icon">🎓</text>
-            <text class="item-label">职称</text>
-          </view>
-          <view class="item-right">
-            <text class="item-value">{{ doctorInfo.title }}</text>
-          </view>
-        </view>
-      </view>
-    </view>
-
     <!-- 擅长领域 -->
     <view class="info-section">
       <view class="section-title">
@@ -112,6 +74,14 @@
           <view class="menu-left">
             <text class="menu-icon">🔒</text>
             <text class="menu-label">修改密码</text>
+          </view>
+          <text class="menu-arrow">›</text>
+        </view>
+
+        <view class="menu-item" @click="goToLeaveApplication">
+          <view class="menu-left">
+            <text class="menu-icon">📝</text>
+            <text class="menu-label">申请请假</text>
           </view>
           <text class="menu-arrow">›</text>
         </view>
@@ -430,16 +400,17 @@ function logout() {
   padding: 24rpx;
   padding-bottom: 140rpx;
   box-sizing: border-box;
-  background: linear-gradient(180deg, #e9f2ff 0%, #f7f9fc 100%);
+  background: linear-gradient(180deg, #e8f3ff 0%, #f7faff 45%, #ffffff 100%);
 }
 
 /* 头部信息 */
 .profile-header {
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  box-shadow: 0 8rpx 24rpx rgba(42, 123, 255, 0.08);
+  background: linear-gradient(120deg, #3a9cff 0%, #6ec6ff 100%);
+  border-radius: 20rpx;
+  padding: 26rpx;
+  box-shadow: 0 12rpx 28rpx rgba(58, 156, 255, 0.25);
   margin-bottom: 24rpx;
+  color: #fff;
 }
 .avatar-section {
   display: flex;
@@ -450,7 +421,8 @@ function logout() {
   width: 96rpx;
   height: 96rpx;
   border-radius: 999rpx;
-  background: #e9f2ff;
+  background: rgba(255,255,255,0.18);
+  box-shadow: 0 8rpx 18rpx rgba(0,0,0,0.08);
 }
 .doctor-main {
   flex: 1;
@@ -468,13 +440,14 @@ function logout() {
 }
 .doctor-name {
   font-size: 32rpx;
-  font-weight: 700;
-  color: #1a1a1a;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.5rpx;
 }
 .doctor-title {
   margin-top: 4rpx;
   font-size: 24rpx;
-  color: #7a8aa0;
+  color: rgba(255,255,255,0.9);
 }
 .doctor-dept {
   margin-top: 8rpx;
@@ -483,15 +456,15 @@ function logout() {
   display: inline-block;
   padding: 8rpx 16rpx;
   border-radius: 999rpx;
-  background: #e9f2ff;
-  color: #2a7bff;
+  background: rgba(255,255,255,0.18);
+  color: #fff;
   font-size: 24rpx;
   font-weight: 600;
 }
 
 .logout-inline {
   font-size: 24rpx;
-  color: #ff4b4b;
+  color: #ffd7d7;
 }
 
 /* 统计 */
@@ -500,9 +473,9 @@ function logout() {
   align-items: center;
   justify-content: space-between;
   background: #fff;
-  border-radius: 16rpx;
+  border-radius: 18rpx;
   padding: 24rpx;
-  box-shadow: 0 8rpx 24rpx rgba(42, 123, 255, 0.08);
+  box-shadow: 0 10rpx 24rpx rgba(58, 156, 255, 0.1);
   margin-bottom: 24rpx;
 }
 .stat-item {
@@ -529,9 +502,9 @@ function logout() {
 .info-section,
 .menu-section {
   background: #fff;
-  border-radius: 16rpx;
+  border-radius: 18rpx;
   padding: 24rpx;
-  box-shadow: 0 8rpx 24rpx rgba(42, 123, 255, 0.08);
+  box-shadow: 0 10rpx 24rpx rgba(58, 156, 255, 0.1);
   margin-bottom: 24rpx;
 }
 .section-title {
@@ -553,9 +526,10 @@ function logout() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f8fafc;
-  border-radius: 12rpx;
-  padding: 16rpx;
+  background: #f6f9ff;
+  border-radius: 14rpx;
+  padding: 18rpx;
+  border: 1rpx solid #e8efff;
 }
 .item-left {
   display: flex;
@@ -586,9 +560,10 @@ function logout() {
 
 /* 擅长领域 */
 .specialty-container {
-  background: #f8fafc;
-  border-radius: 12rpx;
-  padding: 16rpx;
+  background: #f6f9ff;
+  border-radius: 14rpx;
+  padding: 18rpx;
+  border: 1rpx solid #e8efff;
 }
 .specialty-text {
   font-size: 26rpx;
@@ -605,9 +580,10 @@ function logout() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f8fafc;
-  border-radius: 12rpx;
-  padding: 16rpx;
+  background: #f6f9ff;
+  border-radius: 14rpx;
+  padding: 18rpx;
+  border: 1rpx solid #e8efff;
 }
 .menu-left {
   display: flex;
@@ -623,7 +599,7 @@ function logout() {
 }
 .menu-arrow {
   font-size: 40rpx;
-  color: #a0b7e0;
+  color: #9ab4e5;
 }
 
 /* 编辑弹窗 */

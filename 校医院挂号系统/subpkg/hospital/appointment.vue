@@ -7,7 +7,12 @@
 				<view class="doctor-info">
 					<view class="name-title">
 						<text class="name">{{ doctor.doctorName }}</text>
-						<text class="title">{{ doctor.title }}</text>
+						<view class="title-row">
+							<text class="title">{{ doctor.title }}</text>
+							<text v-if="getDoctorTypeNames()" class="type-name">
+								{{ getDoctorTypeNames() }}
+							</text>
+						</view>
 					</view>
 					<view class="specialty">擅长：{{ doctor.specialty }}</view>
 				</view>
@@ -77,7 +82,12 @@
 						    full: slotStatus[slot.key]?.exists && slotStatus[slot.key]?.remaining === 0
 						  }" @click="selectTimeSlot(slot)">
 							<view class="slot-info">
-								<text class="slot-time">{{ slot.label }} ({{ slot.timeRange }})</text>
+								<view class="slot-header">
+									<text class="slot-time">{{ slot.label }} ({{ slot.timeRange }})</text>
+									<text v-if="slotStatus[slot.key]?.typeName" class="slot-type-name">
+										{{ slotStatus[slot.key].typeName }}
+									</text>
+								</view>
 								<text v-if="slotStatus[slot.key]?.exists && slotStatus[slot.key]?.remaining > 0"
 									class="slot-quota">
 									剩余 {{ slotStatus[slot.key].remaining }}
@@ -252,21 +262,21 @@
 
 	const loadPatientList = async () => {
 	  console.log('📌 当前 userId.value =', userId.value)
-	
+
 	  if (!userId.value) return
-	
+
 	  try {
 	    const res = await patientApi.getPatientList({
 	      userId: userId.value
 	    })
-	
+
 	    console.log('🟢 患者接口原始返回 res =', res)
-	
+
 	    // ✅ 后端直接返回数组
 	    if (Array.isArray(res)) {
 	      patientList.value = res
 	      console.log('🟢 patientList =', patientList.value)
-	
+
 	      if (patientList.value.length) {
 	        currentPatient.value = patientList.value[0]
 	        selectedPatientId.value = currentPatient.value.patientId
@@ -274,7 +284,7 @@
 	    } else {
 	      console.error('❌ 接口返回不是数组:', res)
 	    }
-	
+
 	  } catch (e) {
 	    console.error('❌ 请求患者列表异常:', e)
 	  }
@@ -301,17 +311,15 @@
 			content: '请先选择就诊人后再进行挂号',
 			showCancel: false
 		})
-
 		return null
 	}
-
 
 	// 页面加载
 	onLoad(async (query) => {
 	  console.log('📌 页面 onLoad')
 	  console.log('📌 onLoad 时 userStore.userInfo =', userStore.userInfo)
 	  console.log('📌 onLoad 时 userId.value =', userId.value)
-	
+
 	  await loadPatientList()
 		doctor.value = {
 			doctorId: query.doctorId ? Number(query.doctorId) : null,
@@ -401,15 +409,18 @@
 		const result = {
 			morning: {
 				available: false,
-				remaining: 0
+				remaining: 0,
+				typeName: ''
 			},
 			afternoon: {
 				available: false,
-				remaining: 0
+				remaining: 0,
+				typeName: ''
 			},
 			evening: {
 				available: false,
-				remaining: 0
+				remaining: 0,
+				typeName: ''
 			}
 		}
 
@@ -443,7 +454,8 @@
 				result[slotKey] = {
 					exists: true, // 标记有排班
 					available: remaining > 0, // 有剩余才可选
-					remaining
+					remaining,
+					typeName: schedule.type_name || schedule.typeName || '' // 号别类型名称
 				}
 			}
 		})
@@ -451,7 +463,21 @@
 		return result
 	})
 
+	// 获取医生的号别类型名称（从排班数据中提取）
+	const getDoctorTypeNames = () => {
+		if (!Array.isArray(schedules.value) || schedules.value.length === 0) {
+			return ''
+		}
 
+		// 从排班数据中提取所有不同的号别类型
+		const typeNames = schedules.value
+			.map(schedule => schedule.doctor_title_type_name || schedule.doctorTitleTypeName)
+			.filter(typeName => typeName && typeName.trim() !== '')
+			.filter((value, index, self) => self.indexOf(value) === index) // 去重
+
+		// 如果有多个号别类型，用斜杠分隔显示；如果只有一个，直接显示
+		return typeNames.length > 0 ? typeNames.join(' / ') : ''
+	}
 
 	console.log('appointmentDate:', appointmentDate.value)
 	console.log('doctorId:', doctor.value?.doctorId)
@@ -479,7 +505,7 @@
 			available: false,
 			remaining: 0
 		}
-
+	
 		// 无排班不可选
 		if (!slotInfo.exists) {
 			uni.showToast({
@@ -488,7 +514,7 @@
 			})
 			return
 		}
-
+	
 		// 有排班但已满 → 可以候补
 		if (slotInfo.remaining === 0) {
 			// ⭐即使已满，也要找到对应 schedule，给 selectedSchedule 赋值
@@ -499,7 +525,7 @@
 					Number(s.time_slot) === Number(timeSlotMap[slot.key])
 				)
 			})
-
+	
 			selectedSchedule.value = slotSchedules.length ? slotSchedules[0] : null
 			console.log("已满时 selectedSchedule =", selectedSchedule.value)
 
@@ -587,10 +613,10 @@
 
 			return
 		}
-
+	
 		// 正常有号源，直接选中
 		selectedSlot.value = slot.key
-
+	
 		// 更新 selectedSchedule 对应选中时段的排班（优先选有剩余的记录，若多条选剩余最大的）
 		const slotSchedules = schedules.value.filter(s => {
 			const dateStr = s.schedule_date ?? s.scheduleDate ?? ''
@@ -599,7 +625,7 @@
 				Number(s.time_slot) === Number(timeSlotMap[slot.key])
 			)
 		})
-
+	
 		if (!slotSchedules.length) {
 			selectedSchedule.value = null
 		} else {
@@ -743,12 +769,28 @@
 		margin-right: 16rpx;
 	}
 
+	.title-row {
+		display: flex;
+		align-items: center;
+		gap: 8rpx;
+		flex-wrap: wrap;
+	}
+
 	.title {
 		font-size: 24rpx;
 		color: #fff;
 		background: rgba(255, 255, 255, 0.3);
 		padding: 4rpx 12rpx;
 		border-radius: 4rpx;
+	}
+
+	.type-name {
+		font-size: 22rpx;
+		color: #fff;
+		background: rgba(255, 107, 107, 0.4);
+		padding: 4rpx 10rpx;
+		border-radius: 4rpx;
+		font-weight: 500;
 	}
 
 	.specialty {
@@ -840,12 +882,29 @@
 		display: flex;
 		flex-direction: column;
 		gap: 8rpx;
+		flex: 1;
+	}
+
+	.slot-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16rpx;
 	}
 
 	.slot-time {
 		font-size: 32rpx;
 		font-weight: bold;
 		color: #333;
+	}
+
+	.slot-type-name {
+		font-size: 24rpx;
+		color: #3a9cff;
+		background: rgba(58, 156, 255, 0.1);
+		padding: 4rpx 12rpx;
+		border-radius: 4rpx;
+		font-weight: 500;
 	}
 
 	.slot-quota {

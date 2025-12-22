@@ -169,11 +169,16 @@ public class RegistrationServiceImpl implements RegistrationService {
                     return Result.error("候补挂号创建失败");
                 }
 
+<<<<<<< HEAD
                 Result<String> waitRes = addToWaitingQueue(
                         schedule.getScheduleId(),
                         patientId,
                         record.getRecordId()
                 );
+=======
+                // 加入候补队列（务必带上对应的挂号记录 ID，便于后续自动补位）
+                Result<String> waitRes = addToWaitingQueue(schedule.getScheduleId(), actualPatientId, record.getRecordId());
+>>>>>>> main
 
                 return waitRes.isSuccess()
                         ? Result.OK("当前号源已满，已加入候补队列", waitRes.getResult())
@@ -234,11 +239,17 @@ public class RegistrationServiceImpl implements RegistrationService {
     }
 
 
+<<<<<<< HEAD
     private Result<String> addToWaitingQueue(Long scheduleId, Long patientId,Long recordId) {
+=======
+    private Result<String> addToWaitingQueue(Long scheduleId, Long patientId, Long recordId) {
+>>>>>>> main
         WaitingQueue queue = new WaitingQueue();
         queue.setScheduleId(scheduleId);
         queue.setRecordId(recordId);
         queue.setPatientId(patientId);
+        // 记录对应的候补挂号记录 ID，供自动补位时查找 RegistrationRecord 使用
+        queue.setRecordId(recordId);
         queue.setQueueTime(LocalDateTime.now());
         Integer maxRank = registrationMapper.selectMaxQueueRank(scheduleId);
         queue.setQueueRank(maxRank != null ? maxRank + 1 : 1);

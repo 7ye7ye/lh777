@@ -42,12 +42,17 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
             "    ELSE '未知' " +
             "END AS time_range, " +
             "s.type_id, " +
+            "rt.type_name, " +
+            "d.title_id AS doctor_title_type_id, " +
+            "rt_title.type_name AS doctor_title_type_name, " +
             "s.used_quota, " +
             "s.max_quota," +
             "s.max_quota - s.used_quota AS available_quota, " +
             "s.status " +
             "FROM doctor_schedule s " +
             "LEFT JOIN registration_type rt ON s.type_id = rt.type_id " +
+            "LEFT JOIN doctor d ON s.doctor_id = d.doctor_id " +
+            "LEFT JOIN registration_type rt_title ON d.title_id = rt_title.type_id " +
             "WHERE s.doctor_id = #{doctorId} " +
             "AND s.schedule_date >= #{startDate} " +
             "AND s.schedule_date <= DATE_ADD(#{startDate}, INTERVAL #{days} DAY) " +

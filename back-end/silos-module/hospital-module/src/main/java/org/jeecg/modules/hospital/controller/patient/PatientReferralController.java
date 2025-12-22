@@ -9,10 +9,13 @@ import jakarta.validation.Valid;
 import org.jeecg.common.api.vo.Result;
 import org.jeecg.modules.hospital.dto.referral.*;
 import org.jeecg.modules.hospital.entity.ReferralApplication;
+import org.jeecg.modules.hospital.mapper.ReferralMapper;
 import org.jeecg.modules.hospital.service.IReferralApplicationService;
 import org.jeecg.modules.hospital.vo.referral.ReferralOptionsVO;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @DS("hospital")
@@ -23,6 +26,9 @@ public class PatientReferralController {
 
     @Resource
     private IReferralApplicationService referralService;
+    
+    @Resource
+    private ReferralMapper referralMapper;
 
     /**
      * 提交转诊申请
@@ -45,13 +51,17 @@ public class PatientReferralController {
     }
 
     /**
-     * 获取转诊详情
+     * 获取转诊详情（包含关联字段：registrationNo、outpatientNumber等）
      */
     @Operation(summary = "获取转诊详情")
     @GetMapping("/{id}")
-    public Result<ReferralApplication> detail(@PathVariable Long id) {
-        ReferralApplication application = referralService.getDetail(id);
-        return Result.OK(application);
+    public Result<Map<String, Object>> detail(@PathVariable Long id) {
+        // 使用包含JOIN的查询，获取关联字段
+        Map<String, Object> detail = referralMapper.selectReferralDetail(id);
+        if (detail == null) {
+            return Result.error("转诊记录不存在");
+        }
+        return Result.OK(detail);
     }
 
     /**

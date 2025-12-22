@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.hospital.mapper.ReferralMapper">
+
+    <select id="selectReferralList" resultType="java.util.Map">
+        SELECT 
+            r.id,
+            r.referral_code,
+            r.patient_name,
+            r.gender,
+            r.age,
+            r.phone,
+            r.symptoms,
+            r.medical_history,
+            r.reason,
+            r.refer_advice,
+            r.source_type,
+            r.target_type,
+            r.target_dept_id,
+            r.target_dept_name,
+            r.target_hospital_name,
+            r.status,
+            r.registration_record_id,
+            rr.registration_no,
+            rr.visit_time,
+            rr.patient_id,
+            r.original_dept_id,
+            r.original_dept_name,
+            r.original_doctor_id,
+            r.original_doctor_name,
+            r.apply_time,
+            r.review_time,
+            r.cancel_time,
+            r.auto_register_status
+        FROM 
+            hospital_referral r
+        LEFT JOIN 
+            registration_record rr ON r.registration_record_id = rr.record_id
+        <where>
+            <if test="patientName != null and patientName != ''">
+                AND r.patient_name LIKE CONCAT('%', #{patientName}, '%')
+            </if>
+            <if test="phone != null and phone != ''">
+                AND r.phone LIKE CONCAT('%', #{phone}, '%')
+            </if>
+            <if test="referralCode != null and referralCode != ''">
+                AND r.referral_code = #{referralCode}
+            </if>
+            <if test="status != null and status != ''">
+                AND r.status = #{status}
+            </if>
+            <if test="sourceType != null and sourceType != ''">
+                AND r.source_type = #{sourceType}
+            </if>
+            <if test="targetType != null and targetType != ''">
+                AND r.target_type = #{targetType}
+            </if>
+            <if test="startDate != null and startDate != ''">
+                AND DATE(r.apply_time) &gt;= #{startDate}
+            </if>
+            <if test="endDate != null and endDate != ''">
+                AND DATE(r.apply_time) &lt;= #{endDate}
+            </if>
+        </where>
+        ORDER BY r.create_time DESC
+        LIMIT #{startIndex}, #{pageSize}
+    </select>
+
+    <select id="selectReferralCount" resultType="long">
+        SELECT 
+            COUNT(*)
+        FROM 
+            hospital_referral r
+        LEFT JOIN 
+            registration_record rr ON r.registration_record_id = rr.record_id
+        <where>
+            <if test="patientName != null and patientName != ''">
+                AND r.patient_name LIKE CONCAT('%', #{patientName}, '%')
+            </if>
+            <if test="phone != null and phone != ''">
+                AND r.phone LIKE CONCAT('%', #{phone}, '%')
+            </if>
+            <if test="referralCode != null and referralCode != ''">
+                AND r.referral_code = #{referralCode}
+            </if>
+            <if test="status != null and status != ''">
+                AND r.status = #{status}
+            </if>
+            <if test="sourceType != null and sourceType != ''">
+                AND r.source_type = #{sourceType}
+            </if>
+            <if test="targetType != null and targetType != ''">
+                AND r.target_type = #{targetType}
+            </if>
+            <if test="startDate != null and startDate != ''">
+                AND DATE(r.apply_time) &gt;= #{startDate}
+            </if>
+            <if test="endDate != null and endDate != ''">
+                AND DATE(r.apply_time) &lt;= #{endDate}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectReferralDetail" resultType="java.util.Map">
+        SELECT 
+            r.id,
+            r.referral_code,
+            r.patient_name,
+            r.gender,
+            r.age,
+            r.phone,
+            r.symptoms,
+            r.medical_history,
+            r.reason,
+            r.refer_advice,
+            r.source_type,
+            r.target_type,
+            r.target_dept_id,
+            r.target_dept_name,
+            r.target_hospital_name,
+            r.quota_action,
+            r.assigned_schedule_id,
+            r.assigned_date,
+            r.assigned_time_slot,
+            r.wait_number,
+            r.status,
+            r.review_doctor,
+            r.review_comments,
+            r.reject_reason,
+            r.cancel_reason,
+            r.registration_record_id,
+            rr.registration_no,
+            rr.register_time,
+            rr.visit_time,
+            rr.patient_id,
+            p.outpatient_number,
+            r.original_dept_id,
+            r.original_dept_name,
+            r.original_doctor_id,
+            r.original_doctor_name,
+            r.apply_time,
+            r.review_time,
+            r.cancel_time,
+            r.auto_register_status,
+            r.create_time,
+            r.update_time
+        FROM 
+            hospital_referral r
+        LEFT JOIN 
+            registration_record rr ON r.registration_record_id = rr.record_id
+        LEFT JOIN 
+            patient p ON rr.patient_id = p.patient_id
+        WHERE 
+            r.id = #{id}
+    </select>
+
+    <select id="selectPatientReferrals" resultType="java.util.Map">
+        SELECT 
+            r.id,
+            r.referral_code,
+            r.symptoms,
+            r.reason,
+            r.target_type,
+            r.target_dept_name,
+            r.target_hospital_name,
+            r.status,
+            r.apply_time,
+            r.review_time,
+            r.auto_register_status,
+            CASE 
+                WHEN r.status = 'PENDING' THEN '待审核'
+                WHEN r.status = 'APPROVED' THEN '已批准'
+                WHEN r.status = 'REJECTED' THEN '已拒绝'
+                WHEN r.status = 'CANCELLED' THEN '已取消'
+                WHEN r.status = 'WAITING' THEN '等待中'
+                WHEN r.status = 'COMPLETED' THEN '已完成'
+                ELSE '未知'
+            END AS status_text
+        FROM 
+            hospital_referral r
+        JOIN 
+            registration_record rr ON r.registration_record_id = rr.record_id
+        WHERE 
+            rr.patient_id = #{patientId}
+        ORDER BY r.create_time DESC
+    </select>
+
+    <select id="selectDoctorReferrals" resultType="java.util.Map">
+        SELECT 
+            r.id,
+            r.referral_code,
+            r.patient_name,
+            r.gender,
+            r.age,
+            r.symptoms,
+            r.reason,
+            r.source_type,
+            r.target_type,
+            r.target_dept_name,
+            r.target_hospital_name,
+            r.status,
+            r.apply_time,
+            r.review_time,
+            CASE 
+                WHEN r.status = 'PENDING' THEN '待审核'
+                WHEN r.status = 'APPROVED' THEN '已批准'
+                WHEN r.status = 'REJECTED' THEN '已拒绝'
+                WHEN r.status = 'CANCELLED' THEN '已取消'
+                WHEN r.status = 'WAITING' THEN '等待中'
+                WHEN r.status = 'COMPLETED' THEN '已完成'
+                ELSE '未知'
+            END AS status_text
+        FROM 
+            hospital_referral r
+        WHERE 
+            r.original_doctor_id = #{doctorId}
+        ORDER BY r.create_time DESC
+    </select>
+
+    <update id="updateAutoRegisterStatus">
+        UPDATE 
+            hospital_referral
+        SET 
+            auto_register_status = #{status},
+            update_time = NOW()
+        WHERE 
+            id = #{id}
+    </update>
+
+</mapper>
+

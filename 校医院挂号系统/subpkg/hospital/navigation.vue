@@ -1,5 +1,10 @@
 <template>
   <view class="navigation-container">
+    <!-- 顶部左上角智能规划按钮 -->
+    <view class="smart-plan-btn" @tap="goSmartPlan">
+      <text>智能规划</text>
+    </view>
+
     <!-- 中间平面图区域 -->
     <view class="map-container with-panel">
       <scroll-view 
@@ -407,6 +412,13 @@ const handleQuickAction = (label) => {
 const handleHotDepartment = (deptName) => {
   navigateWithKeyword(deptName)
 }
+
+// 跳转智能规划页面
+const goSmartPlan = () => {
+  uni.navigateTo({
+    url: '/subpkg/hospital/navigation-plan'
+  })
+}
 </script>
 
 <style scoped>
@@ -725,6 +737,25 @@ const handleHotDepartment = (deptName) => {
 .card-loc {
   font-size: 22rpx;
   color: #999;
+}
+
+/* 智能规划按钮 */
+.smart-plan-btn {
+  position: fixed;
+  top: 30rpx;
+  left: 20rpx;
+  z-index: 210;
+  padding: 12rpx 24rpx;
+  background: #ffffff;
+  color: #479fff;
+  font-size: 26rpx;
+  border-radius: 24rpx;
+  box-shadow: 0 6rpx 18rpx rgba(0, 0, 0, 0.12);
+  border: 2rpx solid #e6f3ff;
+}
+
+.smart-plan-btn:active {
+  opacity: 0.85;
 }
 </style>
 

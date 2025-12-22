@@ -173,6 +173,8 @@ CREATE TABLE `doctor_schedule`  (
   `schedule_date` date NOT NULL COMMENT '排班日期',
   `time_slot` tinyint NOT NULL COMMENT '时段(1-上午,2-下午,3-晚上)',
   `used_quota` int NOT NULL DEFAULT 0 COMMENT '已使用号源',
+  `max_quota` int NULL DEFAULT 50 COMMENT '最大号源数',
+  `room_number` varchar(20) NULL DEFAULT NULL COMMENT '诊室号',
   `status` tinyint NOT NULL DEFAULT 1 COMMENT '状态(1-有效,0-停用)',
   `create_time` datetime NOT NULL COMMENT '创建时间',
   `update_time` datetime NOT NULL COMMENT '更新时间',

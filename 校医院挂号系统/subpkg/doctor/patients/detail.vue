@@ -63,11 +63,39 @@
       </view>
     </view>
 
+    <!-- 健康档案卡片（医生端只读，仅体征信息） -->
+    <view class="info-card">
+      <view class="card-header">
+        <text class="card-title">健康档案</text>
+      </view>
+      <view class="info-list">
+        <view class="list-item">
+          <text class="item-label">身高</text>
+          <text class="item-value">{{ healthProfile.height ? healthProfile.height + ' cm' : '-' }}</text>
+        </view>
+        <view class="list-item">
+          <text class="item-label">体重</text>
+          <text class="item-value">{{ healthProfile.weight ? healthProfile.weight + ' kg' : '-' }}</text>
+        </view>
+        <view class="list-item">
+          <text class="item-label">血型</text>
+          <text class="item-value">{{ healthProfile.bloodType || '-' }}</text>
+        </view>
+        <view class="list-item">
+          <text class="item-label">婚姻状况</text>
+          <text class="item-value">{{ healthProfile.maritalStatus || '-' }}</text>
+        </view>
+        <view class="list-item">
+          <text class="item-label">生育情况</text>
+          <text class="item-value">{{ healthProfile.fertilityStatus || '-' }}</text>
+        </view>
+      </view>
+    </view>
+
     <!-- 既往病史卡片 -->
     <view class="info-card">
       <view class="card-header">
         <text class="card-title">既往病史</text>
-        <text class="privacy-tip">（脱敏展示）</text>
       </view>
       <view v-if="patient.medicalHistory && patient.medicalHistory.length > 0" class="history-list">
         <view
@@ -263,6 +291,7 @@ import { uniNavigateTo, uniShowToast } from '@/utils/uniHelper'
 import { doctorApi } from '@/api/doctor'
 import { doctorGenerateReferralAdvice } from '@/api/referral'
 import { getDepartmentTree } from '@/api/department'
+import { patientApi } from '@/api/patient'
 
 // 患者详情数据（加载后会用后端数据覆盖）
 const patient = ref({
@@ -277,17 +306,24 @@ const patient = ref({
   department: '内科',
   doctor: '张医生',
   status: '待接诊',
-  medicalHistory: [
-    { type: '过敏史', description: '青霉素过敏' },
-    { type: '慢性病', description: '轻度高血压（已控制）' }
-  ],
-  visitHistory: [
-    { date: '2024-09-15', department: '内科', doctor: '李医生', diagnosis: '急性上呼吸道感染' },
-    { date: '2024-07-20', department: '骨科', doctor: '王医生', diagnosis: '踝关节扭伤' }
-  ]
+  medicalHistory: [],
+  visitHistory: []
 })
 
 const visitNote = ref('')
+
+// 健康档案（医生端只读展示）
+const healthProfile = ref({
+  height: '',
+  weight: '',
+  bloodType: '',
+  maritalStatus: '',
+  fertilityStatus: '',
+  currentIllness: '',
+  pastHistory: '',
+  familyHistory: '',
+  allergyHistory: ''
+})
 
 // 转诊相关数据
 const referralData = ref({
@@ -461,6 +497,20 @@ async function loadPatientDetail(id) {
   }
 }
 
+// 加载健康档案数据（复用患者端接口）
+async function loadHealthProfile(patientId) {
+  try {
+    if (!patientId) return
+    const data = await patientApi.getHealthProfile({ patientId })
+    if (data) {
+      Object.assign(healthProfile.value, data)
+    }
+  } catch (e) {
+    // 医生端健康档案加载失败不阻塞整体页面
+    console.error('加载健康档案失败', e)
+  }
+}
+
 function goBackToPatientList() {
   const pages = getCurrentPages()
   if (pages.length > 1) {
@@ -619,6 +669,7 @@ onLoad((options) => {
   // 直接在 onLoad 阶段触发加载，避免 onMounted 时机差异导致未请求
   if (patientIdRef.value) {
     loadPatientDetail(patientIdRef.value)
+    loadHealthProfile(patientIdRef.value)
   }
 })
 
@@ -652,7 +703,7 @@ onMounted(async () => {
   min-height: 100vh;
   box-sizing: border-box;
   padding: 24rpx;
-  background: linear-gradient(180deg, #e9f2ff 0%, #f7f9fc 100%);
+  background: linear-gradient(180deg, #e8f3ff 0%, #f7faff 45%, #ffffff 100%);
 }
 
 /* 返回 */
@@ -660,7 +711,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   color: #2a7bff;
-  font-weight: 600;
+  font-weight: 700;
   margin-bottom: 20rpx;
 }
 .back-icon {
@@ -674,10 +725,11 @@ onMounted(async () => {
 /* 卡片通用 */
 .info-card {
   background: #fff;
-  border-radius: 16rpx;
+  border-radius: 18rpx;
   padding: 24rpx;
-  box-shadow: 0 8rpx 24rpx rgba(42, 123, 255, 0.08);
+  box-shadow: 0 10rpx 24rpx rgba(58, 156, 255, 0.12);
   margin-bottom: 24rpx;
+  border: 1rpx solid #eef3fb;
 }
 .card-header {
   display: flex;
@@ -687,7 +739,7 @@ onMounted(async () => {
 }
 .card-title {
   font-size: 32rpx;
-  font-weight: 700;
+  font-weight: 800;
   color: #1a1a1a;
 }
 
@@ -696,7 +748,7 @@ onMounted(async () => {
   padding: 8rpx 16rpx;
   border-radius: 999rpx;
   font-size: 24rpx;
-  font-weight: 600;
+  font-weight: 700;
 }
 .status-pending {
   color: #8a6d3b;
@@ -719,9 +771,10 @@ onMounted(async () => {
 }
 .info-item {
   width: calc(50% - 8rpx);
-  background: #f8fafc;
-  border-radius: 12rpx;
+  background: #f6f9ff;
+  border-radius: 14rpx;
   padding: 16rpx;
+  border: 1rpx solid #e8efff;
 }
 .info-item.full-width {
   width: 100%;
@@ -747,8 +800,9 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   padding: 16rpx;
-  background: #f8fafc;
-  border-radius: 12rpx;
+  background: #f6f9ff;
+  border-radius: 14rpx;
+  border: 1rpx solid #e8efff;
 }
 .item-label {
   color: #7a8aa0;
@@ -775,12 +829,13 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 12rpx;
-  background: #f8fafc;
+  background: #f6f9ff;
   padding: 16rpx;
-  border-radius: 12rpx;
+  border-radius: 14rpx;
+  border: 1rpx solid #e8efff;
 }
 .history-tag {
-  background: #e9f2ff;
+  background: #e6f2ff;
   color: #2a7bff;
   font-size: 22rpx;
   border-radius: 999rpx;
