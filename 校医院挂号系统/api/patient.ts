@@ -82,3 +82,4 @@ getHealthProfile: (data: { patientId: number }) => u.post('/health/get', data),
 updateHealthProfile: (data: HealthProfileRequest) => u.post('/health/update', data)
 
 }
+

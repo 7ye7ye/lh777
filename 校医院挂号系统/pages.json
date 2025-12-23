@@ -51,7 +51,7 @@
 	],
 	"subPackages": [
 		{
-			"root": "subpkg/doctor/",
+			"root": "subpkg/doctor",
 			"pages": [
 				{
 					"path": "schedule/main",
@@ -496,30 +496,31 @@
 				"selectedIconPath": "/static/home.png"
 			},
 			{
-				"pagePath": "pages/messages/messages",
-				"text": "消息中心",
-				"iconPath": "/static/message.png",
-				"selectedIconPath": "/static/message-active.png"
-			},
-			{
-				"pagePath": "pages/hospital/hospital",
-				"text": "医院信息",
-				"iconPath": "/static/navigation-message.png",
-				"selectedIconPath": "/static/navigation-message.png"
-			},
-			{
-				"pagePath": "pages/profile/profile",
-				"text": "个人中心",
-				"iconPath": "/static/profile.png",
-				"selectedIconPath": "/static/profile.png"
-			}
-		]
-	},
-	"globalStyle": {
-		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "校医院挂号系统",
-		"navigationBarBackgroundColor": "#F8F8F8",
-		"backgroundColor": "#F8F8F8"
-	},
-	"uniIdRouter": {}
-}
+				{
+					"pagePath": "pages/messages/messages",
+					"text": "消息中心",
+					"iconPath": "/static/message.png",
+					"selectedIconPath": "/static/message-active.png"
+				},
+				{
+					"pagePath": "pages/hospital/hospital",
+					"text": "医院信息",
+					"iconPath": "/static/navigation-message.png",
+					"selectedIconPath": "/static/navigation-message.png"
+				},
+				{
+					"pagePath": "pages/profile/profile",
+					"text": "个人中心",
+					"iconPath": "/static/profile.png",
+					"selectedIconPath": "/static/profile.png"
+				}
+			]
+		},
+		"globalStyle": {
+			"navigationBarTextStyle": "black",
+			"navigationBarTitleText": "校医院挂号系统",
+			"navigationBarBackgroundColor": "#F8F8F8",
+			"backgroundColor": "#F8F8F8"
+		},
+		"uniIdRouter": {}
+	}

@@ -24,7 +24,7 @@
             COUNT(DISTINCT rr.record_id) AS visitCount,
             COUNT(DISTINCT rr.record_id) AS totalVisitCount
         FROM registration_record rr
-            INNER JOIN 
+            INNER JOIN
             doctor_schedule ds ON rr.schedule_id = ds.schedule_id
             INNER JOIN department d ON ds.dept_id = d.dept_id
         WHERE rr.visit_time IS NOT NULL
@@ -248,6 +248,7 @@
                 COUNT(*) AS typeRegistration
             FROM registration_record rr
                 LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
+            WHERE rr.status IN (0, 1, 2, 5, 6)
             WHERE rr.status IN (1, 2)
                 <if test="startDate != null">
                     AND DATE(rr.register_time) >= #{startDate}
@@ -293,6 +294,7 @@
                 </choose>
                 COUNT(*) AS totalRegistration
             FROM registration_record rr2
+            WHERE rr2.status IN (0, 1, 2, 5, 6)
             WHERE rr2.status IN (1, 2)
                 <if test="startDate != null">
                     AND DATE(rr2.register_time) >= #{startDate}
@@ -433,7 +435,7 @@
                 COUNT(*) AS typeRegistration
             FROM registration_record rr
                 LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
-            WHERE rr.status IN (0, 1, 2)
+            WHERE rr.status IN (0, 1, 2, 5, 6)
                 <if test="startDate != null">
                     AND DATE(rr.register_time) >= DATE_SUB(#{startDate}, INTERVAL #{comparePeriods}
                         <choose>
@@ -504,7 +506,7 @@
                 </choose>
                 COUNT(*) AS totalRegistration
             FROM registration_record rr2
-            WHERE rr2.status IN (0, 1, 2)
+            WHERE rr2.status IN (0, 1, 2, 5, 6)
                 <if test="startDate != null">
                     AND DATE(rr2.register_time) >= DATE_SUB(#{startDate}, INTERVAL #{comparePeriods}
                         <choose>

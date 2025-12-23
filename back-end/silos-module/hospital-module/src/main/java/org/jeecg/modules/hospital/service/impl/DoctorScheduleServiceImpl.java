@@ -26,7 +26,6 @@ import java.util.List;
  * 医生排班服务实现类
  * 继承 ServiceImpl<Mapper, Entity>，自动获得 CRUD 方法
  */
-// class DoctorScheduleServiceImpl
 import com.baomidou.dynamic.datasource.annotation.DS;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -193,7 +192,6 @@ public class DoctorScheduleServiceImpl
         if (schedule.getStatus() != null) origin.setStatus(schedule.getStatus());
         if (schedule.getMaxQuota() != null) origin.setMaxQuota(schedule.getMaxQuota());
         if (schedule.getRoomNumber() != null) origin.setRoomNumber(schedule.getRoomNumber());
-        if (schedule.getMaxQuota() != null) origin.setMaxQuota(schedule.getMaxQuota());
         origin.setUpdateTime(java.time.LocalDateTime.now());
 
         return super.updateById(origin);
@@ -222,11 +220,6 @@ public class DoctorScheduleServiceImpl
         int newMaxQuota = (schedule.getMaxQuota() != null ? schedule.getMaxQuota() : 0) + addCount;
         schedule.setMaxQuota(newMaxQuota);
 
-        // 创建 ScheduleUpdateRequest 来调用 update 方法
-        DoctorScheduleUpdateRequest updateRequest = new DoctorScheduleUpdateRequest();
-        updateRequest.setScheduleId(scheduleId);
-        updateRequest.setMaxQuota(newMaxQuota); // 更新后的最大号源数量
-
         // 调用 update 方法更新排班
         boolean updated = update(schedule);  // 调用 update 方法传递排班数据
         if (!updated) return false;
@@ -237,7 +230,4 @@ public class DoctorScheduleServiceImpl
 
         return true;
     }
-
-
-
 }

@@ -1,7 +1,7 @@
 package org.jeecg.modules.hospital.mapper;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.dynamic.datasource.annotation.DS;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.*;
 import org.jeecg.modules.hospital.dto.RegistrationDetailDTO;
 import org.jeecg.modules.hospital.entity.DoctorSchedule;
@@ -107,7 +107,7 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
 
         /**
          * 乐观锁更新号源：只有当 used_quota < max_quota 时才 +1
-         * 
+         *
          * @return 更新行数 (1=成功, 0=失败/已满)
          */
         @Update("UPDATE doctor_schedule " +
@@ -144,8 +144,35 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
         Integer checkDuplicateBySchedule(@Param("patientId") Long patientId,
                         @Param("scheduleId") Long scheduleId);
 
+        /**
+         * 统计同一患者在同一科室、同一天的挂号次数（不含已退号）
+         * <p>
+         * 业务含义：用于小程序限制“单个就诊人单个科室单日最多1次预约”。
+         * 通过当前要预约的排班ID（scheduleId）反查出对应的科室和日期，
+         * 再统计该患者在相同科室、相同日期下的所有未退号记录数量。
+         * </p>
+         *
+         * @param patientId  患者ID
+         * @param scheduleId 当前要预约的排班ID
+         * @return 记录数量（>0 表示已存在其他记录）
+         */
+        @Select("""
+                        SELECT COUNT(*)
+                        FROM registration_record rr
+                                 JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
+                        WHERE rr.patient_id = #{patientId}
+                          AND rr.status != 3
+                          AND ds.dept_id = (SELECT dept_id FROM doctor_schedule WHERE schedule_id = #{scheduleId})
+                          AND ds.schedule_date = (SELECT schedule_date FROM doctor_schedule WHERE schedule_id = #{scheduleId})
+                        """)
+        Integer countDeptRegistrationsForDay(@Param("patientId") Long patientId,
+                        @Param("scheduleId") Long scheduleId);
+
         @Select("SELECT * FROM patient WHERE patient_id = #{patientId}")
         Patient selectPatientById(@Param("patientId") Long patientId);
+
+        @Select("SELECT patient_type FROM patient WHERE patient_id = #{patientId}")
+        int selectPatientTypeById(@Param("patientId") Long patientId);
 
         /**
          * 查询挂号详情（用于消息 / 回执）
@@ -183,7 +210,7 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
 
         /**
          * 取消挂号（患者主动取消）
-         * 
+         *
          * @param recordId 挂号记录ID
          * @param reason   取消原因
          */
@@ -271,7 +298,7 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
                         LEFT JOIN doctor d ON rr.doctor_id = d.doctor_id
                         LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
                         WHERE ds.schedule_date = #{targetDate}
-                          AND rr.status = 1
+                          AND rr.status IN (1, 5, 6)
                         """)
         List<RegistrationDetailDTO> listRegistrationsByDate(@Param("targetDate") LocalDate targetDate);
 
@@ -306,7 +333,7 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
                         LEFT JOIN doctor d ON rr.doctor_id = d.doctor_id
                         LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
                         WHERE ds.schedule_date = #{targetDate}
-                          AND rr.status = 1
+                          AND rr.status IN (1, 5, 6)
                           AND ds.time_slot = #{timeSlot}
                         """)
         List<RegistrationDetailDTO> listRegistrationsByDateAndSlot(@Param("targetDate") LocalDate targetDate,
@@ -344,7 +371,7 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
                         LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
                         WHERE p.user_id = #{userId}
                           AND ds.schedule_date = #{targetDate}
-                          AND rr.status = 1
+                          AND rr.status IN (1, 5, 6)
                         """)
         List<RegistrationDetailDTO> listRegistrationsByUserIdAndDate(@Param("userId") Long userId,
                         @Param("targetDate") LocalDate targetDate);

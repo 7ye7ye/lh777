@@ -16,11 +16,11 @@ import org.jeecg.modules.hospital.entity.Department;
 import org.jeecg.modules.hospital.entity.DoctorSchedule;
 import org.jeecg.modules.hospital.entity.ReferralApplication;
 import org.jeecg.modules.hospital.entity.ReferralAttachment;
+import org.jeecg.modules.hospital.entity.RegistrationRecord;
 import org.jeecg.modules.hospital.enums.ReferralQuotaAction;
 import org.jeecg.modules.hospital.enums.ReferralSourceType;
 import org.jeecg.modules.hospital.enums.ReferralStatus;
 import org.jeecg.modules.hospital.enums.ReferralTargetType;
-import org.jeecg.modules.hospital.entity.RegistrationRecord;
 import org.jeecg.modules.hospital.mapper.DepartmentMapper;
 import org.jeecg.modules.hospital.mapper.DoctorScheduleMapper;
 import org.jeecg.modules.hospital.mapper.ReferralApplicationMapper;
@@ -335,11 +335,58 @@ public class ReferralApplicationServiceImpl extends ServiceImpl<ReferralApplicat
             applyInternalRouting(referral);
             updateById(referral);
             
-            // 根据结果返回消息
+            // 根据结果返回消息 + 自动创建新的挂号记录
             if (ReferralQuotaAction.DIRECT_ASSIGN.name().equals(referral.getQuotaAction())) {
+
+                // 1) 精准找到要挂号的排班和医生
+                if (referral.getAssignedScheduleId() == null) {
+                    throw new IllegalStateException("自动挂号失败：未找到可用排班");
+                }
+                DoctorSchedule schedule = doctorScheduleMapper.selectById(referral.getAssignedScheduleId());
+                if (schedule == null || schedule.getDoctorId() == null) {
+                    throw new IllegalStateException("自动挂号失败：排班或医生信息不存在");
+                }
+
+                // 2) 找到原始挂号记录，获取患者ID和价格等信息
+                if (referral.getRegistrationRecordId() == null) {
+                    throw new IllegalStateException("自动挂号失败：缺少原始挂号记录信息");
+                }
+                RegistrationRecord original = registrationRecordMapper.selectById(referral.getRegistrationRecordId());
+                if (original == null || original.getPatientId() == null) {
+                    throw new IllegalStateException("自动挂号失败：原始挂号记录不存在或缺少患者信息");
+                }
+
+                // 3) 构造新的挂号记录（本院其他科室/医生的预约）
+                RegistrationRecord newRecord = new RegistrationRecord();
+                newRecord.setScheduleId(schedule.getScheduleId());
+                newRecord.setPatientId(original.getPatientId());
+                newRecord.setDoctorId(schedule.getDoctorId());
+                // 使用排班上的类型ID，确保与该排班号源一致
+                if (schedule.getTypeId() != null) {
+                    newRecord.setTypeId(schedule.getTypeId().longValue());
+                } else {
+                    newRecord.setTypeId(original.getTypeId());
+                }
+                newRecord.setConsultRoom(schedule.getRoomNumber());
+                newRecord.setRegisterTime(LocalDateTime.now());
+                newRecord.setStatus(1); // 已预约
+                newRecord.setVisitTime(null);
+                // 价格沿用原挂号记录，避免重复计算逻辑
+                newRecord.setPriceOriginal(original.getPriceOriginal());
+                newRecord.setActualPrice(original.getActualPrice());
+                // 标记为加号，并写明来源
+                newRecord.setIsAdd(1);
+                newRecord.setAddRemark("院内转诊自动挂号");
+                // 基于原挂号单号生成一个新的、可追溯的挂号号
+                if (original.getRegistrationNo() != null) {
+                    newRecord.setRegistrationNo(original.getRegistrationNo() + "-R" + referral.getId());
+                }
+
+                registrationRecordMapper.insert(newRecord);
+
                 referral.setAutoRegisterStatus(1); // 成功
                 updateById(referral);
-                return "自动挂号成功，已为您安排号源";
+                return "自动挂号成功，已为您在目标科室安排新的就诊号源";
             } else if (ReferralQuotaAction.WAITLIST.name().equals(referral.getQuotaAction())) {
                 referral.setAutoRegisterStatus(2); // 加入候补
                 updateById(referral);

@@ -147,7 +147,7 @@
     </view>
 
     <!-- 操作按钮区域 -->
-    <view v-if="patient.status !== '已完成'" class="action-section">
+    <view v-if="patient.status !== '已完成' && patient.status !== '已转诊'" class="action-section">
       <button
         v-if="patient.status === '待接诊'"
         class="action-btn receive-btn"
@@ -155,7 +155,7 @@
       >
         开始接诊
       </button>
-      <view v-else-if="patient.status === '接诊中'" class="action-buttons-group">
+      <view v-else-if="patient.status === '进行中'" class="action-buttons-group">
         <button
           class="action-btn referral-btn"
           @click="showReferralModal"
@@ -172,7 +172,7 @@
     </view>
 
     <!-- 备注输入区域 -->
-    <view v-if="patient.status === '接诊中'" class="note-section">
+    <view v-if="patient.status === '进行中'" class="note-section">
       <view class="note-header">
         <text class="note-title">就诊备注</text>
       </view>
@@ -348,8 +348,9 @@ const hospitals = ref([
 
 const getStatusClass = (status) => {
   if (status === '待接诊') return 'status-pending'
-  if (status === '接诊中') return 'status-progress'
+  if (status === '进行中') return 'status-progress'
   if (status === '已完成') return 'status-done'
+  if (status === '已转诊') return 'status-referral'
   return 'status-pending'
 }
 
@@ -445,7 +446,7 @@ async function loadPatientDetail(id) {
     const p = dto?.patient || {}
     const visits = Array.isArray(dto?.visits) ? dto.visits : []
 
-    const statusMap = (s) => s === 2 ? '已完成' : (s === 1 ? '接诊中' : '待接诊')
+    const statusMap = (s) => (s === 2 ? '已完成' : (s === 6 ? '已转诊' : (s === 5 ? '进行中' : '待接诊')))
     const latestStatus = visits.length > 0 ? statusMap(visits[0]?.status) : '待接诊'
 
     // 为避免某些端/编译器对整个对象替换的追踪问题，使用就地合并
@@ -489,6 +490,9 @@ async function loadPatientDetail(id) {
             department: ap.department || patient.value.department,
             doctor: ap.doctor || patient.value.doctor,
           })
+          if (ap.status !== undefined && ap.status !== null) {
+            patient.value.status = statusMap(ap.status)
+          }
         }
       } catch {}
     }
@@ -528,7 +532,7 @@ async function receivePatient() {
   }
   try {
     await doctorApi.updatePatientStatus({ appointmentId: appointmentIdRef.value, action: 'start' })
-    patient.value.status = '接诊中'
+    patient.value.status = '进行中'
     uniShowToast({ title: '已开始接诊', icon: 'success' })
   } catch {
     uniShowToast({ title: '开始接诊失败', icon: 'none' })
@@ -626,6 +630,13 @@ async function submitReferral() {
     }
     
     await doctorGenerateReferralAdvice(payload)
+
+    if (appointmentIdRef.value) {
+      try {
+        await doctorApi.updatePatientStatus({ appointmentId: appointmentIdRef.value, action: 'referral' })
+        patient.value.status = '已转诊'
+      } catch {}
+    }
     
     uniShowToast({ title: '转诊意见已提交', icon: 'success' })
     hideReferralModal()
@@ -761,6 +772,10 @@ onMounted(async () => {
 .status-done {
   color: #084298;
   background: #cfe2ff;
+}
+.status-referral {
+  color: #5b21b6;
+  background: #ede9fe;
 }
 
 /* 基本信息网格 */

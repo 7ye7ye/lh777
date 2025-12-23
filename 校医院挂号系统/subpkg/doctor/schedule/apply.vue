@@ -64,7 +64,7 @@
       </view>
 
       <!-- 新：目标出诊科室ID -->
-      <view class="form-row">
+      <view class="form-row" v-if="false">
         <view class="label">目标出诊科室ID</view>
         <input
           class="input"
@@ -75,7 +75,7 @@
       </view>
 
       <!-- 新：目标出诊科室名称（仅展示/辅助输入） -->
-      <view class="form-row">
+      <view class="form-row" v-if="false">
         <view class="label">目标出诊科室名称</view>
         <input
           class="input"
@@ -119,7 +119,6 @@
           <view class="desc">
             <text>原排班ID：{{ item.originalScheduleId }}</text>
             <text> → 目标：{{ item.targetDate }}（{{ slotLabel(item.targetTimeSlot) }}）</text>
-            <text>，科室ID：{{ item.targetDeptId }}</text>
           </view>
           <view class="reason">理由：{{ item.reason }}</view>
         </view>
@@ -164,7 +163,6 @@ const disabled = computed(() =>
   !form.value.originalScheduleId ||
   !form.value.targetDate ||
   !form.value.targetTimeSlot ||
-  !form.value.targetDeptId ||
   !form.value.reason
 )
 
@@ -174,6 +172,37 @@ const onDateChange = (e, which) => {
 }
 
 const slotLabel = (s) => (slots.find(x => x.value === s)?.label || '-')
+
+const slotFromTimeRange = (range) => {
+  const r = String(range || '')
+  if (!r) return undefined
+  if (r.includes('08:00-12:00')) return 1
+  if (r.includes('14:00-17:00')) return 2
+  if (r.includes('18:00-20:00')) return 3
+  return undefined
+}
+
+const hasTargetScheduleConflict = async () => {
+  const targetDate = String(form.value.targetDate || '')
+  const targetSlot = Number(form.value.targetTimeSlot)
+  if (!targetDate || !Number.isFinite(targetSlot)) return false
+
+  const originId = Number(form.value.originalScheduleId)
+  const resp = await doctorApi.getSchedules(doctorId.value, targetDate, 1)
+  const schedules = Array.isArray(resp) ? resp : (resp?.records ?? [])
+  if (!Array.isArray(schedules) || schedules.length === 0) return false
+
+  return schedules.some((s) => {
+    const sid = Number(s?.id ?? s?.scheduleId ?? s?.schedule_id)
+    if (Number.isFinite(originId) && originId > 0 && Number.isFinite(sid) && sid === originId) return false
+
+    const date = String(s?.date ?? s?.scheduleDate ?? s?.schedule_date ?? '').slice(0, 10)
+    if (!date || date !== targetDate) return false
+
+    const slot = Number(s?.timeSlot ?? s?.time_slot ?? slotFromTimeRange(s?.timeRange ?? s?.time_range ?? s?.timePeriod ?? s?.time_period))
+    return Number.isFinite(slot) && slot === targetSlot
+  })
+}
 
 // 新状态映射：1-待审批，2-已通过，3-已驳回，4-已撤销
 const statusMap = { 1: '待审批', 2: '已通过', 3: '已驳回', 4: '已撤销' }
@@ -210,12 +239,28 @@ const onSubmit = async () => {
   try {
     await userStore.initFromStorage()
 
+    const today = (() => {
+      const d = new Date()
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${y}-${m}-${day}`
+    })()
+    if (String(form.value.targetDate || '') === today) {
+      await uniShowToast({ title: '不允许医生申请当天调班', icon: 'none' })
+      return
+    }
+
+    if (await hasTargetScheduleConflict()) {
+      await uniShowToast({ title: '目的班次已有排班', icon: 'none' })
+      return
+    }
+
     const payload = {
       doctorId: doctorId.value,
       originalScheduleId: form.value.originalScheduleId,
       targetDate: form.value.targetDate,
       targetTimeSlot: form.value.targetTimeSlot,
-      targetDeptId: form.value.targetDeptId,
       reason: form.value.reason
     }
     await doctorApi.applyShiftChange(payload)

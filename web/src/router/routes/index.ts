@@ -20,7 +20,9 @@ Object.keys(modules).forEach((key) => {
   routeModuleList.push(...modList);
 });
 
-export const asyncRoutes = [PAGE_NOT_FOUND_ROUTE, ...routeModuleList];
+// 只保留管理员端相关的路由
+const adminRouteModuleList = routeModuleList.filter(route => route.path === '/admin');
+export const asyncRoutes = [PAGE_NOT_FOUND_ROUTE, ...adminRouteModuleList];
 
 export const RootRoute: AppRouteRecordRaw = {
   path: '/',
@@ -68,4 +70,4 @@ export const TokenLoginRoute: AppRouteRecordRaw = {
   },
 };
 // Basic routing without permission
-export const basicRoutes = [LoginRoute, RootRoute, admin, hospital, ...mainOutRoutes, REDIRECT_ROUTE, PAGE_NOT_FOUND_ROUTE, TokenLoginRoute, Oauth2LoginRoute];
+export const basicRoutes = [LoginRoute, RootRoute, admin, ...mainOutRoutes, REDIRECT_ROUTE, PAGE_NOT_FOUND_ROUTE, TokenLoginRoute, Oauth2LoginRoute];

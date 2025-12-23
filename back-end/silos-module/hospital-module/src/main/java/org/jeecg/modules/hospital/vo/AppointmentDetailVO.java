@@ -5,6 +5,7 @@ public class AppointmentDetailVO {
     private String appointmentTime; // 例如：2025-10-22 08:00-12:00
     private String department;      // 科室名称
     private String doctor;          // 医生姓名
+    private Integer status;
 
     public Long getAppointmentId() { return appointmentId; }
     public void setAppointmentId(Long appointmentId) { this.appointmentId = appointmentId; }
@@ -14,6 +15,8 @@ public class AppointmentDetailVO {
     public void setDepartment(String department) { this.department = department; }
     public String getDoctor() { return doctor; }
     public void setDoctor(String doctor) { this.doctor = doctor; }
+    public Integer getStatus() { return status; }
+    public void setStatus(Integer status) { this.status = status; }
 }
 
 
