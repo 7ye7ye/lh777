@@ -47,6 +47,15 @@ export interface RegisterDoctorParams {
 export const getDoctorProfile = (doctorId: number) =>
   defHttp.get<Doctor>({ url: `${Api.DoctorDetail}/profile/${doctorId}` });
 
+// 提交医生资料修改申请
+export const applyDoctorProfileUpdate = (params: {
+  id: number;
+  avatar?: string;
+  specialty: string;
+  doctorDesc?: string;
+}) =>
+  defHttp.post<boolean>({ url: '/doctor/profile/update-request', data: params });
+
 export const updateDoctorProfile = (doctor: Partial<Doctor>) =>
   defHttp.put<boolean>({ url: `${Api.DoctorDetail}/profile`, data: doctor });
 

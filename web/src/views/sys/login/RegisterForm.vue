@@ -33,26 +33,24 @@
   import LoginFormTitle from './LoginFormTitle.vue';
   import { Form, Input, Button, Checkbox } from 'ant-design-vue';
   import { StrengthMeter } from '/@/components/StrengthMeter';
-  import { CountdownInput } from '/@/components/CountDown';
   import { useI18n } from '/@/hooks/web/useI18n';
   import { useMessage } from '/@/hooks/web/useMessage';
-  import { useLoginState, useFormRules, useFormValid, LoginStateEnum, SmsEnum } from './useLogin';
-  import { register, getCaptcha } from '/@/api/sys/user';
+  import { useLoginState, useFormRules, useFormValid, LoginStateEnum } from './useLogin';
+  import { register } from '/@/api/sys/user';
   const FormItem = Form.Item;
   const InputPassword = Input.Password;
   const { t } = useI18n();
   const { handleBackLogin, getLoginState } = useLoginState();
-  const { notification, createErrorModal } = useMessage();
+  const { notification } = useMessage();
   const formRef = ref();
   const loading = ref(false);
   const formData = reactive({
     account: '',
     password: '',
     confirmPassword: '',
-    mobile: '',
-    sms: '',
     policy: false,
   });
+
   const { getFormRules } = useFormRules(formData);
   const { validForm } = useFormValid(formRef);
   const getShow = computed(() => unref(getLoginState) === LoginStateEnum.REGISTER);
@@ -70,13 +68,13 @@
           userAccount: data.account,
           userPassword: data.password,
           checkPassword: data.confirmPassword,
-          userType:3        
+          userType: 3,
         })
       );
-      console.log("lala:",resultInfo);
-      if (resultInfo.data.code===20000) {
+      console.log("lala:", resultInfo);
+      if (resultInfo.data.code === 20000) {
         // 注册成功时优先取后端返回的 description，无则用默认文案
-        const successDesc =resultInfo?.data?.description || resultInfo?.data?.message || t('sys.api.registerMsg');
+        const successDesc = resultInfo?.data?.description || resultInfo?.data?.message || t('sys.api.registerMsg');
         notification.success({
           message: t('sys.login.registerSuccessTitle'),
           description: successDesc,
@@ -92,7 +90,7 @@
           duration: 3,
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       // 捕获请求异常时，优先取后端返回的 description
       const errorDesc = error?.response?.data?.description || error?.message || t('sys.api.networkExceptionMsg');
       notification.error({
@@ -103,9 +101,5 @@
     } finally {
       loading.value = false;
     }
-  }
-  //发送验证码的函数
-  function sendCodeApi() {
-    return getCaptcha({ mobile: formData.mobile, smsmode: SmsEnum.REGISTER });
   }
 </script>

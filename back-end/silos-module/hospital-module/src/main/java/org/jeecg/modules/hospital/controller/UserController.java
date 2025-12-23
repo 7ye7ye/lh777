@@ -6,6 +6,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.apache.commons.lang3.StringUtils;
+import org.jeecg.common.util.Md5Util;
+import org.jeecg.config.JeecgBaseConfig;
+import org.jeecg.common.util.RedisUtil;
 import org.jeecg.config.shiro.IgnoreAuth;
 import org.jeecg.modules.hospital.common.BaseResponse;
 import org.jeecg.modules.hospital.common.ErrorCode;
@@ -29,6 +32,12 @@ public class UserController {
     @Resource
     private HosUserService userService;
 
+    @Resource
+    private RedisUtil redisUtil;
+
+    @Resource
+    private JeecgBaseConfig jeecgBaseConfig;
+
     @IgnoreAuth
     @PostMapping("/register")
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
@@ -36,6 +45,7 @@ public class UserController {
         if(userRegisterRequest==null){
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求体为空");
         }
+
         String userAccount=userRegisterRequest.getUserAccount();
         String userPassword=userRegisterRequest.getUserPassword();
         String checkPassword=userRegisterRequest.getCheckPassword();

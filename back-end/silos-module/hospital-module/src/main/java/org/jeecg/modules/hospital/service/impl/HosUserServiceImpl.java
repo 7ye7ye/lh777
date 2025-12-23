@@ -64,10 +64,26 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
         if (userPassword.length() < 8 || checkPassword.length() < 8) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户密码过短");
         }
-        //4.用户名不能包含特殊字符
-        String regex = "^[\\u4e00-\\u9fa5a-zA-Z0-9]+$"; // 只允许中文、英文字母、数字
-        if (!userAccount.matches(regex)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户名不能包含特殊字符");
+        
+        // 密码复杂度校验：必须包含字母、数字和特殊字符
+        String passwordRegex = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[~!@#$%^&*()_+=\\-{}\\[\\]:;\"'<>,.?/]).{8,}$";
+        if (!userPassword.matches(passwordRegex)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码必须包含字母、数字和特殊字符");
+        }
+
+        //4.用户名/手机号格式校验
+        String phoneRegex = "^1[3-9]\\d{9}$";
+        String usernameRegex = "^[a-zA-Z0-9_\\u4e00-\\u9fa5]+$";
+        
+        if (userAccount.matches(phoneRegex)) {
+            // 是手机号，格式正确
+        } else if (userAccount.matches(usernameRegex)) {
+            // 是用户名，校验特殊字符
+            if (userAccount.contains("<") || userAccount.contains(">") || userAccount.contains("'") || userAccount.contains("\"") || userAccount.contains("/")) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户名包含非法字符");
+            }
+        } else {
+             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户名格式不正确");
         }
 
         //两次输入密码需相同
@@ -89,8 +105,19 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
         HosUser user=new HosUser();
         user.setUserAccount(userAccount);
         user.setUserPassword(newPassword);
-        user.setUserType(userType);
-        user.setStatus(ACTIVE);
+        
+        // 5. 校验用户类型并设置初始状态
+        if (userType == 1) { // 患者
+            user.setUserType(1);
+            user.setStatus(ACTIVE); // 患者注册默认激活
+        } else if (userType == 2) { // 医生
+            user.setUserType(2);
+            user.setStatus(0); // 医生注册默认为 0（待审核/未激活）
+        } else {
+            // 不允许注册管理员或其他角色
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "非法的用户类型");
+        }
+        
         // 设置创建时间为当前时间
         user.setCreateTime(LocalDateTime.now());
         // 设置更新时间为当前时间
@@ -107,6 +134,16 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
 
     @Override
     public HosUserLoginResult userLogin(String userAccount, String password, HttpServletRequest request) {
+        // 0. 登录失败次数校验
+        String loginFailKey = CommonConstant.LOGIN_FAIL + userAccount;
+        Object failCount = redisUtil.get(loginFailKey);
+        if (failCount != null) {
+            Integer count = Integer.parseInt(failCount.toString());
+            if (count > 5) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "登录失败次数过多，请15分钟后再试");
+            }
+        }
+
         // 一、校验用户名和密码是否合法
         if(StringUtils.isAnyBlank(userAccount,password)){
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户名或密码为空");
@@ -128,8 +165,17 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
         queryWrapper.eq("user_password", newPassword);
         HosUser user = hosUserMapper.selectOne(queryWrapper);
         if(user == null){
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在，请注册");
+            // 记录登录失败次数
+            Integer count = 0;
+            if (failCount != null) {
+                count = Integer.parseInt(failCount.toString());
+            }
+            redisUtil.set(loginFailKey, ++count, 900); // 15分钟
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户名或密码错误");
         }
+        
+        // 登录成功，清除失败记录
+        redisUtil.del(loginFailKey);
 
         // 四、用户脱敏
         HosUser saftyUser = getSaftyUser(user);

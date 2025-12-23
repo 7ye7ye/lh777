@@ -8,26 +8,6 @@
       <InputPassword size="large" visibilityToggle v-model:value="formData.password" :placeholder="t('sys.login.password')" />
     </FormItem>
 
-    <!--验证码-->
-    <ARow class="enter-x">
-      <ACol :span="12">
-        <FormItem name="inputCode" class="enter-x">
-          <Input size="large" v-model:value="formData.inputCode" :placeholder="t('sys.login.inputCode')" style="min-width: 100px" />
-        </FormItem>
-      </ACol>
-      <ACol :span="8">
-        <FormItem :style="{ 'text-align': 'right', 'margin-left': '20px' }" class="enter-x">
-          <img
-            v-if="randCodeData.requestCodeSuccess"
-            style="margin-top: 2px; max-width: initial"
-            :src="randCodeData.randCodeImage"
-            @click="handleChangeCheckCode"
-          />
-          <img v-else style="margin-top: 2px; max-width: initial" src="../../../assets/images/checkcode.png" @click="handleChangeCheckCode" />
-        </FormItem>
-      </ACol>
-    </ARow>
-
     <ARow class="enter-x">
       <ACol :span="12">
         <FormItem>
@@ -55,18 +35,13 @@
               {{ t('sys.login.registerButton') }}
             </Button> -->
     </FormItem>
-    <ARow class="enter-x">
-      <ACol :md="8" :xs="24">
-        <Button block @click="setLoginState(LoginStateEnum.MOBILE)">
-          {{ t('sys.login.mobileSignInFormTitle') }}
-        </Button>
-      </ACol>
-      <ACol :md="8" :xs="24" class="!my-2 !md:my-0 xs:mx-0 md:mx-2">
+    <ARow class="enter-x" :gutter="[16, 16]">
+      <ACol :md="12" :xs="24">
         <Button block @click="setLoginState(LoginStateEnum.QR_CODE)">
           {{ t('sys.login.qrSignInFormTitle') }}
         </Button>
       </ACol>
-      <ACol :md="7" :xs="24">
+      <ACol :md="12" :xs="24">
         <Button block @click="setLoginState(LoginStateEnum.REGISTER)">
           {{ t('sys.login.registerButton') }}
         </Button>
@@ -86,7 +61,7 @@
   <ThirdModal ref="thirdModalRef"></ThirdModal>
 </template>
 <script setup lang="ts">
-  import { reactive, ref, toRaw, unref, computed, onMounted } from 'vue';
+  import { reactive, ref, toRaw, unref, computed } from 'vue';
 
   import { Checkbox, Form, Input, Row, Col, Button, Divider } from 'ant-design-vue';
   import { GithubFilled, WechatFilled, DingtalkCircleFilled, createFromIconfontCN } from '@ant-design/icons-vue';
@@ -98,9 +73,7 @@
   import { useUserStore } from '/@/store/modules/user';
   import { LoginStateEnum, useLoginState, useFormRules, useFormValid } from './useLogin';
   import { useDesign } from '/@/hooks/web/useDesign';
-  import { getCodeInfo } from '/@/api/sys/user';
   import { useRouter } from 'vue-router';
-  //import { onKeyStroke } from '@vueuse/core';
 
   const ACol = Col;
   const ARow = Row;
@@ -110,7 +83,7 @@
     scriptUrl: '//at.alicdn.com/t/font_2316098_umqusozousr.js',
   });
   const { t } = useI18n();
-  const { notification, createErrorModal } = useMessage();
+  const { notification } = useMessage();
   const { prefixCls } = useDesign('login');
   const userStore = useUserStore();
   const router = useRouter();
@@ -126,43 +99,33 @@
   const formData = reactive({
     account: 'admin',
     password: '123456',
-    inputCode: '',
-  });
-  const randCodeData = reactive({
-    randCodeImage: '',
-    requestCodeSuccess: false,
-    checkKey: null,
   });
 
   const { validForm } = useFormValid(formRef);
 
-  //onKeyStroke('Enter', handleLogin);
-
   const getShow = computed(() => unref(getLoginState) === LoginStateEnum.LOGIN);
 
   // 登录提交逻辑
-  async function handleLogin(values: any) {
+  async function handleLogin() {
     const data = await validForm();
     if (!data) return;
-  
+
     try {
       loading.value = true;
-      const resultInfo = await userStore.login(
+      const resultInfo: any = await userStore.login(
         toRaw({
           userPassword: data.password,
           userAccount: data.account,
-          captcha: data.inputCode,
-          checkKey: randCodeData.checkKey,
           mode: 'none',
         })
       );
-      if (resultInfo?.data?.code==20000) {
+      if (resultInfo?.data?.code === 20000) {
         notification.success({
           message: t('sys.login.loginSuccessTitle'),
           description: resultInfo?.data?.description || resultInfo?.data?.message || t('sys.api.loginMsg'),
           duration: 3,
         });
-  
+
         // 登录后默认跳转首页或指定页面
         await router.push({ path: '/' });
       } else {
@@ -174,27 +137,14 @@
         });
         loading.value = false;
       }
-    } catch (error) {
+    } catch (error: any) {
       notification.error({
         message: t('sys.api.errorTip'),
         description: error?.message || t('sys.api.networkExceptionMsg'),
         duration: 3,
       });
       loading.value = false;
-      handleChangeCheckCode();
     }
-  }
-  
-  function handleChangeCheckCode() {
-    formData.inputCode = '';
-    //TODO 兼容mock和接口，暂时这样处理
-    //update-begin---author:chenrui ---date:2025/1/7  for：[QQYUN-10775]验证码可以复用 #7674------------
-    randCodeData.checkKey = new Date().getTime() + Math.random().toString(36).slice(-4); // 1629428467008;
-    //update-end---author:chenrui ---date:2025/1/7  for：[QQYUN-10775]验证码可以复用 #7674------------
-    getCodeInfo(randCodeData.checkKey).then((res) => {
-      randCodeData.randCodeImage = res;
-      randCodeData.requestCodeSuccess = true;
-    });
   }
 
   /**
@@ -204,8 +154,4 @@
   function onThirdLogin(type) {
     thirdModalRef.value.onThirdLogin(type);
   }
-  //初始化验证码
-  onMounted(() => {
-    handleChangeCheckCode();
-  });
 </script>

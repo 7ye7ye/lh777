@@ -15,11 +15,6 @@ export enum LoginStateEnum {
   QR_CODE,
 }
 
-export enum SmsEnum {
-  LOGIN = '0',
-  REGISTER = '1',
-  FORGET_PASSWORD = '2',
-}
 const currentState = ref(LoginStateEnum.LOGIN);
 
 export function useLoginState() {

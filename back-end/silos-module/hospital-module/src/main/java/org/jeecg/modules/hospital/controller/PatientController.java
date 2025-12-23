@@ -11,10 +11,14 @@ import org.jeecg.modules.hospital.entity.Patient;
 import org.jeecg.modules.hospital.exception.BusinessException;
 import org.jeecg.modules.hospital.service.PatientService;
 import org.jeecg.modules.hospital.service.PatientIdentityVerifyService;
+import org.jeecg.modules.hospital.service.VerificationAuditLogService;
+import org.jeecg.modules.hospital.entity.VerificationAuditLog;
 import org.jeecg.modules.hospital.entity.PatientIdentityVerify;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import cn.hutool.core.util.IdcardUtil;
 
 @RestController
 @RequestMapping("/patient")
@@ -31,6 +36,9 @@ public class PatientController {
 
     @Resource
     private PatientIdentityVerifyService patientIdentityVerifyService;
+    
+    @Resource
+    private VerificationAuditLogService verificationAuditLogService;
 
     @Value("${jeecg.domainUrl:http://127.0.0.1:8095}")
     private String domainUrl;
@@ -59,8 +67,26 @@ public class PatientController {
             if (StringUtils.isBlank(patient.getIdCard())) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "证件号码不能为空");
             }
+            // 身份证校验
+            if (!IdcardUtil.isValidCard(patient.getIdCard())) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "身份证号格式不正确");
+            }
+            
             if (StringUtils.isBlank(patient.getPhone())) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "手机号不能为空");
+            }
+            // 手机号校验
+            if (!patient.getPhone().matches("^1[3-9]\\d{9}$")) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "手机号格式不正确");
+            }
+            
+            // 0. 检查该用户绑定的就诊人数量是否超过限制（最多5个）
+            long count = patientService.lambdaQuery()
+                    .eq(Patient::getUserId, patient.getUserId())
+                    .eq(Patient::getIsDeleted, 0)
+                    .count();
+            if (count >= 5) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "一个账户最多只能绑定5名就诊人");
             }
 
             // 2. 检查是否已存在相同的身份证号
@@ -332,19 +358,39 @@ public class PatientController {
         HashMap<String, Object> result = new HashMap<>();
 
         try {
+            // 1. 基础参数校验
             if (request == null || request.getPatientId() == null) {
                 result.put("code", 400);
                 result.put("message", "patientId 不能为空");
                 return ResponseEntity.ok(result);
             }
 
+            // 2. 检查患者是否存在
             Patient dbPatient = patientService.getById(request.getPatientId());
             if (dbPatient == null) {
                 result.put("code", 404);
                 result.put("message", "未找到对应就诊卡");
                 return ResponseEntity.ok(result);
             }
+            
+            // 3. 校验身份证号格式
+            String idCard = dbPatient.getIdCard();
+            if (idCard == null || !IdcardUtil.isValidCard(idCard)) {
+                result.put("code", 400);
+                result.put("message", "身份证号格式不正确，请先更新个人信息");
+                return ResponseEntity.ok(result);
+            }
+            
+            // 4. 校验姓名格式
+            String patientName = dbPatient.getPatientName();
+            if (patientName == null || patientName.trim().isEmpty() || 
+                    !patientName.matches("^[\\u4e00-\\u9fa5a-zA-Z\\s]+$")) {
+                result.put("code", 400);
+                result.put("message", "姓名格式不正确，请先更新个人信息");
+                return ResponseEntity.ok(result);
+            }
 
+            // 5. 校验学生/教职工信息
             Integer patientType = dbPatient.getPatientType();
             if (patientType != null) {
                 if (patientType == 1 && (request.getStudentId() == null || request.getStudentId().trim().isEmpty())) {
@@ -359,6 +405,7 @@ public class PatientController {
                 }
             }
 
+            // 6. 校验图片是否上传
             if (request.getIdentityPhoto() == null || request.getIdentityPhoto().trim().isEmpty()) {
                 result.put("code", 400);
                 result.put("message", "请先上传证件照片");
@@ -369,25 +416,79 @@ public class PatientController {
                 result.put("message", "请先上传手持证件照片");
                 return ResponseEntity.ok(result);
             }
-
-            boolean success = patientIdentityVerifyService.applyIdentity(
-                    dbPatient.getUserId(),
-                    dbPatient.getPatientId(),
-                    request.getIdentityPhoto(),
-                    request.getHandheldIdentityPhoto(),
-                    dbPatient.getPatientName(),
-                    dbPatient.getIdCard()
-            );
-            if (!success) {
-                result.put("code", 500);
-                result.put("message", "提交认证申请失败，请稍后重试");
+            
+            // 7. 校验图片格式
+            String[] allowedFormats = {"jpg", "jpeg", "png"};
+            boolean validIdentityFormat = false;
+            boolean validHandheldFormat = false;
+            
+            String identityPhoto = request.getIdentityPhoto().toLowerCase();
+            String handheldPhoto = request.getHandheldIdentityPhoto().toLowerCase();
+            
+            for (String format : allowedFormats) {
+                if (identityPhoto.endsWith("." + format)) {
+                    validIdentityFormat = true;
+                }
+                if (handheldPhoto.endsWith("." + format)) {
+                    validHandheldFormat = true;
+                }
+            }
+            
+            if (!validIdentityFormat) {
+                result.put("code", 400);
+                result.put("message", "证件照片格式不正确，请上传JPG或PNG格式的图片");
+                return ResponseEntity.ok(result);
+            }
+            
+            if (!validHandheldFormat) {
+                result.put("code", 400);
+                result.put("message", "手持证件照片格式不正确，请上传JPG或PNG格式的图片");
                 return ResponseEntity.ok(result);
             }
 
-            result.put("code", 200);
-            result.put("message", "身份认证申请已提交，请等待管理员审核");
-            return ResponseEntity.ok(result);
+            // 8. 提交认证申请
+            try {
+                boolean success = patientIdentityVerifyService.applyIdentity(
+                        dbPatient.getUserId(),
+                        dbPatient.getPatientId(),
+                        request.getIdentityPhoto(),
+                        request.getHandheldIdentityPhoto(),
+                        dbPatient.getPatientName(),
+                        dbPatient.getIdCard()
+                );
+                
+                if (!success) {
+                    result.put("code", 500);
+                    result.put("message", "提交认证申请失败，请稍后重试");
+                    return ResponseEntity.ok(result);
+                }
+                
+                // 9. 返回成功响应
+                result.put("code", 200);
+                result.put("message", "身份认证申请已提交，请等待管理员审核");
+                result.put("data", new HashMap<String, Object>() {{
+                    put("patientId", dbPatient.getPatientId());
+                    put("status", 0); // 待审核
+                    put("submitTime", LocalDateTime.now());
+                }});
+                return ResponseEntity.ok(result);
+            } catch (BusinessException e) {
+                // 业务异常
+                result.put("code", e.getCode());
+                result.put("message", e.getMessage());
+                result.put("description", e.getDescription());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
+            }
+        } catch (BusinessException e) {
+            // 业务异常
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new HashMap<String, Object>() {{
+                put("code", e.getCode());
+                put("message", e.getMessage());
+                put("description", e.getDescription());
+            }});
         } catch (Exception e) {
+            // 系统异常
+            e.printStackTrace(); // 开发环境输出异常堆栈
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new HashMap<String, Object>() {{
                 put("code", 500);
                 put("message", "系统异常，请稍后重试");
@@ -396,18 +497,100 @@ public class PatientController {
     }
 
     /**
+     * 获取患者身份认证驳回原因
+     */
+    @GetMapping("/identity/rejectReason/{patientId}")
+    public ResponseEntity<HashMap<String, Object>> getIdentityRejectReason(@PathVariable Long patientId) {
+        HashMap<String, Object> result = new HashMap<>();
+
+        try {
+            // 1. 检查患者是否存在
+            Patient dbPatient = patientService.getById(patientId);
+            if (dbPatient == null) {
+                result.put("code", 404);
+                result.put("message", "未找到对应就诊卡");
+                return ResponseEntity.ok(result);
+            }
+            
+            // 2. 获取认证记录
+            LambdaQueryWrapper<PatientIdentityVerify> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(PatientIdentityVerify::getPatientId, patientId);
+            PatientIdentityVerify record = patientIdentityVerifyService.getOne(wrapper);
+            
+            // 3. 返回驳回原因
+            result.put("code", 200);
+            result.put("message", "获取成功");
+            result.put("data", new HashMap<String, Object>() {{
+                put("patientId", patientId);
+                put("rejectReason", record != null ? record.getRejectReason() : null);
+            }});
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new HashMap<String, Object>() {{
+                put("code", 500);
+                put("message", "系统异常，请稍后重试");
+            }});
+        }
+    }
+    
+    /**
+     * 获取患者身份认证审核历史
+     */
+    @GetMapping("/identity/auditHistory/{patientId}")
+    public ResponseEntity<HashMap<String, Object>> getIdentityAuditHistory(@PathVariable Long patientId) {
+        HashMap<String, Object> result = new HashMap<>();
+
+        try {
+            // 1. 检查患者是否存在
+            Patient dbPatient = patientService.getById(patientId);
+            if (dbPatient == null) {
+                result.put("code", 404);
+                result.put("message", "未找到对应就诊卡");
+                return ResponseEntity.ok(result);
+            }
+            
+            // 2. 获取审核历史记录
+            List<VerificationAuditLog> auditLogs = verificationAuditLogService.listByPatientId(patientId);
+            
+            // 3. 返回审核历史
+            result.put("code", 200);
+            result.put("message", "获取成功");
+            result.put("data", new HashMap<String, Object>() {{
+                put("patientId", patientId);
+                put("auditLogs", auditLogs);
+                put("total", auditLogs.size());
+            }});
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new HashMap<String, Object>() {{
+                put("code", 500);
+                put("message", "系统异常，请稍后重试");
+            }});
+        }
+    }
+    
+    /**
      * 管理员审核身份认证
      * approve=true: 通过 -> identityVerify=1, verifyTime=now
      * approve=false: 驳回 -> identityVerify=2
+     */
+    /**
+     * 管理员审核身份认证
      */
     @PostMapping("/identity/approve")
     public ResponseEntity<HashMap<String, Object>> approveIdentity(@RequestBody HashMap<String, Object> body) {
         HashMap<String, Object> result = new HashMap<>();
 
         try {
+            // 1. 参数校验
             Object patientIdObj = body.get("patientId");
             Object approveObj = body.get("approve");
             Object rejectReasonObj = body.get("rejectReason");
+            Object operatorIdObj = body.get("operatorId");
+            Object operatorNameObj = body.get("operatorName");
+            
             if (patientIdObj == null || approveObj == null) {
                 result.put("code", 400);
                 result.put("message", "patientId 和 approve 参数不能为空");
@@ -417,58 +600,78 @@ public class PatientController {
             Long patientId = Long.valueOf(patientIdObj.toString());
             boolean approve = Boolean.parseBoolean(approveObj.toString());
             String rejectReason = rejectReasonObj == null ? null : rejectReasonObj.toString();
+            
+            // 如果驳回，必须提供驳回原因
+            if (!approve && (rejectReason == null || rejectReason.trim().isEmpty())) {
+                result.put("code", 400);
+                result.put("message", "驳回时必须提供驳回原因");
+                return ResponseEntity.ok(result);
+            }
+            
+            // 获取操作人信息，如果没有提供，使用默认值
+            Long operatorId = operatorIdObj == null ? 0L : Long.valueOf(operatorIdObj.toString());
+            String operatorName = operatorNameObj == null ? "admin" : operatorNameObj.toString();
 
+            // 2. 检查患者是否存在
             Patient dbPatient = patientService.getById(patientId);
             if (dbPatient == null) {
                 result.put("code", 404);
                 result.put("message", "未找到对应就诊卡");
                 return ResponseEntity.ok(result);
             }
+            
+            // 3. 检查当前认证状态，避免重复审核
+            if (dbPatient.getIdentityVerify() != null) {
+                if (approve && dbPatient.getIdentityVerify() == 1) {
+                    result.put("code", 400);
+                    result.put("message", "该身份认证已经通过，无需重复审核");
+                    return ResponseEntity.ok(result);
+                }
+            }
 
-            // 先查询认证记录，获取照片路径
-            com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<PatientIdentityVerify> wrapper =
-                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
-            wrapper.eq(PatientIdentityVerify::getPatientId, patientId);
-            PatientIdentityVerify record = patientIdentityVerifyService.getOne(wrapper);
-
-            Patient update = new Patient();
-            update.setPatientId(patientId);
+            // 4. 执行审核操作
+            boolean success;
             if (approve) {
-                update.setIdentityVerify(1);
-                update.setVerifyTime(LocalDateTime.now());
-                // 审核通过时，将照片路径同步到 patient 表
-                if (record != null) {
-                    if (record.getIdentityPhoto() != null) {
-                        update.setIdentityPhoto(record.getIdentityPhoto());
-                    }
-                    if (record.getHandheldIdentityPhoto() != null) {
-                        update.setHandheldIdentityPhoto(record.getHandheldIdentityPhoto());
-                    }
+                success = patientIdentityVerifyService.approveIdentity(patientId, operatorId, operatorName);
+                if (success) {
+                    result.put("code", 200);
+                    result.put("message", "已通过该身份认证申请");
+                    result.put("data", new HashMap<String, Object>() {{
+                        put("patientId", patientId);
+                        put("status", 1); // 已通过
+                        put("verifyTime", LocalDateTime.now());
+                    }});
+                } else {
+                    result.put("code", 500);
+                    result.put("message", "审核失败，请稍后重试");
                 }
             } else {
-                update.setIdentityVerify(2);
-                update.setVerifyTime(null);
+                success = patientIdentityVerifyService.rejectIdentity(patientId, rejectReason, operatorId, operatorName);
+                if (success) {
+                    result.put("code", 200);
+                    result.put("message", "已驳回该身份认证申请");
+                    result.put("data", new HashMap<String, Object>() {{
+                        put("patientId", patientId);
+                        put("status", 2); // 已驳回
+                        put("rejectReason", rejectReason);
+                    }});
+                } else {
+                    result.put("code", 500);
+                    result.put("message", "驳回失败，请稍后重试");
+                }
             }
 
-            boolean success = patientService.updateById(update);
-            if (!success) {
-                result.put("code", 500);
-                result.put("message", "审核失败，请稍后重试");
-                return ResponseEntity.ok(result);
-            }
-
-            // 更新认证记录状态
-            if (record != null) {
-                record.setStatus(approve ? 1 : 2);
-                record.setRejectReason(approve ? null : rejectReason);
-                record.setUpdateTime(LocalDateTime.now());
-                patientIdentityVerifyService.updateById(record);
-            }
-
-            result.put("code", 200);
-            result.put("message", approve ? "已通过该身份认证申请" : "已驳回该身份认证申请");
             return ResponseEntity.ok(result);
+        } catch (BusinessException e) {
+            // 业务异常
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new HashMap<String, Object>() {{
+                put("code", e.getCode());
+                put("message", e.getMessage());
+                put("description", e.getDescription());
+            }});
         } catch (Exception e) {
+            // 系统异常
+            e.printStackTrace(); // 开发环境输出异常堆栈
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new HashMap<String, Object>() {{
                 put("code", 500);
                 put("message", "系统异常，请稍后重试");
