@@ -66,12 +66,15 @@ public class RegistrationAppletController {
     public Result<Boolean> checkDuplicateBySchedule(@RequestParam Long patientId,
                                                     @RequestParam Long scheduleId) {
         boolean isDuplicate = registrationService.checkDuplicateBySchedule(patientId, scheduleId);
-        if (isDuplicate) {
-            // 消息在前，数据在后
-            return Result.OK("您已挂过该排班的号", true);
-        } else {
-            return Result.OK("未发现重复挂号", false);
-        }
+        return Result.OK(isDuplicate);
+    }
+
+    @Operation(summary = "检查同一患者在当前排班对应科室当日是否已有挂号记录（单科室单日限约1次）")
+    @GetMapping("/checkDeptLimitBySchedule")
+    public Result<Boolean> checkDeptLimitBySchedule(@RequestParam Long patientId,
+                                                    @RequestParam Long scheduleId) {
+        boolean reachedLimit = registrationService.checkDeptLimitForSchedule(patientId, scheduleId);
+        return Result.OK(reachedLimit);
     }
 
     @Operation(summary = "将患者加入候补队列")

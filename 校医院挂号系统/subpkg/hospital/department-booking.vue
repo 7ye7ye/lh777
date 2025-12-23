@@ -3,6 +3,21 @@
     <!-- 顶部标题 -->
     <view class="page-header">
       <text class="header-title">预约挂号</text>
+      <!-- 就诊人选择器 - 小巧设计 -->
+      <view class="patient-selector-small">
+        <picker 
+          mode="selector" 
+          :range="patientList" 
+          range-key="patientName"
+          :value="selectedPatientIndex"
+          @change="onPatientChange"
+        >
+          <view class="picker-small">
+            <text class="picker-icon">👤</text>
+            <text class="picker-name">{{ currentPatient?.patientName || '选择就诊人' }}</text>
+          </view>
+        </picker>
+      </view>
     </view>
 
     <!-- 日期选择器 - 移到最上方 -->
@@ -144,79 +159,43 @@
                   <view class="time-slots-container">
                     <!-- 上午时段 -->
                     <view 
+                      v-for="slot in [
+                        { key: '上午', label: '上午 (08:00-12:00)', timeText: '上午 (08:00-12:00)' },
+                        { key: '下午', label: '下午 (14:00-17:00)', timeText: '下午 (14:00-17:00)' },
+                        { key: '晚上', label: '晚上 (18:00-20:00)', timeText: '晚上 (18:00-20:00)' }
+                      ]"
+                      :key="slot.key"
                       class="time-slot-item" 
-                      :class="{ 'clickable': getSlotByTimeRange(doctor.id, '上午')?.availableSlots }"
-                      @click="navigateToPayment(doctor, getSlotByTimeRange(doctor.id, '上午'), '上午 (08:00-12:00)')"
-                      v-if="getSlotByTimeRange(doctor.id, '上午')?.availableSlots"
+                      :class="{ 
+                        'clickable': getSlotByTimeRange(doctor.id, slot.key)?.availableSlots > 0 && !getSlotByTimeRange(doctor.id, slot.key)?.expired && !hasBookedSameDoctorToday(doctor.id || doctor.doctorId),
+                        'expired': getSlotByTimeRange(doctor.id, slot.key)?.expired,
+                        'no-slot': !getSlotByTimeRange(doctor.id, slot.key),
+                        'full': getSlotByTimeRange(doctor.id, slot.key) && !getSlotByTimeRange(doctor.id, slot.key)?.expired && getSlotByTimeRange(doctor.id, slot.key)?.availableSlots === 0,
+                        'disabled': hasBookedSameDoctorToday(doctor.id || doctor.doctorId)
+                      }"
+                      @click="navigateToPayment(doctor, getSlotByTimeRange(doctor.id, slot.key), slot.timeText)"
                     >
                       <view class="slot-info">
-                        <text class="slot-label">上午 (08:00-12:00)</text>
+                        <text class="slot-label">{{ slot.label }}</text>
+                        <text v-if="hasBookedSameDoctorToday(doctor.id || doctor.doctorId)" class="slot-reason">
+                          已预约过该医生当天的号
+                        </text>
                       </view>
-                      <text class="slot-status">
-                        余{{ getSlotByTimeRange(doctor.id, '上午').availableSlots }}
-                      </text>
-                    </view>
-                    <view 
-                      class="time-slot-item" 
-                      v-else
-                    >
-                      <view class="slot-info">
-                        <text class="slot-label">上午 (08:00-12:00)</text>
-                      </view>
-                      <text class="slot-status no-slot">
+                      <!-- 状态显示 -->
+                      <text v-if="!getSlotByTimeRange(doctor.id, slot.key)" class="slot-status no-slot">
                         无号
                       </text>
-                    </view>
-                    
-                    <!-- 下午时段 -->
-                    <view 
-                      class="time-slot-item" 
-                      :class="{ 'clickable': getSlotByTimeRange(doctor.id, '下午')?.availableSlots }"
-                      @click="navigateToPayment(doctor, getSlotByTimeRange(doctor.id, '下午'), '下午 (14:00-17:00)')"
-                      v-if="getSlotByTimeRange(doctor.id, '下午')?.availableSlots"
-                    >
-                      <view class="slot-info">
-                        <text class="slot-label">下午 (14:00-17:00)</text>
-                      </view>
-                      <text class="slot-status">
-                        余{{ getSlotByTimeRange(doctor.id, '下午').availableSlots }}
+                      <text v-else-if="getSlotByTimeRange(doctor.id, slot.key)?.expired" class="slot-status expired">
+                        已过预约时间
                       </text>
-                    </view>
-                    <view 
-                      class="time-slot-item" 
-                      v-else
-                    >
-                      <view class="slot-info">
-                        <text class="slot-label">下午 (14:00-17:00)</text>
-                      </view>
-                      <text class="slot-status no-slot">
-                        无号
+                      <text v-else-if="hasBookedSameDoctorToday(doctor.id || doctor.doctorId)" class="slot-status disabled">
+                        已预约
                       </text>
-                    </view>
-                    
-                    <!-- 晚上时段 -->
-                    <view 
-                      class="time-slot-item" 
-                      :class="{ 'clickable': getSlotByTimeRange(doctor.id, '晚上')?.availableSlots }"
-                      @click="navigateToPayment(doctor, getSlotByTimeRange(doctor.id, '晚上'), '晚上 (18:00-20:00)')"
-                      v-if="getSlotByTimeRange(doctor.id, '晚上')?.availableSlots"
-                    >
-                      <view class="slot-info">
-                        <text class="slot-label">晚上 (18:00-20:00)</text>
-                      </view>
-                      <text class="slot-status">
-                        余{{ getSlotByTimeRange(doctor.id, '晚上').availableSlots }}
+                      <text v-else-if="getSlotByTimeRange(doctor.id, slot.key)?.availableSlots === 0" class="slot-status full">
+                        已满
                       </text>
-                    </view>
-                    <view 
-                      class="time-slot-item" 
-                      v-else
-                    >
-                      <view class="slot-info">
-                        <text class="slot-label">晚上 (18:00-20:00)</text>
-                      </view>
-                      <text class="slot-status no-slot">
-                        无号
+                      <text v-else class="slot-status">
+                        余{{ getSlotByTimeRange(doctor.id, slot.key).availableSlots }}
                       </text>
                     </view>
                   </view>
@@ -237,7 +216,10 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { getDepartmentTree } from '@/api/department'
 import { getDoctorsByDeptId, getDoctorDetail } from '@/api/doctor'
 import { scheduleApi } from '@/api/schedule'
-import { getDoctorSchedules, getRegistrationTypes } from '@/api/registration'
+import { getDoctorSchedules, getRegistrationTypes, getRegistrationRecords, checkDeptLimitBySchedule } from '@/api/registration'
+import { ensurePatientCard } from '@/utils/patientHelper'
+import { patientApi } from '@/api/patient'
+import { useUserStore } from '@/store/user'
 
 // 生成医生头像初始化字母
 const getDoctorInitial = (name) => {
@@ -259,6 +241,13 @@ const doctorSchedules = ref({})
 const selectedDate = ref('')
 const dateList = ref([])
 const registrationTypeNameMap = ref({})
+const patientId = ref(null)
+const patientRecords = ref([]) // 患者当天的挂号记录
+const loadingRecords = ref(false)
+const patientList = ref([]) // 就诊人列表
+const currentPatient = ref(null) // 当前选择的就诊人
+const selectedPatientIndex = ref(0) // 当前选择的就诊人索引
+const userStore = useUserStore()
 
 const loadRegistrationTypeNameMap = async () => {
   if (registrationTypeNameMap.value && Object.keys(registrationTypeNameMap.value).length > 0) return
@@ -311,6 +300,11 @@ const changeDate = async (date) => {
     for (const doctor of doctors.value) {
       await fetchDoctorSchedules(doctor.id, date.date)
     }
+  }
+  
+  // 重新加载患者当天的挂号记录
+  if (patientId.value) {
+    await loadPatientRecords()
   }
 }
 
@@ -479,6 +473,92 @@ const viewDoctorDetail = async (doctor) => {
     return schedules.find(slot => slot.timeRange === timeRange);
   };
 
+  // 加载患者当天的挂号记录
+  const loadPatientRecords = async () => {
+    if (!patientId.value || !selectedDate.value) {
+      patientRecords.value = []
+      return
+    }
+
+    try {
+      loadingRecords.value = true
+      const records = await getRegistrationRecords(patientId.value)
+      
+      // 过滤出当天的记录（状态不为3，即未取消）
+      const dateStr = selectedDate.value.substring(0, 10)
+      patientRecords.value = Array.isArray(records) 
+        ? records.filter(r => {
+            const recordDate = r.schedule_date || r.scheduleDate || r.register_time
+            if (!recordDate) return false
+            const recordDateStr = typeof recordDate === 'string' 
+              ? recordDate.substring(0, 10) 
+              : recordDate
+            return recordDateStr === dateStr && r.status !== 3
+          })
+        : []
+    } catch (error) {
+      console.error('加载患者挂号记录失败:', error)
+      patientRecords.value = []
+    } finally {
+      loadingRecords.value = false
+    }
+  }
+
+  // 检查是否已预约过该医生当天的号
+  const hasBookedSameDoctorToday = (doctorId) => {
+    if (!patientRecords.value.length) return false
+    
+    const doctorIdNum = Number(doctorId)
+    return patientRecords.value.some(r => {
+      const recordDoctorId = Number(r.doctor_id || r.doctorId)
+      return recordDoctorId === doctorIdNum
+    })
+  }
+
+  // 检查是否已预约过该科室当天的号
+  const hasBookedSameDeptToday = async (scheduleId) => {
+    if (!patientId.value || !scheduleId) return false
+    
+    try {
+      const hasBooked = await checkDeptLimitBySchedule(patientId.value, scheduleId)
+      return hasBooked === true || hasBooked === 1
+    } catch (error) {
+      console.error('检查科室预约限制失败:', error)
+      return false
+    }
+  }
+
+  // 获取时段禁用状态和理由
+  const getSlotDisabledInfo = async (doctor, schedule) => {
+    if (!schedule || !doctor) {
+      return { disabled: false, reason: '' }
+    }
+
+    const doctorIdNum = Number(doctor.doctorId || doctor.id)
+    
+    // 检查是否已预约过该医生当天的号
+    if (hasBookedSameDoctorToday(doctorIdNum)) {
+      return { 
+        disabled: true, 
+        reason: '已预约过该医生当天的号' 
+      }
+    }
+
+    // 检查是否已预约过该科室当天的号
+    const scheduleId = schedule.scheduleId || schedule.id || schedule.schedule_id
+    if (scheduleId) {
+      const hasBookedDept = await hasBookedSameDeptToday(scheduleId)
+      if (hasBookedDept) {
+        return { 
+          disabled: false, // 不禁用，但需要确认
+          reason: '已预约过该科室当天的号，继续预约需要确认' 
+        }
+      }
+    }
+
+    return { disabled: false, reason: '' }
+  }
+
   // 获取医生的号别类型名称（从排班数据中提取）
   const getDoctorTypeName = (doctorOrId) => {
     const doctor = typeof doctorOrId === 'object' ? doctorOrId : (doctors.value || []).find(d => d.id === doctorOrId || d.doctorId === doctorOrId)
@@ -502,23 +582,132 @@ const viewDoctorDetail = async (doctor) => {
   };
 
   // 跳转到支付页面
-  const navigateToPayment = (doctor, schedule, timeText) => {
-    if (!doctor || !schedule || !schedule.availableSlots) {
+  const navigateToPayment = async (doctor, schedule, timeText) => {
+    if (!doctor || !schedule) {
       return;
     }
+    
+    // 检查是否已过预约时间
+    if (schedule.expired) {
+      uni.showToast({
+        title: '该时段预约已截止',
+        icon: 'none'
+      })
+      return
+    }
+    
+    // 检查是否有可用号源
+    if (!schedule.availableSlots || schedule.availableSlots <= 0) {
+      uni.showToast({
+        title: '该时段号源已满',
+        icon: 'none'
+      })
+      return
+    }
+
+    // 检查是否已预约过该医生当天的号
+    const doctorIdNum = Number(doctor.doctorId || doctor.id)
+    if (hasBookedSameDoctorToday(doctorIdNum)) {
+      uni.showToast({
+        title: '已预约过该医生当天的号，不能重复预约',
+        icon: 'none',
+        duration: 2000
+      })
+      return
+    }
+    
+    // 获取就诊人ID
+    let currentPatientId = patientId.value
+    if (!currentPatientId) {
+      try {
+        const patientInfo = await ensurePatientCard()
+        if (patientInfo && patientInfo.patientId) {
+          currentPatientId = Number(patientInfo.patientId)
+          patientId.value = currentPatientId
+          console.log('获取到就诊人ID:', currentPatientId)
+          // 加载患者记录
+          await loadPatientRecords()
+        } else {
+          uni.showModal({
+            title: '就诊人信息缺失',
+            content: '未找到就诊人信息，请先创建并绑定就诊卡',
+            showCancel: false,
+            success: () => {
+              uni.navigateTo({
+                url: '/subpkg/profile/personal/create-card'
+              })
+            }
+          })
+          return
+        }
+      } catch (error) {
+        console.error('获取就诊人信息失败:', error)
+        uni.showModal({
+          title: '就诊人信息缺失',
+          content: '获取就诊人信息失败，请先创建并绑定就诊卡',
+          showCancel: false,
+          success: () => {
+            uni.navigateTo({
+              url: '/subpkg/profile/personal/create-card'
+            })
+          }
+        })
+        return
+      }
+    }
+
+    // 检查是否已预约过该科室当天的号，如果是第二个科室预约，需要确认
+    const scheduleId = schedule?.scheduleId ?? schedule?.id ?? schedule?.schedule_id ?? 0
+    if (scheduleId) {
+      const hasBookedDept = await hasBookedSameDeptToday(scheduleId)
+      if (hasBookedDept) {
+        uni.showModal({
+          title: '重复科室预约提醒',
+          content: '该就诊人当天已在本科室预约过一次，如继续预约可能导致重复就诊，确定要继续吗？',
+          confirmText: '继续预约',
+          cancelText: '取消',
+          success: async (res) => {
+            if (res.confirm) {
+              await proceedToPayment(doctor, schedule, timeText, currentPatientId)
+            }
+          }
+        })
+        return
+      }
+    }
+
+    // 正常情况：直接跳转支付页
+    await proceedToPayment(doctor, schedule, timeText, currentPatientId)
+  }
+
+  // 执行跳转到支付页面的逻辑
+  const proceedToPayment = async (doctor, schedule, timeText, currentPatientId) => {
     
     // 构建跳转参数
     const scheduleId = schedule?.scheduleId ?? schedule?.id ?? schedule?.schedule_id ?? 0
     const typeId = schedule?.typeId ?? schedule?.type_id ?? schedule?.type ?? 1
 
+    // 获取科室名称，优先使用 selectedDepartment，其次使用 currentDepartment
+    const deptName = selectedDepartment.value?.deptName || currentDepartment.value?.deptName || '未知科室'
+    const deptIdValue = selectedDepartment.value?.deptId || selectedDepartment.value?.id || selectedDeptId.value || 0
+
+    console.log('跳转支付页 - 科室信息:', {
+      selectedDepartment: selectedDepartment.value,
+      currentDepartment: currentDepartment.value,
+      deptName,
+      deptIdValue,
+      patientId: currentPatientId
+    })
+
     const params = {
-      dept: encodeURIComponent(selectedDepartment?.deptName || '未知科室'),
+      dept: encodeURIComponent(deptName),
       doctor: encodeURIComponent(doctor.name || doctor.doctorName || '未知医生'),
       time: encodeURIComponent(`${selectedDate.value} ${timeText}`),
       doctorId: doctor.doctorId || doctor.id || 0,
       scheduleId,
       typeId,
-      deptId: selectedDepartment?.deptId || 0
+      deptId: deptIdValue,
+      patientId: currentPatientId
     };
     
     // 跳转到支付页面
@@ -598,6 +787,27 @@ const viewDoctorDetail = async (doctor) => {
           const usedQuota = Number(schedule.used_quota || schedule.usedQuota || 0);
           const availableSlots = maxQuota - usedQuota;
 
+          // 判断是否已过预约时间（就诊前2小时截止）
+          let expired = false
+          if (scheduleDate) {
+            const scheduleDateObj = new Date(scheduleDate)
+            const now = new Date()
+            const timeSlot = Number(schedule.time_slot ?? schedule.timeSlot)
+            
+            // 确定时段的开始时间
+            let slotStartHour = 8 // 默认上午
+            if (timeSlot === 2) slotStartHour = 14 // 下午
+            else if (timeSlot === 3) slotStartHour = 18 // 晚上
+            
+            // 构建时段开始时间
+            const slotStartTime = new Date(scheduleDateObj)
+            slotStartTime.setHours(slotStartHour, 0, 0, 0)
+            
+            // 如果当前时间 >= 时段开始时间 - 2小时，则已过期
+            const cutoffTime = new Date(slotStartTime.getTime() - 2 * 60 * 60 * 1000)
+            expired = now >= cutoffTime
+          }
+
           return {
             id: resolvedScheduleId,
             scheduleId: resolvedScheduleId,
@@ -608,6 +818,7 @@ const viewDoctorDetail = async (doctor) => {
             doctorTitleTypeName: schedule.doctor_title_type_name || schedule.doctorTitleTypeName || null,
             fee: Number(schedule.price || schedule.fee || 50),
             availableSlots,
+            expired, // 是否已过预约时间
             roomNo: schedule.room_number || schedule.roomNumber || '诊室1',
             totalSlots: maxQuota
           };
@@ -734,11 +945,87 @@ const clearSelection = (departments) => {
   })
 }
 
+// 加载就诊人列表
+const loadPatientList = async () => {
+  const userId = userStore.userInfo?.userId
+  if (!userId) {
+    return
+  }
+
+  try {
+    const data = await patientApi.getPatientList({ userId })
+    let list = []
+    
+    if (Array.isArray(data)) {
+      list = data
+    } else if (data && Array.isArray(data.list)) {
+      list = data.list
+    } else if (data && Array.isArray(data.data)) {
+      list = data.data
+    }
+    
+    patientList.value = list
+    
+    // 如果有就诊人列表，设置默认选择第一个
+    if (list.length > 0) {
+      currentPatient.value = list[0]
+      patientId.value = Number(list[0].patientId)
+      selectedPatientIndex.value = 0
+      await loadPatientRecords()
+    } else {
+      // 如果没有就诊人，尝试从ensurePatientCard获取
+      const patientInfo = await ensurePatientCard()
+      if (patientInfo && patientInfo.patientId) {
+        patientId.value = Number(patientInfo.patientId)
+        currentPatient.value = patientInfo
+        await loadPatientRecords()
+      }
+    }
+  } catch (error) {
+    console.warn('获取就诊人列表失败:', error)
+    // 如果获取失败，尝试从ensurePatientCard获取
+    try {
+      const patientInfo = await ensurePatientCard()
+      if (patientInfo && patientInfo.patientId) {
+        patientId.value = Number(patientInfo.patientId)
+        currentPatient.value = patientInfo
+        await loadPatientRecords()
+      }
+    } catch (e) {
+      console.warn('从ensurePatientCard获取患者信息失败:', e)
+    }
+  }
+}
+
+// 就诊人选择变化
+const onPatientChange = async (e) => {
+  const index = e.detail.value
+  selectedPatientIndex.value = index
+  currentPatient.value = patientList.value[index]
+  patientId.value = Number(currentPatient.value.patientId)
+  
+  // 重新加载患者当天的挂号记录
+  await loadPatientRecords()
+  
+  // 如果已选择科室，重新检查排班可用性
+  if (selectedDepartment.value && doctors.value.length > 0) {
+    for (const doctor of doctors.value) {
+      await fetchDoctorSchedules(doctor.id, selectedDate.value)
+    }
+  }
+}
+
+// 初始化患者信息
+const initPatientInfo = async () => {
+  await loadPatientList()
+}
+
 // 在组件挂载后设置默认状态
-onMounted(() => {
+onMounted(async () => {
   initDateList()
   initDepartmentTree()
   loadRegistrationTypeNameMap()
+  await initPatientInfo()
 })
 
 // 递归查找科室
@@ -833,12 +1120,6 @@ const callConsult = () => {
   })
 }
 
-// 页面加载时初始化
-onMounted(() => {
-  initDateList()
-  initDepartmentTree()
-  loadRegistrationTypeNameMap()
-})
 </script>
 
 <style scoped>
@@ -867,6 +1148,10 @@ onMounted(() => {
   color: #ffffff;
   box-shadow: 0 4rpx 12rpx rgba(74, 144, 226, 0.2);
   z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24rpx;
 }
 
 .header-title {
@@ -874,6 +1159,71 @@ onMounted(() => {
   font-weight: bold;
   color: #ffffff;
   text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.1);
+  flex: 1;
+  text-align: center;
+}
+
+/* 小的就诊人选择器 */
+.patient-selector-small {
+  position: absolute;
+  right: 20rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 101;
+}
+
+.picker-small {
+  display: flex;
+  align-items: center;
+  padding: 10rpx 18rpx;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 24rpx;
+  backdrop-filter: blur(12rpx);
+  border: 1.5rpx solid rgba(255, 255, 255, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 180rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.picker-small::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+  transition: left 0.5s ease;
+}
+
+.picker-small:active {
+  background: rgba(255, 255, 255, 0.35);
+  transform: scale(0.96);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.15);
+}
+
+.picker-small:active::before {
+  left: 100%;
+}
+
+.picker-icon {
+  font-size: 22rpx;
+  margin-right: 8rpx;
+  filter: drop-shadow(0 1rpx 2rpx rgba(0, 0, 0, 0.1));
+}
+
+.picker-name {
+  font-size: 22rpx;
+  color: #ffffff;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120rpx;
+  text-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.1);
+  letter-spacing: 0.5rpx;
 }
 
 /* 日期选择器容器 - 移至顶部 */
@@ -1135,6 +1485,7 @@ onMounted(() => {
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 1;
+  line-clamp: 1;
   -webkit-box-orient: vertical;
 }
 
@@ -1369,6 +1720,75 @@ onMounted(() => {
   color: #999;
   font-weight: 500;
   background: #f5f5f5;
+}
+
+/* 已过预约时间状态 */
+.slot-status.expired {
+  color: #ff9500;
+  font-weight: 500;
+  background: rgba(255, 149, 0, 0.1);
+}
+
+/* 已满状态 */
+.slot-status.full {
+  color: #ff4d4f;
+  font-weight: 500;
+  background: rgba(255, 77, 79, 0.1);
+}
+
+/* 已过预约时间的时段项 */
+.time-slot-item.expired {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.time-slot-item.expired .slot-label {
+  color: #999;
+}
+
+/* 无号的时段项 */
+.time-slot-item.no-slot {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.time-slot-item.no-slot .slot-label {
+  color: #999;
+}
+
+/* 已满的时段项 */
+.time-slot-item.full {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.time-slot-item.full .slot-label {
+  color: #666;
+}
+
+/* 已预约（禁用）的时段项 */
+.time-slot-item.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+  border-color: #d9d9d9;
+}
+
+.time-slot-item.disabled .slot-label {
+  color: #999;
+}
+
+.time-slot-item.disabled .slot-status.disabled {
+  color: #999;
+  font-weight: 500;
+  background: #e8e8e8;
+}
+
+/* 禁用理由 */
+.slot-reason {
+  font-size: 24rpx;
+  color: #ff4d4f;
+  margin-top: 8rpx;
 }
 
 .schedule-card {

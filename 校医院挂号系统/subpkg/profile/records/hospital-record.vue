@@ -784,29 +784,39 @@ const handleResetDateRange = () => {
 
 // 检查就诊记录是否在日期范围内
 const isRecordInDateRange = (record) => {
+  // 如果没有设置日期范围，显示所有记录（包括没有日期信息的记录）
   if (!startDate.value && !endDate.value) {
-    return true // 没有设置日期范围，显示所有记录，包括没有日期信息的记录
+    return true
   }
   
-  // 使用就诊时间作为比较基准
+  // 如果设置了日期范围，需要检查记录的日期
+  // 使用挂号时间作为比较基准（优先使用 registerTime）
   const recordDateStr = record.registerTime || record.consultationTime || record.createTime || ''
+  
+  // 如果设置了日期范围但记录没有日期信息，在"全部"状态下仍然显示
+  // 但在其他状态下，如果没有日期信息，不显示（因为无法判断是否在范围内）
   if (!recordDateStr) {
-    return false // 有日期筛选但记录没有日期信息，不显示
+    // 如果选择了"全部"状态，即使没有日期信息也显示
+    // 这样可以避免因为日期信息缺失导致记录被过滤
+    return currentFilter.value === 'all'
   }
   
   const recordDate = parseDate(recordDateStr)
-  if (!recordDate) return false
+  if (!recordDate) {
+    // 日期解析失败，在"全部"状态下仍然显示
+    return currentFilter.value === 'all'
+  }
   
-  const start = parseDate(startDate.value)
-  const end = parseDate(endDate.value)
+  const start = startDate.value ? parseDate(startDate.value) : null
+  const end = endDate.value ? parseDate(endDate.value) : null
   
   // 如果只有开始日期，只要记录日期 >= 开始日期即可
-  if (startDate.value && !endDate.value) {
+  if (start && !end) {
     return recordDate >= start
   }
   
   // 如果只有结束日期，只要记录日期 <= 结束日期即可
-  if (!startDate.value && endDate.value) {
+  if (!start && end) {
     return recordDate <= end
   }
   
@@ -820,13 +830,21 @@ const isRecordInDateRange = (record) => {
 
 // 过滤就诊记录
 const filteredRecords = computed(() => {
+  // 如果没有记录，直接返回空数组
+  if (!records.value || records.value.length === 0) {
+    return []
+  }
+  
   return records.value.filter(record => {
-    // 状态筛选
-    if (currentFilter.value !== 'all' && record.statusDisplay !== currentFilter.value) {
-      return false
+    // 状态筛选：如果选择了"全部"，不进行状态筛选，显示所有记录
+    if (currentFilter.value !== 'all') {
+      // 确保 statusDisplay 存在且匹配
+      if (!record.statusDisplay || record.statusDisplay !== currentFilter.value) {
+        return false
+      }
     }
     
-    // 日期范围筛选
+    // 日期范围筛选：如果没有设置日期范围，显示所有记录（包括没有日期信息的记录）
     return isRecordInDateRange(record)
   })
 })

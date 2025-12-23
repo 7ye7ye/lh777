@@ -78,8 +78,8 @@
 					<view v-else class="time-slots">
 						<view v-for="slot in timeSlots" :key="slot.key" class="time-slot-item" :class="{ 
 						    selected: selectedSlot === slot.key,
-						    disabled: !slotStatus[slot.key]?.exists,
-						    full: slotStatus[slot.key]?.exists && slotStatus[slot.key]?.remaining === 0
+						    disabled: !slotStatus[slot.key]?.exists || slotStatus[slot.key]?.expired,
+						    full: slotStatus[slot.key]?.exists && !slotStatus[slot.key]?.expired && slotStatus[slot.key]?.remaining === 0
 						  }" @click="selectTimeSlot(slot)">
 							<view class="slot-info">
 								<view class="slot-header">
@@ -97,6 +97,9 @@
 							<!-- 状态显示 -->
 							<view v-if="!slotStatus[slot.key]?.exists" class="slot-status none">
 								无号
+							</view>
+							<view v-else-if="slotStatus[slot.key]?.expired" class="slot-status expired">
+								已过预约时间
 							</view>
 							<view v-else-if="slotStatus[slot.key]?.remaining === 0" class="slot-status full">
 								已满
@@ -158,7 +161,8 @@
 		getDoctorSchedules,
 		createRegistration,
 		checkDuplicateBySchedule,
-		addWaitingQueue
+		addWaitingQueue,
+		checkDeptLimitBySchedule
 	} from '../../api/registration'
 	import {
 		ensurePatientCard
@@ -408,23 +412,28 @@
 	const slotStatus = computed(() => {
 		const result = {
 			morning: {
+				exists: false,
 				available: false,
 				remaining: 0,
-				typeName: ''
+				typeName: '',
+				expired: false
 			},
 			afternoon: {
+				exists: false,
 				available: false,
 				remaining: 0,
-				typeName: ''
+				typeName: '',
+				expired: false
 			},
 			evening: {
+				exists: false,
 				available: false,
 				remaining: 0,
-				typeName: ''
+				typeName: '',
+				expired: false
 			}
 		}
 
-		// 没有必要 doctorId 判断，后端没返回 doctor_id 字段
 		if (!appointmentDate.value || !Array.isArray(schedules.value) || !schedules.value.length) {
 			return result
 		}
@@ -455,10 +464,51 @@
 					exists: true, // 标记有排班
 					available: remaining > 0, // 有剩余才可选
 					remaining,
-					typeName: schedule.type_name || schedule.typeName || '' // 号别类型名称
+					typeName: schedule.type_name || schedule.typeName || '', // 号别类型名称
+					expired: false
 				}
 			}
 		})
+
+		// ------------------ 基于当前时间标记“已过预约时间” ------------------
+		try {
+			const todayStr = new Date().toISOString().split('T')[0]
+			const apptDateStr = String(appointmentDate.value).substring(0, 10)
+
+			// 仅在选择的是“今天”或“过去的日期”时需要标记过期
+			if (!apptDateStr) {
+				return result
+			}
+
+			const now = new Date()
+
+			const markSlotExpired = (slotKey, startTimeStr) => {
+				if (!startTimeStr || !result[slotKey].exists) return
+				const slotStart = new Date(`${apptDateStr}T${startTimeStr}`.replace(' ', 'T'))
+				// 就诊前2小时内视为预约截止
+				if (now.getTime() >= slotStart.getTime() - 2 * 60 * 60 * 1000) {
+					result[slotKey].expired = true
+					result[slotKey].available = false
+				}
+			}
+
+			// 如果日期早于今天，三段都视为过期
+			if (apptDateStr < todayStr) {
+				result.morning.expired = result.morning.exists
+				result.afternoon.expired = result.afternoon.exists
+				result.evening.expired = result.evening.exists
+				result.morning.available = false
+				result.afternoon.available = false
+				result.evening.available = false
+			} else if (apptDateStr === todayStr) {
+				// 同一天，根据时段开始时间 - 2h 判断
+				markSlotExpired('morning', '08:00:00')
+				markSlotExpired('afternoon', '14:00:00')
+				markSlotExpired('evening', '18:00:00')
+			}
+		} catch (e) {
+			console.warn('计算时段是否过预约时间失败', e)
+		}
 
 		return result
 	})
@@ -503,9 +553,19 @@
 	const selectTimeSlot = (slot) => {
 		const slotInfo = slotStatus.value[slot.key] || {
 			available: false,
-			remaining: 0
+			remaining: 0,
+			expired: false
 		}
 	
+		// 已过预约时间，不可选
+		if (slotInfo.expired) {
+			uni.showToast({
+				title: '该时段预约已截止',
+				icon: 'none'
+			})
+			return
+		}
+
 		// 无排班不可选
 		if (!slotInfo.exists) {
 			uni.showToast({
@@ -653,18 +713,48 @@
 		const scheduleId = selectedSchedule.value.schedule_id ?? selectedSchedule.value.scheduleId
 		console.log("获得的 scheduleId：", scheduleId)
 		console.log("selectedSchedule.value：", selectedSchedule.value)
+
+		// 1️⃣ 就诊前 2 小时内不可预约该时段
 		try {
-			// 调用后端检查是否重复挂号
-			const patientId = currentPatient.value?.patientId
-			if (!patientId) {
-			  uni.showToast({ title: '请选择就诊人', icon: 'none' })
-			  return
+			const scheduleDateStr = (selectedSchedule.value.schedule_date ?? selectedSchedule.value.scheduleDate ?? '').toString().substring(0, 10)
+			const slot = Number(selectedSchedule.value.time_slot ?? selectedSchedule.value.timeSlot)
+
+			const slotStartTimeMap = {
+				1: '08:00:00', // 上午
+				2: '14:00:00', // 下午
+				3: '18:00:00'  // 晚上
 			}
 
-			const isDuplicate = await checkDuplicateBySchedule(patientId, selectedSchedule.value.schedule_id ||
-				selectedSchedule.value.scheduleId);
+			const timeStr = slotStartTimeMap[slot]
+			if (scheduleDateStr && timeStr) {
+				const slotStart = new Date(`${scheduleDateStr}T${timeStr}`.replace(' ', 'T'))
+				const now = new Date()
+				const diffMs = slotStart.getTime() - now.getTime()
+				const diffHours = diffMs / (1000 * 60 * 60)
 
+				if (diffHours <= 2) {
+					uni.showToast({
+						title: '就诊前2小时内不能预约该时段，请选择其他时段',
+						icon: 'none'
+					})
+					return
+				}
+			}
+		} catch (e) {
+			console.warn('就诊前2小时校验失败，继续流程', e)
+		}
+		try {
+			// 2️⃣ 调用后端检查是否重复挂号（同一排班完全禁止）
+			const patientId = currentPatient.value?.patientId
+			if (!patientId) {
+				uni.showToast({ title: '请选择就诊人', icon: 'none' })
+				return
+			}
 
+			const isDuplicate = await checkDuplicateBySchedule(
+				patientId,
+				selectedSchedule.value.schedule_id || selectedSchedule.value.scheduleId
+			)
 
 			if (isDuplicate) {
 				uni.showToast({
@@ -674,8 +764,48 @@
 				return
 			}
 
-			// 预约成功提示
-			uni.showModal({
+			// 3️⃣ 检查“同一就诊人+同一科室同日仅允许1次”，命中时给出二次确认提示
+			let reachedDeptLimit = false
+			try {
+				reachedDeptLimit = await checkDeptLimitBySchedule(
+					patientId,
+					selectedSchedule.value.schedule_id || selectedSchedule.value.scheduleId
+				)
+			} catch (e) {
+				console.warn('检查科室单日限约失败，忽略继续流程', e)
+			}
+
+			if (reachedDeptLimit) {
+				uni.showModal({
+					title: '重复科室预约提醒',
+					content: '该就诊人当天已在本科室预约过一次，如继续预约可能导致重复就诊，确定要继续吗？',
+					confirmText: '继续预约',
+					cancelText: '取消',
+					success: (res) => {
+						if (res.confirm) {
+							gotoPayPage(patientId, scheduleId)
+						}
+					}
+				})
+				return
+			}
+
+			// 4️⃣ 正常情况：直接跳转支付页
+			gotoPayPage(patientId, scheduleId)
+
+		} catch (e) {
+			console.error('检查重复挂号失败', e)
+			uni.showToast({
+				title: '无法检查重复挂号，请稍后重试',
+				icon: 'none'
+			})
+		}
+	}
+
+	// 抽取：统一跳转支付页逻辑
+	const gotoPayPage = (patientId, scheduleId) => {
+		// 预约成功提示
+		uni.showModal({
 				title: '预约成功',
 				content: '您的预约已成功，请前往支付完成挂号。',
 				showCancel: false,
@@ -694,15 +824,7 @@
 					    })
 				}
 			})
-			console.log('🔹 即将跳转支付页，传递的患者ID:', patientId)
-
-		} catch (e) {
-			console.error('检查重复挂号失败', e)
-			uni.showToast({
-				title: '无法检查重复挂号，请稍后重试',
-				icon: 'none'
-			})
-		}
+		console.log('🔹 即将跳转支付页，传递的患者ID:', patientId)
 	}
 
 	// 工具函数：生成挂号单号（前端简单示例）
@@ -931,6 +1053,11 @@
 	.slot-status.none {
 		background: #f0f0f0;
 		color: #999;
+	}
+
+	.slot-status.expired {
+		background: #eee;
+		color: #b0b0b0;
 	}
 
 

@@ -52,7 +52,7 @@
 	],
 	"subPackages": [
 		{
-			"root": "subpkg/doctor/",
+			"root": "subpkg/doctor",
 			"pages": [
 				{
 					"path": "schedule/main",
