@@ -3,7 +3,9 @@
 		<view class="detail-bg">
 			<!-- 医生基本信息 -->
 			<view class="doctor-card" v-if="doctor && doctor.doctorName">
-				<image :src="doctor.avatar || '/static/doctor.svg'" mode="aspectFill" class="avatar"></image>
+        <view class="doctor-avatar">
+          {{ (doctor.doctorName || doctor.name || '医').charAt(0) }}
+        </view>
 				<view class="doctor-info">
 					<view class="name-title">
 						<text class="name">{{ doctor.doctorName }}</text>
@@ -865,13 +867,18 @@
 		margin: 16rpx;
 	}
 
-	.avatar {
-		width: 140rpx;
-		height: 140rpx;
-		border-radius: 70rpx;
+	.doctor-avatar {
+		width: 120rpx;
+		height: 120rpx;
+		border-radius: 60rpx;
 		margin-right: 24rpx;
 		border: 4rpx solid rgba(255, 255, 255, 0.3);
-		background: #fff;
+		background: linear-gradient(135deg, #4a90e2 0%, #6ec6ff 100%);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 48rpx;
+		color: #ffffff;
 	}
 
 	.doctor-info {
