@@ -25,6 +25,16 @@ public class OutpatientStatisticsDTO {
     private String deptName;
     
     /**
+     * 父科室ID（用于显示二级科室）
+     */
+    private Long parentDeptId;
+    
+    /**
+     * 父科室名称（用于显示二级科室）
+     */
+    private String parentDeptName;
+    
+    /**
      * 门诊量
      */
     private Integer visitCount;

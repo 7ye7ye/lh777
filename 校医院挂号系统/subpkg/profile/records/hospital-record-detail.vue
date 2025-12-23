@@ -61,8 +61,12 @@
       <view class="info-content">
         <view class="info-row">
           <view class="info-item">
-            <text class="info-label">挂号费用</text>
-            <text class="info-value fee">¥{{ paymentInfo?.fee || '' }}</text>
+            <text class="info-label">挂号定价</text>
+            <text class="info-value fee">¥{{ paymentInfo?.fee ?? '-' }}</text>
+          </view>
+          <view class="info-item">
+            <text class="info-label">实付金额</text>
+            <text class="info-value fee real">¥{{ paymentInfo?.actualPaid ?? paymentInfo?.paidAmount ?? paymentInfo?.fee ?? '-' }}</text>
           </view>
           <view class="info-item">
             <text class="info-label">支付状态</text>
@@ -103,8 +107,8 @@ import { fetchPatientCard } from '@/utils/patientHelper'
 import { getDepartmentDetail } from '@/api/department'
 import { getDoctorDetail } from '@/api/doctor_massage'
 import { patientApi } from '@/api/patient'
-import { getScheduleDetailById } from '@/api/registration'
-import { getPatientReferralList } from '@/api/referral'
+import { getScheduleDetailById, getRegistrationRecords } from '@/api/registration'
+import { getPatientReferralList, getPatientVisitRecords } from '@/api/referral'
 
 // 状态定义（与就诊记录列表页面一致）
 const STATUS_DEFINITIONS = {
@@ -450,6 +454,118 @@ const checkCanRefer = (rawStatusValue, visitTimeStr, registerTimeStr, scheduleDa
   return false
 }
 
+const getNumberSafe = (val) => {
+  if (val === null || val === undefined || val === '') return null
+  const num = Number(val)
+  return isNaN(num) ? null : num
+}
+
+const pickAmount = (item) => {
+  if (!item) return { listPrice: null, paidAmount: null }
+  const candidatesList = [
+    item.priceOriginal,
+    item.price,
+    item.fee,
+    item.cost,
+    item.registerFee,
+    item.totalFee,
+  ]
+  const candidatesPaid = [
+    item.actualPayAmount,
+    item.actualPayment,
+    item.payAmount,
+    item.paymentAmount,
+    item.paidAmount,
+    item.actualPrice,
+    item.pricePaid,
+    item.paidFee,
+    item.realFee,
+    item.realPayment,
+  ]
+  const listPrice = candidatesList.map(getNumberSafe).find((v) => v !== null) ?? null
+  const paidAmount = candidatesPaid.map(getNumberSafe).find((v) => v !== null) ?? null
+  return { listPrice, paidAmount }
+}
+
+const fetchBackendPayment = async (recordId) => {
+  const pid = patientInfo.value?.patientId
+  if (!pid || !recordId) return
+
+  const mergePayment = (match) => {
+    if (!match) return
+    const { listPrice, paidAmount } = pickAmount(match)
+    const resolvedPaid =
+      paidAmount ??
+      paymentInfo.value.actualPaid ??
+      paymentInfo.value.paidAmount ??
+      ((paymentInfo.value.status || match.paymentStatus || match.status || '').includes('支付') ? (listPrice ?? paymentInfo.value.fee ?? null) : null)
+
+    paymentInfo.value = {
+      ...paymentInfo.value,
+      fee: listPrice ?? paymentInfo.value.fee,
+      actualPaid: resolvedPaid,
+      paidAmount: resolvedPaid,
+      status: paymentInfo.value.status || match.paymentStatus || match.status || '',
+      paymentTime: paymentInfo.value.paymentTime || match.paymentTime || match.payTime || match.visitTime || '',
+      method: paymentInfo.value.method || match.paymentMethod || match.payMethod || ''
+    }
+  }
+
+  const matchById = (list) => {
+    if (!Array.isArray(list)) return null
+    return list.find((item) => {
+      const ids = [
+        item.id,
+        item.registrationId,
+        item.registration_id,
+        item.recordId,
+        item.registrationRecordId,
+        item.registration_record_id,
+      ].map((v) => Number(v))
+      return ids.includes(Number(recordId))
+    })
+  }
+
+  // 优先走 /applet/registration/records
+  try {
+    const regRes = await getRegistrationRecords(pid)
+    const regList = Array.isArray(regRes?.result) ? regRes.result
+      : Array.isArray(regRes?.data) ? regRes.data
+      : Array.isArray(regRes) ? regRes
+      : []
+    const regMatch = matchById(regList)
+    if (regMatch) {
+      mergePayment(regMatch)
+      return
+    }
+  } catch (err) {
+    console.warn('获取挂号记录支付信息失败:', err)
+  }
+
+  // 兼容旧接口 /patient/registration/history，若不存在则忽略
+  try {
+    const res = await getPatientVisitRecords({
+      patientId: pid,
+      pageNo: 1,
+      pageSize: 200
+    })
+    const list = Array.isArray(res?.records) ? res.records
+      : Array.isArray(res?.result?.records) ? res.result.records
+      : Array.isArray(res?.data?.records) ? res.data.records
+      : Array.isArray(res) ? res
+      : []
+
+    const match = matchById(list)
+    mergePayment(match)
+  } catch (error) {
+    if (String(error?.message || '').includes('No static resource')) {
+      console.info('后台不支持 patient/registration/history，已跳过')
+      return
+    }
+    console.warn('获取后台支付信息失败:', error)
+  }
+}
+
 // 加载就诊相关信息
 const loadRecordDetails = async () => {
   try {
@@ -762,6 +878,9 @@ const loadRecordDetails = async () => {
         paymentTime: routeData.paymentTime || routeData.visitTime || '',
         method: routeData.paymentMethod || routeData.paymentInfo?.method || ''
       };
+      if (routeData.id) {
+        await fetchBackendPayment(routeData.id)
+      }
       
       // 使用真实诊断信息，从路由数据中获取
       diagnosisInfo.value = {
@@ -1514,9 +1633,13 @@ onMounted(async () => {
   color: #ff4d4f;
   font-weight: bold;
 }
+.fee.real {
+  color: #fa8c16;
+}
 
 .status-paid {
   color: #52c41a;
+  white-space: nowrap;
 }
 
 .diagnosis-item {
