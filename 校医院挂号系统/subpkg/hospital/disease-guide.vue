@@ -49,9 +49,21 @@
                 <text class="item-name">{{ item.name }}</text>
                 <text class="item-desc">{{ item.desc }}</text>
               </view>
-              <view class="item-right">
+            <view class="item-right">
+              <view class="dept-info-col">
                 <text class="dept-tag">{{ item.dept }}</text>
+                <text
+                  class="dept-status"
+                  :class="deptScheduleStatusMap[item.deptId]?.hasSchedule ? 'dept-status--available' : 'dept-status--unavailable'"
+                >
+                  {{
+                    deptScheduleStatusMap[item.deptId]
+                      ? (deptScheduleStatusMap[item.deptId].hasSchedule ? '今日可预约' : '今日不可预约')
+                      : '排班查询中'
+                  }}
+                </text>
               </view>
+            </view>
             </view>
           </view>
         </view>
@@ -74,7 +86,19 @@
               <text class="item-desc">{{ item.desc }}</text>
             </view>
             <view class="item-right">
-              <text class="dept-tag">{{ item.dept }}</text>
+              <view class="dept-info-col">
+                <text class="dept-tag">{{ item.dept }}</text>
+                <text
+                  class="dept-status"
+                  :class="deptScheduleStatusMap[item.deptId]?.hasSchedule ? 'dept-status--available' : 'dept-status--unavailable'"
+                >
+                  {{
+                    deptScheduleStatusMap[item.deptId]
+                      ? (deptScheduleStatusMap[item.deptId].hasSchedule ? '今日可预约' : '今日不可预约')
+                      : '排班查询中'
+                  }}
+                </text>
+              </view>
               <text class="arrow">›</text>
             </view>
           </view>
@@ -107,7 +131,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { getDoctorsByDeptId } from '../../api/doctor_massage'
+import { getDoctorSchedules } from '../../api/registration'
 
 // 搜索关键词
 const searchKeyword = ref('')
@@ -252,6 +278,99 @@ const diseaseData = ref([
     ]
   }
 ])
+
+// 科室今日排班状态映射：{ [deptId]: { hasSchedule: boolean } }
+const deptScheduleStatusMap = ref({})
+
+// 加载所有涉及科室的今日排班状态
+const loadDeptScheduleStatus = async () => {
+  try {
+    // 收集所有在导诊数据中出现过的科室ID
+    const deptIdSet = new Set()
+    diseaseData.value.forEach(group => {
+      group.items.forEach(item => {
+        if (item.deptId != null) {
+          deptIdSet.add(Number(item.deptId))
+        }
+      })
+    })
+
+    const today = new Date().toISOString().split('T')[0]
+    const statusMap = {}
+
+    for (const id of Array.from(deptIdSet)) {
+      let hasSchedule = false
+      try {
+        // 先获取该科室下所有医生
+        const res = await getDoctorsByDeptId(id)
+        let doctors = []
+        if (Array.isArray(res?.result)) doctors = res.result
+        else if (Array.isArray(res?.data)) doctors = res.data
+        else if (Array.isArray(res)) doctors = res
+
+        if (!doctors || !doctors.length) {
+          statusMap[id] = { hasSchedule: false }
+          continue
+        }
+
+        const now = new Date()
+
+        // 只要有一个医生今日有未截止的排班，就视为该科室今日可预约
+        for (const doctor of doctors) {
+          const doctorId = doctor?.doctorId ?? doctor?.id
+          if (!doctorId) continue
+
+          const scheduleRes = await getDoctorSchedules(doctorId, today, 1)
+          let schedules = []
+          if (Array.isArray(scheduleRes?.result)) schedules = scheduleRes.result
+          else if (Array.isArray(scheduleRes?.data)) schedules = scheduleRes.data
+          else if (Array.isArray(scheduleRes)) schedules = scheduleRes
+
+          const todaySchedules = (schedules || []).filter(s => {
+            const dateStr = (s.schedule_date || s.scheduleDate || '').toString().substring(0, 10)
+            return dateStr === today
+          })
+
+          for (const s of todaySchedules) {
+            const slot = s.time_slot ?? s.timeSlot
+            const scheduleDateStr = (s.schedule_date || s.scheduleDate || today).toString().substring(0, 10)
+            const scheduleDateObj = new Date(scheduleDateStr.replace(/-/g, '/'))
+
+            let slotStartHour = 8
+            const slotNum = Number(slot)
+            if (slotNum === 2) slotStartHour = 14
+            else if (slotNum === 3) slotStartHour = 18
+
+            const slotStartTime = new Date(scheduleDateObj)
+            slotStartTime.setHours(slotStartHour, 0, 0, 0)
+            const cutoffTime = new Date(slotStartTime.getTime() - 2 * 60 * 60 * 1000)
+            const isExpired = now >= cutoffTime
+
+            if (!isExpired) {
+              hasSchedule = true
+              break
+            }
+          }
+
+          if (hasSchedule) break
+        }
+
+        statusMap[id] = { hasSchedule }
+      } catch (e) {
+        console.warn('加载科室排班状态失败, deptId=', id, e)
+        statusMap[id] = { hasSchedule: false }
+      }
+    }
+
+    deptScheduleStatusMap.value = statusMap
+  } catch (e) {
+    console.error('加载导诊科室排班状态失败:', e)
+  }
+}
+
+onMounted(() => {
+  loadDeptScheduleStatus()
+})
 
 // 筛选后的疾病列表
 const filteredDiseases = computed(() => {
@@ -483,6 +602,12 @@ const selectDisease = (item) => {
   flex-shrink: 0;
 }
 
+.dept-info-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
 .dept-tag {
   font-size: 24rpx;
   color: #4a90e2;
@@ -493,6 +618,20 @@ const selectDisease = (item) => {
   border: 1rpx solid rgba(74, 144, 226, 0.2);
   white-space: nowrap;
   margin-left: 16rpx;
+}
+
+.dept-status {
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  white-space: nowrap;
+}
+
+.dept-status--available {
+  color: #34c759;
+}
+
+.dept-status--unavailable {
+  color: #ff3b30;
 }
 
 .search-results {
