@@ -56,25 +56,23 @@
         ORDER BY date DESC, deptId
     </select>
 
-    <!-- 科室负荷统计：改为按科室统计挂号量（status IN 0/1/2） -->
+    <!-- 科室负荷统计：按科室+医生统计挂号量（status IN 0/1/2），带上医生信息便于前端展示 -->
     <select id="getDepartmentLoadStatistics" resultType="org.jeecg.modules.hospital.dto.DepartmentLoadDTO">
         SELECT
             d.dept_id AS deptId,
             d.dept_name AS deptName,
-            <if test="doctorId != null">
-                ds.doctor_id AS doctorId,
-                (SELECT doctor_name FROM doctor WHERE doctor_id = ds.doctor_id LIMIT 1) AS doctorName,
-            </if>
-            <if test="doctorId == null">
-                NULL AS doctorId,
-                NULL AS doctorName,
-            </if>
+            d.parent_dept_id AS parentDeptId,
+            pd.dept_name AS parentDeptName,
+            ds.doctor_id AS doctorId,
+            doc.doctor_name AS doctorName,
             NULL AS visitDurationHours,
             NULL AS totalQuota,
             NULL AS usedQuota,
             COUNT(rr.record_id) AS quotaUsageRate
         FROM doctor_schedule ds
             INNER JOIN department d ON ds.dept_id = d.dept_id
+            LEFT JOIN department pd ON d.parent_dept_id = pd.dept_id
+            LEFT JOIN doctor doc ON ds.doctor_id = doc.doctor_id
             LEFT JOIN registration_record rr
                 ON rr.schedule_id = ds.schedule_id
                 AND rr.status IN (0, 1, 2)
@@ -98,11 +96,8 @@
                 AND ds.doctor_id = #{doctorId}
             </if>
         GROUP BY
-            d.dept_id, d.dept_name
-            <if test="doctorId != null">
-                , ds.doctor_id
-            </if>
-        ORDER BY d.dept_id
+            d.dept_id, d.dept_name, d.parent_dept_id, pd.dept_name, ds.doctor_id, doc.doctor_name
+        ORDER BY d.dept_id, ds.doctor_id
     </select>
 
     <!-- 按科室统计退号率 -->
@@ -110,11 +105,13 @@
         SELECT
             d.dept_id AS deptId,
             d.dept_name AS deptName,
+            d.parent_dept_id AS parentDeptId,
+            pd.dept_name AS parentDeptName,
             NULL AS doctorId,
             NULL AS doctorName,
             NULL AS typeId,
             NULL AS typeName,
-            COUNT(*) AS totalRegistration,
+            COUNT(*) AS totalCount,
             SUM(
                 CASE WHEN rr.status IN (3, 4) OR rr.cancel_time IS NOT NULL THEN 1 ELSE 0 END
             ) AS cancelCount,
@@ -129,6 +126,7 @@
         FROM registration_record rr
             INNER JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
             INNER JOIN department d ON ds.dept_id = d.dept_id
+            LEFT JOIN department pd ON d.parent_dept_id = pd.dept_id
         WHERE 1 = 1
             <if test="startDate != null">
                 AND DATE(rr.register_time) >= #{startDate}
@@ -148,11 +146,13 @@
         SELECT
             d.dept_id AS deptId,
             d.dept_name AS deptName,
+            d.parent_dept_id AS parentDeptId,
+            pd.dept_name AS parentDeptName,
             doc.doctor_id AS doctorId,
             doc.doctor_name AS doctorName,
             NULL AS typeId,
             NULL AS typeName,
-            COUNT(*) AS totalRegistration,
+            COUNT(*) AS totalCount,
             SUM(
                 CASE WHEN rr.status IN (3, 4) OR rr.cancel_time IS NOT NULL THEN 1 ELSE 0 END
             ) AS cancelCount,
@@ -168,6 +168,7 @@
             INNER JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
             INNER JOIN department d ON ds.dept_id = d.dept_id
             INNER JOIN doctor doc ON rr.doctor_id = doc.doctor_id
+            LEFT JOIN department pd ON d.parent_dept_id = pd.dept_id
         WHERE 1 = 1
             <if test="startDate != null">
                 AND DATE(rr.register_time) >= #{startDate}
@@ -191,7 +192,7 @@
             NULL AS doctorName,
             rt.type_id AS typeId,
             rt.type_name AS typeName,
-            COUNT(*) AS totalRegistration,
+            COUNT(*) AS totalCount,
             SUM(
                 CASE WHEN rr.status IN (3, 4) OR rr.cancel_time IS NOT NULL THEN 1 ELSE 0 END
             ) AS cancelCount,
@@ -219,12 +220,68 @@
         ORDER BY cancelRate DESC
     </select>
 
+    <!-- 退号率明细：科室 + 医生 + 号别，全量分组，便于前端展示 -->
+    <select id="getCancelRateDetail" resultType="org.jeecg.modules.hospital.dto.CancelRateDTO">
+        SELECT
+            d.dept_id AS deptId,
+            d.dept_name AS deptName,
+            d.parent_dept_id AS parentDeptId,
+            pd.dept_name AS parentDeptName,
+            doc.doctor_id AS doctorId,
+            doc.doctor_name AS doctorName,
+            rt.type_id AS typeId,
+            rt.type_name AS typeName,
+            COUNT(*) AS totalCount,
+            SUM(
+                CASE WHEN rr.status IN (3, 4) OR rr.cancel_time IS NOT NULL THEN 1 ELSE 0 END
+            ) AS cancelCount,
+            CASE
+                WHEN COUNT(*) > 0
+                THEN CAST(ROUND(
+                    SUM(CASE WHEN rr.status IN (3, 4) OR rr.cancel_time IS NOT NULL THEN 1 ELSE 0 END) * 100.0 / COUNT(*),
+                    2
+                ) AS DECIMAL(10, 2))
+                ELSE CAST(0 AS DECIMAL(10, 2))
+            END AS cancelRate
+        FROM registration_record rr
+            INNER JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
+            INNER JOIN department d ON ds.dept_id = d.dept_id
+            LEFT JOIN department pd ON d.parent_dept_id = pd.dept_id
+            LEFT JOIN doctor doc ON rr.doctor_id = doc.doctor_id
+            LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
+        WHERE 1 = 1
+            <if test="startDate != null">
+                AND DATE(rr.register_time) >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND DATE(rr.register_time) &lt;= #{endDate}
+            </if>
+            <if test="deptId != null">
+                AND (ds.dept_id = #{deptId} OR d.parent_dept_id = #{deptId})
+            </if>
+            <if test="doctorId != null">
+                AND rr.doctor_id = #{doctorId}
+            </if>
+            <if test="typeId != null">
+                AND rr.type_id = #{typeId}
+            </if>
+        GROUP BY
+            d.dept_id, d.dept_name, d.parent_dept_id, pd.dept_name,
+            doc.doctor_id, doc.doctor_name,
+            rt.type_id, rt.type_name
+        ORDER BY cancelRate DESC
+    </select>
+
     <!-- 挂号量统计 -->
     <select id="getRegistrationStatistics" resultType="org.jeecg.modules.hospital.dto.RegistrationStatisticsDTO">
         SELECT
             t.date AS date,
             t.typeId AS typeId,
             t.typeName AS typeName,
+            t.deptId AS deptId,
+            t.deptName AS deptName,
+            t.doctorId AS doctorId,
+            t.doctorName AS doctorName,
             t.typeRegistration AS typeRegistration,
             t2.totalRegistration AS totalRegistration
         FROM (
@@ -245,10 +302,16 @@
                 </choose>
                 COALESCE(rt.type_id, 0) AS typeId,
                 COALESCE(rt.type_name, '全部') AS typeName,
+                ds.dept_id AS deptId,
+                d.dept_name AS deptName,
+                rr.doctor_id AS doctorId,
+                doc.doctor_name AS doctorName,
                 COUNT(*) AS typeRegistration
             FROM registration_record rr
                 LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
-            WHERE rr.status IN (0, 1, 2, 5, 6)
+                LEFT JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
+                LEFT JOIN department d ON ds.dept_id = d.dept_id
+                LEFT JOIN doctor doc ON rr.doctor_id = doc.doctor_id
             WHERE rr.status IN (1, 2)
                 <if test="startDate != null">
                     AND DATE(rr.register_time) >= #{startDate}
@@ -258,6 +321,12 @@
                 </if>
                 <if test="typeId != null">
                     AND rr.type_id = #{typeId}
+                </if>
+                <if test="deptId != null">
+                    AND (ds.dept_id = #{deptId} OR d.parent_dept_id = #{deptId})
+                </if>
+                <if test="doctorId != null">
+                    AND rr.doctor_id = #{doctorId}
                 </if>
             GROUP BY
                 <choose>
@@ -274,7 +343,7 @@
                         DATE(rr.register_time)
                     </otherwise>
                 </choose>
-                , rt.type_id, rt.type_name
+                , rt.type_id, rt.type_name, ds.dept_id, d.dept_name, rr.doctor_id, doc.doctor_name
         ) t
         LEFT JOIN (
             SELECT
@@ -294,13 +363,20 @@
                 </choose>
                 COUNT(*) AS totalRegistration
             FROM registration_record rr2
-            WHERE rr2.status IN (0, 1, 2, 5, 6)
+                LEFT JOIN doctor_schedule ds2 ON rr2.schedule_id = ds2.schedule_id
+                LEFT JOIN department d2 ON ds2.dept_id = d2.dept_id
             WHERE rr2.status IN (1, 2)
                 <if test="startDate != null">
                     AND DATE(rr2.register_time) >= #{startDate}
                 </if>
                 <if test="endDate != null">
                     AND DATE(rr2.register_time) &lt;= #{endDate}
+                </if>
+                <if test="deptId != null">
+                    AND (ds2.dept_id = #{deptId} OR d2.parent_dept_id = #{deptId})
+                </if>
+                <if test="doctorId != null">
+                    AND rr2.doctor_id = #{doctorId}
                 </if>
             GROUP BY
                 <choose>

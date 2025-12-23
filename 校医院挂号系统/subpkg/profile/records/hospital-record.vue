@@ -268,13 +268,25 @@ const formatDateForDisplay = (dateStr) => {
 // 解析日期字符串为Date对象（用于比较）
 const parseDate = (dateStr) => {
   if (!dateStr) return null
-  // 处理各种日期格式
-  const str = String(dateStr).replace('T', ' ').split(' ')[0] // 取日期部分
-  const date = new Date(str)
-  if (isNaN(date.getTime())) return null
-  // 设置为当天的0点0分0秒
-  date.setHours(0, 0, 0, 0)
-  return date
+  const str = String(dateStr).trim()
+
+  // 优先解析 YYYY-MM-DD / YYYY/MM/DD 纯日期，避免时区偏移
+  const dateOnlyMatch = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/)
+  if (dateOnlyMatch) {
+    const year = Number(dateOnlyMatch[1])
+    const month = Number(dateOnlyMatch[2])
+    const day = Number(dateOnlyMatch[3])
+    if (!Number.isNaN(year) && !Number.isNaN(month) && !Number.isNaN(day)) {
+      const date = new Date(year, month - 1, day, 0, 0, 0, 0)
+      return Number.isNaN(date.getTime()) ? null : date
+    }
+  }
+
+  // 兜底：使用通用解析并归零时间
+  const parsed = parseToDate(str)
+  if (!parsed) return null
+  parsed.setHours(0, 0, 0, 0)
+  return parsed
 }
 
 const parseToDate = (value) => {

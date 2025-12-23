@@ -19,6 +19,16 @@ public class CancelRateDTO {
     private String deptName;
     
     /**
+     * 父科室ID（用于展示二级科室）
+     */
+    private Long parentDeptId;
+
+    /**
+     * 父科室名称（用于展示二级科室）
+     */
+    private String parentDeptName;
+    
+    /**
      * 医生ID（按医生统计时）
      */
     private Long doctorId;
