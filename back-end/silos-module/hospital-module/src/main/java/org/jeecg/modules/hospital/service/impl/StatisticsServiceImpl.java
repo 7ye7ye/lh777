@@ -240,12 +240,13 @@ public class StatisticsServiceImpl implements StatisticsService {
             DynamicDataSourceContextHolder.push("hospital");
             Map<String, Object> summary = new HashMap<>();
             
-            // 获取门诊量统计
-            List<OutpatientStatisticsDTO> outpatientStats = getOutpatientStatistics(query);
-            int totalVisitCount = outpatientStats.stream()
-                .mapToInt(item -> item.getTotalVisitCount() != null ? item.getTotalVisitCount() : 0)
-                .sum();
-            summary.put("totalVisitCount", totalVisitCount);
+            // 获取就诊量统计（状态 1/2，按挂号日期）
+            Integer totalVisitCount = statisticsMapper.getVisitCountByStatus12(
+                query.getStartDate(),
+                query.getEndDate(),
+                query.getDeptId()
+            );
+            summary.put("totalVisitCount", totalVisitCount != null ? totalVisitCount : 0);
             
             // 获取科室负荷统计
             List<DepartmentLoadDTO> deptLoadStats = getDepartmentLoadStatistics(query);
@@ -270,10 +271,113 @@ public class StatisticsServiceImpl implements StatisticsService {
                 .sum();
             summary.put("totalRegistration", totalRegistration);
             
+            // 获取总收入统计（挂号费收入）
+            Double totalIncome = statisticsMapper.getTotalIncome(
+                query.getStartDate(),
+                query.getEndDate(),
+                query.getDeptId(),
+                query.getDoctorId()
+            );
+            summary.put("totalIncome", totalIncome != null ? totalIncome : 0.0);
+
+            // 在岗医护人员（按排班 status=1，去重医生数）
+            Integer activeStaff = statisticsMapper.getActiveStaffCount(
+                query.getStartDate(),
+                query.getEndDate(),
+                query.getDeptId()
+            );
+            summary.put("activeStaffCount", activeStaff != null ? activeStaff : 0);
+            
             return summary;
         } catch (Exception e) {
             log.error("获取统计数据汇总失败", e);
             return new HashMap<>();
+        } finally {
+            DynamicDataSourceContextHolder.clear();
+        }
+    }
+
+    @Override
+    @DS("hospital")
+    public List<Map<String, Object>> getTimeSlotDistribution(StatisticsQueryDTO query) {
+        try {
+            DynamicDataSourceContextHolder.push("hospital");
+            return statisticsMapper.getTimeSlotDistribution(
+                query.getStartDate(),
+                query.getEndDate()
+            );
+        } catch (Exception e) {
+            log.error("获取就诊时段分布失败", e);
+            return new ArrayList<>();
+        } finally {
+            DynamicDataSourceContextHolder.clear();
+        }
+    }
+
+    @Override
+    @DS("hospital")
+    public List<Map<String, Object>> getIncomeTrend(StatisticsQueryDTO query) {
+        try {
+            DynamicDataSourceContextHolder.push("hospital");
+            return statisticsMapper.getIncomeTrend(
+                query.getStartDate(),
+                query.getEndDate(),
+                query.getPeriodType()
+            );
+        } catch (Exception e) {
+            log.error("获取收入趋势失败", e);
+            return new ArrayList<>();
+        } finally {
+            DynamicDataSourceContextHolder.clear();
+        }
+    }
+
+    @Override
+    @DS("hospital")
+    public List<Map<String, Object>> getDeptDetail(StatisticsQueryDTO query) {
+        try {
+            DynamicDataSourceContextHolder.push("hospital");
+            return statisticsMapper.getDeptDetail(
+                query.getStartDate(),
+                query.getEndDate()
+            );
+        } catch (Exception e) {
+            log.error("获取科室明细失败", e);
+            return new ArrayList<>();
+        } finally {
+            DynamicDataSourceContextHolder.clear();
+        }
+    }
+
+    @Override
+    @DS("hospital")
+    public List<Map<String, Object>> getDoctorDetail(StatisticsQueryDTO query) {
+        try {
+            DynamicDataSourceContextHolder.push("hospital");
+            return statisticsMapper.getDoctorDetail(
+                query.getStartDate(),
+                query.getEndDate()
+            );
+        } catch (Exception e) {
+            log.error("获取医生明细失败", e);
+            return new ArrayList<>();
+        } finally {
+            DynamicDataSourceContextHolder.clear();
+        }
+    }
+
+    @Override
+    @DS("hospital")
+    public List<Map<String, Object>> getLatestPatientEval(StatisticsQueryDTO query) {
+        try {
+            DynamicDataSourceContextHolder.push("hospital");
+            return statisticsMapper.getLatestPatientEval(
+                query.getStartDate(),
+                query.getEndDate()
+            );
+        } catch (Exception e) {
+            log.error("获取患者评估列表失败", e);
+            return new ArrayList<>();
         } finally {
             DynamicDataSourceContextHolder.clear();
         }

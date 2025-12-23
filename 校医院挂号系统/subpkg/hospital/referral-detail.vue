@@ -316,9 +316,11 @@ const autoRegister = async () => {
               title: '自动挂号成功！',
               icon: 'success'
             })
-            // 可以在这里更新转诊状态为已挂号
+            // 更新转诊状态为已挂号并通知就诊记录页面刷新
             setTimeout(() => {
               loadReferralDetail() // 重新加载详情，更新状态
+              // 通知就诊记录页面刷新数据
+              uni.$emit('refreshHospitalRecords')
             }, 1500)
           } else {
             uni.showToast({

@@ -15,6 +15,7 @@ public class Appointment implements Serializable {
     private String qrCodeData; // 用于生成二维码的数据
     private String serialNumber; // 预约流水
     private String patientName; // 就诊人
+    private String patientId; // 患者ID，用于统计预约次数
     private String hospitalAddress; // 医院地址
     private String departmentName; // 就诊科室
     private String visitLocation; // 就诊地点

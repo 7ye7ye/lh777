@@ -66,12 +66,15 @@ public class RegistrationAppletController {
     public Result<Boolean> checkDuplicateBySchedule(@RequestParam Long patientId,
                                                     @RequestParam Long scheduleId) {
         boolean isDuplicate = registrationService.checkDuplicateBySchedule(patientId, scheduleId);
-        if (isDuplicate) {
-            // 消息在前，数据在后
-            return Result.OK("您已挂过该排班的号", true);
-        } else {
-            return Result.OK("未发现重复挂号", false);
-        }
+        return Result.OK(isDuplicate);
+    }
+
+    @Operation(summary = "检查同一患者在当前排班对应科室当日是否已有挂号记录（单科室单日限约1次）")
+    @GetMapping("/checkDeptLimitBySchedule")
+    public Result<Boolean> checkDeptLimitBySchedule(@RequestParam Long patientId,
+                                                    @RequestParam Long scheduleId) {
+        boolean reachedLimit = registrationService.checkDeptLimitForSchedule(patientId, scheduleId);
+        return Result.OK(reachedLimit);
     }
 
     @Operation(summary = "将患者加入候补队列")
@@ -169,5 +172,25 @@ public class RegistrationAppletController {
             return Result.error("获取患者详情失败：" + e.getMessage());
         }
     }
+
+    @Operation(summary = "根据患者ID获取患者类型")
+    @GetMapping("/patient/type")
+    public Result<Integer> getPatientType(@RequestParam Long patientId) {
+        try {
+            Integer patientType = registrationService.getPatientTypeById(patientId);
+            if (patientType == null) {
+                // 返回统一的 Result 对象
+                return Result.error("未找到患者类型");
+            }
+            // 包装成 Result 对象返回
+            return Result.OK(patientType);
+        } catch (Exception e) {
+            e.printStackTrace();
+            // 返回统一的 Result 对象
+            return Result.error("获取患者类型失败：" + e.getMessage());
+        }
+    }
+
+
 
 }

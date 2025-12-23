@@ -78,119 +78,135 @@ public class RegistrationServiceImpl implements RegistrationService {
     }
 
     @Override
-    public Result<String> createRegistration(RegistrationRecord record, Long patientId, boolean joinWaitingQueue) {
+    public Result<String> createRegistration(
+            RegistrationRecord record,
+            Long patientId,
+            boolean joinWaitingQueue) {
+
         try {
+            // ------------------------------
+            // 1. 基础校验
+            // ------------------------------
+            if (record == null) {
+                return Result.error("挂号信息不能为空");
+            }
             if (record.getScheduleId() == null || record.getTypeId() == null) {
                 return Result.error("缺少必要的挂号信息");
             }
+            if (patientId == null) {
+                return Result.error("未获取到患者ID");
+            }
 
             // ------------------------------
-            // 获取实际 patientId（Token 优先）
+            // 2. 校验 patientId 是否属于当前用户（不覆盖）
             // ------------------------------
-            Long actualPatientId = patientId;
             String currentUserId = resolveCurrentUserId();
             if (currentUserId != null) {
-                List<Patient> patientsByUserId = patientMapper.selectList(
-                        new LambdaQueryWrapper<Patient>()
-                                .eq(Patient::getUserId, Long.valueOf(currentUserId))
-                                .orderByDesc(Patient::getPatientId)
-                );
-
-                if (patientsByUserId != null && !patientsByUserId.isEmpty()) {
-                    if (patientsByUserId.size() > 1) {
-                        log.warn("Token解析到的userId={}存在{}条患者记录，默认取最新一条", currentUserId, patientsByUserId.size());
-                    }
-                    Patient patientByUserId = patientsByUserId.get(0);
-                    if (patientByUserId != null && patientByUserId.getPatientId() != null) {
-                        actualPatientId = patientByUserId.getPatientId();
-                        log.info("根据Token解析的userId={}找到对应的patientId={}", currentUserId, actualPatientId);
-                    }
-                } else {
-                    log.warn("Token解析到的userId={}未找到对应patient，使用前端patientId={}", currentUserId, patientId);
+                Patient patient = patientMapper.selectById(patientId);
+                if (patient == null) {
+                    return Result.error("患者信息不存在");
+                }
+                if (!patient.getUserId().equals(Long.valueOf(currentUserId))) {
+                    return Result.error("非法患者信息，请重新选择就诊人");
                 }
             }
 
-            if (actualPatientId == null) {
-                return Result.error("未获取到患者ID，请登录后再挂号");
-            }
-            record.setPatientId(actualPatientId);
+            // ✅ 只使用前端传来的 patientId
+            record.setPatientId(patientId);
+            log.info("本次挂号使用 patientId={}", patientId);
 
             // ------------------------------
-            // 获取排班
+            // 3. 获取排班信息 + 预约截止时间校验
             // ------------------------------
-            DoctorSchedule schedule = registrationMapper.selectScheduleById(record.getScheduleId());
+            DoctorSchedule schedule =
+                    registrationMapper.selectScheduleById(record.getScheduleId());
             if (schedule == null) {
                 return Result.error("未找到对应排班信息");
             }
             record.setDoctorId(schedule.getDoctorId());
 
+            // 3.1 就诊前2小时内不允许再预约该时段（含已过期）
+            if (schedule.getScheduleDate() != null && schedule.getTimeSlot() != null) {
+                LocalTime baseTime;
+                switch (schedule.getTimeSlot()) {
+                    case 1 -> baseTime = LocalTime.of(8, 0);   // 上午
+                    case 2 -> baseTime = LocalTime.of(14, 0);  // 下午
+                    case 3 -> baseTime = LocalTime.of(18, 0);  // 晚上
+                    default -> baseTime = null;
+                }
+                if (baseTime != null) {
+                    LocalDateTime slotStart = LocalDateTime.of(schedule.getScheduleDate(), baseTime);
+                    // 当前时间晚于「开始时间前2小时」则视为已截止预约
+                    if (LocalDateTime.now().isAfter(slotStart.minusHours(2))) {
+                        return Result.error("该时段预约已截止，请选择其他时间段");
+                    }
+                }
+            }
+
             // ------------------------------
-            // 防重复预约
+            // 4. 防止同一患者重复预约同一排班（关键）
             // ------------------------------
-            if (checkDuplicateBySchedule(actualPatientId, schedule.getScheduleId())) {
+            if (checkDuplicateBySchedule(patientId, schedule.getScheduleId())) {
                 return Result.error("您已预约过该时段，请勿重复挂号");
             }
 
             // ------------------------------
-            // 获取挂号类型
+            // 5. 获取挂号类型
             // ------------------------------
-            RegistrationType type = registrationMapper.selectTypeById(record.getTypeId());
+            RegistrationType type =
+                    registrationMapper.selectTypeById(record.getTypeId());
             if (type == null) {
                 return Result.error("未找到对应挂号类型");
             }
 
-            int usedQuota = schedule.getUsedQuota() != null ? schedule.getUsedQuota() : 0;
+            int usedQuota = schedule.getUsedQuota() == null ? 0 : schedule.getUsedQuota();
 
-            // ☆☆☆━━━━━━━━━━━━━━━━━━━━━━━━━━
-            // 号源已满 + joinWaitingQueue = true
-            // 必须写挂号记录(status=0) → 加候补队列
-            // ☆☆☆━━━━━━━━━━━━━━━━━━━━━━━━━━
+            // ------------------------------
+            // 6. 号源已满 → 候补流程
+            // ------------------------------
             if (usedQuota >= type.getDailyQuota()) {
 
                 if (!joinWaitingQueue) {
                     return Result.error("该号源已满，是否加入候补？");
                 }
 
-                log.info("号源已满，但用户选择加入候补，写入候补挂号记录…");
-
-                // 写入“候补挂号记录”
                 record.setRegisterTime(LocalDateTime.now());
                 record.setStatus(0); // 候补
                 record.setVisitTime(null);
                 record.setPriceOriginal(type.getPriceOriginal());
-                record.setActualPrice(type.getPriceOriginal()); // 候补统一使用原价
+                record.setActualPrice(type.getPriceOriginal());
+                record.setIsAdd(0);
 
                 if (record.getRegistrationNo() == null) {
-                    record.setRegistrationNo(generateRegistrationNo(actualPatientId));
-                }
-                if (record.getIsAdd() == null) {
-                    record.setIsAdd(0);
+                    record.setRegistrationNo(generateRegistrationNo(patientId));
                 }
 
                 registrationMapper.insertRegistration(record);
 
                 if (record.getRecordId() == null) {
-                    log.error("候补挂号创建失败：recordId 为空！");
-                    return Result.error("候补挂号失败，请稍后重试");
+                    return Result.error("候补挂号创建失败");
                 }
 
+
+                Result<String> waitRes = addToWaitingQueue(
+                        schedule.getScheduleId(),
+                        patientId,
+                        record.getRecordId()
+                );
                 // 加入候补队列（务必带上对应的挂号记录 ID，便于后续自动补位）
-                Result<String> waitRes = addToWaitingQueue(schedule.getScheduleId(), actualPatientId, record.getRecordId());
 
-                if (waitRes.isSuccess()) {
-                    return Result.OK("当前号源已满，但您已成功加入候补队列", waitRes.getResult());
-                } else {
-                    return Result.error("挂号记录已创建，但加入候补队列失败：" + waitRes.getMessage());
-                }
+
+                return waitRes.isSuccess()
+                        ? Result.OK("当前号源已满，已加入候补队列", waitRes.getResult())
+                        : Result.error("加入候补队列失败：" + waitRes.getMessage());
             }
 
-            // ☆☆☆━━━━━━━━━━━━━━━━━━━━━━━━━━
-            // 正常号源流程
-            // ☆☆☆━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-            Patient patient = patientMapper.selectById(actualPatientId);
+            // ------------------------------
+            // 7. 正常挂号流程
+            // ------------------------------
+            Patient patient = patientMapper.selectById(patientId);
             if (patient == null) {
-                return Result.error("患者信息未找到");
+                return Result.error("患者信息不存在");
             }
 
             record.setRegisterTime(LocalDateTime.now());
@@ -204,23 +220,26 @@ public class RegistrationServiceImpl implements RegistrationService {
                         default -> type.getPriceOriginal();
                     }
             );
+            record.setIsAdd(0);
 
             if (record.getRegistrationNo() == null) {
-                record.setRegistrationNo(generateRegistrationNo(actualPatientId));
-            }
-            if (record.getIsAdd() == null) {
-                record.setIsAdd(0);
+                record.setRegistrationNo(generateRegistrationNo(patientId));
             }
 
             registrationMapper.insertRegistration(record);
 
-            // 更新已使用号源
+            // ------------------------------
+            // 8. 更新排班已用号源
+            // ------------------------------
             schedule.setUsedQuota(usedQuota + 1);
             registrationMapper.updateScheduleUsedQuota(schedule);
 
-            // 成功后的消息与提醒
+            // ------------------------------
+            // 9. 成功后的通知
+            // ------------------------------
             if (record.getRecordId() != null) {
-                RegistrationDetailDTO detail = registrationMapper.selectRegistrationDetail(record.getRecordId());
+                RegistrationDetailDTO detail =
+                        registrationMapper.selectRegistrationDetail(record.getRecordId());
                 if (detail != null) {
                     createSuccessMessage(detail);
                     appointmentReminderTask.checkAndCreateImmediateReminder(detail);
@@ -236,9 +255,12 @@ public class RegistrationServiceImpl implements RegistrationService {
     }
 
 
-    private Result<String> addToWaitingQueue(Long scheduleId, Long patientId, Long recordId) {
+
+    private Result<String> addToWaitingQueue(Long scheduleId, Long patientId,Long recordId) {
+
         WaitingQueue queue = new WaitingQueue();
         queue.setScheduleId(scheduleId);
+        queue.setRecordId(recordId);
         queue.setPatientId(patientId);
         // 记录对应的候补挂号记录 ID，供自动补位时查找 RegistrationRecord 使用
         queue.setRecordId(recordId);
@@ -263,6 +285,24 @@ public class RegistrationServiceImpl implements RegistrationService {
     @Override
     public boolean checkDuplicateBySchedule(Long patientId, Long scheduleId) {
         Integer count = registrationMapper.checkDuplicateBySchedule(patientId, scheduleId);
+        return count != null && count > 0;
+    }
+
+    /**
+     * 检查同一患者在当前排班对应的科室、同一天是否已有其他挂号记录
+     * <p>
+     * 核心规则：
+     *  - 通过 scheduleId 反查出该排班所在的科室（dept_id）和排班日期（schedule_date）；
+     *  - 统计该患者在同一科室、同一天、所有未退号(status != 3) 的挂号记录数量；
+     *  - 若数量 > 0，则认为已经在该科室预约过一次，当天再次预约需要前端给出确认提示。
+     * </p>
+     */
+    @Override
+    public boolean checkDeptLimitForSchedule(Long patientId, Long scheduleId) {
+        if (patientId == null || scheduleId == null) {
+            return false;
+        }
+        Integer count = registrationMapper.countDeptRegistrationsForDay(patientId, scheduleId);
         return count != null && count > 0;
     }
 
@@ -404,12 +444,27 @@ public class RegistrationServiceImpl implements RegistrationService {
 
     @Override
     public Patient getPatientDetailById(Long patientId) {
+        System.out.println("查询患者 patientId = " + patientId);
         Patient patient = registrationMapper.selectPatientById(patientId);
+        System.out.println("查询结果 = " + patient);
         if (patient == null) {
             throw new RuntimeException("患者不存在，patientId=" + patientId);
         }
         return patient;
     }
+
+    @Override
+    public int getPatientTypeById(Long patientId) {
+        System.out.println("查询患者类型 patientId = " + patientId);
+        Integer patientType = registrationMapper.selectPatientTypeById(patientId);
+        System.out.println("查询结果 patientType = " + patientType);
+        if (patientType == null) {
+            throw new RuntimeException("患者不存在，patientId=" + patientId);
+        }
+        return patientType;
+    }
+
+
 
 
 
