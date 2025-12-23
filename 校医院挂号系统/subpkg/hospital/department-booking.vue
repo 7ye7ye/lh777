@@ -586,131 +586,48 @@ const viewDoctorDetail = async (doctor) => {
     return patientRecords.value.filter(r => extractRecordDeptId(r) === Number(deptId)).length
   }
 
-// 获取科室锁定状态（总限额 / 科室限额）
-const getDeptLimitState = (dept) => {
-  const totalCount = getPatientTotalCountToday()
-  const deptId = Number(dept?.deptId ?? dept?.id)
-  const deptName = dept?.deptName || '该科室'
+// 获取科室锁定状态（暂不展示上限提示）
+const getDeptLimitState = () => ({
+  locked: false,
+  type: '',
+  label: '',
+  toast: '',
+  modalTitle: '',
+  modalContent: ''
+})
 
-  if (totalCount >= DAILY_TOTAL_LIMIT) {
-    return {
-      locked: true,
-      type: 'total',
-      label: '今日挂号已达上限',
-      toast: '今日挂号已达 3 个上限',
-      modalTitle: '温馨提示',
-      modalContent: '您今日累计挂号已达 3 个上限，无法继续挂号。如需调整，可先取消已预约的号源。'
-    }
-  }
+// 获取医生锁定状态（暂不展示上限提示）
+const getDoctorLimitState = () => ({
+  locked: false,
+  type: '',
+  label: '',
+  toast: '',
+  modalTitle: '',
+  modalContent: ''
+})
 
-  if (deptId && getPatientDeptCountToday(deptId) >= DAILY_DEPT_LIMIT) {
-    return {
-      locked: true,
-      type: 'dept',
-      label: '科室挂号已达上限',
-      toast: `${deptName}挂号已达 2 个上限`,
-      modalTitle: '温馨提示',
-      modalContent: `您今日在【${deptName}】的挂号已达 2 个上限，暂无法预约该科室的其他号源。`
-    }
-  }
-
-  return {
-    locked: false,
-    type: '',
-    label: '',
-    toast: '',
-    modalTitle: '',
-    modalContent: ''
-  }
+const showDuplicateAppointmentModal = (content = '您已预约过该时段，请勿重复挂号') => {
+  uni.showModal({
+    title: '重复预约',
+    content,
+    showCancel: false
+  })
 }
 
-// 获取医生锁定状态（总限额 / 同医生）
-const getDoctorLimitState = (doctor) => {
-  const totalCount = getPatientTotalCountToday()
+// 获取当前时段是否受限及原因（仅保留重复时段校验）
+const getSlotLimitState = (doctor, schedule, slotKeyOverride) => {
   const doctorId = getDoctorIdFromDoctor(doctor)
-  const doctorName = doctor?.name || doctor?.doctorName || '该医生'
-
-  if (totalCount >= DAILY_TOTAL_LIMIT) {
-    return {
-      locked: true,
-      type: 'total',
-      label: '今日挂号已达上限',
-      toast: '今日挂号已达 3 个上限',
-      modalTitle: '温馨提示',
-      modalContent: '您今日累计挂号已达 3 个上限，无法继续挂号。如需调整，可先取消已预约的号源。'
-    }
+  const slotKey = slotKeyOverride || schedule?.timeRangeKey || schedule?.slotKey
+  if (slotKey && doctorId && hasBookedSameSlot(doctorId, selectedDate.value, slotKey)) {
+    return { disabled: true, reason: '已预约该时段', type: 'slot' }
   }
-
-  if (doctorId && getPatientDoctorCountToday(doctorId) >= DAILY_DOCTOR_LIMIT) {
-    return {
-      locked: true,
-      type: 'doctor',
-      label: '医生挂号已达上限',
-      toast: `已挂${doctorName}今日号源`,
-      modalTitle: '温馨提示',
-      modalContent: `您今日已预约【${doctorName}】的号源，暂无法重复预约该医生的当日号。`
-    }
-  }
-
-  return {
-    locked: false,
-    type: '',
-    label: '',
-    toast: '',
-    modalTitle: '',
-    modalContent: ''
-  }
+  return { disabled: false, reason: '', type: '' }
 }
 
-  // 获取当前时段是否受限及原因（同步，基于已加载的挂号记录）
-  const getSlotLimitState = (doctor, schedule, slotKeyOverride) => {
-    const totalCount = getPatientTotalCountToday()
-    if (totalCount >= DAILY_TOTAL_LIMIT) {
-    return { disabled: true, reason: '今日挂号已达上限', type: 'total' }
-    }
-
-    const doctorId = getDoctorIdFromDoctor(doctor)
-    if (doctorId && getPatientDoctorCountToday(doctorId) >= DAILY_DOCTOR_LIMIT) {
-    return { disabled: true, reason: '医生挂号已达上限', type: 'doctor' }
-    }
-
-    const deptId = getDeptIdFromContext(doctor, schedule)
-    if (deptId && getPatientDeptCountToday(deptId) >= DAILY_DEPT_LIMIT) {
-    return { disabled: true, reason: '科室挂号已达上限', type: 'dept' }
-    }
-
-    const slotKey = slotKeyOverride || schedule?.timeRangeKey || schedule?.slotKey
-    if (slotKey && doctorId && hasBookedSameSlot(doctorId, selectedDate.value, slotKey)) {
-      return { disabled: true, reason: '已预约该时段', type: 'slot' }
-    }
-
-  return { disabled: false, reason: '', type: '' }
-  }
-
-  const getSlotLimitStateByKey = (doctor, slotKey) => {
-    const schedule = getSlotByTimeRange(doctor.id, slotKey)
-    return getSlotLimitState(doctor, schedule, slotKey)
-  }
-
-  // 弹出限制说明浮层
-  const showLimitModal = (state) => {
-    if (!state || !state.locked) return
-    if (state.toast) {
-      uni.showToast({
-        title: state.toast,
-        icon: 'none',
-        duration: 1800
-      })
-    }
-    if (state.modalTitle && state.modalContent) {
-      uni.showModal({
-        title: state.modalTitle,
-        content: state.modalContent,
-        showCancel: false,
-        confirmText: '确定'
-      })
-    }
-  }
+const getSlotLimitStateByKey = (doctor, slotKey) => {
+  const schedule = getSlotByTimeRange(doctor.id, slotKey)
+  return getSlotLimitState(doctor, schedule, slotKey)
+}
 
   // 点击科室时不再做锁定拦截，直接切换科室查看
   const onDeptClick = (dept) => {
@@ -724,31 +641,9 @@ const getDoctorLimitState = (doctor) => {
     const schedule = getSlotByTimeRange(doctor.id, slot.key)
     const limitState = getSlotLimitStateByKey(doctor, slot.key)
 
-    // 规则锁定优先处理
+    // 规则锁定优先处理（仅保留重复时段提醒）
     if (limitState.disabled) {
-      const state =
-        limitState.type === 'doctor'
-          ? getDoctorLimitState(doctor)
-          : limitState.type === 'dept'
-          ? getDeptLimitState({ deptId: getDeptIdFromContext(doctor, schedule), deptName: selectedDepartment.value?.deptName })
-          : limitState.type === 'slot'
-          ? {
-              locked: true,
-              type: 'slot',
-              label: '已预约该时段',
-              toast: '您已预约该医生此时段的号源',
-              modalTitle: '重复预约',
-              modalContent: '该就诊人已预约过该医生的此时间段，本次无法再次挂号。'
-            }
-          : {
-              locked: true,
-              type: 'total',
-              label: '今日挂号已达上限',
-              toast: '今日挂号已达 3 个上限',
-              modalTitle: '温馨提示',
-              modalContent: '您今日累计挂号已达 3 个上限，无法继续挂号。如需调整，可先取消已预约的号源。'
-            }
-      showLimitModal(state)
+      showDuplicateAppointmentModal('该就诊人已预约过该医生的此时间段，本次无法再次挂号。')
       return
     }
 
@@ -967,46 +862,30 @@ const getDoctorLimitState = (doctor) => {
       return
     }
 
-    // 二次校验：按钮级拦截，防止进入支付页（参考 appointment 页的限制提示）
+    // 二次校验：按钮级拦截，仅保留重复/上限阻断提示
     const latestLimit = getSlotLimitStateByKey(doctor, slotKeyFromTimeText(timeText))
     if (latestLimit.disabled) {
-      uni.showModal({
-        title: '无法预约',
-        content: latestLimit.reason || '当前不可预约',
-        showCancel: false
-      })
+      showDuplicateAppointmentModal('该就诊人已预约过该医生的此时间段，本次无法再次挂号。')
       return
     }
 
     // 达到当日总次数限制
     if (getPatientTotalCountToday() >= DAILY_TOTAL_LIMIT) {
-      uni.showModal({
-        title: '无法预约',
-        content: `当日限挂 ${DAILY_TOTAL_LIMIT} 个号，本次已超出。`,
-        showCancel: false
-      })
+      showDuplicateAppointmentModal('当日挂号次数已达上限，请勿重复挂号')
       return
     }
 
     // 检查是否已预约过该医生当天的号
     const doctorIdNum = Number(doctor.doctorId || doctor.id)
     if (getPatientDoctorCountToday(doctorIdNum) >= DAILY_DOCTOR_LIMIT) {
-      uni.showModal({
-        title: '无法预约',
-        content: `同医生当日限 ${DAILY_DOCTOR_LIMIT} 号，本次已超出。`,
-        showCancel: false
-      })
+      showDuplicateAppointmentModal('该医生当日已预约，无需重复挂号')
       return
     }
     
     // 检查是否已预约过该科室当天的号
     const deptIdForCount = getDeptIdFromContext(doctor, schedule)
     if (deptIdForCount && getPatientDeptCountToday(deptIdForCount) >= DAILY_DEPT_LIMIT) {
-      uni.showModal({
-        title: '无法预约',
-        content: `同科室当日限 ${DAILY_DEPT_LIMIT} 号，本次已超出。`,
-        showCancel: false
-      })
+      showDuplicateAppointmentModal('本科室当日已预约，无需重复挂号')
       return
     }
 
