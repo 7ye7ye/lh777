@@ -252,7 +252,7 @@
                 COUNT(*) AS typeRegistration
             FROM registration_record rr
                 LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
-            WHERE rr.status IN (0, 1, 2)
+            WHERE rr.status IN (0, 1, 2, 5, 6)
                 <if test="startDate != null">
                     AND DATE(rr.register_time) >= #{startDate}
                 </if>
@@ -297,7 +297,7 @@
                 </choose>
                 COUNT(*) AS totalRegistration
             FROM registration_record rr2
-            WHERE rr2.status IN (0, 1, 2)
+            WHERE rr2.status IN (0, 1, 2, 5, 6)
                 <if test="startDate != null">
                     AND DATE(rr2.register_time) >= #{startDate}
                 </if>
@@ -437,7 +437,7 @@
                 COUNT(*) AS typeRegistration
             FROM registration_record rr
                 LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
-            WHERE rr.status IN (0, 1, 2)
+            WHERE rr.status IN (0, 1, 2, 5, 6)
                 <if test="startDate != null">
                     AND DATE(rr.register_time) >= DATE_SUB(#{startDate}, INTERVAL #{comparePeriods}
                         <choose>
@@ -508,7 +508,7 @@
                 </choose>
                 COUNT(*) AS totalRegistration
             FROM registration_record rr2
-            WHERE rr2.status IN (0, 1, 2)
+            WHERE rr2.status IN (0, 1, 2, 5, 6)
                 <if test="startDate != null">
                     AND DATE(rr2.register_time) >= DATE_SUB(#{startDate}, INTERVAL #{comparePeriods}
                         <choose>

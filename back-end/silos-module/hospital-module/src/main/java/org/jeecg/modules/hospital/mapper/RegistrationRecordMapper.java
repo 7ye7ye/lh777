@@ -25,13 +25,13 @@ public interface RegistrationRecordMapper extends BaseMapper<RegistrationRecord>
     org.jeecg.modules.hospital.entity.RegistrationRecord selectByRegistrationNo(@Param("registrationNo") String registrationNo);
 
     // 新增：按排班统计有效挂号人数（候补/已预约/已就诊）
-    @org.apache.ibatis.annotations.Select("SELECT COUNT(*) FROM registration_record WHERE schedule_id = #{scheduleId} AND status IN (0,1,2)")
+    @org.apache.ibatis.annotations.Select("SELECT COUNT(*) FROM registration_record WHERE schedule_id = #{scheduleId} AND status IN (0,1,2,5,6)")
     int countActiveByScheduleId(@Param("scheduleId") Long scheduleId);
     
     // 批量更新指定排班的挂号记录状态为3（已退号）
     @Update("UPDATE registration_record " +
             "SET status = 3, cancel_time = #{cancelTime}, cancel_reason = #{reason} " +
-            "WHERE schedule_id = #{scheduleId} AND status IN (0, 1, 2)")
+            "WHERE schedule_id = #{scheduleId} AND status IN (0, 1, 2, 5, 6)")
     int updateStatusByScheduleId(@Param("scheduleId") Long scheduleId,
                                   @Param("cancelTime") LocalDateTime cancelTime,
                                   @Param("reason") String reason);

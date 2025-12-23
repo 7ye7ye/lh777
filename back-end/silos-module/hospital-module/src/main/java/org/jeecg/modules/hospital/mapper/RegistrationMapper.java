@@ -257,7 +257,7 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
             LEFT JOIN doctor d ON rr.doctor_id = d.doctor_id
             LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
             WHERE ds.schedule_date = #{targetDate}
-              AND rr.status = 1
+              AND rr.status IN (1, 5, 6)
             """)
     List<RegistrationDetailDTO> listRegistrationsByDate(@Param("targetDate") LocalDate targetDate);
 
@@ -292,7 +292,7 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
             LEFT JOIN doctor d ON rr.doctor_id = d.doctor_id
             LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
             WHERE ds.schedule_date = #{targetDate}
-              AND rr.status = 1
+              AND rr.status IN (1, 5, 6)
               AND ds.time_slot = #{timeSlot}
             """)
     List<RegistrationDetailDTO> listRegistrationsByDateAndSlot(@Param("targetDate") LocalDate targetDate,
@@ -330,7 +330,7 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
             LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
             WHERE p.user_id = #{userId}
               AND ds.schedule_date = #{targetDate}
-              AND rr.status = 1
+              AND rr.status IN (1, 5, 6)
             """)
     List<RegistrationDetailDTO> listRegistrationsByUserIdAndDate(@Param("userId") Long userId, 
                                                                  @Param("targetDate") LocalDate targetDate);
