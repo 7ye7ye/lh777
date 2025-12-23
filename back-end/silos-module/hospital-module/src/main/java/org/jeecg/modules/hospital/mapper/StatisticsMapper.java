@@ -64,13 +64,26 @@ public interface StatisticsMapper {
     );
     
     /**
+     * 统计退号率明细（科室 + 医生 + 号别全量分组）
+     */
+    List<CancelRateDTO> getCancelRateDetail(
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate,
+        @Param("deptId") Long deptId,
+        @Param("doctorId") Long doctorId,
+        @Param("typeId") Long typeId
+    );
+    
+    /**
      * 统计挂号量（按日期和号别）
      */
     List<RegistrationStatisticsDTO> getRegistrationStatistics(
         @Param("startDate") LocalDate startDate,
         @Param("endDate") LocalDate endDate,
         @Param("typeId") Long typeId,
-        @Param("periodType") String periodType
+        @Param("periodType") String periodType,
+        @Param("deptId") Long deptId,
+        @Param("doctorId") Long doctorId
     );
     
     /**
