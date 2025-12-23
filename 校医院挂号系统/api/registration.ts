@@ -60,6 +60,17 @@ export const checkDuplicateBySchedule = async (patientId: number, scheduleId: nu
     );
 };
 
+/**
+ * 检查同一患者在当前排班对应科室、当日是否已有挂号记录
+ * @param patientId 患者ID
+ * @param scheduleId 排班ID
+ */
+export const checkDeptLimitBySchedule = async (patientId: number, scheduleId: number) => {
+  return request.get(
+    `/checkDeptLimitBySchedule?patientId=${patientId}&scheduleId=${scheduleId}`
+  );
+};
+
 // 定义接口
 interface Result<T = any> {
   code: number;
@@ -115,12 +126,6 @@ interface ScheduleDetail {
   schedule_date: string;
   time_slot: number;
   room_number: string;
-}
-
-interface Result<T = any> {
-  code: number;
-  message: string;
-  result?: T;
 }
 
 const getTimeSlotLabel = (slot?: number) => {
@@ -184,28 +189,15 @@ export const getScheduleDetailById = async (scheduleId: number) => {
  */
 export const getPatientDetailById = async (patientId: number) => {
   try {
-<<<<<<< HEAD
-    const res = await request.get(`/patient/detail`, { patientId })as Result<any>;
-
-    console.log('患者详情接口原始返回:', res); // ✅ 打印查看完整数据
-
-    if (!res || res.code !== 200) {
-      console.warn('获取患者失败：', res?.message);
-      return null;
-    }
-
-    return res.result ?? null; // 取 result
-=======
     const res = await request.get('/patient/detail', { patientId });
+    // 响应拦截器已经解包了 Result 对象，res 直接就是数据
     return res ?? null;
->>>>>>> main
   } catch (error) {
     console.error('获取患者详情失败:', error);
     return null;
   }
 };
 
-// api/registration.ts
 /**
  * 根据患者ID获取患者类型
  * @param patientId 患者ID
@@ -213,30 +205,24 @@ export const getPatientDetailById = async (patientId: number) => {
  */
 export const getPatientTypeById = async (patientId: number): Promise<number | null> => {
   try {
-    // 直接请求接口
-    const res = await request.get(`/patient/type`, { patientId }) as number;
+    // 响应拦截器已经解包了 Result 对象，res 直接就是患者类型数字
+    const res = await request.get('/patient/type', { patientId });
 
-    // ✅ 直接打印原始返回
-    console.log('患者类型接口原始返回：', res);
+    console.log('患者类型接口返回：', res);
 
-    return res; // 直接返回数字类型
+    // 确保返回的是有效数字类型
+    if (typeof res === 'number' && (res === 1 || res === 2 || res === 3)) {
+      return res;
+    }
+
+    // 如果返回的不是有效类型，返回 null
+    console.warn('患者类型无效:', res);
+    return null;
   } catch (error: any) {
     console.error('获取患者类型失败:', error?.message ?? error);
     return null;
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

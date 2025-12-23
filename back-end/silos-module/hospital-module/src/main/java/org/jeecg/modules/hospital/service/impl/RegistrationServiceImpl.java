@@ -116,7 +116,7 @@ public class RegistrationServiceImpl implements RegistrationService {
             log.info("本次挂号使用 patientId={}", patientId);
 
             // ------------------------------
-            // 3. 获取排班信息
+            // 3. 获取排班信息 + 预约截止时间校验
             // ------------------------------
             DoctorSchedule schedule =
                     registrationMapper.selectScheduleById(record.getScheduleId());
@@ -124,6 +124,24 @@ public class RegistrationServiceImpl implements RegistrationService {
                 return Result.error("未找到对应排班信息");
             }
             record.setDoctorId(schedule.getDoctorId());
+
+            // 3.1 就诊前2小时内不允许再预约该时段（含已过期）
+            if (schedule.getScheduleDate() != null && schedule.getTimeSlot() != null) {
+                LocalTime baseTime;
+                switch (schedule.getTimeSlot()) {
+                    case 1 -> baseTime = LocalTime.of(8, 0);   // 上午
+                    case 2 -> baseTime = LocalTime.of(14, 0);  // 下午
+                    case 3 -> baseTime = LocalTime.of(18, 0);  // 晚上
+                    default -> baseTime = null;
+                }
+                if (baseTime != null) {
+                    LocalDateTime slotStart = LocalDateTime.of(schedule.getScheduleDate(), baseTime);
+                    // 当前时间晚于「开始时间前2小时」则视为已截止预约
+                    if (LocalDateTime.now().isAfter(slotStart.minusHours(2))) {
+                        return Result.error("该时段预约已截止，请选择其他时间段");
+                    }
+                }
+            }
 
             // ------------------------------
             // 4. 防止同一患者重复预约同一排班（关键）
@@ -169,16 +187,14 @@ public class RegistrationServiceImpl implements RegistrationService {
                     return Result.error("候补挂号创建失败");
                 }
 
-<<<<<<< HEAD
+
                 Result<String> waitRes = addToWaitingQueue(
                         schedule.getScheduleId(),
                         patientId,
                         record.getRecordId()
                 );
-=======
                 // 加入候补队列（务必带上对应的挂号记录 ID，便于后续自动补位）
-                Result<String> waitRes = addToWaitingQueue(schedule.getScheduleId(), actualPatientId, record.getRecordId());
->>>>>>> main
+
 
                 return waitRes.isSuccess()
                         ? Result.OK("当前号源已满，已加入候补队列", waitRes.getResult())
@@ -239,11 +255,9 @@ public class RegistrationServiceImpl implements RegistrationService {
     }
 
 
-<<<<<<< HEAD
+
     private Result<String> addToWaitingQueue(Long scheduleId, Long patientId,Long recordId) {
-=======
-    private Result<String> addToWaitingQueue(Long scheduleId, Long patientId, Long recordId) {
->>>>>>> main
+
         WaitingQueue queue = new WaitingQueue();
         queue.setScheduleId(scheduleId);
         queue.setRecordId(recordId);
@@ -271,6 +285,24 @@ public class RegistrationServiceImpl implements RegistrationService {
     @Override
     public boolean checkDuplicateBySchedule(Long patientId, Long scheduleId) {
         Integer count = registrationMapper.checkDuplicateBySchedule(patientId, scheduleId);
+        return count != null && count > 0;
+    }
+
+    /**
+     * 检查同一患者在当前排班对应的科室、同一天是否已有其他挂号记录
+     * <p>
+     * 核心规则：
+     *  - 通过 scheduleId 反查出该排班所在的科室（dept_id）和排班日期（schedule_date）；
+     *  - 统计该患者在同一科室、同一天、所有未退号(status != 3) 的挂号记录数量；
+     *  - 若数量 > 0，则认为已经在该科室预约过一次，当天再次预约需要前端给出确认提示。
+     * </p>
+     */
+    @Override
+    public boolean checkDeptLimitForSchedule(Long patientId, Long scheduleId) {
+        if (patientId == null || scheduleId == null) {
+            return false;
+        }
+        Integer count = registrationMapper.countDeptRegistrationsForDay(patientId, scheduleId);
         return count != null && count > 0;
     }
 

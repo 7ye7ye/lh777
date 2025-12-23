@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="org.jeecg.modules.hospital.mapper.AppointmentMapper">
+    
+    <select id="countByPatientAndDepartment" resultType="java.lang.Integer">
+        SELECT COUNT(*) 
+        FROM appointments 
+        WHERE patient_id = #{patientId} 
+        AND department_name = #{departmentName} 
+        AND status = '预约成功' -- 只统计成功的预约
+    </select>
+    
+</mapper>
