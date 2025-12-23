@@ -23,10 +23,10 @@ public class AppointmentController {
 
     @Autowired
     private AppointmentService appointmentService;
-    
+
     @Autowired
     private MessageService messageService;
-    
+
     @Autowired
     private AppointmentReminderTask appointmentReminderTask;
 
@@ -38,10 +38,7 @@ public class AppointmentController {
      */
     @GetMapping("/detail")
     public Appointment getAppointmentDetail(@RequestParam String id) {
-        Appointment appointment = appointmentService.getById(id);
-        if (appointment != null) {
-            return appointment;
-        }
+        // 优先尝试从挂号记录中查询 (RegistrationService)
         try {
             Long recordId = Long.valueOf(id);
             RegistrationDetailDTO detail = registrationService.getRegistrationDetail(recordId);
@@ -50,9 +47,15 @@ public class AppointmentController {
             }
         } catch (NumberFormatException ignored) {
         }
+
+        // 如果挂号记录中没找到，再查询预约表 (AppointmentService)
+        Appointment appointment = appointmentService.getById(id);
+        if (appointment != null) {
+            return appointment;
+        }
         return null;
     }
-    
+
     /**
      * 创建预约（含自动提醒功能）
      * 
@@ -65,48 +68,47 @@ public class AppointmentController {
     public String createAppointment(@RequestBody Appointment appointment) {
         try {
             log.info("[createAppointment] 开始创建预约, appointmentId={}", appointment.getId());
-            
+
             // 1. 保存预约记录
             appointmentService.save(appointment);
             log.info("[createAppointment] 预约记录已保存");
-            
+
             // 2. 创建预约成功消息
             Message successMessage = new Message();
             successMessage.setUserId(getUserIdFromAppointment(appointment)); // 需要从预约中获取userId
             successMessage.setAppointmentId(appointment.getId());
             successMessage.setMessageType("APPOINTMENT_SUCCESS");
             successMessage.setTitle("预约挂号成功提醒");
-            
+
             // 组装消息内容JSON
             String contentJson = String.format(
-                "{\"patient_card_no\":\"%s\",\"patient_name\":\"%s\",\"doctor_name\":\"%s\",\"department_name\":\"%s\",\"appointment_time\":\"%s %s\",\"hospital_remark\":\"请提前15分钟到达诊室候诊\"}",
-                appointment.getQrCodeData() != null ? appointment.getQrCodeData() : "",
-                appointment.getPatientName() != null ? appointment.getPatientName() : "",
-                appointment.getDoctorName() != null ? appointment.getDoctorName() : "",
-                appointment.getDepartmentName() != null ? appointment.getDepartmentName() : "",
-                appointment.getAppointmentDate() != null ? appointment.getAppointmentDate().toString() : "",
-                appointment.getAppointmentTime() != null ? appointment.getAppointmentTime().toString() : ""
-            );
+                    "{\"patient_card_no\":\"%s\",\"patient_name\":\"%s\",\"doctor_name\":\"%s\",\"department_name\":\"%s\",\"appointment_time\":\"%s %s\",\"hospital_remark\":\"请提前15分钟到达诊室候诊\"}",
+                    appointment.getQrCodeData() != null ? appointment.getQrCodeData() : "",
+                    appointment.getPatientName() != null ? appointment.getPatientName() : "",
+                    appointment.getDoctorName() != null ? appointment.getDoctorName() : "",
+                    appointment.getDepartmentName() != null ? appointment.getDepartmentName() : "",
+                    appointment.getAppointmentDate() != null ? appointment.getAppointmentDate().toString() : "",
+                    appointment.getAppointmentTime() != null ? appointment.getAppointmentTime().toString() : "");
             successMessage.setContent(contentJson);
             successMessage.setCreatedTime(LocalDateTime.now());
             successMessage.setIsRead(false);
-            
+
             messageService.save(successMessage);
             log.info("[createAppointment] 预约成功消息已发送");
-            
+
             // 3. ⭐ 自动判断是否需要立即发送就诊提醒
-            //    条件：预约日期 == 明天 && 当前时间 >= 08:00
+            // 条件：预约日期 == 明天 && 当前时间 >= 08:00
             appointmentReminderTask.checkAndCreateImmediateReminder(convertToDetail(appointment));
             log.info("[createAppointment] 已检查是否需要立即提醒");
-            
+
             return "success";
-            
+
         } catch (Exception e) {
             log.error("[createAppointment] 创建预约失败", e);
             return "error: " + e.getMessage();
         }
     }
-    
+
     /**
      * 从预约信息中获取用户ID
      * 注意：实际项目中可能需要从登录态、token或其他方式获取
@@ -117,7 +119,7 @@ public class AppointmentController {
         // 方案1：从登录态获取
         // 方案2：从患者表查询
         // 方案3：前端传递
-        
+
         // 临时方案：从患者姓名推断（仅示例，生产环境需改进）
         return "262"; // 这里暂时返回固定值，实际应该动态获取
     }
@@ -130,7 +132,8 @@ public class AppointmentController {
         appointment.setPatientName(detail.getPatientName());
         appointment.setHospitalAddress("北京市西直门外上园村3号");
         appointment.setDepartmentName(detail.getDepartmentName());
-        appointment.setVisitLocation(detail.getDeptLocation() != null ? detail.getDeptLocation() : "门诊楼一层");
+        appointment.setVisitLocation(detail.getRoomNumber() != null ? detail.getRoomNumber()
+                : (detail.getDeptLocation() != null ? detail.getDeptLocation() : "门诊楼一层"));
         appointment.setDoctorName(detail.getDoctorName());
         appointment.setAppointmentDate(detail.getScheduleDate());
         appointment.setAppointmentTime(slotToTime(detail.getTimeSlot()));
@@ -160,7 +163,8 @@ public class AppointmentController {
             if (appointment.getId() != null) {
                 detail.setRecordId(Long.valueOf(appointment.getId()));
             }
-        } catch (NumberFormatException ignored) {}
+        } catch (NumberFormatException ignored) {
+        }
         detail.setRegistrationNo(appointment.getSerialNumber());
         detail.setPatientName(appointment.getPatientName());
         detail.setDoctorName(appointment.getDoctorName());
@@ -173,10 +177,13 @@ public class AppointmentController {
     }
 
     private Integer timeToSlot(LocalTime time) {
-        if (time == null) return null;
+        if (time == null)
+            return null;
         int hour = time.getHour();
-        if (hour < 12) return 1;
-        if (hour < 18) return 2;
+        if (hour < 12)
+            return 1;
+        if (hour < 18)
+            return 2;
         return 3;
     }
 

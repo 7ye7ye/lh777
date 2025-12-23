@@ -249,7 +249,6 @@
             FROM registration_record rr
                 LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
             WHERE rr.status IN (0, 1, 2, 5, 6)
-            WHERE rr.status IN (1, 2)
                 <if test="startDate != null">
                     AND DATE(rr.register_time) >= #{startDate}
                 </if>
@@ -295,7 +294,6 @@
                 COUNT(*) AS totalRegistration
             FROM registration_record rr2
             WHERE rr2.status IN (0, 1, 2, 5, 6)
-            WHERE rr2.status IN (1, 2)
                 <if test="startDate != null">
                     AND DATE(rr2.register_time) >= #{startDate}
                 </if>

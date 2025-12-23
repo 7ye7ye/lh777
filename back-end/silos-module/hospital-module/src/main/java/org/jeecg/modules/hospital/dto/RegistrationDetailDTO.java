@@ -34,5 +34,5 @@ public class RegistrationDetailDTO {
     private BigDecimal priceOriginal;
     private BigDecimal actualPrice;
     private Integer status;
+    private String roomNumber;
 }
-

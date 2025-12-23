@@ -22,7 +22,7 @@
 					<view class="card-content">
 						<view class="card-title-line">
 							<text class="card-title" :class="getMessageTitleClass(message)">
-								{{ getMessageCategory(message.messageType) }}
+								{{ getMessageCategory(message.messageType, message) }}
 							</text>
 							<text class="card-time">{{ formatTime(message.createdTime) }}</text>
 						</view>
@@ -135,7 +135,12 @@
 			},
 
 			// 根据消息类型返回分类标签
-			getMessageCategory(messageType) {
+			getMessageCategory(messageType, message) {
+				// 优先检查是否为排班调整
+				if (message && this.isScheduleChange(message)) {
+					return '号源状态变化通知';
+				}
+
 				switch(messageType) {
 					case 'APPOINTMENT_SUCCESS':
 						return '预约挂号';
@@ -371,11 +376,10 @@
 		color: #999;
 	}
 
-	/* 排班调整标题样式 - 醒目红/紫色，区别于普通退号 */
+	/* 排班调整标题样式 - 褐色 */
 	.card-title.title-schedule-change {
-		color: #e02f2f;
-		/* 这里的颜色可以根据你需要调整，比如更深一点的红色 */
-		font-weight: 900;
+		color: #8B4513; /* SaddleBrown */
+		font-weight: bold;
 	}
 
 	.card-time {

@@ -172,7 +172,7 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
         Patient selectPatientById(@Param("patientId") Long patientId);
 
         @Select("SELECT patient_type FROM patient WHERE patient_id = #{patientId}")
-        int selectPatientTypeById(@Param("patientId") Long patientId);
+        Integer selectPatientTypeById(@Param("patientId") Long patientId);
 
         /**
          * 查询挂号详情（用于消息 / 回执）
@@ -193,6 +193,7 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
                             dep.location AS dept_location,
                             ds.schedule_date,
                             ds.time_slot,
+                            ds.room_number,
                             rr.register_time AS register_time,
                             rt.type_name,
                             COALESCE(rr.price_original, rt.price_original) AS price_original,

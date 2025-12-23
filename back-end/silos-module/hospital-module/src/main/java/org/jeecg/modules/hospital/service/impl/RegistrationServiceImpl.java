@@ -109,14 +109,14 @@ public class RegistrationServiceImpl implements RegistrationService {
                 if (patient == null) {
                     return Result.error("患者信息不存在");
                 }
-                
+
                 // 如果当前登录用户和患者绑定的userId不一致，可能有问题
                 // 这里保留 main 分支的校验逻辑（更安全），但也兼容 HEAD 分支的查找逻辑
                 if (!patient.getUserId().equals(Long.valueOf(currentUserId))) {
-                     // 再次确认是否当前用户下确实有这个患者（防止ID变更等极端情况，或者多患者绑定）
-                     // 但按照 main 分支的 strict 逻辑，不匹配就报错
-                     // 我们这里暂时采用 Main 分支的严格校验
-                     return Result.error("非法患者信息，请重新选择就诊人");
+                    // 再次确认是否当前用户下确实有这个患者（防止ID变更等极端情况，或者多患者绑定）
+                    // 但按照 main 分支的 strict 逻辑，不匹配就报错
+                    // 我们这里暂时采用 Main 分支的严格校验
+                    return Result.error("非法患者信息，请重新选择就诊人");
                 }
             }
 
@@ -127,8 +127,7 @@ public class RegistrationServiceImpl implements RegistrationService {
             // ------------------------------
             // 3. 获取排班信息 + 预约截止时间校验
             // ------------------------------
-            DoctorSchedule schedule =
-                    registrationMapper.selectScheduleById(record.getScheduleId());
+            DoctorSchedule schedule = registrationMapper.selectScheduleById(record.getScheduleId());
             if (schedule == null) {
                 return Result.error("未找到对应排班信息");
             }
@@ -138,9 +137,9 @@ public class RegistrationServiceImpl implements RegistrationService {
             if (schedule.getScheduleDate() != null && schedule.getTimeSlot() != null) {
                 LocalTime baseTime;
                 switch (schedule.getTimeSlot()) {
-                    case 1 -> baseTime = LocalTime.of(8, 0);   // 上午
-                    case 2 -> baseTime = LocalTime.of(14, 0);  // 下午
-                    case 3 -> baseTime = LocalTime.of(18, 0);  // 晚上
+                    case 1 -> baseTime = LocalTime.of(8, 0); // 上午
+                    case 2 -> baseTime = LocalTime.of(14, 0); // 下午
+                    case 3 -> baseTime = LocalTime.of(18, 0); // 晚上
                     default -> baseTime = null;
                 }
                 if (baseTime != null) {
@@ -162,8 +161,7 @@ public class RegistrationServiceImpl implements RegistrationService {
             // ------------------------------
             // 5. 获取挂号类型
             // ------------------------------
-            RegistrationType type =
-                    registrationMapper.selectTypeById(record.getTypeId());
+            RegistrationType type = registrationMapper.selectTypeById(record.getTypeId());
             if (type == null) {
                 return Result.error("未找到对应挂号类型");
             }
@@ -312,9 +310,9 @@ public class RegistrationServiceImpl implements RegistrationService {
      * 检查同一患者在当前排班对应的科室、同一天是否已有其他挂号记录
      * <p>
      * 核心规则：
-     *  - 通过 scheduleId 反查出该排班所在的科室（dept_id）和排班日期（schedule_date）；
-     *  - 统计该患者在同一科室、同一天、所有未退号(status != 3) 的挂号记录数量；
-     *  - 若数量 > 0，则认为已经在该科室预约过一次，当天再次预约需要前端给出确认提示。
+     * - 通过 scheduleId 反查出该排班所在的科室（dept_id）和排班日期（schedule_date）；
+     * - 统计该患者在同一科室、同一天、所有未退号(status != 3) 的挂号记录数量；
+     * - 若数量 > 0，则认为已经在该科室预约过一次，当天再次预约需要前端给出确认提示。
      * </p>
      */
     @Override
@@ -469,8 +467,6 @@ public class RegistrationServiceImpl implements RegistrationService {
         return patient;
     }
 
-<<<<<<< HEAD
-=======
     @Override
     public int getPatientTypeById(Long patientId) {
         System.out.println("查询患者类型 patientId = " + patientId);
@@ -482,11 +478,6 @@ public class RegistrationServiceImpl implements RegistrationService {
         return patientType;
     }
 
-
-
-
-
->>>>>>> main
     @Override
     public List<RegistrationVO> listByDisease(String disease) {
         return registrationMapper.getByDisease(disease);
