@@ -145,5 +145,77 @@ public class StatisticsAdminController {
         Map<String, Object> result = statisticsService.getStatisticsSummary(query);
         return Result.ok(result);
     }
+
+    @Operation(summary = "获取就诊时段分布")
+    @GetMapping("/timeslot")
+    public Result<List<Map<String, Object>>> getTimeSlotDistribution(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+
+        StatisticsQueryDTO query = new StatisticsQueryDTO();
+        query.setStartDate(startDate);
+        query.setEndDate(endDate);
+
+        List<Map<String, Object>> result = statisticsService.getTimeSlotDistribution(query);
+        return Result.ok(result);
+    }
+
+    @Operation(summary = "获取收入趋势")
+    @GetMapping("/income-trend")
+    public Result<List<Map<String, Object>>> getIncomeTrend(
+            @RequestParam(required = false) String periodType,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+
+        StatisticsQueryDTO query = new StatisticsQueryDTO();
+        query.setPeriodType(periodType);
+        query.setStartDate(startDate);
+        query.setEndDate(endDate);
+
+        List<Map<String, Object>> result = statisticsService.getIncomeTrend(query);
+        return Result.ok(result);
+    }
+
+    @Operation(summary = "获取科室明细")
+    @GetMapping("/dept-detail")
+    public Result<List<Map<String, Object>>> getDeptDetail(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+
+        StatisticsQueryDTO query = new StatisticsQueryDTO();
+        query.setStartDate(startDate);
+        query.setEndDate(endDate);
+
+        List<Map<String, Object>> result = statisticsService.getDeptDetail(query);
+        return Result.ok(result);
+    }
+
+    @Operation(summary = "获取医生明细")
+    @GetMapping("/doctor-detail")
+    public Result<List<Map<String, Object>>> getDoctorDetail(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+
+        StatisticsQueryDTO query = new StatisticsQueryDTO();
+        query.setStartDate(startDate);
+        query.setEndDate(endDate);
+
+        List<Map<String, Object>> result = statisticsService.getDoctorDetail(query);
+        return Result.ok(result);
+    }
+
+    @Operation(summary = "获取最新患者评估列表（前5条）")
+    @GetMapping("/patient-eval")
+    public Result<List<Map<String, Object>>> getPatientEval(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+
+        StatisticsQueryDTO query = new StatisticsQueryDTO();
+        query.setStartDate(startDate);
+        query.setEndDate(endDate);
+
+        List<Map<String, Object>> result = statisticsService.getLatestPatientEval(query);
+        return Result.ok(result);
+    }
 }
 

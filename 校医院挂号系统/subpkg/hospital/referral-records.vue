@@ -213,6 +213,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { getPatientReferralList, cancelPatientReferral, autoRegisterInternalReferral } from '@/api/referral'
+import { getRegistrationRecords } from '@/api/registration'
 import { patientApi } from '@/api/patient'
 import { useUserStore } from '@/store/user'
 
@@ -326,30 +327,37 @@ const handleResetDateRange = () => {
 
 // 检查转诊记录是否在日期范围内
 const isRecordInDateRange = (record) => {
+  // 如果没有设置日期范围，显示所有记录
   if (!startDate.value && !endDate.value) {
-    return true // 没有设置日期范围，显示所有
+    return true
   }
   
   // 使用申请时间作为比较基准
   const recordDateStr = record.applyTime || record.applyTimeText || record.createTime
   if (!recordDateStr) {
-    return false // 没有日期信息，不显示
+    // 如果没有日期信息，在设置了日期筛选的情况下不显示
+    // 但如果是在"全部"状态下，应该显示（这里已经通过 startDate/endDate 判断了）
+    return false
   }
   
   const recordDate = parseDate(recordDateStr)
-  if (!recordDate) return false
+  // 如果日期解析失败，在设置了日期筛选的情况下不显示
+  if (!recordDate) {
+    console.warn('日期解析失败:', recordDateStr, '记录ID:', record.id)
+    return false
+  }
   
   const start = parseDate(startDate.value)
   const end = parseDate(endDate.value)
   
   // 如果只有开始日期，只要记录日期 >= 开始日期即可
   if (startDate.value && !endDate.value) {
-    return recordDate >= start
+    return start ? recordDate >= start : true
   }
   
   // 如果只有结束日期，只要记录日期 <= 结束日期即可
   if (!startDate.value && endDate.value) {
-    return recordDate <= end
+    return end ? recordDate <= end : true
   }
   
   // 如果两个日期都有，记录日期必须在范围内
@@ -357,6 +365,7 @@ const isRecordInDateRange = (record) => {
     return recordDate >= start && recordDate <= end
   }
   
+  // 如果日期解析失败，默认显示（避免因为日期格式问题导致记录不显示）
   return true
 }
 
@@ -372,14 +381,43 @@ const filteredRecords = computed(() => {
     })
   }
   
-  // 按就诊人筛选 - 使用患者姓名筛选
-  // 只有当选择了就诊人且有姓名时才筛选
-  const currentPatientName = (currentPatientInfo.value.name || '').trim()
-  if (currentPatientName && selectedPatientId.value !== null && selectedPatientId.value !== undefined) {
+  // 按就诊人筛选 - 使用患者ID筛选（更可靠）
+  // 只有当选择了就诊人时才筛选，如果没有选择就诊人（selectedPatientId为null），显示所有记录
+  if (selectedPatientId.value !== null && selectedPatientId.value !== undefined) {
+    const currentPatientName = (currentPatientInfo.value.name || '').trim()
+    const selectedPatientIdNum = Number(selectedPatientId.value)
+    
     records = records.filter(record => {
+      const recordPatientId = record.patientId || record.patient_id || null
       const recordPatientName = (record.patientName || '').trim()
-      // 使用患者姓名严格匹配
-      return recordPatientName === currentPatientName
+      const registrationRecordId = record.registrationRecordId || record.registration_record_id || null
+      
+      // 优先使用 patientId 匹配
+      if (recordPatientId !== null && recordPatientId !== undefined) {
+        const recordPatientIdNum = Number(recordPatientId)
+        if (!isNaN(recordPatientIdNum) && recordPatientIdNum === selectedPatientIdNum) {
+          return true
+        }
+      }
+      
+      // 如果 patientId 不匹配或不存在，使用姓名匹配作为备选（兼容旧数据）
+      if (currentPatientName && recordPatientName) {
+        const nameMatch = recordPatientName === currentPatientName
+        if (nameMatch) {
+          return true
+        }
+      }
+      
+      // 如果 patientId 为 null 但有 registrationRecordId，说明后端没有返回 patientId
+      // 这种情况下，转诊记录是通过挂号记录关联的，应该属于当前登录用户
+      // 为了不丢失数据，显示所有有 registrationRecordId 但 patientId 为 null 的记录
+      // 因为转诊记录是通过挂号记录关联的，而挂号记录应该属于当前用户
+      if (recordPatientId === null && registrationRecordId) {
+        return true
+      }
+      
+      // 如果既没有 patientId 也没有姓名匹配，或者都不匹配，则不显示
+      return false
     })
   }
   
@@ -468,7 +506,6 @@ const goBack = () => {
 // 查看记录详情
 const viewRecordDetail = (record) => {
   // 导航到详情页面
-  console.log('查看转诊详情:', record)
   uni.navigateTo({
     url: `/subpkg/hospital/referral-detail?id=${record.id}`
   })
@@ -491,41 +528,134 @@ const getAutoRegisterStatusClass = (status) => {
 }
 
 // 查看自动挂号状态
-const viewAutoRegisterStatus = (record) => {
-  let content = ''
+const viewAutoRegisterStatus = async (record) => {
   const status = record.autoRegisterStatus
   
   if (status === 1) {
-    // 挂号成功
-    content = `自动挂号状态：已成功\n`
-    if (record.assignedDate) {
-      content += `预约日期：${record.assignedDate}\n`
-    }
-    if (record.assignedTimeSlot) {
-      const timeSlotMap = { 1: '上午', 2: '下午', 3: '晚上' }
-      content += `预约时段：${timeSlotMap[record.assignedTimeSlot] || record.assignedTimeSlot}\n`
-    }
-    if (record.registrationRecordId) {
-      content += `挂号记录编号：${record.registrationRecordId}`
+    // 挂号成功，跳转到挂号记录详情
+    try {
+      // 获取患者ID（优先从转诊记录中获取，如果没有则使用当前选择的就诊人ID）
+      let patientId = record.patientId || record.patient_id
+      
+      // 如果转诊记录中没有 patientId，尝试从当前选择的就诊人获取
+      if (!patientId && selectedPatientId.value) {
+        patientId = selectedPatientId.value
+      }
+      
+      // 如果还是没有，尝试从关联的原始挂号记录中获取（需要查询）
+      if (!patientId && record.registrationRecordId) {
+        // 这里可以尝试通过 registrationRecordId 查询原始挂号记录获取 patientId
+        // 但为了简化，先使用当前选择的就诊人ID
+        patientId = selectedPatientId.value
+      }
+      
+      if (!patientId) {
+        uni.showToast({
+          title: '无法获取患者信息，请先选择就诊人',
+          icon: 'none'
+        })
+        return
+      }
+      
+      // 获取该患者的所有挂号记录
+      uni.showLoading({ title: '加载中...' })
+      const records = await getRegistrationRecords(patientId)
+      const recordsList = Array.isArray(records) ? records : []
+      
+      // 查找匹配的挂号记录：
+      // 1. scheduleId 等于 assignedScheduleId
+      // 2. isAdd === 1（加号标记）
+      // 3. addRemark 包含"转诊"或"院内转诊"
+      const assignedScheduleId = record.assignedScheduleId || record.assigned_schedule_id
+      const matchedRecord = recordsList.find(r => {
+        const scheduleIdMatch = (r.scheduleId || r.schedule_id) === assignedScheduleId
+        const isAddMatch = (r.isAdd || r.is_add) === 1
+        const addRemark = (r.addRemark || r.add_remark || '').toString()
+        const remarkMatch = addRemark.includes('转诊') || addRemark.includes('院内转诊')
+        return scheduleIdMatch && isAddMatch && remarkMatch
+      })
+      
+      uni.hideLoading()
+      
+      if (matchedRecord) {
+        // 构建挂号记录对象，用于跳转到详情页
+        const recordData = {
+          id: matchedRecord.recordId || matchedRecord.record_id || matchedRecord.id,
+          recordId: matchedRecord.recordId || matchedRecord.record_id || matchedRecord.id,
+          patientId: matchedRecord.patientId || matchedRecord.patient_id || patientId,
+          scheduleId: matchedRecord.scheduleId || matchedRecord.schedule_id,
+          doctorId: matchedRecord.doctorId || matchedRecord.doctor_id,
+          typeId: matchedRecord.typeId || matchedRecord.type_id,
+          registrationNo: matchedRecord.registrationNo || matchedRecord.registration_no,
+          registerTime: matchedRecord.registerTime || matchedRecord.register_time,
+          status: matchedRecord.status,
+          priceOriginal: matchedRecord.priceOriginal || matchedRecord.price_original,
+          actualPrice: matchedRecord.actualPrice || matchedRecord.actual_price,
+          isAdd: matchedRecord.isAdd || matchedRecord.is_add,
+          addRemark: matchedRecord.addRemark || matchedRecord.add_remark
+        }
+        
+        // 跳转到挂号记录详情页面
+        uni.navigateTo({
+          url: `/subpkg/profile/records/hospital-record-detail?record=${encodeURIComponent(JSON.stringify(recordData))}`,
+          fail: (err) => {
+            console.error('跳转挂号记录详情失败:', err)
+            uni.showToast({
+              title: '跳转失败，请重试',
+              icon: 'none'
+            })
+          }
+        })
+      } else {
+        // 如果找不到匹配的记录，显示状态信息
+        let content = `自动挂号状态：已成功\n`
+        if (record.assignedDate) {
+          content += `预约日期：${record.assignedDate}\n`
+        }
+        if (record.assignedTimeSlot) {
+          const timeSlotMap = { 1: '上午', 2: '下午', 3: '晚上' }
+          content += `预约时段：${timeSlotMap[record.assignedTimeSlot] || record.assignedTimeSlot}\n`
+        }
+        content += '未找到对应的挂号记录，请稍后查看'
+        
+        uni.showModal({
+          title: '自动挂号状态',
+          content: content,
+          showCancel: false,
+          confirmText: '知道了'
+        })
+      }
+    } catch (error) {
+      uni.hideLoading()
+      console.error('查询挂号记录失败:', error)
+      uni.showToast({
+        title: '查询挂号记录失败',
+        icon: 'none'
+      })
     }
   } else if (status === 2) {
     // 挂号失败
-    content = '自动挂号状态：挂号失败\n'
+    let content = '自动挂号状态：挂号失败\n'
     if (record.quotaAction === 'WAITLIST' && record.waitNumber) {
       content += `已加入候补队列，候补号：${record.waitNumber}`
     } else {
       content += '当前无可用排班，请稍后重试或联系医院'
     }
+    
+    uni.showModal({
+      title: '自动挂号状态',
+      content: content,
+      showCancel: false,
+      confirmText: '知道了'
+    })
   } else {
-    content = '自动挂号状态：未处理'
+    uni.showModal({
+      title: '自动挂号状态',
+      content: '自动挂号状态：未处理',
+      showCancel: false,
+      confirmText: '知道了'
+    })
   }
-  
-  uni.showModal({
-    title: '自动挂号状态',
-    content: content,
-    showCancel: false,
-    confirmText: '知道了'
-  })
 }
 
 // 自动挂号（院内转诊）
@@ -558,21 +688,23 @@ const handleAutoRegister = async (record) => {
           const result = await autoRegisterInternalReferral(record.id)
           
           if (result) {
-            uni.showToast({
-              title: '自动挂号成功！',
-              icon: 'success'
-            })
-            // 重新加载转诊记录
-            setTimeout(() => {
-              currentPage.value = 1
-              loadReferralRecords()
-            }, 1500)
-          } else {
-            uni.showToast({
-              title: '自动挂号失败',
-              icon: 'none'
-            })
-          }
+              uni.showToast({
+                title: '自动挂号成功！',
+                icon: 'success'
+              })
+              // 重新加载转诊记录和就诊记录
+              setTimeout(() => {
+                currentPage.value = 1
+                loadReferralRecords()
+                // 通知就诊记录页面刷新数据
+                uni.$emit('refreshHospitalRecords')
+              }, 1500)
+            } else {
+              uni.showToast({
+                title: '自动挂号失败',
+                icon: 'none'
+              })
+            }
         } catch (error) {
           console.error('自动挂号失败:', error)
           let errorMsg = '自动挂号失败，请稍后重试'
@@ -600,7 +732,6 @@ const handleAutoRegister = async (record) => {
 
 // 下载转诊证明
 const downloadReferralCertificate = (record) => {
-  console.log('下载转诊证明:', record)
   // 跳转到转诊单页面
   uni.navigateTo({
     url: `/subpkg/hospital/referral-certificate?id=${record.id || record.referralId}`
@@ -609,12 +740,8 @@ const downloadReferralCertificate = (record) => {
 
 // 创建新转诊申请
 const createNewReferral = () => {
-  console.log('Attempting to navigate to: /subpkg/hospital/referral-application')
   uni.navigateTo({
     url: '/subpkg/hospital/referral-application',
-    success: (res) => {
-      console.log('Navigation successful:', res)
-    },
     fail: (err) => {
       console.error('Navigation failed:', err)
       uni.showToast({
@@ -767,42 +894,33 @@ const loadReferralRecords = async () => {
     // 这样可以确保即使没有选择就诊人，也能看到所有记录
 
     const res = await getPatientReferralList(params)
-    console.log('转诊记录API响应:', res)
-    
     // 支持多种数据格式 - 优先检查result字段
     let rawRecords = []
     if (Array.isArray(res?.result?.records)) {
       rawRecords = res.result.records
-      console.log('从 res.result.records 获取记录:', rawRecords.length)
     } else if (Array.isArray(res?.records)) {
       rawRecords = res.records
-      console.log('从 res.records 获取记录:', rawRecords.length)
     } else if (Array.isArray(res?.data?.records)) {
       rawRecords = res.data.records
-      console.log('从 res.data.records 获取记录:', rawRecords.length)
     } else if (Array.isArray(res?.data)) {
       rawRecords = res.data
-      console.log('从 res.data 获取记录:', rawRecords.length)
     } else if (Array.isArray(res?.result)) {
       rawRecords = res.result
-      console.log('从 res.result 获取记录:', rawRecords.length)
     } else if (Array.isArray(res)) {
       rawRecords = res
-      console.log('从 res 直接获取记录:', rawRecords.length)
     } else {
       console.warn('未找到有效的记录数组，响应结构:', res)
     }
-    
-    console.log('解析后的转诊记录:', rawRecords.length, '条')
     const normalizedRecords = rawRecords.map(record => {
       const status = (record.status || '').toUpperCase()
       const applyTime = record.applyTime || record.createTime || ''
       const reviewTime = record.reviewTime || ''
       const cancelTime = record.cancelTime || ''
       
-      // 从registrationRecordId关联中获取patientId（需要通过后端关联查询获取）
-      // 暂时从record中直接获取，如果后端返回了的话
-      const patientId = record.patientId || record.patient_id || null
+      // 从registrationRecordId关联中获取patientId
+      // 后端通过 LEFT JOIN registration_record 返回了 rr.patient_id
+      // 优先使用后端返回的 patient_id（来自关联的挂号记录）
+      const patientId = record.patient_id || record.patientId || null
       
       return {
         id: record.id || record.referralId || '',
@@ -831,29 +949,15 @@ const loadReferralRecords = async () => {
         waitNumber: record.waitNumber || record.wait_number || null
       }
     })
-    
-    console.log('规范化后的转诊记录:', normalizedRecords.map(r => ({
-      id: r.id,
-      status: r.status,
-      patientName: r.patientName,
-      patientId: r.patientId
-    })))
 
     if (currentPage.value === 1) {
       referralRecords.value = normalizedRecords
     } else {
       referralRecords.value = [...referralRecords.value, ...normalizedRecords]
     }
-    
-    console.log('更新后的转诊记录数组:', referralRecords.value.length, '条')
-    console.log('筛选前的记录:', referralRecords.value)
-    console.log('当前筛选状态:', filterStatus.value)
-    console.log('filteredRecords 应该包含:', filteredRecords.value.length, '条')
-    console.log('filteredRecords 内容:', filteredRecords.value)
 
     const total = res?.result?.total || res?.total || res?.data?.total || rawRecords.length || 0
     hasMore.value = currentPage.value * pageSize.value < total
-    console.log('转诊记录总数:', total, '当前页:', currentPage.value, '每页大小:', pageSize.value, '是否有更多:', hasMore.value)
   } catch (error) {
     console.error('加载转诊记录失败:', error)
     uni.showToast({

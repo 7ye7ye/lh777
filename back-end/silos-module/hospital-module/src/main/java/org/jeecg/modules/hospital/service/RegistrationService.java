@@ -49,6 +49,19 @@ public interface RegistrationService {
     boolean checkDuplicateBySchedule(Long patientId, Long scheduleId);
 
     /**
+     * 检查同一患者在当前排班对应的科室、同一天是否已有其他挂号记录
+     * <p>
+     * 业务含义：用于“小程序挂号限制：单个就诊人单个科室单日最多1次预约”，
+     * 其中“单个科室、单日”的范围通过当前排班ID反查得到。
+     * </p>
+     *
+     * @param patientId 患者ID
+     * @param scheduleId 当前要预约的排班ID
+     * @return true 表示已达到限制（已存在至少1条记录），false 表示未达到限制
+     */
+    boolean checkDeptLimitForSchedule(Long patientId, Long scheduleId);
+
+    /**
      * 将患者加入候补队列
      * @param queue 候补信息对象
      * @return true 表示加入成功，false 表示失败
@@ -95,5 +108,12 @@ public interface RegistrationService {
      * @return 患者详情（包含基本信息、账户信息等）
      */
     Patient getPatientDetailById(Long patientId);
+
+    /**
+     * 根据患者ID获取患者类型
+     * @param patientId 患者ID
+     * @return 患者类型（1-学生，2-教师，3-职工）
+     */
+    int getPatientTypeById(Long patientId);
 
 }

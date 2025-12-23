@@ -47,15 +47,6 @@ export interface RegisterDoctorParams {
 export const getDoctorProfile = (doctorId: number) =>
   defHttp.get<Doctor>({ url: `${Api.DoctorDetail}/profile/${doctorId}` });
 
-// 提交医生资料修改申请
-export const applyDoctorProfileUpdate = (params: {
-  id: number;
-  avatar?: string;
-  specialty: string;
-  doctorDesc?: string;
-}) =>
-  defHttp.post<boolean>({ url: '/doctor/profile/update-request', data: params });
-
 export const updateDoctorProfile = (doctor: Partial<Doctor>) =>
   defHttp.put<boolean>({ url: `${Api.DoctorDetail}/profile`, data: doctor });
 
@@ -144,15 +135,42 @@ enum Api {
 
 // 获取医生列表函数
 export const getDoctorList = (params?: {
-  doctorName?: string;
+  doctorName?: string;  // 保留向后兼容
+  keyword?: string;     // 后端API使用的参数名（用于姓名或专长搜索）
   deptId?: number | undefined;
   title?: string | undefined;
   isActive?: number | undefined;
   pageNum?: number;
   pageSize?: number;
 }) => {
+  console.log('[getDoctorList] 原始参数:', JSON.stringify(params));
+
+  // 强制转换：无论传递的是doctorName还是keyword，都统一转换为keyword
+  const apiParams: any = { ...params };
+
+  // 如果传递了doctorName，转换为keyword（后端API使用keyword参数）
+  if (apiParams.doctorName) {
+    console.log('[getDoctorList] 检测到doctorName参数，转换为keyword:', apiParams.doctorName);
+    apiParams.keyword = apiParams.doctorName;
+    delete apiParams.doctorName;
+  }
+
+  // 确保keyword参数存在（如果既没有doctorName也没有keyword，保持原样）
+  if (!apiParams.keyword && params?.keyword) {
+    apiParams.keyword = params.keyword;
+  }
+
+  // 将pageNum转换为pageNo（后端API使用pageNo）
+  if (apiParams.pageNum !== undefined) {
+    apiParams.pageNo = apiParams.pageNum;
+    delete apiParams.pageNum;
+  }
+
+  console.log('[getDoctorList] 转换后的参数:', JSON.stringify(apiParams));
+  console.log('[getDoctorList] 最终发送的参数键:', Object.keys(apiParams));
+
   return defHttp.get<any>({
     url: Api.DoctorList,
-    params
+    params: apiParams
   });
 };

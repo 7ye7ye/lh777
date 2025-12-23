@@ -27,7 +27,6 @@ import java.util.Set;
  */
 @Slf4j
 @Configuration
-@PropertySource("classpath:config/default-spring-doc.properties")
 public class Swagger3Config implements WebMvcConfigurer {
     // 定义不需要注入安全要求的路径集合
     Set<String> excludedPaths = new HashSet<>(Arrays.asList(

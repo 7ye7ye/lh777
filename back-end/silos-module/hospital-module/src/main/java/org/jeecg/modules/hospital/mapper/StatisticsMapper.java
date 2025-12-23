@@ -104,5 +104,74 @@ public interface StatisticsMapper {
         @Param("deptId") Long deptId,
         @Param("periodType") String periodType
     );
+    
+    /**
+     * 统计总收入（挂号费收入）
+     */
+    Double getTotalIncome(
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate,
+        @Param("deptId") Long deptId,
+        @Param("doctorId") Long doctorId
+    );
+
+    /**
+     * 统计就诊量（状态为1/2，按挂号日期）
+     */
+    Integer getVisitCountByStatus12(
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate,
+        @Param("deptId") Long deptId
+    );
+
+    /**
+     * 统计在岗医护人员数量（按排班，status=1）
+     */
+    Integer getActiveStaffCount(
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate,
+        @Param("deptId") Long deptId
+    );
+
+    /**
+     * 按时段统计就诊/挂号量（time_slot）
+     */
+    List<Map<String, Object>> getTimeSlotDistribution(
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
+    );
+
+    /**
+     * 收入趋势（按日/周/月，status 1/2）
+     */
+    List<Map<String, Object>> getIncomeTrend(
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate,
+        @Param("periodType") String periodType
+    );
+
+    /**
+     * 科室明细（挂号/退号/收入）
+     */
+    List<Map<String, Object>> getDeptDetail(
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
+    );
+
+    /**
+     * 医生明细（挂号/退号/收入）
+     */
+    List<Map<String, Object>> getDoctorDetail(
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
+    );
+
+    /**
+     * 最新患者评估列表（取最近挂号的前5条，status 1/2）
+     */
+    List<Map<String, Object>> getLatestPatientEval(
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
+    );
 }
 

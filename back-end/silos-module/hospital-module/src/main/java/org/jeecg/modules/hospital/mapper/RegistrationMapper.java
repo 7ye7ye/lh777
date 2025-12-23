@@ -42,12 +42,17 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
             "    ELSE '未知' " +
             "END AS time_range, " +
             "s.type_id, " +
+            "rt.type_name, " +
+            "d.title_id AS doctor_title_type_id, " +
+            "rt_title.type_name AS doctor_title_type_name, " +
             "s.used_quota, " +
             "s.max_quota," +
             "s.max_quota - s.used_quota AS available_quota, " +
             "s.status " +
             "FROM doctor_schedule s " +
             "LEFT JOIN registration_type rt ON s.type_id = rt.type_id " +
+            "LEFT JOIN doctor d ON s.doctor_id = d.doctor_id " +
+            "LEFT JOIN registration_type rt_title ON d.title_id = rt_title.type_id " +
             "WHERE s.doctor_id = #{doctorId} " +
             "AND s.schedule_date >= #{startDate} " +
             "AND s.schedule_date <= DATE_ADD(#{startDate}, INTERVAL #{days} DAY) " +
@@ -122,11 +127,36 @@ public interface RegistrationMapper extends BaseMapper<RegistrationRecord> {
     Integer checkDuplicateBySchedule(@Param("patientId") Long patientId,
                                                  @Param("scheduleId") Long scheduleId);
 
+    /**
+     * 统计同一患者在同一科室、同一天的挂号次数（不含已退号）
+     * <p>
+     * 业务含义：用于小程序限制“单个就诊人单个科室单日最多1次预约”。
+     * 通过当前要预约的排班ID（scheduleId）反查出对应的科室和日期，
+     * 再统计该患者在相同科室、相同日期下的所有未退号记录数量。
+     * </p>
+     *
+     * @param patientId  患者ID
+     * @param scheduleId 当前要预约的排班ID
+     * @return 记录数量（>0 表示已存在其他记录）
+     */
+    @Select("""
+            SELECT COUNT(*)
+            FROM registration_record rr
+                     JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
+            WHERE rr.patient_id = #{patientId}
+              AND rr.status != 3
+              AND ds.dept_id = (SELECT dept_id FROM doctor_schedule WHERE schedule_id = #{scheduleId})
+              AND ds.schedule_date = (SELECT schedule_date FROM doctor_schedule WHERE schedule_id = #{scheduleId})
+            """)
+    Integer countDeptRegistrationsForDay(@Param("patientId") Long patientId,
+                                         @Param("scheduleId") Long scheduleId);
+
 
     @Select("SELECT * FROM patient WHERE patient_id = #{patientId}")
     Patient selectPatientById(@Param("patientId") Long patientId);
 
-
+    @Select("SELECT patient_type FROM patient WHERE patient_id = #{patientId}")
+    int selectPatientTypeById(@Param("patientId") Long patientId);
     /**
      * 查询挂号详情（用于消息 / 回执）
      */
