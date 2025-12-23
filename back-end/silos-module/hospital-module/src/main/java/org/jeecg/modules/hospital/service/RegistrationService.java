@@ -20,21 +20,23 @@ public interface RegistrationService {
 
     /**
      * 根据医生ID获取排班信息
-     * @param doctorId 医生ID
+     * 
+     * @param doctorId  医生ID
      * @param startDate 开始日期
-     * @param days 天数
+     * @param days      天数
      */
     List<Map<String, Object>> getDoctorSchedules(Long doctorId, String startDate, Integer days);
 
-
     /**
      * 创建挂号记录
-     * @param record 挂号信息（医生ID、类型ID、排班ID）
-     * @param patientId 患者ID（从登录信息获取）
+     * 
+     * @param record           挂号信息（医生ID、类型ID、排班ID）
+     * @param patientId        患者ID（从登录信息获取）
      * @param joinWaitingQueue 如果号源已满，是否加入候补队列
      * @return Result<String> 返回挂号结果或候补提示
      */
     Result<String> createRegistration(RegistrationRecord record, Long patientId, boolean joinWaitingQueue);
+
     /**
      * 根据患者ID获取挂号记录
      */
@@ -42,7 +44,8 @@ public interface RegistrationService {
 
     /**
      * 检查患者是否对同一排班重复挂号
-     * @param patientId 患者ID
+     * 
+     * @param patientId  患者ID
      * @param scheduleId 排班ID
      * @return true 表示已存在重复挂号，false 表示未重复
      */
@@ -55,7 +58,7 @@ public interface RegistrationService {
      * 其中“单个科室、单日”的范围通过当前排班ID反查得到。
      * </p>
      *
-     * @param patientId 患者ID
+     * @param patientId  患者ID
      * @param scheduleId 当前要预约的排班ID
      * @return true 表示已达到限制（已存在至少1条记录），false 表示未达到限制
      */
@@ -63,6 +66,7 @@ public interface RegistrationService {
 
     /**
      * 将患者加入候补队列
+     * 
      * @param queue 候补信息对象
      * @return true 表示加入成功，false 表示失败
      */
@@ -70,13 +74,15 @@ public interface RegistrationService {
 
     /**
      * 取消挂号（退号）
-     * @param recordId 挂号记录ID
+     * 
+     * @param recordId     挂号记录ID
      * @param cancelReason 取消原因
      */
     boolean cancelRegistration(Long recordId, String cancelReason);
 
     /**
      * 按疾病名称查询挂号信息
+     * 
      * @param disease 疾病名称
      * @return 挂号视图列表
      */
@@ -84,14 +90,15 @@ public interface RegistrationService {
 
     /**
      * 根据挂号记录ID获取详情
+     * 
      * @param recordId 挂号记录ID
      * @return 挂号详情
      */
     RegistrationDetailDTO getRegistrationDetail(Long recordId);
 
-
     /**
      * 根据排班ID获取科室ID
+     * 
      * @param scheduleId 排班ID
      * @return 科室ID
      */
@@ -104,16 +111,26 @@ public interface RegistrationService {
 
     /**
      * 根据患者ID获取患者详情
+     * 
      * @param patientId 患者ID
      * @return 患者详情（包含基本信息、账户信息等）
      */
     Patient getPatientDetailById(Long patientId);
 
     /**
+     * /**
+     * 批量发送排班取消通知
+     * 
+     * @param records 挂号记录列表
+     * @param reason  取消/退号原因
+     */
+    void sendBatchScheduleCancellationMessages(List<RegistrationRecord> records, String reason);
+
+    /**
      * 根据患者ID获取患者类型
+     * 
      * @param patientId 患者ID
      * @return 患者类型（1-学生，2-教师，3-职工）
      */
     int getPatientTypeById(Long patientId);
-
 }

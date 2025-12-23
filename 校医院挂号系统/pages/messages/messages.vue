@@ -21,8 +21,8 @@
 					</view>
 					<view class="card-content">
 						<view class="card-title-line">
-							<text class="card-title" :class="getMessageTitleClass(message.messageType)">
-								{{ getMessageCategory(message.messageType) }}
+							<text class="card-title" :class="getMessageTitleClass(message)">
+								{{ getMessageCategory(message.messageType, message) }}
 							</text>
 							<text class="card-time">{{ formatTime(message.createdTime) }}</text>
 						</view>
@@ -135,7 +135,12 @@
 			},
 
 			// 根据消息类型返回分类标签
-			getMessageCategory(messageType) {
+			getMessageCategory(messageType, message) {
+				// 优先检查是否为排班调整
+				if (message && this.isScheduleChange(message)) {
+					return '号源状态变化通知';
+				}
+
 				switch(messageType) {
 					case 'APPOINTMENT_SUCCESS':
 						return '预约挂号';
@@ -184,6 +189,41 @@
 			// 根据消息类型返回标题样式类
 			getMessageTitleClass(messageType) {
 				switch(messageType) {
+					case 'APPOINTMENT_REMINDER':
+						return 'title-reminder';
+					case 'APPOINTMENT_ONE_HOUR':
+						return 'title-onehour';
+					case 'APPOINTMENT_WAITING_SUCCESS':
+						return 'title-waiting';
+					case 'APPOINTMENT_WAITING_JOIN':
+						return 'title-waiting';
+					case 'APPOINTMENT_CANCEL':
+						return 'title-cancel';
+					default:
+						return '';
+				}
+			},
+
+			// 新增：专门判断是否为排班调整消息
+			isScheduleChange(message) {
+				if (message.messageType !== 'APPOINTMENT_CANCEL') return false;
+				try {
+					const content = typeof message.content === 'string' ? JSON.parse(message.content) : message.content;
+					return content && (content.cancel_reason === '医生排班调整' || content.cancel_reason === '医生临时停诊');
+				} catch (e) {
+					return false;
+				}
+			},
+
+			// 修改后的 getMessageTitleClass
+			getMessageTitleClass(message) {
+				// 先单独处理排班调整
+				if (this.isScheduleChange(message)) {
+					return 'title-schedule-change';
+				}
+
+				const messageType = message.messageType;
+				switch (messageType) {
 					case 'APPOINTMENT_REMINDER':
 						return 'title-reminder';
 					case 'APPOINTMENT_ONE_HOUR':
@@ -334,6 +374,12 @@
 	/* 取消消息标题样式 */
 	.card-title.title-cancel {
 		color: #999;
+	}
+
+	/* 排班调整标题样式 - 褐色 */
+	.card-title.title-schedule-change {
+		color: #8B4513; /* SaddleBrown */
+		font-weight: bold;
 	}
 
 	.card-time {

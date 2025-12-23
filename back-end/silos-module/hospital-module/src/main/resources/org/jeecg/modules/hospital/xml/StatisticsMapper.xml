@@ -309,10 +309,7 @@
                 COUNT(*) AS typeRegistration
             FROM registration_record rr
                 LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
-                LEFT JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
-                LEFT JOIN department d ON ds.dept_id = d.dept_id
-                LEFT JOIN doctor doc ON rr.doctor_id = doc.doctor_id
-            WHERE rr.status IN (1, 2)
+            WHERE rr.status IN (0, 1, 2, 5, 6)
                 <if test="startDate != null">
                     AND DATE(rr.register_time) >= #{startDate}
                 </if>
@@ -363,9 +360,7 @@
                 </choose>
                 COUNT(*) AS totalRegistration
             FROM registration_record rr2
-                LEFT JOIN doctor_schedule ds2 ON rr2.schedule_id = ds2.schedule_id
-                LEFT JOIN department d2 ON ds2.dept_id = d2.dept_id
-            WHERE rr2.status IN (1, 2)
+            WHERE rr2.status IN (0, 1, 2, 5, 6)
                 <if test="startDate != null">
                     AND DATE(rr2.register_time) >= #{startDate}
                 </if>
