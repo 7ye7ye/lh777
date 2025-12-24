@@ -1,6 +1,6 @@
 <template>
   <view class="profile-bg">
-  <view class="profile-header">
+    <view class="profile-header">
       <view class="profile-info">
         <image 
           class="avatar" 
@@ -67,10 +67,15 @@
           <image class="icon" src="/static/check.svg" />
           <text>检查预约</text>
         </view>
-        <view class="profile-item" @click="goToConsultRecord">
-          <image class="icon" src="/static/consult.svg" />
-          <text>咨询记录</text>
+        <view class="profile-item" @click="goToIdentityVerify">
+          <image class="icon" src="/static/privacy.svg" />
+          <text>身份认证</text>
         </view>
+        <view class="profile-item" @click="changePassword">
+          <image class="icon" src="/static/password.svg" />
+          <text>修改密码</text>
+        </view>
+      </view>
       </view>
     </view>
 
@@ -93,14 +98,41 @@
           <image class="icon" src="/static/evaluate.svg" />
           <text>就诊评价</text>
         </view>
-        <view class="profile-item" @click="goToIdentityVerify">
-          <image class="icon" src="/static/privacy.svg" />
-          <text>身份认证</text>
-        </view>
       </view>
     </view>
 
-    <view class="tabbar-placeholder"></view>
+    <!-- 修改密码弹窗 -->
+  <view v-if="passwordDialog.visible" class="dialog-mask" @tap="closePasswordDialog">
+    <view class="dialog-box" @tap.stop>
+      <view class="dialog-header">
+        <text class="dialog-title">修改密码</text>
+      </view>
+      <input
+        class="dialog-input"
+        v-model="passwordDialog.oldPassword"
+        type="password"
+        placeholder="请输入原密码"
+        @tap.stop
+      />
+      <input
+        class="dialog-input"
+        v-model="passwordDialog.newPassword"
+        type="password"
+        placeholder="请输入新密码（8-20位，含字母、数字和特殊字符）"
+        @tap.stop
+      />
+      <input
+        class="dialog-input"
+        v-model="passwordDialog.confirmPassword"
+        type="password"
+        placeholder="请再次输入新密码"
+        @tap.stop
+      />
+      <view class="dialog-actions">
+        <button class="dialog-btn cancel" @tap.stop="closePasswordDialog">取消</button>
+        <button class="dialog-btn save" @tap.stop="submitPasswordChange">确定</button>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -120,6 +152,14 @@ const userStore = useUserStore()
 const isLoggedIn = computed(() => !!userStore.isLoggedIn)
 const avatarError = ref(false)
 
+// 修改密码弹窗
+const passwordDialog = ref({
+  visible: false,
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+
 // 获取用户信息
 const getUserInfo = () => {
   // 优先从状态管理获取用户信息
@@ -129,9 +169,16 @@ const getUserInfo = () => {
     // 如果状态管理中没有，则从API获取
     userApi.getCurrentUser().then(res => {
       userInfo.value = res.data
-    }).catch(() => {
+    }).catch((error) => {
+      console.log('获取用户信息失败:', error)
       // 如果获取失败，使用默认信息
       userInfo.value = { name: '微信用户', phone: '***********' }
+      // 显示自定义的未登录提示
+      uni.showToast({
+        title: '当前未登录请登录后使用',
+        icon: 'none',
+        duration: 2000
+      })
     })
   }
 }
@@ -238,6 +285,181 @@ const goToTransferHistory = () => {
 
 const goLogin = () => {
   uni.navigateTo({ url: '/subpkg/auth/login' })
+}
+
+// 修改密码相关函数
+const changePassword = () => {
+  // 检查是否已登录
+  if (!isLoggedIn.value) {
+    uni.showModal({
+      title: '提示',
+      content: '请先登录后再修改密码',
+      showCancel: false,
+      success: () => {
+        goLogin()
+      }
+    })
+    return
+  }
+  
+  // 重置弹窗状态
+  passwordDialog.value = {
+    visible: true,
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  }
+}
+
+const closePasswordDialog = () => {
+  // 使用 nextTick 确保状态更新
+  passwordDialog.value = {
+    visible: false,
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  }
+}
+
+// 点击遮罩层时关闭弹窗
+const handleMaskClick = () => {
+  closePasswordDialog()
+}
+
+const submitPasswordChange = async () => {
+  const { oldPassword, newPassword, confirmPassword } = passwordDialog.value
+  
+  // 基础验证
+  if (!oldPassword || !oldPassword.trim()) {
+    uniShowToast({ title: '请输入原密码', icon: 'none' })
+    return
+  }
+  
+  if (!newPassword || !newPassword.trim()) {
+    uniShowToast({ title: '请输入新密码', icon: 'none' })
+    return
+  }
+  
+  if (newPassword.length < 8 || newPassword.length > 20) {
+    uniShowToast({ title: '新密码长度应为8-20位', icon: 'none' })
+    return
+  }
+  
+  if (newPassword !== confirmPassword) {
+    uniShowToast({ title: '两次输入的新密码不一致', icon: 'none' })
+    return
+  }
+  
+  try {
+    // 这里添加修改密码的API调用
+    // const res = await userApi.changePassword(oldPassword, newPassword)
+    
+    // 模拟API调用延迟
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // 修改成功提示
+    uni.showToast({
+      title: '密码修改成功',
+      icon: 'success',
+      duration: 1500
+    })
+    
+    // 关闭弹窗
+    closePasswordDialog()
+    
+  } catch (error) {
+    console.error('修改密码失败:', error)
+    uniShowToast({ 
+      title: error.message || '修改密码失败，请重试',
+      icon: 'none'
+    })
+  }
+  
+  // 密码复杂度验证
+  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[~!@#$%^&*()_+=\-{}\[\]:;"'<>,.?/]).{8,20}$/
+  if (!passwordRegex.test(newPassword)) {
+    uniShowToast({ title: '密码必须包含字母、数字和特殊字符', icon: 'none', duration: 2500 })
+    return
+  }
+  
+  if (!confirmPassword || !confirmPassword.trim()) {
+    uniShowToast({ title: '请再次输入新密码', icon: 'none' })
+    return
+  }
+  
+  if (newPassword !== confirmPassword) {
+    uniShowToast({ title: '两次输入的新密码不一致', icon: 'none' })
+    return
+  }
+  
+  if (oldPassword === newPassword) {
+    uniShowToast({ title: '新密码不能与原密码相同', icon: 'none' })
+    return
+  }
+
+  // 显示加载提示
+  uni.showLoading({ title: '提交中...' })
+  
+  try {
+    // 调用后端修改密码接口
+    const response = await userApi.changePassword({
+      oldPassword: oldPassword.trim(),
+      newPassword: newPassword.trim(),
+      confirmPassword: confirmPassword.trim()
+    })
+    
+    // 请求成功，立即关闭loading和弹窗
+    uni.hideLoading()
+    
+    // 使用整体替换的方式关闭弹窗
+    passwordDialog.value = {
+      visible: false,
+      oldPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    }
+    
+    // 使用微任务确保弹窗已关闭
+    await new Promise(resolve => setTimeout(resolve, 50))
+    
+    // 显示成功提示
+    uni.showToast({
+      title: '密码修改成功',
+      icon: 'success',
+      duration: 2000
+    })
+    
+    // 延迟显示重新登录提示
+    setTimeout(() => {
+      uni.showModal({
+        title: '提示',
+        content: '密码修改成功，请重新登录',
+        showCancel: false,
+        success: () => {
+          uni.clearStorage()
+          uni.reLaunch({ url: '/subpkg/auth/login' })
+        }
+      })
+    }, 2000)
+    
+  } catch (e) {
+    uni.hideLoading()
+    console.error('修改密码失败:', e)
+    
+    // 根据错误类型显示不同的提示
+    let errorMsg = '修改密码失败，请稍后重试'
+    if (e && e.message) {
+      errorMsg = e.message
+    } else if (e && e.data && e.data.message) {
+      errorMsg = e.data.message
+    }
+    
+    uni.showToast({
+      title: errorMsg,
+      icon: 'none',
+      duration: 2500
+    })
+  }
 }
 
 // 退出登录
@@ -586,6 +808,97 @@ onShow(() => {
 
 .logout-btn:active {
   background: #ff3742;
+}
+
+/* 修改密码弹窗样式 */
+.dialog-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.dialog-box {
+  width: 80%;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  box-shadow: 0 12rpx 20rpx rgba(42, 123, 255, 0.16);
+}
+
+.dialog-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.dialog-input {
+  margin-top: 16rpx;
+  width: 100%;
+  height: 72rpx;
+  border-radius: 12rpx;
+  border: 1px solid #eee;
+  background: #f8fafc;
+  padding: 0 16rpx;
+  box-sizing: border-box;
+  font-size: 26rpx;
+  color: #2f3b52;
+  margin-bottom: 16rpx;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 32rpx;
+  gap: 20rpx;
+}
+
+.dialog-btn {
+  padding: 12rpx 32rpx;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  border: none;
+  outline: none;
+}
+
+.dialog-btn.cancel {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+.dialog-btn.save {
+  background-color: #1890ff;
+  color: #fff;
+}
+
+.dialog-actions {
+  margin-top: 16rpx;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12rpx;
+}
+
+.dialog-btn {
+  border: none;
+  border-radius: 12rpx;
+  padding: 16rpx 24rpx;
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+.dialog-btn.cancel {
+  background: #e9f2ff;
+  color: #2a7bff;
+}
+
+.dialog-btn.save {
+  background: linear-gradient(90deg, #2a7bff, #6aa9ff);
+  color: #fff;
 }
 </style>
 

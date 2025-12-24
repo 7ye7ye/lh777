@@ -18,6 +18,13 @@
             <artifactId>silos-system-biz</artifactId>
             <version>${jeecgboot.version}</version>
         </dependency>
+        <!-- Hutool核心库（包含http、html等工具类） -->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+            <!-- 建议使用最新稳定版，可去Maven仓库查最新版本号 -->
+            <version>5.8.22</version>
+        </dependency>
         <!-- DEMO 示例模块 -->
         <dependency>
             <groupId>org.jeecgframework.boot</groupId>

@@ -17,6 +17,16 @@ public class PatientIdentityVerify {
 
     private String identityPhoto;
 
+    public String getHandheldIdentityPhoto() {
+        return handheldIdentityPhoto;
+    }
+
+    public void setHandheldIdentityPhoto(String handheldIdentityPhoto) {
+        this.handheldIdentityPhoto = handheldIdentityPhoto;
+    }
+
+    private String handheldIdentityPhoto;
+
     private String realName;
 
     private String idCardNo;

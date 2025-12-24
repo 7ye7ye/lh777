@@ -64,7 +64,6 @@ import { useMessage } from "/@/hooks/web/useMessage";
 import { defineEmits, ref, reactive, toRaw } from "vue";
 import { useModalInner } from "/@/components/Modal";
 import { getCaptcha } from "/@/api/sys/user";
-import { SmsEnum } from "/@/views/sys/login/useLogin";
 import { Rule } from "/@/components/Form";
 import { rules } from "/@/utils/helper/validator";
 import { Form } from "ant-design-vue";

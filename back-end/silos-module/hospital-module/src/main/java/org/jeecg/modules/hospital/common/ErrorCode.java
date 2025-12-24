@@ -17,6 +17,7 @@ public enum ErrorCode {
     SYSTEM_ERROR(50000, "系统内部异常", ""),
     DATABASE_ERROR(50001,"数据库错误","");
 
+
     private final int code;
 
     /**

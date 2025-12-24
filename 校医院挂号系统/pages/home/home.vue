@@ -205,32 +205,16 @@ const onItemClick = (item) => {
 }
 
 // 跳转到按疾病挂号
-const goToDiseaseGuide = () => {
-  uni.navigateTo({
-    url: '/subpkg/hospital/disease-guide',
-    fail: (err) => {
-      console.error('跳转失败:', err)
-      uni.showToast({
-        title: '页面未找到',
-        icon: 'none'
-      })
-    }
-  })
-}
+const goToDiseaseGuide = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.HOME.DISEASE_BOOKING,
+  '/subpkg/hospital/disease-guide'
+)
 
 // 跳转到按科室挂号
-const goToDepartmentBooking = () => {
-  uni.navigateTo({
-    url: '/subpkg/hospital/department-booking',
-    fail: (err) => {
-      console.error('跳转失败:', err)
-      uni.showToast({
-        title: '页面未找到',
-        icon: 'none'
-      })
-    }
-  })
-}
+const goToDepartmentBooking = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.HOME.DEPARTMENT_BOOKING,
+  '/subpkg/hospital/department-booking'
+)
 
 // 使用统一的权限控制创建导航函数
 const goToMyCard = createAuthHandler(
@@ -269,9 +253,10 @@ const goToCheckRecord = createAuthHandler(
   '/subpkg/profile/records/check-record'
 )
 
-const goToTransferHistory = () => {
-  uniNavigateTo({ url: '/subpkg/hospital/referral-records' })
-}
+const goToTransferHistory = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.HOME.REFERRAL_RECORDS,
+  '/subpkg/hospital/referral-records'
+)
 
 const goToHelp = createAuthHandler(
   AUTH_REQUIRED_FEATURES.PROFILE.SETTINGS,
@@ -279,13 +264,15 @@ const goToHelp = createAuthHandler(
 )
 
 // 医院信息相关功能
-const goDepartments = () => {
-  uni.navigateTo({ url: '/subpkg/hospital/departments' })
-}
+const goDepartments = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.HOME.DEPARTMENT_INTRODUCTION,
+  '/subpkg/hospital/departments'
+)
 
-const goDoctors = () => {
-  uni.navigateTo({ url: '/subpkg/hospital/doctors' })
-}
+const goDoctors = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.HOME.DOCTOR_INTRODUCTION,
+  '/subpkg/hospital/doctors'
+)
 
 const goNavigation = () => {
   uni.navigateTo({ url: '/subpkg/hospital/navigation' })

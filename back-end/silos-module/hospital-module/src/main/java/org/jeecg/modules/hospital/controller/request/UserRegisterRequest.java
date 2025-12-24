@@ -16,6 +16,12 @@ public class UserRegisterRequest implements Serializable {
     private String checkPassword;
     private int userType;
 
+    public int getStatus() {
+        return status;
+    }
+
+    private int status;
+
     public String getUserAccount() {
         return userAccount;
     }

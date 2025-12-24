@@ -19,6 +19,11 @@ type FeatureKey =
   | 'settings'
   | 'message_detail' 
   | 'hospital_dept'
+  | 'disease_booking'
+  | 'department_booking'
+  | 'referral_records'
+  | 'department_introduction'
+  | 'doctor_introduction'
 
 // 需要登录才能访问的功能配置
 export const AUTH_REQUIRED_FEATURES = {
@@ -28,6 +33,11 @@ export const AUTH_REQUIRED_FEATURES = {
     REGISTER: 'register' as const, // 挂号相关
     PAYMENT: 'payment' as const, // 缴费
     REPORT: 'report' as const, // 报告查询
+    DISEASE_BOOKING: 'disease_booking' as const, // 按疾病挂号
+    DEPARTMENT_BOOKING: 'department_booking' as const, // 按科室挂号
+    REFERRAL_RECORDS: 'referral_records' as const, // 转诊记录
+    DEPARTMENT_INTRODUCTION: 'department_introduction' as const, // 科室介绍
+    DOCTOR_INTRODUCTION: 'doctor_introduction' as const, // 专家介绍
   },
   
   // 个人中心功能
@@ -52,6 +62,11 @@ export const AUTH_MESSAGES: Record<string, string> = {
   [AUTH_REQUIRED_FEATURES.HOME.REGISTER]: '请先登录后进行挂号',
   [AUTH_REQUIRED_FEATURES.HOME.PAYMENT]: '请先登录后进行缴费',
   [AUTH_REQUIRED_FEATURES.HOME.REPORT]: '请先登录后查询报告',
+  [AUTH_REQUIRED_FEATURES.HOME.DISEASE_BOOKING]: '请先登录后使用按疾病挂号',
+  [AUTH_REQUIRED_FEATURES.HOME.DEPARTMENT_BOOKING]: '请先登录后使用按科室挂号',
+  [AUTH_REQUIRED_FEATURES.HOME.REFERRAL_RECORDS]: '请先登录后查看转诊记录',
+  [AUTH_REQUIRED_FEATURES.HOME.DEPARTMENT_INTRODUCTION]: '请先登录后查看科室介绍',
+  [AUTH_REQUIRED_FEATURES.HOME.DOCTOR_INTRODUCTION]: '请先登录后查看专家介绍',
   
   [AUTH_REQUIRED_FEATURES.PROFILE.MY_CARD]: '请先登录后查看我的就诊卡',
   [AUTH_REQUIRED_FEATURES.PROFILE.MY_PATIENT]: '请先登录后管理就诊人',
@@ -139,7 +154,7 @@ export function checkAuth(
         title: '温馨提示',
         content: message,
         confirmText: '去登录',
-        success: (res) => {
+        success: (res: { confirm: boolean }) => {
           if (res.confirm) {
             uniNavigateTo({ url: '/subpkg/auth/login' })
           }
@@ -216,18 +231,7 @@ export function createAuthHandler(
         } else {
           console.log('Attempting to navigate to:', target)
           uniNavigateTo({
-            url: target,
-            success: (res) => {
-              console.log('Navigation successful:', res)
-            },
-            fail: (err) => {
-              console.error('Navigation failed:', err)
-              uni.showToast({
-                title: '跳转失败: ' + JSON.stringify(err),
-                icon: 'none',
-                duration: 3000
-              })
-            }
+            url: target
           })
         }
       },

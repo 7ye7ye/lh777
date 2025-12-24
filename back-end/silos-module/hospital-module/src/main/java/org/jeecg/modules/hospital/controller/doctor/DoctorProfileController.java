@@ -26,6 +26,9 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import cn.hutool.http.HtmlUtil;
+import org.apache.commons.lang3.StringUtils;
+import org.jeecg.modules.hospital.entity.HosUser;
 
 /**
  * 医生端-个人信息
@@ -194,11 +197,38 @@ public class DoctorProfileController {
      */
     @PostMapping("/update-request")
     @Operation(summary = "提交医生资料修改申请（头像、擅长领域、简介）")
-    public Result<Boolean> applyProfileUpdate(@RequestBody @Valid DoctorProfileUpdateApplyDTO dto) {
+    public Result<Boolean> applyProfileUpdate(@RequestBody @Valid DoctorProfileUpdateApplyDTO dto, HttpServletRequest request) {
+        // 1. 权限校验：确保当前登录用户就是该医生
+        String token = request.getHeader(CommonConstant.X_ACCESS_TOKEN);
+        if (StringUtils.isBlank(token)) {
+             return Result.error("未登录");
+        }
+        String username = JwtUtil.getUsername(token);
+        HosUser currentUser = hosUserService.lambdaQuery()
+                .eq(HosUser::getUserAccount, username)
+                .one();
+        
+        if (currentUser == null) {
+             return Result.error("用户不存在");
+        }
+
         // 校验医生是否存在
         Doctor doctor = doctorService.getById(dto.getId());
         if (doctor == null) {
             return Result.error("医生不存在");
+        }
+
+        // 核心校验：DTO中的医生ID必须关联到当前登录的UserID
+        if (!doctor.getUserId().equals(currentUser.getUserId())) {
+            return Result.error("无权修改其他医生的资料");
+        }
+
+        // 2. XSS过滤
+        if (StringUtils.isNotBlank(dto.getDoctorDesc())) {
+            dto.setDoctorDesc(HtmlUtil.filter(dto.getDoctorDesc()));
+        }
+        if (StringUtils.isNotBlank(dto.getSpecialty())) {
+            dto.setSpecialty(HtmlUtil.filter(dto.getSpecialty()));
         }
 
         // 创建一条资料修改申请，状态默认为待审核

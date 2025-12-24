@@ -5,6 +5,7 @@ import org.jeecg.modules.hospital.common.BaseResponse;
 import org.jeecg.modules.hospital.dto.HosUserLoginResult;
 import org.jeecg.modules.hospital.entity.HosUser;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.jeecg.modules.hospital.service.HosUserService;
 
 /**
 * @author Administrator
@@ -20,7 +21,7 @@ public interface HosUserService extends IService<HosUser> {
      * @param checkPassword 确认密码
      * @return 新用户id
      */
-    BaseResponse<Long> userRegister(String username, String password, String checkPassword,int userType);
+    BaseResponse<Long> userRegister(String username, String password, String checkPassword, int userType, int status);
 
     /**
      *
@@ -39,4 +40,14 @@ public interface HosUserService extends IService<HosUser> {
     public HosUser getSaftyUser(HosUser originUser);
 
     public org.jeecg.common.system.vo.HosUser getHosUserByAccount(String account);
+
+    /**
+     * 修改密码
+     * @param userId 用户ID
+     * @param oldPassword 旧密码
+     * @param newPassword 新密码
+     * @param confirmPassword 确认新密码
+     * @return 是否成功
+     */
+    BaseResponse<Boolean> changePassword(Long userId, String oldPassword, String newPassword, String confirmPassword);
 }
