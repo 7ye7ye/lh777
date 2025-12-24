@@ -99,7 +99,14 @@
 			},
 
 			// 根据消息类型返回标题样式类
-			getTitleClass(messageType) {
+			getTitleClass(messageType, message) {
+				// 优先检查是否为排班调整 (使用传入的 message 对象)
+				// 如果没有传 message，则尝试使用 this.messageDetail (如果是在 template 中调用且未传参)
+				const msg = message || this.messageDetail;
+				if (msg && this.isScheduleChange(msg)) {
+					return 'title-schedule-change';
+				}
+
 				switch(messageType) {
 					case 'APPOINTMENT_REMINDER':
 						return 'title-reminder';
@@ -118,6 +125,12 @@
 			// 根据消息类型返回显示的标题
 			getDisplayTitle(message) {
 				if (!message) return '';
+				
+				// 优先检查是否为排班调整
+				if (this.isScheduleChange(message)) {
+					return '号源状态变化通知';
+				}
+
 				if (message.messageType === 'APPOINTMENT_CANCEL') {
 					return '退号成功';
 				}
@@ -222,6 +235,17 @@
 			formatDateTime(dateTimeStr) {
 				if (!dateTimeStr) return '';
 				return dateTimeStr.replace('T', ' ');
+			},
+
+			// 新增：专门判断是否为排班调整消息
+			isScheduleChange(message) {
+				if (!message || message.messageType !== 'APPOINTMENT_CANCEL') return false;
+				try {
+					const content = typeof message.content === 'string' ? JSON.parse(message.content) : message.content;
+					return content && (content.cancel_reason === '医生排班调整' || content.cancel_reason === '医生临时停诊');
+				} catch (e) {
+					return false;
+				}
 			}
 		}
 	}
@@ -275,6 +299,11 @@
 	.body-title.title-waiting {
 		color: #2f8df6;
 	}
+
+    /* 排班调整标题样式 - 褐色 */
+    .body-title.title-schedule-change {
+        color: #8B4513;
+    }
 
 	/* 提醒消息卡片样式 */
 	.detail-card.card-reminder {

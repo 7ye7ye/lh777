@@ -30,7 +30,7 @@ export interface ShiftApply {
     originalScheduleId: number
     targetDate: string
     targetTimeSlot: number
-    targetDeptId: number
+    targetDeptId?: number
     reason: string
 }
 
@@ -109,7 +109,7 @@ export const doctorApi = {
     updatePatientStatus: (payload: {
         appointmentId?: number;
         registrationNo?: string;
-        action: 'start' | 'finish' | '开始接诊' | '完成接诊' | '开始' | '完成';
+        action: 'start' | 'finish' | 'referral' | '开始接诊' | '完成接诊' | '转诊' | '开始' | '完成';
     }) => d.post('/patient/status', payload),
 
     // 按 userId 查询医生资料（依赖后端 /doctor/profile/byUserId）

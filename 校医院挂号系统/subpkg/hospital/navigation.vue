@@ -4,6 +4,11 @@
     <view class="smart-plan-btn" @tap="goSmartPlan">
       <text>智能规划</text>
     </view>
+    
+    <!-- 到院导航按钮 -->
+    <view class="hospital-nav-btn" @tap="goHospitalNav">
+      <text>到院导航</text>
+    </view>
 
     <!-- 中间平面图区域 -->
     <view class="map-container with-panel">
@@ -413,11 +418,37 @@ const handleHotDepartment = (deptName) => {
   navigateWithKeyword(deptName)
 }
 
-// 跳转智能规划页面
 const goSmartPlan = () => {
   uni.navigateTo({
     url: '/subpkg/hospital/navigation-plan'
   })
+}
+
+// 到院导航
+const goHospitalNav = () => {
+    // 北京交通大学社区卫生服务中心坐标 (GCJ-02)
+    const latitude = 39.95155
+    const longitude = 116.34215
+    const name = '北京交通大学社区卫生服务中心'
+    const address = '北京市海淀区上园村3号北京交通大学内'
+
+    uni.openLocation({
+      latitude,
+      longitude,
+      name,
+      address,
+      scale: 18,
+      success: function () {
+        console.log('打开地图成功');
+      },
+      fail: function (err) {
+        console.error('打开地图失败', err);
+        uni.showToast({
+            title: '打开地图失败，请检查权限',
+            icon: 'none'
+        })
+      }
+    });
 }
 </script>
 
@@ -743,7 +774,7 @@ const goSmartPlan = () => {
 .smart-plan-btn {
   position: fixed;
   top: 30rpx;
-  left: 20rpx;
+  left: 180rpx; /* 向右移动，为到院导航腾出位置 */
   z-index: 210;
   padding: 12rpx 24rpx;
   background: #ffffff;
@@ -752,6 +783,24 @@ const goSmartPlan = () => {
   border-radius: 24rpx;
   box-shadow: 0 6rpx 18rpx rgba(0, 0, 0, 0.12);
   border: 2rpx solid #e6f3ff;
+}
+
+.hospital-nav-btn {
+  position: fixed;
+  top: 30rpx; /* 与智能规划对齐 */
+  left: 20rpx; /* 放在最左边 */
+  z-index: 210;
+  padding: 12rpx 24rpx;
+  background: #479fff;
+  color: #ffffff;
+  font-size: 26rpx;
+  border-radius: 24rpx;
+  box-shadow: 0 6rpx 18rpx rgba(0, 0, 0, 0.12);
+  border: 2rpx solid #479fff;
+}
+
+.hospital-nav-btn:active {
+  opacity: 0.85;
 }
 
 .smart-plan-btn:active {

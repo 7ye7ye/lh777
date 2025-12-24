@@ -30,6 +30,36 @@ public class RegistrationStatisticsDTO {
     private String typeName;
     
     /**
+     * 科室ID
+     */
+    private Long deptId;
+
+    /**
+     * 科室名称
+     */
+    private String deptName;
+
+    /**
+     * 一级/父科室ID（便于前端展示二级科室）
+     */
+    private Long parentDeptId;
+
+    /**
+     * 一级/父科室名称（便于前端展示二级科室）
+     */
+    private String parentDeptName;
+
+    /**
+     * 医生ID
+     */
+    private Long doctorId;
+
+    /**
+     * 医生名称
+     */
+    private String doctorName;
+
+    /**
      * 该号别挂号量
      */
     private Integer typeRegistration;

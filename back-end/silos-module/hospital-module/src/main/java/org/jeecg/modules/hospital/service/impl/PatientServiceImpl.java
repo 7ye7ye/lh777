@@ -92,7 +92,8 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient>
         String normalized = action.trim().toLowerCase();
         boolean isStart = "start".equals(normalized) || "开始接诊".equals(action) || "开始".equals(action.trim());
         boolean isFinish = "finish".equals(normalized) || "完成接诊".equals(action) || "完成".equals(action.trim());
-        if (!isStart && !isFinish) return false;
+        boolean isReferral = "referral".equals(normalized) || "转诊".equals(action.trim());
+        if (!isStart && !isFinish && !isReferral) return false;
 
         org.jeecg.modules.hospital.entity.RegistrationRecord rr = null;
         if (appointmentId != null) {
@@ -103,14 +104,33 @@ public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient>
         }
         if (rr == null) return false;
 
+        // 已退号/已取消不允许开始/完成接诊
+        Integer rrStatus = rr.getStatus();
+        if (rrStatus != null && (rrStatus == 3 || rrStatus == 4)) {
+            return false;
+        }
+
+        // 已完成后不允许再更改状态（开始接诊/转诊），完成接诊保持幂等
+        if (rrStatus != null && rrStatus == 2) {
+            if (isFinish) {
+                return true;
+            }
+            return false;
+        }
+
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         if (isStart) {
             Integer currentStatus = rr.getStatus() != null ? rr.getStatus() : 1; // 默认已预约=1
-            int newStatus = (currentStatus != null && currentStatus == 2) ? 2 : currentStatus; // 已完成不降级
+            int newStatus = (currentStatus != null && currentStatus == 2) ? 2 : 5; // 进行中=5；已完成不降级
             registrationRecordMapper.updateStatusAndVisitTime(rr.getRecordId(), newStatus, now);
         }
         if (isFinish) {
             registrationRecordMapper.updateStatusAndVisitTime(rr.getRecordId(), 2, now); // 已就诊=2
+        }
+        if (isReferral) {
+            Integer currentStatus = rr.getStatus() != null ? rr.getStatus() : 1;
+            int newStatus = (currentStatus != null && currentStatus == 2) ? 2 : 6; // 已转诊=6；已完成不降级
+            registrationRecordMapper.updateStatusAndVisitTime(rr.getRecordId(), newStatus, now);
         }
         return true;
     }

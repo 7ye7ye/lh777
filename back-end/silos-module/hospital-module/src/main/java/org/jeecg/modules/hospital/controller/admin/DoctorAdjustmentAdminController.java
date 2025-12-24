@@ -61,6 +61,9 @@ public class DoctorAdjustmentAdminController {
     @Resource
     private RegistrationRecordMapper registrationRecordMapper;
 
+    @Resource
+    private org.jeecg.modules.hospital.service.RegistrationService registrationService;
+
     @Operation(summary = "获取调班申请列表")
     @GetMapping("/list")
     public Result<IPage<DoctorShiftChangeRequest>> list(
@@ -70,16 +73,15 @@ public class DoctorAdjustmentAdminController {
             @RequestParam(required = false) String doctorName,
             @RequestParam(required = false) Long deptId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
-    ) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         Page<DoctorShiftChangeRequest> page = new Page<>(current, size);
         LambdaQueryWrapper<DoctorShiftChangeRequest> queryWrapper = new LambdaQueryWrapper<>();
-        
+
         // 状态筛选
         if (status != null) {
             queryWrapper.eq(DoctorShiftChangeRequest::getStatus, status);
         }
-        
+
         // 日期范围筛选
         if (startDate != null) {
             queryWrapper.ge(DoctorShiftChangeRequest::getApplyTime, startDate.atStartOfDay());
@@ -87,10 +89,10 @@ public class DoctorAdjustmentAdminController {
         if (endDate != null) {
             queryWrapper.le(DoctorShiftChangeRequest::getApplyTime, endDate.atTime(23, 59, 59));
         }
-        
+
         // 按申请时间倒序
         queryWrapper.orderByDesc(DoctorShiftChangeRequest::getApplyTime);
-        
+
         IPage<DoctorShiftChangeRequest> result = adjustmentService.page(page, queryWrapper);
         for (DoctorShiftChangeRequest item : result.getRecords()) {
             if (item.getDoctorId() != null) {
@@ -167,11 +169,11 @@ public class DoctorAdjustmentAdminController {
             if (adjustment == null) {
                 return Result.error("调班申请不存在");
             }
-            
+
             if (adjustment.getStatus() != 1) {
                 return Result.error("该申请已处理，无法重复审批");
             }
-            
+
             Long adminId = resolveCurrentAdminId(httpRequest);
             if (adminId == null) {
                 return Result.error("未登录或权限不足");
@@ -181,11 +183,11 @@ public class DoctorAdjustmentAdminController {
             adjustment.setStatus(request.getStatus());
             adjustment.setApproveTime(LocalDateTime.now());
             adjustment.setAdminId(adminId);
-            
+
             if (request.getStatus() == 3 && request.getRejectReason() != null) {
                 adjustment.setRejectReason(request.getRejectReason());
             }
-            
+
             if (request.getStatus() == 2) {
                 if (adjustment.getOriginalScheduleId() == null) {
                     return Result.error("缺少原排班ID");
@@ -196,7 +198,8 @@ public class DoctorAdjustmentAdminController {
                 }
                 LocalDate targetDate = adjustment.getTargetDate();
                 Integer targetSlot = adjustment.getTargetTimeSlot();
-                Long targetDeptId = adjustment.getTargetDeptId() != null ? adjustment.getTargetDeptId() : origin.getDeptId();
+                Long targetDeptId = adjustment.getTargetDeptId() != null ? adjustment.getTargetDeptId()
+                        : origin.getDeptId();
 
                 List<String> pool = roomPool();
                 Set<String> used = new HashSet<>();
@@ -206,11 +209,13 @@ public class DoctorAdjustmentAdminController {
                         .eq(DoctorSchedule::getStatus, 1)
                         .list();
                 for (DoctorSchedule ds : sameTime) {
-                    if (ds.getRoomNumber() != null) used.add(ds.getRoomNumber());
+                    if (ds.getRoomNumber() != null)
+                        used.add(ds.getRoomNumber());
                 }
                 List<String> available = new ArrayList<>();
                 for (String r : pool) {
-                    if (!used.contains(r)) available.add(r);
+                    if (!used.contains(r))
+                        available.add(r);
                 }
                 if (available.isEmpty()) {
                     return Result.error("该日期时段无可用诊室");
@@ -240,12 +245,12 @@ public class DoctorAdjustmentAdminController {
                 if (!disabled) {
                     return Result.error("更新原排班状态失败");
                 }
-                
+
                 // 更新原排班相关的挂号记录状态为3（已退号）
-                updateRegistrationRecordsForSchedule(adjustment.getOriginalScheduleId(), 
-                    "调班申请已同意，原排班已取消");
+                updateRegistrationRecordsForSchedule(adjustment.getOriginalScheduleId(),
+                        "调班申请已同意，原排班已取消");
             }
-            
+
             boolean success = adjustmentService.updateById(adjustment);
             return Result.OK(success);
         } catch (Exception e) {
@@ -274,10 +279,12 @@ public class DoctorAdjustmentAdminController {
                 current = hosUserService.lambdaQuery()
                         .eq(HosUser::getUserAccount, account)
                         .one();
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
         if (current == null) {
-            Object userObj = httpRequest.getSession().getAttribute(org.jeecg.modules.hospital.contant.UserContant.USER_LOGIN_STATE);
+            Object userObj = httpRequest.getSession()
+                    .getAttribute(org.jeecg.modules.hospital.contant.UserContant.USER_LOGIN_STATE);
             if (userObj instanceof HosUser) {
                 current = (HosUser) userObj;
             }
@@ -293,46 +300,70 @@ public class DoctorAdjustmentAdminController {
         private Integer status; // 2-通过, 3-驳回
         private String rejectReason;
 
-        public Long getAdjustmentId() { return adjustmentId; }
-        public void setAdjustmentId(Long adjustmentId) { this.adjustmentId = adjustmentId; }
+        public Long getAdjustmentId() {
+            return adjustmentId;
+        }
 
-        public Integer getStatus() { return status; }
-        public void setStatus(Integer status) { this.status = status; }
+        public void setAdjustmentId(Long adjustmentId) {
+            this.adjustmentId = adjustmentId;
+        }
 
-        public String getRejectReason() { return rejectReason; }
-        public void setRejectReason(String rejectReason) { this.rejectReason = rejectReason; }
+        public Integer getStatus() {
+            return status;
+        }
+
+        public void setStatus(Integer status) {
+            this.status = status;
+        }
+
+        public String getRejectReason() {
+            return rejectReason;
+        }
+
+        public void setRejectReason(String rejectReason) {
+            this.rejectReason = rejectReason;
+        }
     }
-    
+
     /**
      * 更新指定排班相关的挂号记录状态为3（已退号）
+     * 
      * @param scheduleId 排班ID
-     * @param reason 退号原因
+     * @param reason     退号原因
      */
     private void updateRegistrationRecordsForSchedule(Long scheduleId, String reason) {
         if (scheduleId == null) {
             log.warn("updateRegistrationRecordsForSchedule: scheduleId为null，跳过更新");
             return;
         }
-        
+
         try {
             // 先查询该排班的所有有效挂号记录，用于日志记录
             LambdaQueryWrapper<RegistrationRecord> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(RegistrationRecord::getScheduleId, scheduleId)
-                       .in(RegistrationRecord::getStatus, 0, 1, 2); // 只更新有效状态的挂号记录
-            
+                    .in(RegistrationRecord::getStatus, 0, 1, 2); // 只更新有效状态的挂号记录
+
             List<RegistrationRecord> records = registrationRecordMapper.selectList(queryWrapper);
             log.info("找到排班ID {} 相关的挂号记录 {} 条", scheduleId, records.size());
-            
+
+            // 发送排班调整通知
+            // 必须在状态更新之前或之后均可，只要能查到userId
+            try {
+                registrationService.sendBatchScheduleCancellationMessages(records, "医生排班调整");
+            } catch (Exception e) {
+                log.error("批量发送通知失败", e);
+            }
+
             if (records.isEmpty()) {
                 log.info("排班ID {} 没有需要更新的挂号记录", scheduleId);
                 return;
             }
-            
+
             // 使用批量SQL更新，更高效且可靠
             LocalDateTime now = LocalDateTime.now();
             int updateCount = registrationRecordMapper.updateStatusByScheduleId(scheduleId, now, reason);
             log.info("排班ID {} 的挂号记录批量更新完成，成功更新 {} 条记录", scheduleId, updateCount);
-            
+
             // 验证更新结果
             if (updateCount != records.size()) {
                 log.warn("更新数量不匹配：查询到 {} 条记录，但只更新了 {} 条", records.size(), updateCount);

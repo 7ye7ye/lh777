@@ -105,7 +105,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { PageWrapper } from '/@/components/Page';
 import { DownloadOutlined, EyeOutlined, ReloadOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
@@ -120,8 +120,7 @@ import {
   getStatisticsSummary,
   type StatisticsQuery,
 } from '/@/api/hospital/statistics';
-import { getDepartmentList } from '/@/api/hospital/department';
-import type { Department } from '/@/api/hospital/department';
+import { getDepartmentList, type Department } from '/@/api/hospital/department';
 import { convertDepartmentsToTree, type DepartmentTreeNode } from '/@/utils/departmentHelper';
 
 const exporting = ref(false);
@@ -141,6 +140,34 @@ const exportParams = reactive<StatisticsQuery & { reportType: string }>({
 
 const previewData = ref<any[]>([]);
 const previewColumns = ref<any[]>([]);
+
+// 二级科室映射
+const deptMap = computed(() => {
+  const map = new Map<number, Department>();
+  (departmentList.value || []).forEach((d) => map.set(d.deptId, d));
+  return map;
+});
+const getParentDeptName = (deptId?: number, fallback?: string, selfName?: string) => {
+  if (!deptId) return fallback || selfName || '';
+  const map = deptMap.value;
+  const cur = map.get(deptId);
+  if (cur?.parentDeptId) {
+    const parent = map.get(cur.parentDeptId);
+    return parent?.deptName || fallback || selfName || '';
+  }
+  return fallback || selfName || '';
+};
+const getLevel2DeptName = (deptId?: number, fallback?: string) => {
+  if (!deptId) return fallback || '';
+  const map = deptMap.value;
+  let cur = map.get(deptId);
+  while (cur) {
+    if (cur.deptLevel === 2) return cur.deptName;
+    if (!cur.parentDeptId) break;
+    cur = map.get(cur.parentDeptId);
+  }
+  return fallback || '';
+};
 
 // 初始化日期范围
 const initDateRange = () => {
@@ -232,10 +259,11 @@ const handleExport = async () => {
 const exportOutpatientReport = async (workbook: XLSX.WorkBook) => {
   const data = await getOutpatientStatistics(exportParams);
   const worksheetData = [
-    ['日期', '科室', '门诊量', '总门诊量', '对比历史', '增长率(%)'],
+    ['日期', '二级科室', '科室', '门诊量', '总门诊量', '对比历史', '增长率(%)'],
     ...data.map((item: any) => [
       item.date,
-      item.deptName || '-',
+      getLevel2DeptName(item.deptId, item.deptName || '-'),
+      getParentDeptName(item.deptId, undefined, item.deptName || '-') || item.deptName || '-',
       item.visitCount || 0,
       item.totalVisitCount || 0,
       item.compareVisitCount || '-',
@@ -251,9 +279,10 @@ const exportOutpatientReport = async (workbook: XLSX.WorkBook) => {
 const exportDepartmentLoadReport = async (workbook: XLSX.WorkBook) => {
   const data = await getDepartmentLoadStatistics(exportParams);
   const worksheetData = [
-    ['科室', '医生', '出诊时长(小时)', '号源使用率(%)'],
+    ['科室', '二级科室', '医生', '出诊时长(小时)', '号源使用率(%)'],
     ...data.map((item: any) => [
-      item.deptName || '-',
+      item.parentDeptName || item.parent_dept_name || getParentDeptName(item.deptId, undefined, item.deptName || '-') || '-',
+      item.deptName || getLevel2DeptName(item.deptId, item.deptName || '-'),
       item.doctorName || '-',
       item.visitDurationHours ? item.visitDurationHours.toFixed(1) : 0,
       item.quotaUsageRate ? `${item.quotaUsageRate.toFixed(2)}%` : '0%',
@@ -268,12 +297,29 @@ const exportDepartmentLoadReport = async (workbook: XLSX.WorkBook) => {
 const exportCancelRateReport = async (workbook: XLSX.WorkBook) => {
   const data = await getCancelRateStatistics(exportParams);
   const worksheetData = [
-    ['科室', '医生', '号别', '总挂号数', '退号数', '退号率(%)'],
+    ['科室', '二级科室', '医生', '号别', '总挂号数', '退号数', '退号率(%)'],
     ...data.map((item: any) => [
-      item.deptName || '-',
-      item.doctorName || '-',
-      item.typeName || '-',
-      item.totalCount || 0,
+      item.parentDeptName || item.parent_dept_name || getParentDeptName(item.deptId, undefined, item.deptName || '-') || '-',
+      item.deptName || getLevel2DeptName(item.deptId, item.deptName || '-'),
+      item.doctorName ||
+        item.doctor_name ||
+        item.doctorFullName ||
+        item.doctor_full_name ||
+        item.doctorRealName ||
+        item.doctor_real_name ||
+        item.doctor ||
+        (item.doctorId ? `医生${item.doctorId}` : '-') ||
+        '-',
+      item.typeName ||
+        item.type_name ||
+        item.typeLabel ||
+        item.type_label ||
+        item.type ||
+        item.registerTypeName ||
+        item.register_type_name ||
+        (item.typeId ? `号别${item.typeId}` : '-') ||
+        '-',
+      item.totalCount || item.totalRegistration || 0,
       item.cancelCount || 0,
       item.cancelRate ? `${item.cancelRate.toFixed(2)}%` : '0%',
     ]),
@@ -287,14 +333,20 @@ const exportCancelRateReport = async (workbook: XLSX.WorkBook) => {
 const exportRegistrationReport = async (workbook: XLSX.WorkBook) => {
   const data = await getRegistrationStatistics(exportParams);
   const worksheetData = [
-    ['日期', '号别', '挂号量', '总挂号量', '对比历史', '增长率(%)'],
+    ['日期', '科室', '二级科室', '医生', '号别', '挂号量', '总挂号量', '对比历史', '增长率(%)'],
     ...data.map((item: any) => [
       item.date,
-      item.typeName || '-',
+      getParentDeptName(item.deptId, undefined, item.deptName || item.dept_name || '-') ||
+        item.deptName ||
+        item.dept_name ||
+        '-',
+      getLevel2DeptName(item.deptId, item.deptName || item.dept_name || '-'),
+      item.doctorName || item.doctor_name || '-',
+      item.typeName || item.type_name || '-',
       item.typeRegistration || 0,
       item.totalRegistration || 0,
       item.compareRegistration || '-',
-      item.growthRate ? `${item.growthRate.toFixed(2)}%` : '-',
+      item.growthRate != null ? `${Number(item.growthRate).toFixed(2)}%` : '-',
     ]),
   ];
 
@@ -306,9 +358,10 @@ const exportRegistrationReport = async (workbook: XLSX.WorkBook) => {
 const exportReferralReport = async (workbook: XLSX.WorkBook) => {
   const data = await getReferralStatistics(exportParams);
   const worksheetData = [
-    ['日期', '科室', '转诊类型', '申请数量', '已批准', '已拒绝', '已取消', '已完成', '总数量', '批准率(%)', '完成率(%)'],
+    ['日期', '二级科室', '科室', '转诊类型', '申请数量', '已批准', '已拒绝', '已取消', '已完成', '总数量', '批准率(%)', '完成率(%)'],
     ...data.map((item: any) => [
       item.date,
+      getLevel2DeptName(item.deptId, item.deptName || '-'),
       item.deptName || '-',
       item.targetTypeName || '-',
       item.applicationCount || 0,
@@ -344,6 +397,9 @@ const addSummarySheet = async (workbook: XLSX.WorkBook) => {
     ['平均科室负荷', summary.avgDeptLoad ? `${summary.avgDeptLoad.toFixed(2)}%` : '0%'],
     ['平均退号率', summary.avgCancelRate ? `${summary.avgCancelRate.toFixed(2)}%` : '0%'],
     ['总挂号量', summary.totalRegistration || 0],
+    ['总退号率', summary.avgCancelRate ? `${summary.avgCancelRate.toFixed(2)}%` : '0%'],
+    ['总收入(挂号费)', summary.totalIncome != null ? summary.totalIncome : 0],
+    ['在岗医护人数', summary.activeStaffCount != null ? summary.activeStaffCount : 0],
     ['统计周期', exportParams.periodType === 'day' ? '按日' : exportParams.periodType === 'week' ? '按周' : '按月'],
     ['开始日期', exportParams.startDate],
     ['结束日期', exportParams.endDate],
@@ -380,6 +436,55 @@ const handlePreview = async () => {
   try {
     let data: any[] = [];
     let columns: any[] = [];
+    const withLevel2 = (list: any[]) =>
+      list.map((item) => ({
+        ...item,
+        level2DeptName: item.deptName || item.dept_name || getLevel2DeptName(item.deptId, item.deptName || '-'),
+        deptName:
+          item.parentDeptName ||
+          item.parent_dept_name ||
+          getParentDeptName(item.deptId, undefined, item.deptName || item.dept_name || '-') ||
+          '-',
+      }));
+    const fillDoctorDept = (list: any[]) =>
+      list.map((item) => {
+        const doctorName =
+          item.doctorName ||
+          item.doctor_name ||
+          item.doctorFullName ||
+          item.doctor_full_name ||
+          item.doctorRealName ||
+          item.doctor_real_name ||
+          item.doctor ||
+          (item.doctorId ? `医生${item.doctorId}` : '-');
+        const deptName =
+          item.parentDeptName ||
+          item.parent_dept_name ||
+          getParentDeptName(item.deptId, undefined, item.deptName || item.dept_name || '-') ||
+          '-';
+        const level2DeptName = item.deptName || item.dept_name || getLevel2DeptName(item.deptId, deptName);
+        const typeName =
+          item.typeName ||
+          item.type_name ||
+          item.typeLabel ||
+          item.type_label ||
+          item.type ||
+          item.registerTypeName ||
+          item.register_type_name ||
+          (item.typeId ? `号别${item.typeId}` : '-');
+        return {
+          ...item,
+          level2DeptName,
+          deptName,
+          doctorName,
+          typeName,
+          totalCount: item.totalCount ?? item.totalRegistration ?? 0,
+          cancelCount: item.cancelCount ?? 0,
+          cancelRate: item.cancelRate ?? 0,
+          visitDurationHours: item.visitDurationHours ?? 0,
+          quotaUsageRate: item.quotaUsageRate ?? 0,
+        };
+      });
 
     switch (exportParams.reportType) {
       case 'outpatient': {
@@ -387,15 +492,25 @@ const handlePreview = async () => {
         columns = [
           { title: '日期', dataIndex: 'date', key: 'date', width: 120, fixed: 'left' },
           { title: '科室', dataIndex: 'deptName', key: 'deptName', width: 150 },
+          { title: '二级科室', dataIndex: 'level2DeptName', key: 'level2DeptName', width: 150 },
           { title: '门诊量', dataIndex: 'visitCount', key: 'visitCount', align: 'right', width: 100 },
           { title: '总门诊量', dataIndex: 'totalVisitCount', key: 'totalVisitCount', align: 'right', width: 120 },
         ];
+        data = withLevel2(data).map((item: any) => ({
+          ...item,
+          deptName: item.deptName || '-',
+          visitCount: item.visitCount ?? 0,
+          totalVisitCount: item.totalVisitCount ?? 0,
+          compareVisitCount: item.compareVisitCount ?? '-',
+          growthRate: item.growthRate ?? null,
+        }));
         break;
       }
       case 'department-load': {
         data = await getDepartmentLoadStatistics(exportParams);
         columns = [
-          { title: '科室', dataIndex: 'deptName', key: 'deptName' },
+          { title: '科室', dataIndex: 'deptName', key: 'deptName', width: 150 },
+          { title: '二级科室', dataIndex: 'level2DeptName', key: 'level2DeptName', width: 150 },
           { title: '医生', dataIndex: 'doctorName', key: 'doctorName' },
           {
             title: '出诊时长(小时)',
@@ -412,12 +527,14 @@ const handlePreview = async () => {
             customRender: ({ text }: { text: number }) => `${text?.toFixed(2) || 0}%`,
           },
         ];
+        data = fillDoctorDept(data);
         break;
       }
       case 'cancel-rate': {
         data = await getCancelRateStatistics(exportParams);
         columns = [
-          { title: '科室', dataIndex: 'deptName', key: 'deptName' },
+          { title: '科室', dataIndex: 'deptName', key: 'deptName', width: 150 },
+          { title: '二级科室', dataIndex: 'level2DeptName', key: 'level2DeptName', width: 150 },
           { title: '医生', dataIndex: 'doctorName', key: 'doctorName' },
           { title: '号别', dataIndex: 'typeName', key: 'typeName' },
           { title: '总挂号数', dataIndex: 'totalCount', key: 'totalCount', align: 'right' },
@@ -430,16 +547,27 @@ const handlePreview = async () => {
             customRender: ({ text }: { text: number }) => `${text?.toFixed(2) || 0}%`,
           },
         ];
+        data = fillDoctorDept(data);
         break;
       }
       case 'registration': {
         data = await getRegistrationStatistics(exportParams);
         columns = [
           { title: '日期', dataIndex: 'date', key: 'date', width: 120, fixed: 'left' },
+          { title: '科室', dataIndex: 'deptName', key: 'deptName', width: 150 },
+          { title: '二级科室', dataIndex: 'level2DeptName', key: 'level2DeptName', width: 150 },
+          { title: '医生', dataIndex: 'doctorName', key: 'doctorName', width: 120 },
           { title: '号别', dataIndex: 'typeName', key: 'typeName', width: 120 },
           { title: '挂号量', dataIndex: 'typeRegistration', key: 'typeRegistration', align: 'right', width: 100 },
           { title: '总挂号量', dataIndex: 'totalRegistration', key: 'totalRegistration', align: 'right', width: 120 },
         ];
+        data = fillDoctorDept(data).map((item: any) => ({
+          ...item,
+          typeRegistration: item.typeRegistration ?? 0,
+          totalRegistration: item.totalRegistration ?? 0,
+          compareRegistration: item.compareRegistration ?? '-',
+          growthRate: item.growthRate ?? null,
+        }));
         break;
       }
       case 'referral': {

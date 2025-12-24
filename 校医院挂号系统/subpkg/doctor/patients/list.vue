@@ -51,6 +51,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import DoctorTabBar from '@/components/DoctorTabBar.vue'
 
 import { uniNavigateTo, uniShowToast } from '../../../utils/uniHelper'
@@ -102,6 +103,10 @@ onMounted(async () => {
   selectedDate.value = fmt(today)
   await loadPatients()
 })
+
+onShow(async () => {
+  await loadPatients()
+})
 </script>
 
 <style scoped>
@@ -125,5 +130,8 @@ onMounted(async () => {
 .slot { font-size: 26rpx; color: #334155; }
 .status { font-size: 26rpx; font-weight: 700; }
 .status-wait { color: #0ea5e9; }
+.status-progress { color: #f59e0b; }
 .status-done { color: #10b981; }
+.status-referral { color: #8b5cf6; }
+.status-cancel { color: #94a3b8; }
 </style>

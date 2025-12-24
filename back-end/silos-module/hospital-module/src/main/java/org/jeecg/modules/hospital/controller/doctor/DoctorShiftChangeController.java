@@ -39,14 +39,47 @@ public class DoctorShiftChangeController {
             return Result.error("原排班记录不存在");
         }
 
+        // 限制：不允许医生申请当天调班（原排班为今天 or 目标日期为今天）
+        LocalDate today = LocalDate.now();
+        if (origin.getScheduleDate() != null && origin.getScheduleDate().isEqual(today)) {
+            return Result.error("不允许医生申请当天调班");
+        }
+
+        // 限制：医生不能申请其他科室的排班，目标科室强制与原排班科室一致
+        Long originDeptId = origin.getDeptId();
+        if (originDeptId != null && req.getTargetDeptId() != null && !originDeptId.equals(req.getTargetDeptId())) {
+            return Result.error("不能申请其他科室的排班");
+        }
+
+        LocalDate targetDate = null;
+        if (req.getTargetDate() != null && !req.getTargetDate().isEmpty()) {
+            targetDate = LocalDate.parse(req.getTargetDate());
+        }
+        if (targetDate != null && targetDate.isEqual(today)) {
+            return Result.error("不允许医生申请当天调班");
+        }
+        Integer targetTimeSlot = req.getTargetTimeSlot();
+        if (targetDate != null && targetTimeSlot != null) {
+            DoctorSchedule conflict = scheduleService.lambdaQuery()
+                    .eq(DoctorSchedule::getDoctorId, req.getDoctorId())
+                    .eq(DoctorSchedule::getScheduleDate, targetDate)
+                    .eq(DoctorSchedule::getTimeSlot, targetTimeSlot)
+                    .eq(DoctorSchedule::getStatus, 1)
+                    .ne(DoctorSchedule::getScheduleId, req.getOriginalScheduleId())
+                    .one();
+            if (conflict != null) {
+                return Result.error("目的班次已有排班");
+            }
+        }
+
         DoctorShiftChangeRequest r = new DoctorShiftChangeRequest();
         r.setDoctorId(req.getDoctorId());
         r.setOriginalScheduleId(req.getOriginalScheduleId());
-        if (req.getTargetDate() != null && !req.getTargetDate().isEmpty()) {
-            r.setTargetDate(LocalDate.parse(req.getTargetDate()));
+        if (targetDate != null) {
+            r.setTargetDate(targetDate);
         }
         r.setTargetTimeSlot(req.getTargetTimeSlot());
-        r.setTargetDeptId(req.getTargetDeptId());
+        r.setTargetDeptId(originDeptId);
         r.setReason(req.getReason());
         r.setApplyTime(LocalDateTime.now());
         r.setStatus(1);
