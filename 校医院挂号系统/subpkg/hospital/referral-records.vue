@@ -369,56 +369,78 @@ const isRecordInDateRange = (record) => {
   return true
 }
 
+// 获取当前账户下所有绑定的就诊人ID列表
+const fetchCurrentAccountPatientIds = async () => {
+  try {
+    const list = await fetchPatientList()
+    return list.map(item => Number(item.patientId))
+  } catch (error) {
+    console.warn('获取就诊人ID列表失败:', error)
+    return []
+  }
+}
+
+// 当前账户下所有绑定的就诊人ID列表
+const currentAccountPatientIds = ref([])
+
+// 初始化时获取当前账户的就诊人ID列表
+onMounted(async () => {
+  // 先获取当前账户绑定的就诊人ID列表
+  currentAccountPatientIds.value = await fetchCurrentAccountPatientIds()
+  // 然后初始化就诊人信息
+  await initPatientInfo()
+  // 最后加载转诊记录
+  loadReferralRecords()
+})
+
+// 刷新时也重新获取就诊人ID列表
+const onRefresh = async () => {
+  currentPage.value = 1
+  referralRecords.value = []
+  hasMore.value = true
+  // 清空缓存，确保获取最新数据
+  registrationToPatientMapCache.value.clear()
+  currentAccountPatientIds.value = await fetchCurrentAccountPatientIds()
+  loadReferralRecords()
+}
+
 const filteredRecords = computed(() => {
   let records = referralRecords.value || []
   
-  // 按状态筛选 - 如果选择的是"全部"（空字符串），不筛选
-  if (filterStatus.value && filterStatus.value !== '') {
-    records = records.filter(record => {
-      const recordStatus = (record.status || '').toUpperCase()
-      const filterStatusUpper = (filterStatus.value || '').toUpperCase()
-      return recordStatus === filterStatusUpper
-    })
-  }
+  // 筛选逻辑：
+  // 1. 如果选择了特定就诊人，只显示该就诊人的记录
+  // 2. 如果没有选择特定就诊人，显示当前账户下绑定的所有就诊人的记录
+  // 3. 后端已经通过 user_id 筛选了当前用户的转诊记录，所以这里只需要按 patient_id 筛选
   
-  // 按就诊人筛选 - 使用患者ID筛选（更可靠）
-  // 只有当选择了就诊人时才筛选，如果没有选择就诊人（selectedPatientId为null），显示所有记录
-  if (selectedPatientId.value !== null && selectedPatientId.value !== undefined) {
-    const currentPatientName = (currentPatientInfo.value.name || '').trim()
-    const selectedPatientIdNum = Number(selectedPatientId.value)
-    
+  if (selectedPatientId.value) {
+    // 选择了特定就诊人，只显示该就诊人的记录
     records = records.filter(record => {
       const recordPatientId = record.patientId || record.patient_id || null
-      const recordPatientName = (record.patientName || '').trim()
-      const registrationRecordId = record.registrationRecordId || record.registration_record_id || null
-      
-      // 优先使用 patientId 匹配
       if (recordPatientId !== null && recordPatientId !== undefined) {
         const recordPatientIdNum = Number(recordPatientId)
-        if (!isNaN(recordPatientIdNum) && recordPatientIdNum === selectedPatientIdNum) {
-          return true
-        }
+        const selectedPatientIdNum = Number(selectedPatientId.value)
+        return !isNaN(recordPatientIdNum) && recordPatientIdNum === selectedPatientIdNum
       }
-      
-      // 如果 patientId 不匹配或不存在，使用姓名匹配作为备选（兼容旧数据）
-      if (currentPatientName && recordPatientName) {
-        const nameMatch = recordPatientName === currentPatientName
-        if (nameMatch) {
-          return true
-        }
-      }
-      
-      // 如果 patientId 为 null 但有 registrationRecordId，说明后端没有返回 patientId
-      // 这种情况下，转诊记录是通过挂号记录关联的，应该属于当前登录用户
-      // 为了不丢失数据，显示所有有 registrationRecordId 但 patientId 为 null 的记录
-      // 因为转诊记录是通过挂号记录关联的，而挂号记录应该属于当前用户
-      if (recordPatientId === null && registrationRecordId) {
-        return true
-      }
-      
-      // 如果既没有 patientId 也没有姓名匹配，或者都不匹配，则不显示
+      // 如果没有patientId，不显示该记录
       return false
     })
+  } else {
+    // 没有选择特定就诊人，显示当前账户下绑定的所有就诊人的记录
+    if (currentAccountPatientIds.value.length > 0) {
+      records = records.filter(record => {
+        const recordPatientId = record.patientId || record.patient_id || null
+        if (recordPatientId !== null && recordPatientId !== undefined) {
+          const recordPatientIdNum = Number(recordPatientId)
+          return !isNaN(recordPatientIdNum) && currentAccountPatientIds.value.includes(recordPatientIdNum)
+        }
+        // 如果没有patientId，不显示该记录，避免显示其他用户的记录
+        return false
+      })
+    } else {
+      // 如果还没有加载就诊人列表，暂时不显示任何记录，避免显示其他用户的记录
+      // 等待就诊人列表加载完成后再显示
+      records = []
+    }
   }
   
   // 按日期范围筛选
@@ -878,6 +900,79 @@ const initPatientInfo = async () => {
   }
 }
 
+// 挂号记录ID到patientId的映射缓存
+const registrationToPatientMapCache = ref(new Map())
+
+// 通过挂号记录ID批量获取patientId映射
+const buildRegistrationToPatientMap = async (registrationRecordIds) => {
+  const map = new Map()
+  if (!registrationRecordIds || registrationRecordIds.length === 0) {
+    return map
+  }
+  
+  // 检查缓存中是否已有这些映射
+  const missingIds = registrationRecordIds.filter(id => !registrationToPatientMapCache.value.has(Number(id)))
+  
+  // 如果所有ID都在缓存中，直接返回缓存
+  if (missingIds.length === 0) {
+    registrationRecordIds.forEach(id => {
+      const patientId = registrationToPatientMapCache.value.get(Number(id))
+      if (patientId) {
+        map.set(Number(id), patientId)
+      }
+    })
+    return map
+  }
+  
+  try {
+    // 获取当前账户绑定的所有就诊人ID
+    const patientIds = currentAccountPatientIds.value.length > 0 
+      ? currentAccountPatientIds.value 
+      : await fetchCurrentAccountPatientIds()
+    
+    if (patientIds.length === 0) {
+      return map
+    }
+    
+    // 为每个就诊人查询挂号记录，建立映射
+    const allRecords = []
+    for (const patientId of patientIds) {
+      try {
+        const records = await getRegistrationRecords(patientId)
+        const recordsList = Array.isArray(records) ? records : (Array.isArray(records?.data) ? records.data : [])
+        allRecords.push(...recordsList)
+      } catch (error) {
+        console.warn(`获取就诊人 ${patientId} 的挂号记录失败:`, error)
+      }
+    }
+    
+    // 建立 registrationRecordId -> patientId 映射并更新缓存
+    allRecords.forEach(record => {
+      const recordId = record.recordId || record.record_id || record.id
+      const patientId = record.patientId || record.patient_id
+      if (recordId && patientId) {
+        const recordIdNum = Number(recordId)
+        const patientIdNum = Number(patientId)
+        map.set(recordIdNum, patientIdNum)
+        // 更新缓存
+        registrationToPatientMapCache.value.set(recordIdNum, patientIdNum)
+      }
+    })
+    
+    // 从缓存中获取已存在的映射
+    registrationRecordIds.forEach(id => {
+      const cachedPatientId = registrationToPatientMapCache.value.get(Number(id))
+      if (cachedPatientId && !map.has(Number(id))) {
+        map.set(Number(id), cachedPatientId)
+      }
+    })
+  } catch (error) {
+    console.error('构建挂号记录到就诊人映射失败:', error)
+  }
+  
+  return map
+}
+
 // 加载转诊记录数据
 const loadReferralRecords = async () => {
   if (loading.value || (!hasMore.value && currentPage.value !== 1)) return
@@ -890,8 +985,10 @@ const loadReferralRecords = async () => {
       status: filterStatus.value || undefined
     }
     
-    // 不在这里添加patientId筛选，让后端返回所有记录，然后在前端筛选
-    // 这样可以确保即使没有选择就诊人，也能看到所有记录
+    // 注意：后端 ReferralListQuery 中没有 patientId 字段
+    // 后端已经通过 user_id 筛选了当前用户的转诊记录
+    // 前端会通过 filteredRecords 根据 patient_id 进一步筛选
+    // 所以这里不需要传递 patientId 参数
 
     const res = await getPatientReferralList(params)
     // 支持多种数据格式 - 优先检查result字段
@@ -911,6 +1008,15 @@ const loadReferralRecords = async () => {
     } else {
       console.warn('未找到有效的记录数组，响应结构:', res)
     }
+    
+    // 收集所有需要查询的 registrationRecordId
+    const registrationRecordIds = rawRecords
+      .map(r => r.registrationRecordId || r.registration_record_id)
+      .filter(id => id != null)
+    
+    // 批量获取 patientId 映射
+    const registrationToPatientMap = await buildRegistrationToPatientMap(registrationRecordIds)
+    
     const normalizedRecords = rawRecords.map(record => {
       const status = (record.status || '').toUpperCase()
       const applyTime = record.applyTime || record.createTime || ''
@@ -918,9 +1024,17 @@ const loadReferralRecords = async () => {
       const cancelTime = record.cancelTime || ''
       
       // 从registrationRecordId关联中获取patientId
-      // 后端通过 LEFT JOIN registration_record 返回了 rr.patient_id
-      // 优先使用后端返回的 patient_id（来自关联的挂号记录）
-      const patientId = record.patient_id || record.patientId || null
+      // 优先使用后端返回的 patient_id（如果后端有返回）
+      // 否则通过 registrationRecordId 从映射中获取
+      let patientId = record.patient_id || record.patientId || null
+      
+      // 如果后端没有返回 patient_id，通过 registrationRecordId 从映射中获取
+      if (!patientId) {
+        const registrationRecordId = record.registrationRecordId || record.registration_record_id
+        if (registrationRecordId) {
+          patientId = registrationToPatientMap.get(Number(registrationRecordId)) || null
+        }
+      }
       
       return {
         id: record.id || record.referralId || '',
@@ -999,14 +1113,6 @@ const cancelReferral = (record) => {
   })
 }
 
-// 刷新数据
-const onRefresh = () => {
-  currentPage.value = 1
-  referralRecords.value = []
-  hasMore.value = true
-  loadReferralRecords()
-}
-
 const refreshRecords = () => {
   if (loading.value) return
   onRefresh()
@@ -1019,12 +1125,6 @@ const onLoadMore = () => {
     loadReferralRecords()
   }
 }
-
-// 页面加载时初始化数据
-onMounted(async () => {
-  await initPatientInfo()
-  loadReferralRecords()
-})
 </script>
 
 <style scoped>

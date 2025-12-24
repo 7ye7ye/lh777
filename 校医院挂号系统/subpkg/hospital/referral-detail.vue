@@ -134,7 +134,7 @@
           {{ submitting ? '处理中...' : '自动挂号' }}
         </button>
 
-        <button class="secondary-btn" @click="createNewReferral">创建新申请</button>
+
       </view>
     </scroll-view>
     <canvas canvas-id="certificateCanvas" class="hidden-canvas"></canvas>
@@ -285,12 +285,7 @@ const goToHospital = () => {
   })
 }
 
-// 创建新的转诊申请
-const createNewReferral = () => {
-  uni.navigateTo({
-    url: '/subpkg/hospital/referral-application'
-  })
-}
+
 
 // 院内转诊自动挂号
 const autoRegister = async () => {

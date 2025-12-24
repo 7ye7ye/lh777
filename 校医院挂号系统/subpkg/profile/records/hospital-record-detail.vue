@@ -94,6 +94,7 @@
     <!-- 操作按钮区域 -->
     <view class="action-section">
       <button v-if="canRefer && !hasReferral" class="action-btn referral-btn" @click="goToReferral">申请转诊</button>
+      <button v-else-if="referralStatus === 'PENDING'" class="action-btn referral-btn" @click="goToReferralStatus">申请中，可查看进度</button>
       <button v-else-if="hasReferral" class="action-btn referral-btn" @click="goToReferralStatus">查看转诊情况</button>
       <text v-else-if="statusDisplay === '待就诊'" class="action-btn cannot-refer-btn">未就诊，不能转诊</text>
       <text v-else class="action-btn cannot-refer-btn">超过5天，无法转诊</text>
@@ -167,6 +168,7 @@ const paymentInfo = ref({})
 const diagnosisInfo = ref({})
 const canRefer = ref(false)
 const hasReferral = ref(false)
+const referralStatus = ref(null) // 转诊状态（PENDING、APPROVED等）
 const doctorName = ref('')
 const departmentName = ref('-')
 const appointmentTimeSlot = ref('') // 就诊时间段
@@ -1405,10 +1407,13 @@ const checkReferralStatus = async () => {
     if (referral) {
       hasReferral.value = true
       canRefer.value = false // 已申请过转诊，不能再次申请
-      // 保存关联的转诊记录ID，供"查看转诊情况"使用
+      // 保存关联的转诊记录ID和状态，供"查看转诊情况"使用
       record.value.referralId = referral.id || referral.referralId || null
-      // 如果有转诊记录，强制将状态设置为已完成
-      statusDisplay.value = '已完成'
+      referralStatus.value = (referral.status || '').toUpperCase()
+      // 如果有转诊记录，根据状态处理状态显示
+      if (referralStatus.value !== 'PENDING') {
+        statusDisplay.value = '已完成'
+      }
     }
   } catch (error) {
     console.warn('检查转诊状态失败:', error)

@@ -144,11 +144,18 @@
           </view>
           <view class="referral-wrapper">
             <button 
-              v-if="item.canRefer && !item.hasSuccessfulReferral" 
+              v-if="item.canRefer && !item.hasReferral" 
               class="small-referral-btn blue-btn" 
               @click.stop="goToReferralApplication(item)"
             >
               申请转诊
+            </button>
+            <button 
+              v-else-if="item.referralStatus === 'PENDING'" 
+              class="small-referral-btn blue-btn" 
+              @click.stop="goToReferralDetail(item)"
+            >
+              申请中，可查看进度
             </button>
             <button 
               v-else-if="item.hasSuccessfulReferral" 
@@ -635,8 +642,8 @@ const loadHospitalRecords = async () => {
       referralList.forEach(ref => {
         const registrationId = ref.registrationRecordId || ref.registration_record_id
         const status = (ref.status || '').toUpperCase()
-        // 只记录成功的转诊（已批准）
-        if (registrationId && status === 'APPROVED') {
+        // 记录所有状态的转诊记录，包括未审批的
+        if (registrationId) {
           const recordId = Number(registrationId)
           if (!referralMap.has(recordId)) {
             referralMap.set(recordId, {
@@ -671,10 +678,12 @@ const loadHospitalRecords = async () => {
       const displayTimeSlot = item.timeSlot || item.time_slot || item.appointmentTimeSlot || displayVisitTime || '-'
       const statusInfo = resolveStatusInfo(rawStatus, rawVisitTime, rawRegisterTime)
       
-      // 检查是否已有成功的转诊记录
+      // 检查是否有转诊记录
       const recordId = Number(item.recordId || item.id)
       const referralInfo = referralMap.get(recordId)
-      const hasSuccessfulReferral = !!referralInfo
+      const hasReferral = !!referralInfo
+      const referralStatus = referralInfo?.status || null
+      const hasSuccessfulReferral = referralStatus === 'APPROVED'
       
       // 如果有成功的转诊记录，强制将状态设置为已完成
       const finalStatusInfo = hasSuccessfulReferral ? STATUS_DEFINITIONS.completed : statusInfo
@@ -699,7 +708,9 @@ const loadHospitalRecords = async () => {
         recordNumber: recordNumber,
         recordNumberDisplay: recordNumber || '无编号',
         canRefer: statusInfo.allowReferral,
+        hasReferral: hasReferral,
         hasSuccessfulReferral: hasSuccessfulReferral,
+        referralStatus: referralStatus,
         referralId: referralInfo?.id || null,
         patientId: item.patientId || item.patient_id || patientId, // 确保使用就诊记录中的patientId
         originalRecord: item
