@@ -29,9 +29,9 @@
           >
             <LoginForm />
             <ForgetPasswordForm />
-            <RegisterForm />
+            <!-- <RegisterForm /> -->
             <MobileForm />
-            <QrCodeForm />
+            <!-- <QrCodeForm /> -->
             <!-- 管理员端快捷入口 -->
             <div class="mt-4 text-center">
               <a-button type="link" @click="goAdmin">无需登录，直接进入管理员端</a-button>

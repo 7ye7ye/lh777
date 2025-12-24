@@ -19,12 +19,12 @@
         </Checkbox>
       </FormItem>
 
-      <Button type="primary" class="enter-x" size="large" block @click="handleRegister" :loading="loading">
+      <!-- <Button type="primary" class="enter-x" size="large" block @click="handleRegister" :loading="loading">
         {{ t('sys.login.registerButton') }}
-      </Button>
-      <Button size="large" block class="mt-4 enter-x" @click="handleBackLogin">
+      </Button> -->
+      <!-- <Button size="large" block class="mt-4 enter-x" @click="handleBackLogin">
         {{ t('sys.login.backSignIn') }}
-      </Button>
+      </Button> -->
     </Form>
   </template>
 </template>
