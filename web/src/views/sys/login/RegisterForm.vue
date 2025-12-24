@@ -91,12 +91,37 @@
         });
       }
     } catch (error: any) {
-      // 捕获请求异常时，优先取后端返回的 description
-      const errorDesc = error?.response?.data?.description || error?.message || t('sys.api.networkExceptionMsg');
+      console.error('注册错误详情:', error);
+      
+      // 尝试从不同位置获取后端返回的错误信息
+      let errorMessage = t('sys.api.networkExceptionMsg');
+      let errorDescription = '';
+      
+      // 1. 从axios响应中获取错误信息
+      if (error?.response?.data) {
+        const responseData = error.response.data;
+        errorMessage = responseData.message || responseData.error || errorMessage;
+        errorDescription = responseData.description || '';
+      }
+      
+      // 2. 从error对象中获取信息
+      if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      // 3. 如果有description字段，优先显示description
+      const finalMessage = errorDescription || errorMessage;
+      
+      // 在控制台打印完整错误信息，便于调试
+      console.error('错误消息:', errorMessage);
+      if (errorDescription) {
+        console.error('详细错误信息:', errorDescription);
+      }
+      
       notification.error({
         message: t('sys.api.errorTip'),
-        description: errorDesc,
-        duration: 3,
+        description: finalMessage,
+        duration: 4,
       });
     } finally {
       loading.value = false;

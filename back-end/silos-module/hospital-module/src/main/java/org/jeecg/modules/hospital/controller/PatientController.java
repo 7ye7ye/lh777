@@ -60,10 +60,27 @@ public class PatientController {
     @PostMapping("/create")
     public ResponseEntity<HashMap<String, Object>> create(@RequestBody Patient patient) {
         try {
-            // 1. 参数校验
+            // 1. 参数校验 - 姓名
             if (StringUtils.isBlank(patient.getPatientName())) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "患者姓名不能为空");
             }
+            
+            // 姓名格式验证：只能包含中文和英文字母
+            String patientName = patient.getPatientName().trim();
+            if (!patientName.matches("^[\\u4e00-\\u9fa5a-zA-Z]+$")) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "患者姓名只能包含中文和英文字母");
+            }
+            
+            // 姓名长度验证：2-10位
+            if (patientName.length() < 2) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "患者姓名不能少于2位");
+            }
+            if (patientName.length() > 10) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "患者姓名不能超过10位");
+            }
+            patient.setPatientName(patientName);
+            
+            // 2. 参数校验 - 身份证号
             if (StringUtils.isBlank(patient.getIdCard())) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "证件号码不能为空");
             }
@@ -72,15 +89,48 @@ public class PatientController {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "身份证号格式不正确");
             }
             
+            // 3. 参数校验 - 手机号
             if (StringUtils.isBlank(patient.getPhone())) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "手机号不能为空");
             }
             // 手机号校验
-            if (!patient.getPhone().matches("^1[3-9]\\d{9}$")) {
+            String phone = patient.getPhone().trim();
+            if (!phone.matches("^1[3-9]\\d{9}$")) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "手机号格式不正确");
             }
+            patient.setPhone(phone);
             
-            // 0. 检查该用户绑定的就诊人数量是否超过限制（最多5个）
+            // 4. 患者类型验证
+            Integer patientType = patient.getPatientType();
+            if (patientType != null) {
+                if (patientType == 1) {
+                    // 学生类型：必须填写学号
+                    if (StringUtils.isBlank(patient.getStudentId())) {
+                        throw new BusinessException(ErrorCode.PARAMS_ERROR, "学生身份必须填写学号");
+                    }
+                    // 学号格式验证：10位固定长度，格式：年份(4位)+学院代码(2位)+流水号(4位)
+                    String studentId = patient.getStudentId().trim();
+                    if (!studentId.matches("^[12]\\d{3}[0-9]{2}\\d{4}$")) {
+                        throw new BusinessException(ErrorCode.PARAMS_ERROR, 
+                            "学号格式不正确，应为10位数字，格式：年份(4位)+学院代码(2位)+流水号(4位)，如：2024010001");
+                    }
+                    patient.setStudentId(studentId);
+                } else if (patientType == 2) {
+                    // 教职工类型：必须填写教职工号
+                    if (StringUtils.isBlank(patient.getStaffId())) {
+                        throw new BusinessException(ErrorCode.PARAMS_ERROR, "教职工身份必须填写教职工号");
+                    }
+                    // 教职工号格式验证：8位固定长度，格式：类型(1位)+部门(2位)+流水号(5位)
+                    String staffId = patient.getStaffId().trim();
+                    if (!staffId.matches("^[123][0-9]{2}\\d{5}$")) {
+                        throw new BusinessException(ErrorCode.PARAMS_ERROR, 
+                            "教职工号格式不正确，应为8位数字，格式：类型标识(1位，1-教师/2-行政/3-后勤)+部门代码(2位)+流水号(5位)，如：10100001");
+                    }
+                    patient.setStaffId(staffId);
+                }
+            }
+            
+            // 5. 检查该用户绑定的就诊人数量是否超过限制（最多5个）
             long count = patientService.lambdaQuery()
                     .eq(Patient::getUserId, patient.getUserId())
                     .eq(Patient::getIsDeleted, 0)

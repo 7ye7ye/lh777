@@ -37,6 +37,9 @@ public class FileUploadController {
     @Value("${jeecg.uploadType}")
     private String uploadType;
 
+    // 最大文件大小 (5MB)
+    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
+
     @PostMapping("/upload")
     public ResponseEntity<HashMap<String, Object>> upload(HttpServletRequest request) {
         HashMap<String, Object> result = new HashMap<>();
@@ -47,6 +50,26 @@ public class FileUploadController {
                 result.put("code", 400);
                 result.put("message", "文件不能为空");
                 return ResponseEntity.ok(result);
+            }
+
+            // 验证文件大小（5MB限制）
+            if (file.getSize() > MAX_FILE_SIZE) {
+                result.put("code", 400);
+                result.put("message", "文件大小不能超过5MB");
+                return ResponseEntity.ok(result);
+            }
+
+            // 验证图片格式（仅允许 jpg, jpeg, png）
+            String originalFilename = file.getOriginalFilename();
+            if (originalFilename != null) {
+                String lowerCaseFilename = originalFilename.toLowerCase();
+                if (!lowerCaseFilename.endsWith(".jpg") && 
+                    !lowerCaseFilename.endsWith(".jpeg") && 
+                    !lowerCaseFilename.endsWith(".png")) {
+                    result.put("code", 400);
+                    result.put("message", "仅支持JPG和PNG格式的图片");
+                    return ResponseEntity.ok(result);
+                }
             }
 
             // 支持前端通过 biz 区分不同业务（identity、doctor-avatar 等）

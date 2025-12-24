@@ -164,7 +164,8 @@ export const useUserStore = defineStore({
         this.setUserInfo(userInfo as any);
         return this.afterLoginAction(goHome, { token, userInfo });
       } catch (error) {
-        return Promise.reject(error);
+        // 直接抛出原始错误，不要包装，让前端能够获取到后端的详细错误信息
+        throw error;
       }
     },
 
@@ -254,7 +255,8 @@ export const useUserStore = defineStore({
         this.setToken(token);
         return this.afterLoginAction(goHome, { token, userInfo });
       } catch (error) {
-        return Promise.reject(error);
+        // 直接抛出原始错误，不要包装，让前端能够获取到后端的详细错误信息
+        throw error;
       }
     },
     /**

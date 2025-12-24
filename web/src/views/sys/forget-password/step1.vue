@@ -22,7 +22,7 @@
 
   import { useI18n } from '/@/hooks/web/useI18n';
   import { useMessage } from '/@/hooks/web/useMessage';
-  import { useLoginState, useFormRules, useFormValid, LoginStateEnum, SmsEnum } from '../login/useLogin';
+  import { useLoginState, useFormRules, useFormValid, LoginStateEnum } from '../login/useLogin';
   import { phoneVerify, getCaptcha } from '/@/api/sys/user';
 
   export default defineComponent({

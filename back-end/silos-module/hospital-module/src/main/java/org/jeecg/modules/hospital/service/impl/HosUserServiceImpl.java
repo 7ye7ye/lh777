@@ -4,8 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.poi.ss.formula.functions.T;
-import org.jeecg.common.api.vo.Result;
 import org.jeecg.common.constant.CommonConstant;
 import org.jeecg.common.system.util.JwtUtil;
 import org.jeecg.common.util.RedisUtil;
@@ -24,7 +22,6 @@ import org.springframework.util.DigestUtils;
 import java.time.LocalDateTime;
 
 import static org.jeecg.modules.hospital.contant.UserContant.ACTIVE;
-import static org.jeecg.modules.hospital.contant.UserContant.PATIENT;
 
 /**
 * @author Administrator
@@ -50,43 +47,62 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
     private RedisUtil redisUtil;
 
     @Override
-    public BaseResponse<Long> userRegister(String userAccount, String userPassword, String checkPassword,int userType) {
+    public BaseResponse<Long> userRegister(String userAccount, String userPassword, String checkPassword, int userType, int status) {
         //一，校验
         //1.非空
         if(StringUtils.isAnyBlank(userAccount,userPassword,checkPassword)){
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
-        //2.用户账号需大于3
+
+        // 去除首尾空格
+        userAccount = userAccount.trim();
+        userPassword = userPassword.trim();
+        checkPassword = checkPassword.trim();
+
+        //2.用户账号长度校验：4-20位
         if (userAccount.length() < 4) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户账号过短");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户账号不能少于4位");
         }
-        //2.用户密码需大于7
-        if (userPassword.length() < 8 || checkPassword.length() < 8) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户密码过短");
+        if (userAccount.length() > 20) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户账号不能超过20位，当前长度：" + userAccount.length());
         }
-        
+
+        //3.用户密码长度校验：8-20位
+        if (userPassword.length() < 8) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户密码不能少于8位");
+        }
+        if (userPassword.length() > 20) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户密码不能超过20位");
+        }
+        if (checkPassword.length() < 8) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "确认密码不能少于8位");
+        }
+        if (checkPassword.length() > 20) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "确认密码不能超过20位");
+        }
+
         // 密码复杂度校验：必须包含字母、数字和特殊字符
-        String passwordRegex = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[~!@#$%^&*()_+=\\-{}\\[\\]:;\"'<>,.?/]).{8,}$";
+        String passwordRegex = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[~!@#$%^&*()_+=\\-{}\\[\\]:;\"'<>,.?/]).{8,20}$";
         if (!userPassword.matches(passwordRegex)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码必须包含字母、数字和特殊字符");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码必须包含字母、数字和特殊字符，长度8-20位");
         }
 
         //4.用户名/手机号格式校验
         String phoneRegex = "^1[3-9]\\d{9}$";
-        String usernameRegex = "^[a-zA-Z0-9_\\u4e00-\\u9fa5]+$";
-        
+        String usernameRegex = "^[\\u4e00-\\u9fa5a-zA-Z0-9_.-]+$";
+
         if (userAccount.matches(phoneRegex)) {
             // 是手机号，格式正确
         } else if (userAccount.matches(usernameRegex)) {
             // 是用户名，校验特殊字符
             if (userAccount.contains("<") || userAccount.contains(">") || userAccount.contains("'") || userAccount.contains("\"") || userAccount.contains("/")) {
-                throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户名包含非法字符");
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户名不能包含以下字符：< > ' \" /");
             }
         } else {
-             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户名格式不正确");
+             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户名格式不正确，只能包含中文、英文字母、数字、下划线(_)、点(.)、连字符(-)或手机号");
         }
 
-        //两次输入密码需相同
+        //5.两次输入密码需相同
         if(!userPassword.equals(checkPassword)){
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "两次输入密码不同");
         }
@@ -105,19 +121,21 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
         HosUser user=new HosUser();
         user.setUserAccount(userAccount);
         user.setUserPassword(newPassword);
-        
-        // 5. 校验用户类型并设置初始状态
+
+        // 5. 校验用户类型并设置状态
         if (userType == 1) { // 患者
             user.setUserType(1);
-            user.setStatus(ACTIVE); // 患者注册默认激活
+            // 患者注册默认激活，但使用传入的状态参数
+            user.setStatus(status >= 0 && status <= 2 ? status : ACTIVE);
         } else if (userType == 2) { // 医生
             user.setUserType(2);
-            user.setStatus(0); // 医生注册默认为 0（待审核/未激活）
+            // 医生注册使用传入的状态参数，默认为1(正常)
+            user.setStatus(status >= 0 && status <= 2 ? status : 1);
         } else {
             // 不允许注册管理员或其他角色
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "非法的用户类型");
         }
-        
+
         // 设置创建时间为当前时间
         user.setCreateTime(LocalDateTime.now());
         // 设置更新时间为当前时间
@@ -148,12 +166,31 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
         if(StringUtils.isAnyBlank(userAccount,password)){
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户名或密码为空");
         }
-        if(userAccount.length()<2||password.length()<4){
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户名或密码过短");
+        // 去除首尾空格，避免格式校验被空白字符影响
+        userAccount = userAccount.trim();
+        password = password.trim();
+
+        // 用户名长度校验：4-20位（与注册保持一致）
+        if(userAccount.length() < 4){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户名不能少于4位");
         }
-        String regex = "^[\\u4e00-\\u9fa5a-zA-Z0-9]+$";
-        if (!userAccount.matches(regex)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户名不能包含特殊字符");
+        if(userAccount.length() > 20){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户名不能超过20位");
+        }
+
+        // 密码长度校验：4-20位（登录时略宽松，允许旧密码）
+        if(password.length() < 4){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码不能少于4位");
+        }
+        if(password.length() > 20){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码不能超过20位");
+        }
+
+        // 用户名格式校验（支持手机号和普通用户名）
+        String phoneRegex = "^1[3-9]\\d{9}$";
+        String usernameRegex = "^[\\u4e00-\\u9fa5a-zA-Z0-9_.-]+$";
+        if (!userAccount.matches(phoneRegex) && !userAccount.matches(usernameRegex)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户名格式不正确，只能包含中文、英文字母、数字、下划线(_)、点(.)、连字符(-)或手机号");
         }
 
         // 二、加密处理
@@ -171,9 +208,9 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
                 count = Integer.parseInt(failCount.toString());
             }
             redisUtil.set(loginFailKey, ++count, 900); // 15分钟
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户名或密码错误");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在，请检查用户名或密码！");
         }
-        
+
         // 登录成功，清除失败记录
         redisUtil.del(loginFailKey);
 
@@ -272,6 +309,70 @@ public class HosUserServiceImpl extends ServiceImpl<HosUserMapper, HosUser>
      */
     public org.jeecg.common.system.vo.HosUser getHosUserByAccount(String account){
         return hosUserMapper.selectOne(new QueryWrapper<HosUser>().eq("user_account", account)).convertToVO();
+    }
+
+    @Override
+    public BaseResponse<Boolean> changePassword(Long userId, String oldPassword, String newPassword, String confirmPassword) {
+        // 1. 参数校验
+        if (userId == null || StringUtils.isAnyBlank(oldPassword, newPassword, confirmPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数不能为空");
+        }
+
+        // 去除首尾空格
+        oldPassword = oldPassword.trim();
+        newPassword = newPassword.trim();
+        confirmPassword = confirmPassword.trim();
+
+        // 2. 验证新密码长度
+        if (newPassword.length() < 8) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "新密码长度不能少于8位");
+        }
+
+        if (newPassword.length() > 20) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "新密码长度不能超过20位");
+        }
+
+        // 3. 验证新密码复杂度：必须包含字母、数字和特殊字符
+        String passwordRegex = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[~!@#$%^&*()_+=\\-{}\\[\\]:;\"'<>,.?/]).{8,20}$";
+        if (!newPassword.matches(passwordRegex)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "新密码必须包含字母、数字和特殊字符，长度8-20位");
+        }
+
+        // 4. 验证两次密码输入是否一致
+        if (!newPassword.equals(confirmPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "两次输入的新密码不一致");
+        }
+
+        // 5. 验证新密码不能与旧密码相同
+        if (oldPassword.equals(newPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "新密码不能与旧密码相同");
+        }
+
+        // 6. 查询用户
+        HosUser user = hosUserMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在");
+        }
+
+        // 7. 验证旧密码是否正确
+        String encryptedOldPassword = DigestUtils.md5DigestAsHex((SALT + oldPassword).getBytes());
+        if (!user.getUserPassword().equals(encryptedOldPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "旧密码错误");
+        }
+
+        // 8. 加密新密码
+        String encryptedNewPassword = DigestUtils.md5DigestAsHex((SALT + newPassword).getBytes());
+
+        // 9. 更新密码
+        user.setUserPassword(encryptedNewPassword);
+        user.setUpdateTime(LocalDateTime.now());
+        int updateResult = hosUserMapper.updateById(user);
+
+        if (updateResult <= 0) {
+            throw new BusinessException(ErrorCode.DATABASE_ERROR, "修改密码失败");
+        }
+
+        return ResultUtils.success(true);
     }
 }
 

@@ -36,11 +36,13 @@ export interface RegisterDoctorParams {
   userPassword: string; // 与后端API保持一致
   deptId: number;
   title: string;
+  titleId?: number;      // 职称ID
   specialty: string;
-  isActive?: boolean; // 修改为boolean类型以匹配DoctorRegister.vue中的使用方式
+  isActive?: boolean;   // 修改为boolean类型以匹配DoctorRegister.vue中的使用方式
   email?: string;
   doctorDesc?: string;
   avatar?: string;
+  userType?: number;    // 用户类型：2 表示医生
 }
 
 // 医生相关API接口
@@ -52,6 +54,9 @@ export const updateDoctorProfile = (doctor: Partial<Doctor>) =>
 
 export const getMyDoctorProfile = () =>
   defHttp.get<Doctor>({ url: `${Api.DoctorDetail}/my-profile` });
+
+export const applyDoctorProfileUpdate = (data: Recordable) =>
+  defHttp.post({ url: `${Api.DoctorDetail}/profile-update-request`, data });
 
 export const getDoctorByAccount = (account: string) =>
   defHttp.get<Doctor | null>({ url: `${Api.DoctorDetail}/by-account/${account}` });
