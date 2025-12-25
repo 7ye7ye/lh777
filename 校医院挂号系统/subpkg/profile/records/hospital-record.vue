@@ -164,6 +164,7 @@
             >
               转诊详情
             </button>
+            <text v-else-if="item.statusDisplay === '已取消'" class="cannot-refer-text">无效记录，无法转诊</text>
             <text v-else-if="item.statusDisplay === '待就诊'" class="cannot-refer-text">未就诊，不能转诊</text>
             <text v-else class="cannot-refer-text">超过5天，无法转诊</text>
           </view>
@@ -183,7 +184,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { getRegistrationRecords } from '@/api/registration'
+import { getRegistrationRecords, getPatientDetailById } from '@/api/registration'
 import { getStaticImage } from '@/utils/imageHelper'
 import { ensurePatientCard } from '@/utils/patientHelper'
 import { getPatientReferralList } from '@/api/referral'
@@ -297,6 +298,30 @@ const parseDate = (dateStr) => {
   return parsed
 }
 
+// 根据时间段获取就诊开始时间（小时）
+const getTimeSlotStartHour = (timeSlot) => {
+  const slotNum = Number(timeSlot)
+  if (slotNum === 1) return 8   // 上午 08:00
+  if (slotNum === 2) return 14  // 下午 14:00
+  if (slotNum === 3) return 18  // 晚上 18:00
+  return null
+}
+
+// 根据排班日期和时段构建就诊时间（返回Date对象）
+const buildAppointmentDateTime = (scheduleDateStr, timeSlot) => {
+  if (!scheduleDateStr || !timeSlot) return null
+  
+  const scheduleDate = parseToDate(scheduleDateStr)
+  if (!scheduleDate) return null
+  
+  const startHour = getTimeSlotStartHour(timeSlot)
+  if (startHour === null) return null
+  
+  const appointmentTime = new Date(scheduleDate)
+  appointmentTime.setHours(startHour, 0, 0, 0)
+  return appointmentTime
+}
+
 const parseToDate = (value) => {
   if (!value) return null
   if (value instanceof Date) {
@@ -325,23 +350,23 @@ const parseToDate = (value) => {
 
 const cloneStatus = (statusDefinition) => ({ ...statusDefinition })
 
-const resolveStatusInfo = (rawStatusValue, visitTimeStr, registerTimeStr) => {
+const resolveStatusInfo = (rawStatusValue, visitTimeStr, registerTimeStr, scheduleDateStr = null, timeSlot = null, cancelTime = null, cancelReason = null) => {
 		const rawText = String(rawStatusValue ?? '').trim()
-		// 只使用visitTimeStr，不使用registerTimeStr作为备选，因为registerTimeStr是挂号时间，不是就诊时间
-		const visitDate = parseToDate(visitTimeStr)
 		const now = new Date()
 
-		// 优先处理取消状态
-		if (rawText && /(取消|退号|作废|关闭|失败|拒绝|撤销)/.test(rawText)) {
+		// 优先检查是否取消（取消状态优先级最高）
+		// 只有 cancel_time 和 cancel_reason 都有合理数值时，才判定为已取消
+		const hasCancelTime = cancelTime && String(cancelTime).trim() !== ''
+		const hasCancelReason = cancelReason && String(cancelReason).trim() !== ''
+		
+		if (hasCancelTime && hasCancelReason) {
 			return cloneStatus(STATUS_DEFINITIONS.cancelled)
 		}
-		
-		// 优先处理过期状态
-		if (rawText && /(过期|失效)/.test(rawText)) {
-			return cloneStatus(STATUS_DEFINITIONS.expired)
-		}
 
-		// 如果有就诊时间，优先根据时间判定状态
+		// 只使用visitTimeStr，不使用registerTimeStr作为备选，因为registerTimeStr是挂号时间，不是就诊时间
+		const visitDate = parseToDate(visitTimeStr)
+
+		// 优先检查是否有实际就诊时间
 		if (visitDate) {
 			if (now < visitDate) {
 				// 未来的就诊，应该是待就诊
@@ -354,13 +379,48 @@ const resolveStatusInfo = (rawStatusValue, visitTimeStr, registerTimeStr) => {
 			return cloneStatus(STATUS_DEFINITIONS.expired)
 		}
 
-		// 然后才根据状态码判定
-		if (RAW_STATUS_CODE_MAP.has(rawText)) {
-			return cloneStatus(RAW_STATUS_CODE_MAP.get(rawText))
+		// 如果没有实际就诊时间，使用排班时间判断状态
+		if (scheduleDateStr && timeSlot) {
+			const appointmentTime = buildAppointmentDateTime(scheduleDateStr, timeSlot)
+			if (appointmentTime) {
+				// 如果当前时间还没到排班时间 → 待就诊
+				if (now < appointmentTime) {
+					return cloneStatus(STATUS_DEFINITIONS.pending)
+				}
+				// 如果当前时间已经超过排班时间 → 已就诊（已完成）
+				// 判断是否超过5天
+				const diffDays = (now.getTime() - appointmentTime.getTime()) / DAY_IN_MS
+				if (diffDays <= 5) {
+					return cloneStatus(STATUS_DEFINITIONS.completed)
+				}
+				// 超过5天 → 已过期
+				return cloneStatus(STATUS_DEFINITIONS.expired)
+			}
 		}
 
-		if (rawText && RAW_STATUS_CODE_MAP.has(String(Number(rawText)))) {
-			return cloneStatus(RAW_STATUS_CODE_MAP.get(String(Number(rawText))))
+		// 如果状态码是3或4，但没有取消时间和原因，不判定为已取消
+		// 状态码3（已退号）和4（已取消）需要同时有cancel_time和cancel_reason才能判定为已取消
+		if (rawText === '3' || rawText === '4' || rawText === 3 || rawText === 4) {
+			// 如果没有取消时间和原因，根据其他信息判断状态
+			// 继续后续判断逻辑
+		} else {
+			// 对于其他状态码，使用状态码映射
+			if (RAW_STATUS_CODE_MAP.has(rawText)) {
+				return cloneStatus(RAW_STATUS_CODE_MAP.get(rawText))
+			}
+
+			if (rawText && RAW_STATUS_CODE_MAP.has(String(Number(rawText)))) {
+				return cloneStatus(RAW_STATUS_CODE_MAP.get(String(Number(rawText))))
+			}
+		}
+
+		// 如果没有取消时间和原因，再检查状态文本关键字（但不包括取消相关的关键字）
+		if (rawText) {
+			if (/(过期|失效)/.test(rawText)) {
+				return cloneStatus(STATUS_DEFINITIONS.expired)
+			}
+			// 如果关键字匹配到取消，但没有cancel_time和cancel_reason，不判定为已取消
+			// 因为可能只是状态文本，而不是真正的取消记录
 		}
 
 		// 最后根据关键字规则判定
@@ -677,7 +737,14 @@ const loadHospitalRecords = async () => {
       const displayRegisterTime = formatDateTimeForDisplay(rawRegisterTime)
       const displayVisitTime = formatDateTimeForDisplay(rawVisitTime)
       const displayTimeSlot = item.timeSlot || item.time_slot || item.appointmentTimeSlot || displayVisitTime || '-'
-      const statusInfo = resolveStatusInfo(rawStatus, rawVisitTime, rawRegisterTime)
+      
+      // 获取排班日期和取消相关字段
+      const scheduleDateStr = item.scheduleDate || item.schedule_date || item.appointmentDate || item.appointment_date || null
+      const timeSlot = item.timeSlot || item.time_slot || item.appointmentTimeSlot || null
+      const cancelTime = item.cancelTime || item.cancel_time || null
+      const cancelReason = item.cancelReason || item.cancel_reason || null
+      
+      const statusInfo = resolveStatusInfo(rawStatus, rawVisitTime, rawRegisterTime, scheduleDateStr, timeSlot, cancelTime, cancelReason)
       
       // 检查是否有转诊记录
       const recordId = Number(item.recordId || item.id)
@@ -708,7 +775,8 @@ const loadHospitalRecords = async () => {
         statusDescription: finalStatusInfo.description,
         recordNumber: recordNumber,
         recordNumberDisplay: recordNumber || '无编号',
-        canRefer: statusInfo.allowReferral,
+        // 取消的记录不能转诊，即使 allowReferral 为 true
+        canRefer: statusInfo.key === 'cancelled' ? false : statusInfo.allowReferral,
         hasReferral: hasReferral,
         hasSuccessfulReferral: hasSuccessfulReferral,
         referralStatus: referralStatus,
@@ -959,7 +1027,7 @@ const goToReferralApplication = async (record) => {
     // 如果就诊记录中有patientId，使用该patientId获取患者信息
     if (recordPatientId) {
       try {
-        patientInfo = await patientApi.getPatientDetail({ patientId: recordPatientId })
+        patientInfo = await getPatientDetailById(Number(recordPatientId))
         patientName = patientInfo?.patientName || patientInfo?.name || ''
         console.log('使用就诊记录中的patientId获取患者信息:', recordPatientId, patientName)
       } catch (error) {

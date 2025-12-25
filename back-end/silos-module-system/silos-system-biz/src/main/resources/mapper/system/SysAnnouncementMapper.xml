@@ -30,7 +30,7 @@
         <result column="send_id" property="sendId" jdbcType="VARCHAR"/>
     </resultMap>
 
-    <select id="querySysCementListByUserId" parameterType="map" resultMap="SysAnnouncement">
+    <select id="querySysCementListByUserId" resultMap="SysAnnouncement">
         select
             id,
             titile,

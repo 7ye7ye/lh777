@@ -7,7 +7,7 @@ const dashboardRoute = {
   path: '/dashboard',
   name: 'Dashboard',
   component: 'LAYOUT',
-  redirect: '/dashboard/analysis',
+  redirect: '/admin/statistics',
   meta: {
     title: 'routes.dashboard.dashboard',
     hideChildrenInMenu: true,
@@ -366,11 +366,11 @@ export default [
       let menu: Object[];
       switch (id) {
         case '1':
-          dashboardRoute.redirect = dashboardRoute.path + '/' + dashboardRoute.children[0].path;
+          dashboardRoute.redirect = '/admin/statistics';
           menu = [dashboardRoute, adminRoute, authRoute, levelRoute, sysRoute, linkRoute];
           break;
         case '2':
-          dashboardRoute.redirect = dashboardRoute.path + '/' + dashboardRoute.children[1].path;
+          dashboardRoute.redirect = '/admin/statistics';
           menu = [dashboardRoute, authRoute, levelRoute, linkRoute];
           break;
         default:

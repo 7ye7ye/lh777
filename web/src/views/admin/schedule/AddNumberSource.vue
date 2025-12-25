@@ -1,7 +1,7 @@
 <template>
   <div class="add-number-source-container">
     <div class="page-header">
-      <h2>{{ t('routes.admin.addNumberSource') }}</h2>
+      <h2>{{ t('新增号源') }}</h2>
     </div>
 
     <!-- 表单选择科室/医生/查询天数 -->

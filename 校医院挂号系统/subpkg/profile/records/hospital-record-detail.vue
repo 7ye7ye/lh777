@@ -96,6 +96,7 @@
       <button v-if="canRefer && !hasReferral" class="action-btn referral-btn" @click="goToReferral">申请转诊</button>
       <button v-else-if="referralStatus === 'PENDING'" class="action-btn referral-btn" @click="goToReferralStatus">申请中，可查看进度</button>
       <button v-else-if="hasReferral" class="action-btn referral-btn" @click="goToReferralStatus">查看转诊情况</button>
+      <text v-else-if="statusDisplay === '已取消'" class="action-btn cannot-refer-btn">无效记录，无法转诊</text>
       <text v-else-if="statusDisplay === '待就诊'" class="action-btn cannot-refer-btn">未就诊，不能转诊</text>
       <text v-else class="action-btn cannot-refer-btn">超过5天，无法转诊</text>
     </view>
@@ -423,8 +424,15 @@ const resolveStatusInfo = (rawStatusValue, visitTimeStr, registerTimeStr, schedu
 }
 
 // 检查是否可以转诊（统一判断逻辑，与就诊记录页面一致）
-const checkCanRefer = (rawStatusValue, visitTimeStr, registerTimeStr, scheduleDateStr = null, timeSlot = null) => {
+const checkCanRefer = (rawStatusValue, visitTimeStr, registerTimeStr, scheduleDateStr = null, timeSlot = null, cancelTime = null, cancelReason = null) => {
   const now = new Date()
+  
+  // 优先检查是否取消（取消状态不能转诊）
+  const hasCancelTime = cancelTime && String(cancelTime).trim() !== ''
+  const hasCancelReason = cancelReason && String(cancelReason).trim() !== ''
+  if (hasCancelTime && hasCancelReason) {
+    return false // 取消的记录不能转诊
+  }
   
   // 优先使用排班时间判断（与状态判断逻辑一致）
   if (scheduleDateStr && timeSlot) {
@@ -718,7 +726,9 @@ const loadRecordDetails = async () => {
                   routeData.visitTime,
                   routeData.registerTime,
                   finalScheduleDateStr,
-                  finalTimeSlot
+                  finalTimeSlot,
+                  cancelTime,
+                  cancelReason
                 )
               }
             }
@@ -741,7 +751,7 @@ const loadRecordDetails = async () => {
             statusDisplay.value = statusInfo.label || '待就诊'
             
             if (routeData.canRefer === undefined || routeData.canRefer === null) {
-              canRefer.value = checkCanRefer(routeData.status, routeData.visitTime, routeData.registerTime, scheduleDateStr, timeSlot)
+              canRefer.value = checkCanRefer(routeData.status, routeData.visitTime, routeData.registerTime, scheduleDateStr, timeSlot, cancelTime, cancelReason)
             }
           }
         }
@@ -778,12 +788,26 @@ const loadRecordDetails = async () => {
         if (canRefer.value === undefined || canRefer.value === null) {
           const finalScheduleDateStr = scheduleDateStr || routeData.scheduleDateStr || routeData.originalRecord?.scheduleDate
           const finalTimeSlot = timeSlot || routeData.timeSlotValue || routeData.originalRecord?.timeSlot
-          canRefer.value = checkCanRefer(routeData.status, routeData.visitTime, routeData.registerTime, finalScheduleDateStr, finalTimeSlot)
+          canRefer.value = checkCanRefer(routeData.status, routeData.visitTime, routeData.registerTime, finalScheduleDateStr, finalTimeSlot, cancelTime, cancelReason)
         }
       }
       
-      // 检查是否已申请过转诊
-      await checkReferralStatus()
+      // 优先使用传递过来的转诊状态
+      if (routeData.hasReferral !== undefined && routeData.hasReferral !== null) {
+        hasReferral.value = routeData.hasReferral
+      }
+      if (routeData.referralStatus) {
+        referralStatus.value = (routeData.referralStatus || '').toUpperCase()
+      }
+      if (routeData.referralId) {
+        record.value.referralId = routeData.referralId
+      }
+      
+      // 如果已经传递了转诊状态，就不需要再查询了
+      // 否则检查是否已申请过转诊
+      if (!hasReferral.value) {
+        await checkReferralStatus()
+      }
       
       // 初始化科室和医生信息
       let doctorId = null;
