@@ -38,6 +38,8 @@ BASE_URL: 'https://xxxxx.cpolar.cn'  // 替换为你的 cpolar 地址
 - uploadFile合法域名：`https://xxxxx.cpolar.cn`
 - downloadFile合法域名：`https://xxxxx.cpolar.cn`
 
+![image-20251225165939975](README-真机调试.assets/image-20251225165939975.png)
+
 ### 5. 重新编译并测试
 
 - 确保后端运行在 `127.0.0.1:8095`
