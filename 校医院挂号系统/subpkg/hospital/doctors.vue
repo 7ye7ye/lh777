@@ -39,7 +39,7 @@
       </view>
       
       <view class="empty" v-if="doctorList.length === 0">
-        <image src="/static/empty_message.png" mode="widthFix" class="empty-img"></image>
+        <image :src="getStaticImage('/static/empty_message.png')" mode="widthFix" class="empty-img"></image>
         <text>暂无医生信息</text>
       </view>
     </view>
@@ -52,6 +52,7 @@
 import { ref, onMounted } from 'vue'
 import { getAllDoctors, searchDoctors } from '../../api/doctor_massage'
 import { getDoctorSchedules } from '../../api/registration'
+import { getStaticImage } from '@/utils/imageHelper'
 
 // 生成医生头像初始化字母
 const getDoctorInitial = (name) => {

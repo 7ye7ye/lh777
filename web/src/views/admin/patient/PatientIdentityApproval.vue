@@ -35,6 +35,17 @@
             />
             <span v-else>-</span>
           </template>
+
+          <!-- 手持证件照片列 -->
+          <template v-if="column.dataIndex === 'handheldIdentityPhoto'">
+            <img
+              v-if="record.handheldIdentityPhoto"
+              :src="record.handheldIdentityPhoto"
+              style="width: 80px; height: 80px; object-fit: cover; cursor: pointer; border-radius: 4px;"
+              @click="previewImage(record.handheldIdentityPhoto)"
+            />
+            <span v-else>-</span>
+          </template>
           
           <!-- 状态列 -->
           <template v-else-if="column.dataIndex === 'identityVerify'">
@@ -50,9 +61,13 @@
               <a-button size="small" type="link" :disabled="record.identityVerify !== 0" @click="handleApprove(record, true)">
                 通过
               </a-button>
-              <a-button size="small" type="link" danger :disabled="record.identityVerify !== 0" @click="handleApprove(record, false)">
+              <a-button size="small" type="link" danger :disabled="record.identityVerify !== 0" @click="showRejectModal(record)">
                 驳回
               </a-button>
+              <a-tooltip v-if="record.identityVerify === 2 && record.rejectReason">
+                <template #title>{{ record.rejectReason }}</template>
+                <info-circle-outlined style="color: #ff4d4f; cursor: pointer;" />
+              </a-tooltip>
             </a-space>
           </template>
         </template>
@@ -71,6 +86,24 @@
         <img :src="previewImageUrl" style="max-width: 100%; max-height: 70vh;" />
       </div>
     </a-modal>
+    
+    <!-- 驳回原因模态框 -->
+    <a-modal
+      v-model:open="rejectModalVisible"
+      title="驳回原因"
+      @ok="confirmReject"
+      :confirmLoading="rejectLoading"
+    >
+      <a-form>
+        <a-form-item label="驳回原因" required>
+          <a-textarea 
+            v-model:value="rejectReason" 
+            :rows="4" 
+            placeholder="请输入驳回原因，例如：证件照片模糊、信息不匹配等"
+          />
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </PageWrapper>
 </template>
 
@@ -80,13 +113,20 @@ import { ref, reactive, onMounted } from 'vue';
 import { PageWrapper } from '/@/components/Page';
 import { useMessage } from '/@/hooks/web/useMessage';
 import { getPatientIdentityApprovals, approvePatientIdentity } from '/@/api/hospital/patient';
+import { InfoCircleOutlined } from '@ant-design/icons-vue';
 
-const { createMessage } = useMessage();
+const { createMessage, createConfirm } = useMessage();
 
 const loading = ref(false);
 const status = ref<number | undefined>(0);
 const previewVisible = ref(false);
 const previewImageUrl = ref('');
+
+// 驳回相关状态
+ const rejectModalVisible = ref(false);
+ const rejectLoading = ref(false);
+ const rejectReason = ref('');
+ const currentRecord = ref<PatientRecord | null>(null);
 
 interface PatientRecord {
   patientId: number;
@@ -97,6 +137,8 @@ interface PatientRecord {
   staffId?: string;
   identityVerify?: number;
   identityPhoto?: string;
+  handheldIdentityPhoto?: string;
+  rejectReason?: string;
 }
 
 const dataSource = ref<PatientRecord[]>([]);
@@ -125,6 +167,7 @@ const columns = [
   { title: '学号', dataIndex: 'studentId', width: 120 },
   { title: '工号', dataIndex: 'staffId', width: 120 },
   { title: '证件照片', dataIndex: 'identityPhoto', width: 120 },
+  { title: '手持证件照片', dataIndex: 'handheldIdentityPhoto', width: 120 },
   { title: '状态', dataIndex: 'identityVerify', width: 100 },
   { title: '操作', key: 'action', width: 160 },
 ];
@@ -159,13 +202,52 @@ function handleTableChange(pag: any) {
   pagination.pageSize = pag.pageSize;
 }
 
+
+function showRejectModal(record: PatientRecord) {
+  currentRecord.value = record;
+  rejectReason.value = '';
+  rejectModalVisible.value = true;
+}
+
+// 确认驳回
+async function confirmReject() {
+  if (!rejectReason.value || rejectReason.value.trim() === '') {
+    createMessage.warning('请输入驳回原因');
+    return;
+  }
+  
+  if (!currentRecord.value) return;
+  
+  rejectLoading.value = true;
+  try {
+    await approvePatientIdentity({
+      patientId: currentRecord.value.patientId,
+      approve: false,
+      rejectReason: rejectReason.value
+    });
+    createMessage.success('已驳回该申请');
+    rejectModalVisible.value = false;
+    fetchData();
+  } catch (e) {
+    console.error(e);
+    createMessage.error('操作失败，请稍后重试');
+  } finally {
+    rejectLoading.value = false;
+  }
+}
+
 async function handleApprove(record: PatientRecord, approve: boolean) {
+  if (!approve) {
+    showRejectModal(record);
+    return;
+  }
+  
   try {
     await approvePatientIdentity({
       patientId: record.patientId,
-      approve,
+      approve: true,
     });
-    createMessage.success(approve ? '已通过该申请' : '已驳回该申请');
+    createMessage.success('已通过该申请');
     fetchData();
   } catch (e) {
     console.error(e);

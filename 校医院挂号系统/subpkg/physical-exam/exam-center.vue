@@ -2,7 +2,7 @@
   <view class="center-bg">
     <!-- 头部Banner -->
     <view class="header-banner">
-      <image class="banner-bg" src="/static/hospitalpicture.png" mode="aspectFill" />
+      <image class="banner-bg" :src="getStaticImage('/static/hospitalpicture.png')" mode="aspectFill" />
       <view class="banner-overlay">
         <text class="banner-title">北京交通大学体检中心</text>
         <text class="banner-subtitle">专业体检·精准服务·健康管理</text>
@@ -161,6 +161,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { getStaticImage } from '@/utils/imageHelper'
 
 // 服务特色
 const features = [

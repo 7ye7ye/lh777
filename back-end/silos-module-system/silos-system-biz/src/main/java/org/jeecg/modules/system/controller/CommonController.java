@@ -213,6 +213,13 @@ public class CommonController {
         if(oConvertUtils.isEmpty(imgPath) || CommonConstant.STRING_NULL.equals(imgPath)){
             return;
         }
+        
+        // 如果是 static-resources 路径，直接处理图片显示
+        if (imgPath.startsWith("static-resources/")) {
+            handleStaticResource(imgPath, request, response);
+            return;
+        }
+        
         // 其余处理略
         InputStream inputStream = null;
         OutputStream outputStream = null;
@@ -346,6 +353,74 @@ public class CommonController {
         String path = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
         String bestMatchPattern = (String) request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
         return new AntPathMatcher().extractPathWithinPattern(bestMatchPattern, path);
+    }
+
+    /**
+     * 处理静态资源（static-resources）路径的图片显示
+     */
+    private void handleStaticResource(String imgPath, HttpServletRequest request, HttpServletResponse response) {
+        InputStream inputStream = null;
+        OutputStream outputStream = null;
+        try {
+            // 移除 static-resources/ 前缀，获取实际文件路径
+            String relativePath = imgPath.replace("static-resources/", "");
+            
+            // 构建完整文件路径
+            String staticResourcesPath = "D:/yeyeye/课程/大三/专业实训Ⅲ/项目代码/lh777/back-end/upload/static-resources/";
+            String filePath = staticResourcesPath + relativePath;
+            File file = new File(filePath);
+            
+            if(!file.exists()){
+                response.setStatus(404);
+                log.error("静态资源文件["+filePath+"]不存在..");
+                return;
+            }
+            
+            // 根据文件扩展名设置正确的 Content-Type
+            String fileName = file.getName().toLowerCase();
+            String contentType = "application/octet-stream";
+            if (fileName.endsWith(".svg")) {
+                contentType = "image/svg+xml";
+            } else if (fileName.endsWith(".png")) {
+                contentType = "image/png";
+            } else if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
+                contentType = "image/jpeg";
+            } else if (fileName.endsWith(".gif")) {
+                contentType = "image/gif";
+            } else if (fileName.endsWith(".webp")) {
+                contentType = "image/webp";
+            }
+            
+            response.setContentType(contentType);
+            response.setHeader("Cache-Control", "public, max-age=2592000"); // 30天缓存
+            
+            inputStream = new BufferedInputStream(new FileInputStream(filePath));
+            outputStream = response.getOutputStream();
+            byte[] buf = new byte[1024];
+            int len;
+            while ((len = inputStream.read(buf)) > 0) {
+                outputStream.write(buf, 0, len);
+            }
+            response.flushBuffer();
+        } catch (IOException e) {
+            log.error("读取静态资源文件失败: " + e.getMessage(), e);
+            response.setStatus(500);
+        } finally {
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                    log.error(e.getMessage(), e);
+                }
+            }
+            if (outputStream != null) {
+                try {
+                    outputStream.close();
+                } catch (IOException e) {
+                    log.error(e.getMessage(), e);
+                }
+            }
+        }
     }
 
 }

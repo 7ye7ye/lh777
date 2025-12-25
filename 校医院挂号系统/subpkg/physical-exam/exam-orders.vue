@@ -89,7 +89,7 @@
 
     <!-- 空状态 -->
     <view class="empty-state" v-else>
-      <image class="empty-icon" src="/static/empty_message.png" mode="aspectFit" />
+      <image class="empty-icon" :src="getStaticImage('/static/empty_message.png')" mode="aspectFit" />
       <text class="empty-text">{{ emptyText }}</text>
       <button class="empty-btn" @click="goToBooking">立即预约体检</button>
     </view>
@@ -100,6 +100,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { getStaticImage } from '@/utils/imageHelper'
 
 // 标签页
 const tabs = ref([

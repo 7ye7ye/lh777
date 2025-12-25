@@ -47,6 +47,7 @@
 import { ref, onMounted } from 'vue'
 import { doctorApi } from '@/api/doctor'
 import { uploadIdentityPhoto } from '@/api/file'
+import { getStaticImage } from '@/utils/imageHelper'
 
 const form = ref({
   id: null,
@@ -59,7 +60,7 @@ const loading = ref(false)
 const saving = ref(false)
 
 // 头像本地预览（完整 URL 或临时路径）
-const avatarPreview = ref('/static/doctor.svg')
+const avatarPreview = ref(getStaticImage('/static/doctor.svg'))
 
 const loadProfile = async () => {
   if (loading.value) return
@@ -81,7 +82,7 @@ const loadProfile = async () => {
     if (form.value.avatar) {
       avatarPreview.value = buildImageUrl(form.value.avatar)
     } else {
-      avatarPreview.value = '/static/doctor.svg'
+      avatarPreview.value = getStaticImage('/static/doctor.svg')
     }
   } catch (e) {
     console.error('加载医生资料失败:', e)
@@ -97,10 +98,13 @@ const goBack = () => {
   uni.navigateBack()
 }
 
+// 使用统一的配置函数
+import { getBaseURL, getApiPrefix } from '@/config/api'
+
 const buildImageUrl = (relativePath) => {
   if (!relativePath) return ''
-  const baseURL = uni.getStorageSync('BASE_URL') || 'http://localhost:8095'
-  const apiPrefix = uni.getStorageSync('API_PREFIX') || '/jeecg-boot'
+  const baseURL = getBaseURL()
+  const apiPrefix = getApiPrefix()
   const cleanPrefix = apiPrefix.endsWith('/') ? apiPrefix.slice(0, -1) : apiPrefix
   const cleanPath = relativePath.replace(/^\/+/, '')
   return `${baseURL}${cleanPrefix}/sys/common/static/${encodeURI(cleanPath)}`

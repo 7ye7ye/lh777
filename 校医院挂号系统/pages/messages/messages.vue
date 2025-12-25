@@ -32,7 +32,7 @@
 			</view>
 
 			<view v-else class="empty-container">
-				<image class="empty-icon" src="/static/empty_message.png" mode="aspectFit"></image>
+				<image class="empty-icon" :src="getStaticImage('/static/empty_message.png')" mode="aspectFit"></image>
 				<text class="empty-text">暂无任何消息</text>
 			</view>
 		</view>
@@ -42,6 +42,8 @@
 <script>
 	import LoginPrompt from '@/components/LoginPrompt.vue'
 	import { useUserStore } from '@/store/user'
+	import { getStaticImage } from '@/utils/imageHelper'
+	import { getBaseURL, getApiPrefix } from '@/config/api'
 
 	export default {
 		components: {
@@ -116,21 +118,22 @@
 
 			// 根据消息类型返回对应的图标
 			getMessageIcon(messageType) {
+				const iconPath = '/static/info_message.png';
 				switch(messageType) {
 					case 'APPOINTMENT_SUCCESS':
-						return '/static/info_message.png';
+						return getStaticImage(iconPath);
 					case 'APPOINTMENT_CANCEL':
-						return '/static/info_message.png';
+						return getStaticImage(iconPath);
 					case 'APPOINTMENT_REMINDER':
-						return '/static/info_message.png'; // 可以替换为专门的提醒图标
+						return getStaticImage(iconPath); // 可以替换为专门的提醒图标
 					case 'APPOINTMENT_ONE_HOUR':
-						return '/static/info_message.png';
+						return getStaticImage(iconPath);
 					case 'APPOINTMENT_WAITING_SUCCESS':
-						return '/static/info_message.png';
+						return getStaticImage(iconPath);
 					case 'APPOINTMENT_WAITING_JOIN':
-						return '/static/info_message.png';
+						return getStaticImage(iconPath);
 					default:
-						return '/static/info_message.png';
+						return getStaticImage(iconPath);
 				}
 			},
 
@@ -254,8 +257,10 @@
 					return;
 				}
 
-				// 这里的IP地址和端口需要换成后端项目运行的实际地址
-				const apiUrl = 'http://localhost:8095/jeecg-boot/api/messages/list';
+				// 使用统一配置构建 API URL
+				const baseURL = getBaseURL()
+				const apiPrefix = getApiPrefix()
+				const apiUrl = `${baseURL}${apiPrefix}/api/messages/list`
 				const requestUrl = `${apiUrl}?userId=${userId}`;
 				console.log('📤 请求URL:', requestUrl);
 

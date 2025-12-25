@@ -170,11 +170,11 @@
         </view>
       </view>
       <view v-if="filteredRecords.length === 0 && records.length > 0" class="empty-container">
-        <image class="empty-icon" src="/static/no-records.svg" mode="aspectFit"></image>
+        <image class="empty-icon" :src="getStaticImage('/static/no-records.svg')" mode="aspectFit"></image>
         <text class="empty-text">暂无该状态的就诊记录</text>
       </view>
       <view v-else-if="records.length === 0" class="empty-container">
-        <image class="empty-icon" src="/static/no-records.svg" mode="aspectFit"></image>
+        <image class="empty-icon" :src="getStaticImage('/static/no-records.svg')" mode="aspectFit"></image>
         <text class="empty-text">暂无就诊记录</text>
       </view>
     </view>
@@ -184,6 +184,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { getRegistrationRecords } from '@/api/registration'
+import { getStaticImage } from '@/utils/imageHelper'
 import { ensurePatientCard } from '@/utils/patientHelper'
 import { getPatientReferralList } from '@/api/referral'
 

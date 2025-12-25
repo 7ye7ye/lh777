@@ -4,7 +4,7 @@
     <view class="empty-container">
       <image 
         class="empty-bg-image" 
-        src="/static/images/no_data.png" 
+        :src="getStaticImage('/static/images/no_data.png')" 
         mode="scaleToFill"
       />
       <view class="empty-content">
@@ -18,6 +18,7 @@
 import { ref, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/user'
+import { getStaticImage } from '@/utils/imageHelper'
 
 const userStore = useUserStore()
 const loading = ref(false)

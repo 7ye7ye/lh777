@@ -1,28 +1,21 @@
 // src/utils/request.ts
 // @ts-nocheck
 
+// 导入统一配置
+import { getBaseURL, getApiPrefix } from '@/config/api'
+
 // 配置基础地址：支持运行时覆盖
 const detectBaseURL = (): string => {
-  // 1) 运行时存储覆盖（在微信开发者工具控制台可设置：uni.setStorageSync('BASE_URL', 'http://ip:port')）
-  const stored = typeof uni !== 'undefined' ? uni.getStorageSync('BASE_URL') : '';
-  if (stored) return stored;
-
-  // 2) 全局变量覆盖（在页面注入 window.__API_BASE_URL / globalThis.__API_BASE_URL）
-  const g: any = (typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : {}));
-  if (g && g.__API_BASE_URL) return g.__API_BASE_URL as string;
-
-  // 3) 默认值（本地开发）
-  return 'http://localhost:8095';
+  // 使用统一配置
+  const url = getBaseURL();
+  console.log('🌐 当前 API Base URL:', url);
+  return url;
 };
 
+// 在模块加载时立即获取配置（确保使用最新值）
 const baseURL = detectBaseURL();
-const API_PREFIX = (() => {
-  try {
-    return typeof uni !== 'undefined' ? (uni.getStorageSync('API_PREFIX') || '/jeecg-boot') : '/jeecg-boot';
-  } catch (_) {
-    return '/jeecg-boot';
-  }
-})();
+const API_PREFIX = getApiPrefix();
+console.log('🌐 当前 API Prefix:', API_PREFIX);
 
 // 请求拦截器：添加 token、统一配置等
 const requestInterceptor = (options) => {

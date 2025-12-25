@@ -10,6 +10,7 @@ public class DoctorRegisterRequest {
     private String doctorName;
     private Long deptId;
     private String title;
+    private Long titleId;
     private String specialty;
     private String doctorDesc;
     private String email;

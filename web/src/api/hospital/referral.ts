@@ -5,6 +5,7 @@ enum Api {
   ReferralDetail = '/admin/referral',
   ReferralReview = '/admin/referral/review',
   ReferralOptions = '/admin/referral/options',
+  ReferralApplication = '/admin/referral/application',
   PatientReferralList = '/patient/referral/list',
   PatientReferralDetail = '/patient/referral',
   PatientReferralCancel = '/patient/referral/cancel',
@@ -21,6 +22,9 @@ export const reviewReferral = (data: Recordable) =>
 
 export const getReferralOptions = () =>
   defHttp.get({ url: Api.ReferralOptions });
+
+export const submitReferralApplication = (data: Recordable) =>
+  defHttp.post({ url: Api.ReferralApplication, data });
 
 export const getPatientReferralList = (params: Recordable) =>
   defHttp.get({ url: Api.PatientReferralList, params });

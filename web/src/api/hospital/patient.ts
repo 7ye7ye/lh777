@@ -14,3 +14,17 @@ export function approvePatientIdentity(data: { patientId: number; approve: boole
     params: data,
   });
 }
+
+// 获取患者身份认证驳回原因
+export function getPatientIdentityRejectReason(patientId: number) {
+  return defHttp.get<any>({
+    url: `/patient/identity/rejectReason/${patientId}`,
+  });
+}
+
+// 获取患者身份认证审核历史
+export function getPatientIdentityAuditHistory(patientId: number) {
+  return defHttp.get<any>({
+    url: `/patient/identity/auditHistory/${patientId}`,
+  });
+}
