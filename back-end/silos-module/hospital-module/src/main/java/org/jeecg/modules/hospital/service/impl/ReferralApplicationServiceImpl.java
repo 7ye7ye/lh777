@@ -29,6 +29,7 @@ import org.jeecg.modules.hospital.service.IReferralApplicationService;
 import org.jeecg.modules.hospital.vo.referral.ReferralOptionsVO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.apache.shiro.SecurityUtils;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
@@ -105,6 +106,64 @@ public class ReferralApplicationServiceImpl extends ServiceImpl<ReferralApplicat
             entity.setRegistrationRecordId(registrationRecordId);
         }
 
+        // 设置关联用户ID
+        try {
+            Object principal = SecurityUtils.getSubject().getPrincipal();
+            if (principal != null) {
+                // 打印调试信息
+                System.out.println("Principal type: " + principal.getClass().getName());
+                // 根据项目实际情况获取用户ID
+                if (principal instanceof org.jeecg.common.system.vo.HosUser) {
+                    org.jeecg.common.system.vo.HosUser hosUser = (org.jeecg.common.system.vo.HosUser) principal;
+                    entity.setUserId(hosUser.getUserId());
+                    System.out.println("Set userId from org.jeecg.common.system.vo.HosUser: " + hosUser.getUserId());
+                } else if (principal instanceof org.jeecg.modules.hospital.entity.HosUser) {
+                    org.jeecg.modules.hospital.entity.HosUser hosUser = (org.jeecg.modules.hospital.entity.HosUser) principal;
+                    entity.setUserId(hosUser.getUserId());
+                    System.out.println("Set userId from org.jeecg.modules.hospital.entity.HosUser: " + hosUser.getUserId());
+                } else {
+                    // 尝试使用反射获取userId字段
+                    try {
+                        // 尝试获取userId字段
+                        java.lang.reflect.Field userIdField = principal.getClass().getDeclaredField("userId");
+                        userIdField.setAccessible(true);
+                        Object userIdValue = userIdField.get(principal);
+                        if (userIdValue != null) {
+                            if (userIdValue instanceof Long) {
+                                entity.setUserId((Long) userIdValue);
+                                System.out.println("Set userId from reflection: " + userIdValue);
+                            } else if (userIdValue instanceof Integer) {
+                                entity.setUserId(((Integer) userIdValue).longValue());
+                                System.out.println("Set userId from reflection (converted from Integer): " + userIdValue);
+                            }
+                        }
+                    } catch (Exception ex) {
+                        System.out.println("Failed to get userId from reflection: " + ex.getMessage());
+                        // 尝试获取id字段作为备用
+                        try {
+                            java.lang.reflect.Field idField = principal.getClass().getDeclaredField("id");
+                            idField.setAccessible(true);
+                            Object idValue = idField.get(principal);
+                            if (idValue != null) {
+                                if (idValue instanceof Long) {
+                                    entity.setUserId((Long) idValue);
+                                    System.out.println("Set userId from id field: " + idValue);
+                                } else if (idValue instanceof Integer) {
+                                    entity.setUserId(((Integer) idValue).longValue());
+                                    System.out.println("Set userId from id field (converted from Integer): " + idValue);
+                                }
+                            }
+                        } catch (Exception ex2) {
+                            System.out.println("Failed to get userId from id field: " + ex2.getMessage());
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // 记录日志但不影响正常流程
+            e.printStackTrace();
+        }
+
         if (CollUtil.isNotEmpty(request.getAttachments())) {
             entity.setAttachments(convertAttachments(request.getAttachments()));
         }
@@ -145,6 +204,24 @@ public class ReferralApplicationServiceImpl extends ServiceImpl<ReferralApplicat
         if (query.getDeptId() != null) {
             wrapper.eq(ReferralApplication::getTargetDeptId, query.getDeptId());
         }
+        
+        // 添加用户ID过滤，只查询当前用户的转诊记录
+        try {
+            Object principal = SecurityUtils.getSubject().getPrincipal();
+            if (principal != null) {
+                if (principal instanceof org.jeecg.common.system.vo.HosUser) {
+                    org.jeecg.common.system.vo.HosUser hosUser = (org.jeecg.common.system.vo.HosUser) principal;
+                    wrapper.eq(ReferralApplication::getUserId, hosUser.getUserId());
+                } else if (principal instanceof org.jeecg.modules.hospital.entity.HosUser) {
+                    org.jeecg.modules.hospital.entity.HosUser hosUser = (org.jeecg.modules.hospital.entity.HosUser) principal;
+                    wrapper.eq(ReferralApplication::getUserId, hosUser.getUserId());
+                }
+            }
+        } catch (Exception e) {
+            // 记录日志但不影响正常流程
+            e.printStackTrace();
+        }
+        
         wrapper.orderByDesc(ReferralApplication::getApplyTime);
         return page(page, wrapper);
     }

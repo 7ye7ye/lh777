@@ -7,20 +7,22 @@ const dashboard: AppRouteModule = {
   path: '/dashboard',
   name: 'Dashboard',
   component: LAYOUT,
-  redirect: '/dashboard/analysis',
+  redirect: '/admin/statistics',
   meta: {
     orderNo: 10,
     icon: 'ion:grid-outline',
     title: t('routes.dashboard.dashboard'),
+    hideMenu: true, // 隐藏菜单，因为已经重定向到 admin/statistics
   },
   children: [
     {
       path: 'analysis',
       name: 'Analysis',
-      component: () => import('/@/views/dashboard/Analysis/index.vue'),
+      redirect: '/admin/statistics',
       meta: {
-        // affix: true,
+        affix: false,
         title: t('routes.dashboard.analysis'),
+        hideMenu: true, // 隐藏菜单
       },
     },
     {
@@ -29,6 +31,7 @@ const dashboard: AppRouteModule = {
       component: () => import('/@/views/dashboard/workbench/index.vue'),
       meta: {
         title: t('routes.dashboard.workbench'),
+        hideMenu: true, // 隐藏菜单
       },
     },
   ],
