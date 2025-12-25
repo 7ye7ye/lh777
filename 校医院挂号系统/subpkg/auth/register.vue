@@ -34,14 +34,14 @@
       </view>
 
       <!-- 密码输入框 -->
-      <view class="input-group" :class="{ 'input-focus': passwordFocus }">
+      <view class="input-group" :class="{ 'input-focus': passwordFocus, 'input-error': passwordTooShort && form.userPassword }">
         <view class="input-icon">🔒</view>
         <view class="input-wrapper">
           <view class="input-label">密码</view>
           <input
             class="input"
             v-model.trim="form.userPassword"
-            placeholder="请输入密码（至少6位）"
+            placeholder="请输入密码（至少8位）"
             :password="!showPassword"
             type="text"
             confirm-type="next"
@@ -52,6 +52,12 @@
         <view class="password-toggle" @click="togglePassword">
           <text class="toggle-icon">{{ showPassword ? '👁️' : '👁️‍🗨️' }}</text>
         </view>
+      </view>
+
+      <!-- 密码长度提示 -->
+      <view v-if="passwordTooShort && form.userPassword" class="error-tip">
+        <text class="error-icon">⚠️</text>
+        <text class="error-text">密码长度至少8位</text>
       </view>
 
       <!-- 确认密码输入框 -->
@@ -129,6 +135,11 @@ const confirmPasswordFocus = ref(false)
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 
+// 密码长度检查
+const passwordTooShort = computed(() => {
+  return form.value.userPassword && form.value.userPassword.length < 8
+})
+
 // 密码不匹配检查
 const passwordMismatch = computed(() => {
   return form.value.checkPassword && form.value.userPassword !== form.value.checkPassword
@@ -138,6 +149,7 @@ const disabled = computed(() => {
   return !form.value.userAccount || 
          !form.value.userPassword || 
          !form.value.checkPassword || 
+         passwordTooShort.value ||
          passwordMismatch.value ||
          loading.value
 })
@@ -156,9 +168,9 @@ const onSubmit = async () => {
   if (disabled.value) return
   
   // 验证密码长度
-  if (form.value.userPassword.length < 6) {
+  if (form.value.userPassword.length < 8) {
     await uniShowToast({ 
-      title: '密码长度至少6位', 
+      title: '密码长度至少8位', 
       icon: 'none',
       duration: 2000
     })

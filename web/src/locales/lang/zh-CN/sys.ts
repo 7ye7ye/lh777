@@ -67,8 +67,8 @@ export default {
     signUpFormTitle: '注册',
     forgetFormTitle: '重置密码',
 
-    signInTitle: 'Jeecg Boot',
-    signInDesc: '是中国最具影响力的 企业级低代码平台！在线开发，可视化拖拽设计，零代码实现80%的基础功能~',
+    signInTitle: 'BJTU号号通管理系统',
+    signInDesc: '是北京交通大学校医院挂号管理系统！提供便捷的在线挂号、预约、查询等服务，让医疗服务更加高效便民~',
     policy: '我同意隐私政策',
     scanSign: `扫码后，即可完成登录`,
     scanSuccess: `扫码成功，登录中`,
