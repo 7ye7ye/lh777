@@ -17,10 +17,11 @@ declare const uni: any
 // 后端服务器地址
 // 
 // 配置说明：
-// 1. 本地开发：'http://localhost:8095'
-// 2. 真机调试（使用内网穿透）：'https://xxxxx.natapp1.cc' (使用内网穿透工具的公网地址)
-// 3. 真机调试（局域网IP）：'http://192.168.1.100:8095' (仅开发者工具可用，真机需要内网穿透)
-// 4. 生产环境：'https://api.example.com'
+// 1. 本地开发（仅模拟器）：'http://localhost:8095' 或 'http://127.0.0.1:8095'
+// 2. 本地开发（局域网，仅模拟器）：'http://10.61.168.113:8095' (本机内网IP，真机无法访问)
+// 3. 真机调试（使用内网穿透，推荐）：'https://xxxxx.cpolar.cn' (使用 cpolar 等内网穿透工具的 HTTPS 地址)
+// 4. 真机调试（公网IP，需要服务器）：'http://183.242.199.186:8095' (仅当有公网服务器时可用)
+// 5. 生产环境：'https://api.example.com'
 //
 // 内网穿透工具推荐：
 // - natapp: https://natapp.cn (国内，推荐)
@@ -39,9 +40,19 @@ export const API_CONFIG = {
   // 3. 使用 ngrok（免费版支持 HTTPS）：https://ngrok.com
   //
   // 例如：'https://abc123.natapp1.cc' 或 'https://xxxxx.cpolar.cn'
-//   BASE_URL: 'http://10.60.73.201:8095', // 本地 IPv4 地址，模拟器显示图片正常，真机调试无法显示图片
-  BASE_URL: 'https://470edbfe.r8.cpolar.cn', // 内网穿透生成的HTTPS 地址，真机可用,每次生成的地址不一样需要手动配置
-//   BASE_URL: 'http://localhost:8095', //不使用真机调试，仅在电脑上运行用这个
+//   BASE_URL: 'http://localhost:8095', // 本地开发，仅模拟器可用
+//   BASE_URL: 'http://127.0.0.1:8095', // 本地开发，仅模拟器可用
+//   BASE_URL: 'http://10.61.168.113:8095', // 本机内网IP（当前网络：phone.wlan.bjtu），仅模拟器可用，真机无法访问
+//   BASE_URL: 'http://183.242.199.186:8095', // 公网IP，仅当有公网服务器且配置了端口转发时可用
+//   BASE_URL: 'https://470edbfe.r8.cpolar.cn', // 旧的内网穿透地址（已失效）
+//   BASE_URL: 'https://21a451f8.r6.cpolar.cn', // ⚠️ 此地址已失效，请重新获取新的 cpolar 地址
+  BASE_URL: 'http://localhost:8095', // ⚠️ 临时使用本地地址（仅模拟器），真机调试请使用 cpolar
+  // ⚠️ 重要：如果看到 404 错误，说明 cpolar 隧道地址已失效
+  // 请按以下步骤获取新地址：
+  // 1. 打开 cpolar 客户端
+  // 2. 查看 "在线隧道列表" 中的 HTTPS 地址
+  // 3. 将新地址更新到上面的 BASE_URL
+  // 4. 重新编译项目
 
   // API 前缀
   API_PREFIX: '/jeecg-boot',

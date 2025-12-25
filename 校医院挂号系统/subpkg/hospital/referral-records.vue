@@ -687,11 +687,18 @@ const viewAutoRegisterStatus = async (record) => {
           confirmText: '知道了'
         })
       }
+      } catch (error) {
+        uni.hideLoading()
+        console.error('查询挂号记录失败:', error)
+        uni.showToast({
+          title: '查询挂号记录失败',
+          icon: 'none'
+        })
+      }
     } catch (error) {
-      uni.hideLoading()
-      console.error('查询挂号记录失败:', error)
+      console.error('处理自动挂号状态失败:', error)
       uni.showToast({
-        title: '查询挂号记录失败',
+        title: '操作失败，请重试',
         icon: 'none'
       })
     }
@@ -876,10 +883,11 @@ const viewAutoRegisterStatus = async (record) => {
               matchedRecord = allWaitingRecords[0]
             }
           }
-          
-          uni.hideLoading()
-          
-          if (matchedRecord) {
+        }
+        
+        uni.hideLoading()
+        
+        if (matchedRecord) {
           // 获取科室ID
           let departmentId = matchedRecord.departmentId || matchedRecord.deptId || matchedRecord.dept_id || null
           let departmentName = matchedRecord.departmentName || matchedRecord.deptName || matchedRecord.department || ''
@@ -1021,9 +1029,15 @@ const viewAutoRegisterStatus = async (record) => {
           
           // 根据实际情况给出不同的提示
           if (waitingRecords.length === 0) {
-            content += '\n\n提示：候补挂号记录尚未生成。'
-            content += '\n\n转诊自动挂号加入候补队列后，系统会在有可用号源时自动创建候补挂号记录。'
-            content += '\n\n您可以在"挂号记录"页面查看所有挂号记录，包括候补记录。'
+            // 候补记录尚未生成，可能是候补失败
+            uni.hideLoading()
+            uni.showModal({
+              title: '无排班，候补失败',
+              content: '自动挂号状态：已加入候补队列\n候补号：' + (record.waitNumber || '未知') + '\n\n当前无可用排班，候补失败。\n\n请稍后重试或联系医院。',
+              showCancel: false,
+              confirmText: '知道了'
+            })
+            return
           } else {
             content += '\n\n提示：未找到匹配的候补挂号记录，但存在其他候补记录。'
             content += '\n\n请前往"挂号记录"页面查看所有候补记录。'
@@ -1051,119 +1065,26 @@ const viewAutoRegisterStatus = async (record) => {
               }
             }
           })
-          } else {
-            // 如果找不到候补记录，显示状态信息和调试信息
-            const waitingRecords = recordsList.filter(r => (r.status === 0 || r.status === '0'))
-            const targetDeptId = record.targetDeptId || record.target_dept_id || record.targetDepartmentId
-            const targetDepartment = record.targetDepartment || record.targetDeptName || ''
-            
-            // 详细分析候补记录
-            const waitingInTargetDept = waitingRecords.filter(r => {
-              const recordDeptId = r.departmentId || r.deptId || r.dept_id
-              return targetDeptId && (recordDeptId === targetDeptId || Number(recordDeptId) === Number(targetDeptId))
-            })
-            
-            const waitingWithReferralMark = waitingRecords.filter(r => {
-              const isAddMatch = (r.isAdd || r.is_add) === 1
-              const addRemark = (r.addRemark || r.add_remark || '').toString()
-              return isAddMatch && (addRemark.includes('转诊') || addRemark.includes('院内转诊'))
-            })
-            
-            console.warn('未找到候补挂号记录，详细调试信息:', {
-              referralInfo: {
-                assignedScheduleId: record.assignedScheduleId || record.assigned_schedule_id,
-                waitNumber: record.waitNumber || record.wait_number,
-                targetDeptId: targetDeptId,
-                targetDepartment: targetDepartment,
-                assignedDate: record.assignedDate || record.assigned_date,
-                quotaAction: record.quotaAction,
-                patientId: patientId
-              },
-              recordsSummary: {
-                totalRecords: recordsList.length,
-                waitingRecordsCount: waitingRecords.length,
-                waitingInTargetDeptCount: waitingInTargetDept.length,
-                waitingWithReferralMarkCount: waitingWithReferralMark.length
-              },
-              allWaitingRecords: waitingRecords.map(r => ({
-                recordId: r.recordId || r.record_id || r.id,
-                scheduleId: r.scheduleId || r.schedule_id,
-                status: r.status,
-                isAdd: r.isAdd || r.is_add,
-                addRemark: r.addRemark || r.add_remark,
-                waitingRank: r.waiting_rank || r.waitingRank,
-                departmentId: r.departmentId || r.deptId || r.dept_id,
-                departmentName: r.departmentName || r.deptName || r.department,
-                registerTime: r.registerTime || r.register_time,
-                scheduleDate: r.schedule_date || r.scheduleDate
-              })),
-              targetDeptWaitingRecords: waitingInTargetDept.map(r => ({
-                recordId: r.recordId || r.record_id || r.id,
-                scheduleId: r.scheduleId || r.schedule_id,
-                status: r.status,
-                isAdd: r.isAdd || r.is_add,
-                addRemark: r.addRemark || r.add_remark,
-                waitingRank: r.waiting_rank || r.waitingRank,
-                departmentId: r.departmentId || r.deptId || r.dept_id,
-                registerTime: r.registerTime || r.register_time
-              }))
-            })
-            
-            let content = `自动挂号状态：已加入候补队列\n候补号：${record.waitNumber}\n`
-            if (record.targetDepartment) {
-              content += `目标科室：${record.targetDepartment}\n`
-            }
-            if (record.assignedDate) {
-              content += `预约日期：${record.assignedDate}\n`
-            }
-            if (record.assignedTimeSlot) {
-              const timeSlotMap = { 1: '上午', 2: '下午', 3: '晚上' }
-              content += `预约时段：${timeSlotMap[record.assignedTimeSlot] || record.assignedTimeSlot}\n`
-            }
-            
-            // 根据实际情况给出不同的提示
-            if (waitingRecords.length === 0) {
-              content += '\n\n提示：候补挂号记录尚未生成。'
-              content += '\n\n转诊自动挂号加入候补队列后，系统会在有可用号源时自动创建候补挂号记录。'
-              content += '\n\n您可以在"挂号记录"页面查看所有挂号记录，包括候补记录。'
-            } else {
-              content += '\n\n提示：未找到匹配的候补挂号记录，但存在其他候补记录。'
-              content += '\n\n请前往"挂号记录"页面查看所有候补记录。'
-            }
-            
-            uni.showModal({
-              title: '自动挂号状态',
-              content: content,
-              showCancel: true,
-              cancelText: '知道了',
-              confirmText: '查看挂号记录',
-              success: (res) => {
-                if (res.confirm) {
-                  // 跳转到挂号记录页面
-                  uni.navigateTo({
-                    url: '/subpkg/profile/records/register-record',
-                    fail: () => {
-                      console.warn('跳转挂号记录页面失败')
-                      uni.showToast({
-                        title: '跳转失败，请手动进入挂号记录页面',
-                        icon: 'none'
-                      })
-                    }
-                  })
-                }
-              }
-            })
-          }
+        }
         } catch (error) {
           uni.hideLoading()
           console.error('查询候补挂号记录失败:', error)
           uni.showModal({
-            title: '自动挂号状态',
-            content: `已加入候补队列，候补号：${record.waitNumber}\n查询候补记录失败，请稍后查看`,
+            title: '无排班，候补失败',
+            content: `已加入候补队列，候补号：${record.waitNumber || '未知'}\n\n查询候补记录失败，无法获取候补信息。\n\n当前无可用排班，候补失败。\n\n请稍后重试或联系医院。`,
             showCancel: false,
             confirmText: '知道了'
           })
         }
+      } catch (error) {
+        console.error('处理候补队列状态失败:', error)
+        uni.showModal({
+          title: '无排班，候补失败',
+          content: '处理候补队列状态失败，无法获取候补信息。\n\n当前无可用排班，候补失败。\n\n请稍后重试或联系医院。',
+          showCancel: false,
+          confirmText: '知道了'
+        })
+      }
     } else {
       // 挂号失败且未加入候补队列
       uni.showModal({
