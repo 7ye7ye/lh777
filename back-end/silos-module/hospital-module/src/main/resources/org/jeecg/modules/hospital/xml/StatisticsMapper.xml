@@ -7,16 +7,16 @@
         SELECT
             <choose>
                 <when test="periodType == 'day'">
-                    DATE(rr.visit_time) AS date,
+                    DATE(rr.register_time) AS date,
                 </when>
                 <when test="periodType == 'week'">
-                    DATE_SUB(DATE(rr.visit_time), INTERVAL WEEKDAY(DATE(rr.visit_time)) DAY) AS date,
+                    DATE_SUB(DATE(rr.register_time), INTERVAL WEEKDAY(DATE(rr.register_time)) DAY) AS date,
                 </when>
                 <when test="periodType == 'month'">
-                    DATE_FORMAT(rr.visit_time, '%Y-%m-01') AS date,
+                    DATE_FORMAT(rr.register_time, '%Y-%m-01') AS date,
                 </when>
                 <otherwise>
-                    DATE(rr.visit_time) AS date,
+                    DATE(rr.register_time) AS date,
                 </otherwise>
             </choose>
             d.dept_id AS deptId,
@@ -27,13 +27,12 @@
             INNER JOIN
             doctor_schedule ds ON rr.schedule_id = ds.schedule_id
             INNER JOIN department d ON ds.dept_id = d.dept_id
-        WHERE rr.visit_time IS NOT NULL
-            AND rr.status = 2
+        WHERE rr.status IN (1, 2)
             <if test="startDate != null">
-                AND DATE(rr.visit_time) >= #{startDate}
+                AND DATE(rr.register_time) >= #{startDate}
             </if>
             <if test="endDate != null">
-                AND DATE(rr.visit_time) &lt;= #{endDate}
+                AND DATE(rr.register_time) &lt;= #{endDate}
             </if>
             <if test="deptId != null">
                 AND (d.parent_dept_id = #{deptId} OR ds.dept_id = #{deptId})
@@ -41,16 +40,16 @@
         GROUP BY
             <choose>
                 <when test="periodType == 'day'">
-                    DATE(rr.visit_time), ds.dept_id
+                    DATE(rr.register_time), ds.dept_id
                 </when>
                 <when test="periodType == 'week'">
-                    DATE_SUB(DATE(rr.visit_time), INTERVAL WEEKDAY(DATE(rr.visit_time)) DAY), ds.dept_id
+                    DATE_SUB(DATE(rr.register_time), INTERVAL WEEKDAY(DATE(rr.register_time)) DAY), ds.dept_id
                 </when>
                 <when test="periodType == 'month'">
-                    DATE_FORMAT(rr.visit_time, '%Y-%m-01'), ds.dept_id
+                    DATE_FORMAT(rr.register_time, '%Y-%m-01'), ds.dept_id
                 </when>
                 <otherwise>
-                    DATE(rr.visit_time), ds.dept_id
+                    DATE(rr.register_time), ds.dept_id
                 </otherwise>
             </choose>
         ORDER BY date DESC, deptId
@@ -73,23 +72,15 @@
             NULL AS totalQuota,
             NULL AS usedQuota,
             COUNT(rr.record_id) AS quotaUsageRate
-        FROM doctor_schedule ds
+        FROM registration_record rr
+            INNER JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
             INNER JOIN department d ON ds.dept_id = d.dept_id
-            LEFT JOIN registration_record rr
-                ON rr.schedule_id = ds.schedule_id
-                AND rr.status IN (0, 1, 2)
-                <if test="startDate != null">
-                    AND DATE(rr.register_time) >= #{startDate}
-                </if>
-                <if test="endDate != null">
-                    AND DATE(rr.register_time) &lt;= #{endDate}
-                </if>
-        WHERE ds.status = 1
+        WHERE rr.status IN (1, 2)
             <if test="startDate != null">
-                AND ds.schedule_date >= #{startDate}
+                AND DATE(rr.register_time) >= #{startDate}
             </if>
             <if test="endDate != null">
-                AND ds.schedule_date &lt;= #{endDate}
+                AND DATE(rr.register_time) &lt;= #{endDate}
             </if>
             <if test="deptId != null">
                 AND (ds.dept_id = #{deptId} OR d.parent_dept_id = #{deptId})
@@ -102,7 +93,7 @@
             <if test="doctorId != null">
                 , ds.doctor_id
             </if>
-        ORDER BY d.dept_id
+        ORDER BY quotaUsageRate DESC
     </select>
 
     <!-- 按科室统计退号率 -->
@@ -248,7 +239,7 @@
                 COUNT(*) AS typeRegistration
             FROM registration_record rr
                 LEFT JOIN registration_type rt ON rr.type_id = rt.type_id
-            WHERE rr.status IN (0, 1, 2, 5, 6)
+            WHERE rr.status IN (1, 2)
                 <if test="startDate != null">
                     AND DATE(rr.register_time) >= #{startDate}
                 </if>
@@ -293,7 +284,7 @@
                 </choose>
                 COUNT(*) AS totalRegistration
             FROM registration_record rr2
-            WHERE rr2.status IN (0, 1, 2, 5, 6)
+            WHERE rr2.status IN (1, 2)
                 <if test="startDate != null">
                     AND DATE(rr2.register_time) >= #{startDate}
                 </if>
@@ -324,22 +315,22 @@
         SELECT
             <choose>
                 <when test="periodType == 'day'">
-                    DATE_SUB(DATE(rr.visit_time), INTERVAL #{comparePeriods} DAY) AS date,
+                    DATE_SUB(DATE(rr.register_time), INTERVAL #{comparePeriods} DAY) AS date,
                 </when>
                 <when test="periodType == 'week'">
                     DATE_SUB(
-                        DATE_SUB(DATE(rr.visit_time), INTERVAL WEEKDAY(DATE(rr.visit_time)) DAY),
+                        DATE_SUB(DATE(rr.register_time), INTERVAL WEEKDAY(DATE(rr.register_time)) DAY),
                         INTERVAL #{comparePeriods} WEEK
                     ) AS date,
                 </when>
                 <when test="periodType == 'month'">
                     DATE_FORMAT(
-                        DATE_SUB(DATE_FORMAT(rr.visit_time, '%Y-%m-01'), INTERVAL #{comparePeriods} MONTH),
+                        DATE_SUB(DATE_FORMAT(rr.register_time, '%Y-%m-01'), INTERVAL #{comparePeriods} MONTH),
                         '%Y-%m-%d'
                     ) AS date,
                 </when>
                 <otherwise>
-                    DATE_SUB(DATE(rr.visit_time), INTERVAL #{comparePeriods} DAY) AS date,
+                    DATE_SUB(DATE(rr.register_time), INTERVAL #{comparePeriods} DAY) AS date,
                 </otherwise>
             </choose>
             d.dept_id AS deptId,
@@ -349,10 +340,9 @@
         FROM registration_record rr
             INNER JOIN doctor_schedule ds ON rr.schedule_id = ds.schedule_id
             INNER JOIN department d ON ds.dept_id = d.dept_id
-        WHERE rr.visit_time IS NOT NULL
-            AND rr.status = 2
+        WHERE rr.status IN (1, 2)
             <if test="startDate != null">
-                AND DATE(rr.visit_time) >= DATE_SUB(#{startDate}, INTERVAL #{comparePeriods}
+                AND DATE(rr.register_time) >= DATE_SUB(#{startDate}, INTERVAL #{comparePeriods}
                     <choose>
                         <when test="periodType == 'day'">DAY</when>
                         <when test="periodType == 'week'">WEEK</when>
@@ -362,7 +352,7 @@
                 )
             </if>
             <if test="endDate != null">
-                AND DATE(rr.visit_time) &lt;= DATE_SUB(#{endDate}, INTERVAL #{comparePeriods}
+                AND DATE(rr.register_time) &lt;= DATE_SUB(#{endDate}, INTERVAL #{comparePeriods}
                     <choose>
                         <when test="periodType == 'day'">DAY</when>
                         <when test="periodType == 'week'">WEEK</when>
@@ -377,22 +367,22 @@
         GROUP BY
             <choose>
                 <when test="periodType == 'day'">
-                    DATE_SUB(DATE(rr.visit_time), INTERVAL #{comparePeriods} DAY), ds.dept_id
+                    DATE_SUB(DATE(rr.register_time), INTERVAL #{comparePeriods} DAY), ds.dept_id
                 </when>
                 <when test="periodType == 'week'">
                     DATE_SUB(
-                        DATE_SUB(DATE(rr.visit_time), INTERVAL WEEKDAY(DATE(rr.visit_time)) DAY),
+                        DATE_SUB(DATE(rr.register_time), INTERVAL WEEKDAY(DATE(rr.register_time)) DAY),
                         INTERVAL #{comparePeriods} WEEK
                     ), ds.dept_id
                 </when>
                 <when test="periodType == 'month'">
                     DATE_FORMAT(
-                        DATE_SUB(DATE_FORMAT(rr.visit_time, '%Y-%m-01'), INTERVAL #{comparePeriods} MONTH),
+                        DATE_SUB(DATE_FORMAT(rr.register_time, '%Y-%m-01'), INTERVAL #{comparePeriods} MONTH),
                         '%Y-%m-%d'
                     ), ds.dept_id
                 </when>
                 <otherwise>
-                    DATE_SUB(DATE(rr.visit_time), INTERVAL #{comparePeriods} DAY), ds.dept_id
+                    DATE_SUB(DATE(rr.register_time), INTERVAL #{comparePeriods} DAY), ds.dept_id
                 </otherwise>
             </choose>
         ORDER BY date DESC, deptId
