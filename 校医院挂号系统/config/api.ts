@@ -1,12 +1,12 @@
 /**
  * API 配置
  * 统一管理后端 API 地址，方便修改和部署
- * 
+ *
  * 使用方法：
  * 1. 修改下面的 BASE_URL 为你的后端服务器地址
  * 2. 如果是真机调试，使用内网穿透的 HTTPS 地址（如：https://xxxxx.ngrok-free.dev）
  * 3. 如果是生产环境，使用实际的服务器地址（如：https://api.example.com）
- * 
+ *
  * ⚠️ 重要：这是项目中唯一需要修改 API 地址的地方！
  */
 
@@ -15,13 +15,12 @@ declare const uni: any
 
 // ==================== 配置区域 ====================
 // 后端服务器地址
-// 
+//
 // 配置说明：
-// 1. 本地开发（仅模拟器）：'http://localhost:8095' 或 'http://127.0.0.1:8095'
-// 2. 本地开发（局域网，仅模拟器）：'http://10.61.168.113:8095' (本机内网IP，真机无法访问)
-// 3. 真机调试（使用内网穿透，推荐）：'https://xxxxx.cpolar.cn' (使用 cpolar 等内网穿透工具的 HTTPS 地址)
-// 4. 真机调试（公网IP，需要服务器）：'http://183.242.199.186:8095' (仅当有公网服务器时可用)
-// 5. 生产环境：'https://api.example.com'
+// 1. 本地开发：'http://localhost:8095'
+// 2. 真机调试（使用内网穿透）：'https://xxxxx.natapp1.cc' (使用内网穿透工具的公网地址)
+// 3. 真机调试（局域网IP）：'http://192.168.1.100:8095' (仅开发者工具可用，真机需要内网穿透)
+// 4. 生产环境：'https://api.example.com'
 //
 // 内网穿透工具推荐：
 // - natapp: https://natapp.cn (国内，推荐)
@@ -33,7 +32,7 @@ export const API_CONFIG = {
   // 后端服务器基础地址
   // 使用内网穿透时，修改为内网穿透工具提供的 HTTPS 地址
   // ⚠️ 重要：微信小程序真机环境必须使用 HTTPS！
-  // 
+  //
   // 如果 natapp 免费版只提供 HTTP，可以：
   // 1. 使用 cpolar（免费版支持 HTTPS）：https://www.cpolar.com
   // 2. 购买 natapp VIP（支持 HTTPS 和固定域名）
@@ -56,7 +55,7 @@ export const API_CONFIG = {
 
   // API 前缀
   API_PREFIX: '/jeecg-boot',
-  
+
   // 请求超时时间（毫秒）
   TIMEOUT: 8000,
 }
@@ -87,8 +86,8 @@ export function getBaseURL(): string {
     const stored = uni.getStorageSync('BASE_URL')
     if (stored) {
       // 如果存储的值是旧的 IP 地址或 localhost，忽略它，使用配置文件的值
-      if (stored.includes('localhost') || 
-          stored.includes('127.0.0.1') || 
+      if (stored.includes('localhost') ||
+          stored.includes('127.0.0.1') ||
           /^\d+\.\d+\.\d+\.\d+/.test(stored.replace(/^https?:\/\//, '').split(':')[0])) {
         console.warn('⚠️ 检测到旧的 IP 地址配置，使用配置文件中的值:', stored)
         // 继续使用配置文件的值
@@ -98,12 +97,12 @@ export function getBaseURL(): string {
       }
     }
   }
-  
+
   // 2. 使用配置文件中的值（这是主要配置来源）
   if (API_CONFIG.BASE_URL) {
     return API_CONFIG.BASE_URL
   }
-  
+
   // 3. 默认值（不应该到达这里，因为配置文件应该总是有值）
   console.error('❌ API_CONFIG.BASE_URL 未配置，请检查 config/api.ts')
   return 'http://localhost:8095'

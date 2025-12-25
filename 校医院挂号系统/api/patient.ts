@@ -72,6 +72,7 @@ getPatientList: (data: { userId: number }) => u.post('/list', data),
 addPatient: (data: CreateCardRequest) => u.post('/create', data),
 updatePatient: (data: UpdateCardRequest) => u.put('/update', data),
 deletePatient: (data: { userId: number; patientId: number }) => u.post('/delete', data),
+setDefaultPatient: (data: { userId: number; patientId: number }) => u.post('/setDefault', data),
 
 // 身份认证相关
 applyIdentity: (data: { patientId: number; studentId?: string; staffId?: string; identityPhoto: string }) =>

@@ -24,30 +24,13 @@
     <!-- 就诊卡卡片（电子就诊卡） -->
     <view v-else-if="cardInfo.patientId && activeTab === 'card'" class="card-container">
       <view class="medical-card">
+        <!-- 患者姓名 -->
+        <view class="patient-name">{{ cardInfo.patientName }}</view>
+        
         <!-- 门诊号 -->
         <view class="outpatient-number">
           门诊号：{{ cardInfo.outpatientNumber || 'M017080045' }}
         </view>
-        
-        <!-- 二维码 -->
-        <view class="qrcode-container">
-          <uqrcode 
-            ref="qrcodeRef"
-            canvas-id="qrcode"
-            :value="cardInfo.outpatientNumber || 'M017080045'" 
-            :size="200"
-            :margin="5"
-            background-color="#FFFFFF"
-            foreground-color="#000000"
-            file-type="png"
-          ></uqrcode>
-        </view>
-        
-        <!-- 分隔线 -->
-        <view class="divider"></view>
-        
-        <!-- 患者姓名 -->
-        <view class="patient-name">{{ cardInfo.patientName }}</view>
         
         <!-- 详细信息 -->
         <view class="card-details">
@@ -128,7 +111,6 @@
 import { ref, onMounted } from 'vue'
 import { onShow, onLoad } from '@dcloudio/uni-app'
 
-import uqrcode from '@/uni_modules/Sansnn-uQRCode/components/uqrcode/uqrcode.vue'
 import { patientApi } from '@/api/patient'
 import { uniShowToast, uniShowModal, uniNavigateBack, uniNavigateTo } from '@/utils/uniHelper'
 import { useUserStore } from '@/store/user'
@@ -369,40 +351,24 @@ onShow(() => {
   box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
 }
 
-/* 门诊号 */
-.outpatient-number {
-  text-align: center;
-  font-size: 36rpx;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 32rpx;
-  margin-top: 20rpx;
-  letter-spacing: 2rpx;
-}
-
-/* 二维码容器 */
-.qrcode-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 30rpx 0;
-  margin-bottom: 40rpx;
-}
-
-/* 分隔线 */
-.divider {
-  height: 1px;
-  background: #e5e5e5;
-  margin: 30rpx 0 40rpx;
-}
-
 /* 患者姓名 */
 .patient-name {
   font-size: 44rpx;
   font-weight: bold;
   color: #333;
   text-align: center;
+  margin-bottom: 24rpx;
+  margin-top: 20rpx;
+}
+
+/* 门诊号 */
+.outpatient-number {
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #666;
   margin-bottom: 40rpx;
+  letter-spacing: 1rpx;
 }
 
 /* 详细信息 */

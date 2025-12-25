@@ -11,7 +11,7 @@
         <text class="navbar-icon">○</text>
       </view>
     </view>
-    
+
     <!-- 内容区域 - 不可滚动 -->
     <view class="content-area">
       <view class="detail-bg">
@@ -119,7 +119,7 @@ const loadDoctorDetail = async () => {
   try {
     const res = await doctorApi.getDoctorDetail(doctorId.value)
     console.log('医生详情数据:', res)
-    
+
     // 处理不同的响应格式
     let data = res
     if (res && res.data) {
@@ -127,7 +127,7 @@ const loadDoctorDetail = async () => {
     } else if (res && res.result) {
       data = res.result
     }
-    
+
     if (data) {
       doctor.value = data
       // 加载所属科室信息
@@ -160,7 +160,7 @@ const loadDepartmentInfo = async (deptId) => {
     console.warn('科室ID为空，跳过加载')
     return
   }
-  
+
   try {
     const res = await getDepartmentDetail(deptId)
     // 响应拦截器已经解包了 result，所以 res 直接是数据
@@ -181,8 +181,8 @@ const loadDepartmentInfo = async (deptId) => {
     // 网络请求失败时不显示错误提示，避免影响用户体验
     // 科室信息不是关键信息，可以继续使用
     // 如果需要显示，可以取消下面的注释
-    // uni.showToast({ 
-    //   title: '加载科室信息失败，请检查网络连接', 
+    // uni.showToast({
+    //   title: '加载科室信息失败，请检查网络连接',
     //   icon: 'none',
     //   duration: 2000
     // })
@@ -246,18 +246,18 @@ const loadDoctorTypeNames = async (doctorId) => {
     // 获取未来7天的排班信息
     const today = new Date().toISOString().split('T')[0]
     const res = await getDoctorSchedules(doctorId, today, 7)
-    
+
     let schedules = []
     if (Array.isArray(res?.result)) schedules = res.result
     else if (Array.isArray(res?.data)) schedules = res.data
     else if (Array.isArray(res)) schedules = res
-    
+
     // 提取所有不同的号别类型
     const typeNames = schedules
       .map(schedule => schedule.doctor_title_type_name || schedule.doctorTitleTypeName)
       .filter(typeName => typeName && typeName.trim() !== '')
       .filter((value, index, self) => self.indexOf(value) === index) // 去重
-    
+
     doctorTypeNames.value = typeNames.length > 0 ? typeNames.join(' / ') : ''
   } catch (error) {
     console.error('加载医生号别类型失败:', error)
@@ -269,7 +269,7 @@ const loadDoctorTypeNames = async (doctorId) => {
 onLoad((query) => {
   // 优先使用id参数（从department-booking页面传递），其次使用doctorId
   doctorId.value = query?.id || query?.doctorId || ''
-  
+
   // 如果直接传递了医生信息，先显示基本信息
   if (query?.name || query?.title || query?.specialty) {
     doctor.value = {
@@ -280,7 +280,7 @@ onLoad((query) => {
       doctorDesc: '医生详情加载中...'
     }
   }
-  
+
   // 无论是否有初始信息，都尝试加载完整详情
   if (doctorId.value) {
     loadDoctorDetail()

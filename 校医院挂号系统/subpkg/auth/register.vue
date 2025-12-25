@@ -146,9 +146,9 @@ const passwordMismatch = computed(() => {
 })
 
 const disabled = computed(() => {
-  return !form.value.userAccount || 
-         !form.value.userPassword || 
-         !form.value.checkPassword || 
+  return !form.value.userAccount ||
+         !form.value.userPassword ||
+         !form.value.checkPassword ||
          passwordTooShort.value ||
          passwordMismatch.value ||
          loading.value
@@ -166,53 +166,53 @@ const toggleConfirmPassword = () => {
 
 const onSubmit = async () => {
   if (disabled.value) return
-  
+
   // 验证密码长度
   if (form.value.userPassword.length < 8) {
-    await uniShowToast({ 
-      title: '密码长度至少8位', 
+    await uniShowToast({
+      title: '密码长度至少8位',
       icon: 'none',
       duration: 2000
     })
     return
   }
-  
+
   // 验证密码是否一致
   if (form.value.userPassword !== form.value.checkPassword) {
-    await uniShowToast({ 
-      title: '两次输入的密码不一致', 
+    await uniShowToast({
+      title: '两次输入的密码不一致',
       icon: 'none',
       duration: 2000
     })
     return
   }
-  
+
   loading.value = true
   try {
     // 后端期望字段：{ userAccount, userPassword, checkPassword, userType }
     // userType为1映射为患者用户
-    const res = await userApi.register({ 
-      userAccount: form.value.userAccount, 
-      userPassword: form.value.userPassword, 
-      checkPassword: form.value.checkPassword, 
+    const res = await userApi.register({
+      userAccount: form.value.userAccount,
+      userPassword: form.value.userPassword,
+      checkPassword: form.value.checkPassword,
       userType: 1
     })
     console.log('注册成功:', res)
-    
-    await uniShowToast({ 
-      title: '注册成功', 
-      icon: 'success', 
-      duration: 1500 
+
+    await uniShowToast({
+      title: '注册成功',
+      icon: 'success',
+      duration: 1500
     })
-    
+
     // 使用setTimeout确保toast显示完成后再跳转
     setTimeout(() => {
       uniNavigateTo({ url: '/subpkg/auth/login' })
     }, 1500)
   } catch (e) {
     console.error('注册失败:', e)
-    await uniShowToast({ 
-      title: (e && e.message) || '注册失败，请重试', 
+    await uniShowToast({
+      title: (e && e.message) || '注册失败，请重试',
       icon: 'none',
       duration: 2000
     })
