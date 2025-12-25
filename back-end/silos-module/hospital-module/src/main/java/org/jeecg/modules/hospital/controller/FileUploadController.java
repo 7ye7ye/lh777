@@ -10,6 +10,8 @@ import org.jeecg.common.util.oConvertUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.FileCopyUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -36,6 +38,9 @@ public class FileUploadController {
      */
     @Value("${jeecg.uploadType}")
     private String uploadType;
+
+    @Value("${jeecg.domainUrl:http://127.0.0.1:8095}")
+    private String domainUrl;
 
     // 最大文件大小 (5MB)
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -157,5 +162,59 @@ public class FileUploadController {
         } catch (Exception e) {
             return "";
         }
+    }
+
+    /**
+     * 获取静态图片的完整URL
+     * 用于前端通过API获取静态资源URL，替代直接使用/static/路径
+     * 
+     * @param filename 文件名，例如 "card.svg" 或 "images/no_data.png"
+     * @return 完整的图片URL
+     */
+    @GetMapping("/static/{filename:.+}")
+    public ResponseEntity<HashMap<String, Object>> getStaticImageUrl(@PathVariable String filename) {
+        HashMap<String, Object> result = new HashMap<>();
+        try {
+            // 防止路径穿越攻击
+            if (filename.contains("..") || filename.contains("../") || filename.contains("..\\")) {
+                result.put("code", 400);
+                result.put("message", "文件名格式非法");
+                return ResponseEntity.ok(result);
+            }
+
+            // 构建相对路径：static-resources/文件名
+            String relativePath = "static-resources/" + filename.replace("\\", "/");
+            
+            // 构建完整URL
+            String fullUrl = buildFullImageUrl(relativePath);
+
+            HashMap<String, Object> data = new HashMap<>();
+            data.put("url", fullUrl);
+            data.put("relativePath", relativePath);
+
+            result.put("code", 200);
+            result.put("message", "获取成功");
+            result.put("data", data);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            HashMap<String, Object> error = new HashMap<>();
+            error.put("code", 500);
+            error.put("message", "系统异常，请稍后重试");
+            return ResponseEntity.status(500).body(error);
+        }
+    }
+
+    /**
+     * 构建完整的图片URL
+     */
+    private String buildFullImageUrl(String relativePath) {
+        if (relativePath == null || relativePath.isEmpty()) {
+            return "";
+        }
+        if (relativePath.startsWith("http://") || relativePath.startsWith("https://")) {
+            return relativePath;
+        }
+        String cleanPath = relativePath.startsWith("/") ? relativePath.substring(1) : relativePath;
+        return domainUrl + "/jeecg-boot/sys/common/static/" + cleanPath;
     }
 }

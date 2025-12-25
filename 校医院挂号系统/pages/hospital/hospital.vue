@@ -2,11 +2,11 @@
   <view class="hospital-bg">
     <view class="hospital-header">
       <view class="hospital-banner">
-        <image src="/static/hospitalmessage2.png" mode="aspectFill" style="width: 100%; height: 100%; border-radius: 12rpx;" />
+        <image :src="getStaticImage('/static/hospitalmessage2.png')" mode="aspectFill" style="width: 100%; height: 100%; border-radius: 12rpx;" />
       </view>
       <view class="hospital-info">
         <view class="hospital-logo">
-          <image src="/static/bjtu.jpg" mode="aspectFill" style="width: 100%; height: 100%; border-radius: 12rpx;" />
+          <image :src="getStaticImage('/static/bjtu.jpg')" mode="aspectFill" style="width: 100%; height: 100%; border-radius: 12rpx;" />
         </view>
         <view class="hospital-title">
           <text class="name">{{ hospitalName }}</text>
@@ -29,25 +29,25 @@
     <view class="hospital-address">
       <text class="address-text">{{ currentBranch.address }}</text>
       <view class="location-btn" @tap="openMap">
-        <image class="location-icon" src="/static/navigation.svg" />
+        <image class="location-icon" :src="getStaticImage('/static/navigation.svg')" />
       </view>
     </view>
     <view class="hospital-section card">
       <view class="hospital-row">
         <view class="hospital-item" @tap="goDepartments">
-          <image src="/static/department-introduce.svg" class="icon" @tap="goDepartments" />
+          <image :src="getStaticImage('/static/department-introduce.svg')" class="icon" @tap="goDepartments" />
           <text @tap="goDepartments">科室介绍</text>
         </view>
         <view class="hospital-item" @tap="goDoctors">
-          <image src="/static/doctor-introduce.svg" class="icon" @tap="goDoctors" />
+          <image :src="getStaticImage('/static/doctor-introduce.svg')" class="icon" @tap="goDoctors" />
           <text @tap="goDoctors">专家介绍</text>
         </view>
         <view class="hospital-item" @tap="goNavigation">
-          <image src="/static/inhospital_navigation.svg" class="icon" @tap="goNavigation" />
+          <image :src="getStaticImage('/static/inhospital_navigation.svg')" class="icon" @tap="goNavigation" />
           <text @tap="goNavigation">院内导航</text>
         </view>
         <view class="hospital-item">
-          <image src="/static/medical_guide.svg" class="icon" />
+          <image :src="getStaticImage('/static/medical_guide.svg')" class="icon" />
           <text>就医指南</text>
         </view>
       </view>
@@ -62,6 +62,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { getStaticImage } from '@/utils/imageHelper'
 
 // 院区信息（主校区与东校区为同一机构；威海校区为独立机构）
 const branches = [

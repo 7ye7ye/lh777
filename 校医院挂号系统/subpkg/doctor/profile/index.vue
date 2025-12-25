@@ -137,6 +137,7 @@ import { doctorApi } from '@/api/doctor'
 import { userApi } from '@/api/user'
 import { getDepartmentDetail } from '@/api/department'
 import DoctorTabBar from '@/components/DoctorTabBar.vue'
+import { getStaticImage } from '@/utils/imageHelper'
 
 const doctorInfo = ref({
   id: null,
@@ -151,10 +152,13 @@ const doctorInfo = ref({
 })
 
 // 头像完整 URL：优先用服务器相对路径拼接，其次用默认本地占位图
+// 使用统一的配置函数
+import { getBaseURL, getApiPrefix } from '@/config/api'
+
 const buildImageUrl = (relativePath) => {
-  if (!relativePath) return '/static/doctor.svg'
-  const baseURL = uni.getStorageSync('BASE_URL') || 'http://localhost:8095'
-  const apiPrefix = uni.getStorageSync('API_PREFIX') || '/jeecg-boot'
+  if (!relativePath) return getStaticImage('/static/doctor.svg')
+  const baseURL = getBaseURL()
+  const apiPrefix = getApiPrefix()
   const cleanPrefix = apiPrefix.endsWith('/') ? apiPrefix.slice(0, -1) : apiPrefix
   const cleanPath = relativePath.replace(/^\/+/, '')
   return `${baseURL}${cleanPrefix}/sys/common/static/${encodeURI(cleanPath)}`
@@ -488,7 +492,7 @@ async function saveEdit() {
 // 点击头像预览大图
 function onChangeAvatar() {
   // 如果有头像，则预览大图
-  if (avatarUrl.value && avatarUrl.value !== '/static/doctor.svg') {
+  if (avatarUrl.value && avatarUrl.value !== getStaticImage('/static/doctor.svg')) {
     uni.previewImage({
       urls: [avatarUrl.value],
       current: 0

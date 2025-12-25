@@ -112,7 +112,7 @@
     <view v-else-if="!loading && !cardInfo.patientId" class="no-card-container">
       <image 
         class="no-card-bg-image" 
-        src="/static/images/no_data.png" 
+        :src="getStaticImage('/static/images/no_data.png')" 
         mode="scaleToFill"
       />
       <view class="no-card-content">
@@ -132,6 +132,7 @@ import uqrcode from '@/uni_modules/Sansnn-uQRCode/components/uqrcode/uqrcode.vue
 import { patientApi } from '@/api/patient'
 import { uniShowToast, uniShowModal, uniNavigateBack, uniNavigateTo } from '@/utils/uniHelper'
 import { useUserStore } from '@/store/user'
+import { getStaticImage } from '@/utils/imageHelper'
 
 const userStore = useUserStore()
 const cardInfo = ref({}) // 存储后端返回的就诊卡数据

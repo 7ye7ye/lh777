@@ -56,7 +56,7 @@
       >
         <!-- 底图 -->
         <image 
-          src="/static/医院地图new.png" 
+          :src="getStaticImage('/static/医院地图new.png')" 
           class="map-image" 
           :style="{ width: '100%', height: mapHeight + 'px' }"
           mode="scaleToFill"
@@ -154,7 +154,12 @@ const mapGraph = {
     'N_WC_EAST': { 'NODE_CENTER_NORTH': 45 }
 };
 
+import { getStaticImage } from '@/utils/imageHelper'
+
 export default {
+  methods: {
+    getStaticImage
+  },
   data() {
     return {
       ORIGIN_WIDTH: 900,

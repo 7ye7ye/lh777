@@ -198,7 +198,7 @@
 
       <!-- 空状态 -->
       <view v-if="!loading && filteredRecords.length === 0" class="empty-container">
-        <image src="/static/empty_message.png" mode="widthFix" class="empty-img" />
+        <image :src="getStaticImage('/static/empty_message.png')" mode="widthFix" class="empty-img" />
         <text class="empty-text">暂无转诊记录</text>
         <button class="create-btn" @click="createNewReferral">发起转诊申请</button>
       </view>
@@ -216,6 +216,7 @@ import { getPatientReferralList, cancelPatientReferral, autoRegisterInternalRefe
 import { getRegistrationRecords } from '@/api/registration'
 import { patientApi } from '@/api/patient'
 import { useUserStore } from '@/store/user'
+import { getStaticImage } from '@/utils/imageHelper'
 
 // 筛选选项
 const filterTabs = [

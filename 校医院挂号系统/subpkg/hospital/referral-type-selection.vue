@@ -38,7 +38,7 @@
                 @click="selectReferralType('internal')"
                 :class="{ selected: selectedType === 'internal' }">
             <view class="option-icon">
-              <image src="/static/doctor.svg" mode="aspectFit" class="icon-img"></image>
+              <image :src="getStaticImage('/static/doctor.svg')" mode="aspectFit" class="icon-img"></image>
             </view>
             <view class="option-content">
               <text class="option-title">院内科室转诊</text>
@@ -54,7 +54,7 @@
                 @click="selectReferralType('external')"
                 :class="{ selected: selectedType === 'external' }">
             <view class="option-icon">
-              <image src="/static/hospital.svg" mode="aspectFit" class="icon-img"></image>
+              <image :src="getStaticImage('/static/hospital.svg')" mode="aspectFit" class="icon-img"></image>
             </view>
             <view class="option-content">
               <text class="option-title">院外转诊</text>
@@ -91,6 +91,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { getReferralOptions } from '../../api/referral'
+import { getStaticImage } from '@/utils/imageHelper'
 
 // 已选择的就诊记录
 const selectedRecord = ref({})

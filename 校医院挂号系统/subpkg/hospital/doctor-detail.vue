@@ -43,11 +43,11 @@
     <!-- 操作按钮 -->
     <view class="action-buttons">
       <view class="action-btn primary" @click="navigateToRegister">
-        <image src="/static/register.svg" mode="widthFix" class="btn-icon"></image>
+        <image :src="getStaticImage('/static/register.svg')" mode="widthFix" class="btn-icon"></image>
         <text>预约挂号</text>
       </view>
       <view class="action-btn" @click="handleConsult">
-        <image src="/static/consult.svg" mode="widthFix" class="btn-icon"></image>
+        <image :src="getStaticImage('/static/consult.svg')" mode="widthFix" class="btn-icon"></image>
         <text>在线咨询</text>
       </view>
     </view>
@@ -62,6 +62,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import { doctorApi } from '../../api/doctor_massage'
 import { getDepartmentDetail } from '../../api/department'
 import { getDoctorSchedules } from '../../api/registration'
+import { getStaticImage } from '@/utils/imageHelper'
 
 const doctorId = ref('')
 const doctor = ref({})

@@ -1,4 +1,5 @@
 // 转诊相关API
+import { buildStaticImageUrl } from './file'
 
 // 转诊申请接口
 export const submitReferralApplication = async (data: any) => {
@@ -162,8 +163,8 @@ export const getReferralDetail = async (id: string) => {
           reviewDoctor: '李医生',
           reviewComments: '患者症状和检查结果符合转诊指征，同意转诊至北京协和医院心内科进一步诊治。建议患者尽快前往就诊，并携带相关检查资料。',
           attachments: [
-            { id: '1', url: '/static/bjtu.jpg', name: '心电图检查.jpg' },
-            { id: '2', url: '/static/hospitalpicture.png', name: '血液检查报告.jpg' }
+            { id: '1', url: buildStaticImageUrl('bjtu.jpg'), name: '心电图检查.jpg' },
+            { id: '2', url: buildStaticImageUrl('hospitalpicture.png'), name: '血液检查报告.jpg' }
           ]
         },
         'REF20240114002': {
@@ -183,7 +184,7 @@ export const getReferralDetail = async (id: string) => {
           reviewDoctor: '刘医生',
           rejectReason: '根据X光检查结果，患者膝关节退行性病变程度较轻，建议先在本院进行保守治疗3个月，包括药物治疗、物理治疗和康复训练。如保守治疗效果不佳，再考虑转诊。',
           attachments: [
-            { id: '1', url: '/static/bjtu.jpg', name: '膝关节X光片.jpg' }
+            { id: '1', url: buildStaticImageUrl('bjtu.jpg'), name: '膝关节X光片.jpg' }
           ]
         },
         'REF20240115003': {

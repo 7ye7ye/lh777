@@ -4,7 +4,7 @@
       <view class="profile-info">
         <image 
           class="avatar" 
-          :src="avatarError || !cardInfo.identityPhoto ? '/static/profile.svg' : cardInfo.identityPhoto" 
+          :src="avatarError || !cardInfo.identityPhoto ? getStaticImage('/static/profile.svg') : cardInfo.identityPhoto" 
           mode="aspectFill"
           @error="onAvatarError"
         ></image>
@@ -24,15 +24,15 @@
     <view class="profile-section card centered centered-down first-card">
       <view class="profile-row">
         <view class="profile-item" @click="goToMyCard">
-          <image class="icon icon-lg" src="/static/card.svg" />
+          <image class="icon icon-lg" :src="getStaticImage('/static/card.svg')" />
           <text>我的就诊卡</text>
         </view>
         <view class="profile-item" @click="goToMyPatient">
-          <image class="icon icon-lg" src="/static/patient.svg" />
+          <image class="icon icon-lg" :src="getStaticImage('/static/patient.svg')" />
           <text>我的就诊人</text>
         </view>
         <view class="profile-item" @click="goToMyDoctor">
-          <image class="icon icon-lg" src="/static/doctor.svg" />
+          <image class="icon icon-lg" :src="getStaticImage('/static/doctor.svg')" />
           <text>医生端</text>
         </view>
       </view>
@@ -42,37 +42,37 @@
       <view class="section-title">就诊记录</view>
       <view class="profile-row">
         <view class="profile-item" @click="goToRegisterRecord">
-          <image class="icon" src="/static/register.svg" />
+          <image class="icon" :src="getStaticImage('/static/register.svg')" />
           <text>挂号记录</text>
         </view>
         <view class="profile-item" @click="goToHospitalRecord">
-          <image class="icon" src="/static/hospital.svg" />
+          <image class="icon" :src="getStaticImage('/static/hospital.svg')" />
           <text>就诊记录</text>
         </view>
         <view class="profile-item" @click="goToTransferHistory">
-          <image class="icon" src="/static/referral-record.svg" />
+          <image class="icon" :src="getStaticImage('/static/referral-record.svg')" />
           <text>转诊记录</text>
         </view>
         <view class="profile-item" @click="goToOutpatientRecord">
-          <image class="icon" src="/static/outpatient.svg" />
+          <image class="icon" :src="getStaticImage('/static/outpatient.svg')" />
           <text>缴费记录</text>
         </view>
       </view>
       <view class="profile-row">
         <view class="profile-item" @click="goToRevisitRecord">
-          <image class="icon" src="/static/record.svg" />
+          <image class="icon" :src="getStaticImage('/static/record.svg')" />
           <text>复诊记录</text>
         </view>
         <view class="profile-item" @click="goToCheckRecord">
-          <image class="icon" src="/static/check.svg" />
+          <image class="icon" :src="getStaticImage('/static/check.svg')" />
           <text>检查预约</text>
         </view>
         <view class="profile-item" @click="goToIdentityVerify">
-          <image class="icon" src="/static/privacy.svg" />
+          <image class="icon" :src="getStaticImage('/static/privacy.svg')" />
           <text>身份认证</text>
         </view>
         <view class="profile-item" @click="changePassword">
-          <image class="icon" src="/static/password.svg" />
+          <image class="icon" :src="getStaticImage('/static/password.svg')" />
           <text>修改密码</text>
         </view>
       </view>
@@ -83,19 +83,19 @@
       <view class="section-title">其他</view>
       <view class="profile-row">
         <view class="profile-item" @click="goToPrivacy">
-          <image class="icon" src="/static/privacy.svg" />
+          <image class="icon" :src="getStaticImage('/static/privacy.svg')" />
           <text>隐私协议</text>
         </view>
         <view class="profile-item" @click="goToHelp">
-          <image class="icon" src="/static/help.svg" />
+          <image class="icon" :src="getStaticImage('/static/help.svg')" />
           <text>帮助反馈</text>
         </view>
         <view class="profile-item" @click="goToComplain">
-          <image class="icon" src="/static/complain.svg" />
+          <image class="icon" :src="getStaticImage('/static/complain.svg')" />
           <text>投诉建议</text>
         </view>
         <view class="profile-item" @click="goToEvaluate">
-          <image class="icon" src="/static/evaluate.svg" />
+          <image class="icon" :src="getStaticImage('/static/evaluate.svg')" />
           <text>就诊评价</text>
         </view>
       </view>
@@ -145,6 +145,7 @@ import { uniShowToast, uniSwitchTab, uniNavigateTo } from '@/utils/uniHelper'
 import LoginPrompt from '@/components/LoginPrompt.vue'
 import { AUTH_REQUIRED_FEATURES, createAuthHandler } from '@/utils/auth'
 import { patientApi } from '@/api/patient'
+import { getStaticImage } from '@/utils/imageHelper'
 
 const userInfo = ref({})
 const cardInfo = ref({})
@@ -589,11 +590,14 @@ const loadCardInfo = async () => {
   }
 }
 
+// 使用统一的配置函数
+import { getBaseURL, getApiPrefix } from '@/config/api'
+
 // 构建图片URL
 const buildImageUrl = (relativePath) => {
   if (!relativePath) return ''
-  const baseURL = uni.getStorageSync('BASE_URL') || 'http://localhost:8095'
-  const apiPrefix = uni.getStorageSync('API_PREFIX') || '/jeecg-boot'
+  const baseURL = getBaseURL()
+  const apiPrefix = getApiPrefix()
   const cleanPrefix = apiPrefix.endsWith('/') ? apiPrefix.slice(0, -1) : apiPrefix
   const cleanPath = relativePath.replace(/^\/+/, '')
   return `${baseURL}${cleanPrefix}/sys/common/static/${encodeURI(cleanPath)}`
