@@ -30,7 +30,7 @@
         </view>
         <view class="info-row-full">
           <text class="info-label">挂号编号</text>
-          <text class="info-value">{{ record?.id || '-' }}</text>
+          <text class="info-value">{{ registrationNo }}</text>
         </view>
         <view class="info-row-full">
           <text class="info-label">就诊状态</text>
@@ -50,7 +50,7 @@
         </view>
         <view class="info-row-full">
           <text class="info-label">挂号类型</text>
-          <text class="info-value">{{ record?.registerType || '-' }}</text>
+          <text class="info-value">{{ registerTypeName }}</text>
         </view>
       </view>
     </view>
@@ -94,7 +94,9 @@
     <!-- 操作按钮区域 -->
     <view class="action-section">
       <button v-if="canRefer && !hasReferral" class="action-btn referral-btn" @click="goToReferral">申请转诊</button>
+      <button v-else-if="referralStatus === 'PENDING'" class="action-btn referral-btn" @click="goToReferralStatus">申请中，可查看进度</button>
       <button v-else-if="hasReferral" class="action-btn referral-btn" @click="goToReferralStatus">查看转诊情况</button>
+      <text v-else-if="statusDisplay === '已取消'" class="action-btn cannot-refer-btn">无效记录，无法转诊</text>
       <text v-else-if="statusDisplay === '待就诊'" class="action-btn cannot-refer-btn">未就诊，不能转诊</text>
       <text v-else class="action-btn cannot-refer-btn">超过5天，无法转诊</text>
     </view>
@@ -107,7 +109,7 @@ import { fetchPatientCard } from '@/utils/patientHelper'
 import { getDepartmentDetail } from '@/api/department'
 import { getDoctorDetail } from '@/api/doctor_massage'
 import { patientApi } from '@/api/patient'
-import { getScheduleDetailById, getRegistrationRecords } from '@/api/registration'
+import { getScheduleDetailById, getRegistrationRecords, getRegistrationTypes } from '@/api/registration'
 import { getPatientReferralList, getPatientVisitRecords } from '@/api/referral'
 
 // 状态定义（与就诊记录列表页面一致）
@@ -167,11 +169,15 @@ const paymentInfo = ref({})
 const diagnosisInfo = ref({})
 const canRefer = ref(false)
 const hasReferral = ref(false)
+const referralStatus = ref(null) // 转诊状态（PENDING、APPROVED等）
 const doctorName = ref('')
 const departmentName = ref('-')
 const appointmentTimeSlot = ref('') // 就诊时间段
 const appointmentTime = ref('') // 就诊时间（具体时间点）
 const statusDisplay = ref('') // 解析后的状态显示文本
+const registrationNo = ref('-') // 挂号编号
+const registerTypeName = ref('-') // 挂号类型名称
+const registrationTypeMap = ref({}) // 挂号类型映射表
 
 // 转换日期字符串为iOS兼容格式
 const convertToIOSCompatibleDate = (dateString) => {
@@ -421,8 +427,15 @@ const resolveStatusInfo = (rawStatusValue, visitTimeStr, registerTimeStr, schedu
 }
 
 // 检查是否可以转诊（统一判断逻辑，与就诊记录页面一致）
-const checkCanRefer = (rawStatusValue, visitTimeStr, registerTimeStr, scheduleDateStr = null, timeSlot = null) => {
+const checkCanRefer = (rawStatusValue, visitTimeStr, registerTimeStr, scheduleDateStr = null, timeSlot = null, cancelTime = null, cancelReason = null) => {
   const now = new Date()
+  
+  // 优先检查是否取消（取消状态不能转诊）
+  const hasCancelTime = cancelTime && String(cancelTime).trim() !== ''
+  const hasCancelReason = cancelReason && String(cancelReason).trim() !== ''
+  if (hasCancelTime && hasCancelReason) {
+    return false // 取消的记录不能转诊
+  }
   
   // 优先使用排班时间判断（与状态判断逻辑一致）
   if (scheduleDateStr && timeSlot) {
@@ -613,6 +626,67 @@ const loadRecordDetails = async () => {
       }
     }
     
+    // 如果没有routeData，但有id参数，根据id查询记录
+    if (!routeData && options.id) {
+      try {
+        console.log('根据id参数查询记录，id:', options.id);
+        const recordId = Number(options.id);
+        if (recordId) {
+          // 先加载患者信息，获取patientId
+          await loadPatientInfo();
+          const pid = patientInfo.value?.patientId || patientInfo.value?.id;
+          if (pid) {
+            // 查询挂号记录
+            const regRes = await getRegistrationRecords(pid);
+            const regList = Array.isArray(regRes?.result) ? regRes.result
+              : Array.isArray(regRes?.data) ? regRes.data
+              : Array.isArray(regRes) ? regRes
+              : [];
+            
+            // 查找匹配的记录
+            const matchedRecord = regList.find((item) => {
+              const ids = [
+                item.id,
+                item.record_id,
+                item.recordId,
+                item.registration_id,
+                item.registrationId,
+                item.registrationRecordId,
+                item.registration_record_id,
+              ].map((v) => Number(v));
+              return ids.includes(recordId);
+            });
+            
+            if (matchedRecord) {
+              console.log('找到匹配的记录:', matchedRecord);
+              routeData = matchedRecord;
+            } else {
+              console.warn('未找到id为', recordId, '的记录');
+              uni.showToast({
+                title: '未找到预约记录',
+                icon: 'none'
+              });
+              return;
+            }
+          } else {
+            console.warn('无法获取patientId，无法查询记录');
+            uni.showToast({
+              title: '无法获取患者信息',
+              icon: 'none'
+            });
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('根据id查询记录失败:', error);
+        uni.showToast({
+          title: '加载记录失败，请稍后重试',
+          icon: 'none'
+        });
+        return;
+      }
+    }
+    
     if (routeData) {
       record.value = routeData;
       
@@ -716,7 +790,9 @@ const loadRecordDetails = async () => {
                   routeData.visitTime,
                   routeData.registerTime,
                   finalScheduleDateStr,
-                  finalTimeSlot
+                  finalTimeSlot,
+                  cancelTime,
+                  cancelReason
                 )
               }
             }
@@ -739,7 +815,7 @@ const loadRecordDetails = async () => {
             statusDisplay.value = statusInfo.label || '待就诊'
             
             if (routeData.canRefer === undefined || routeData.canRefer === null) {
-              canRefer.value = checkCanRefer(routeData.status, routeData.visitTime, routeData.registerTime, scheduleDateStr, timeSlot)
+              canRefer.value = checkCanRefer(routeData.status, routeData.visitTime, routeData.registerTime, scheduleDateStr, timeSlot, cancelTime, cancelReason)
             }
           }
         }
@@ -776,12 +852,26 @@ const loadRecordDetails = async () => {
         if (canRefer.value === undefined || canRefer.value === null) {
           const finalScheduleDateStr = scheduleDateStr || routeData.scheduleDateStr || routeData.originalRecord?.scheduleDate
           const finalTimeSlot = timeSlot || routeData.timeSlotValue || routeData.originalRecord?.timeSlot
-          canRefer.value = checkCanRefer(routeData.status, routeData.visitTime, routeData.registerTime, finalScheduleDateStr, finalTimeSlot)
+          canRefer.value = checkCanRefer(routeData.status, routeData.visitTime, routeData.registerTime, finalScheduleDateStr, finalTimeSlot, cancelTime, cancelReason)
         }
       }
       
-      // 检查是否已申请过转诊
-      await checkReferralStatus()
+      // 优先使用传递过来的转诊状态
+      if (routeData.hasReferral !== undefined && routeData.hasReferral !== null) {
+        hasReferral.value = routeData.hasReferral
+      }
+      if (routeData.referralStatus) {
+        referralStatus.value = (routeData.referralStatus || '').toUpperCase()
+      }
+      if (routeData.referralId) {
+        record.value.referralId = routeData.referralId
+      }
+      
+      // 如果已经传递了转诊状态，就不需要再查询了
+      // 否则检查是否已申请过转诊
+      if (!hasReferral.value) {
+        await checkReferralStatus()
+      }
       
       // 初始化科室和医生信息
       let doctorId = null;
@@ -1405,10 +1495,13 @@ const checkReferralStatus = async () => {
     if (referral) {
       hasReferral.value = true
       canRefer.value = false // 已申请过转诊，不能再次申请
-      // 保存关联的转诊记录ID，供"查看转诊情况"使用
+      // 保存关联的转诊记录ID和状态，供"查看转诊情况"使用
       record.value.referralId = referral.id || referral.referralId || null
-      // 如果有转诊记录，强制将状态设置为已完成
-      statusDisplay.value = '已完成'
+      referralStatus.value = (referral.status || '').toUpperCase()
+      // 如果有转诊记录，根据状态处理状态显示
+      if (referralStatus.value !== 'PENDING') {
+        statusDisplay.value = '已完成'
+      }
     }
   } catch (error) {
     console.warn('检查转诊状态失败:', error)

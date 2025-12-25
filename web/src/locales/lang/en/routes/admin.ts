@@ -15,10 +15,12 @@ export default {
   leaveApproval: 'Leave Approval',
   doctorRegister: 'Doctor Registration',
   doctorProfileUpdateApproval: 'Doctor Profile Update Approval',
-  PatientldentityApproval:"Patient ldentity Approval",
   PatientldentityApproval: 'Patient Identity Approval',
+  PatientIdentityApproval: 'Patient Identity Approval',
   referralReview: 'Referral Review',
   referralHistory: 'Referral Records',
+  addNumberSource: 'Add Number Source',
+  analysis: 'Data Analysis',
 };
 
 

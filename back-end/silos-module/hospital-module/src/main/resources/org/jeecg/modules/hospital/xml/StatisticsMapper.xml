@@ -679,7 +679,7 @@
                 AND DATE(r.apply_time) &lt;= #{endDate}
             </if>
             <if test="deptId != null">
-                AND r.target_dept_id = #{deptId}
+                AND (r.target_dept_id = #{deptId} OR d.parent_dept_id = #{deptId})
             </if>
         GROUP BY
             <choose>

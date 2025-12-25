@@ -158,7 +158,7 @@ export const useUserStore = defineStore({
           avatar: '',
           desc: '',
           roles: [],
-          homePath: '/dashboard/analysis',
+          homePath: '/admin/statistics',
           ...user,
         } as any;
         this.setUserInfo(userInfo as any);
@@ -247,7 +247,7 @@ export const useUserStore = defineStore({
           avatar: '',
           desc: '',
           roles: [],
-          homePath: '/dashboard/analysis', // 默认首页
+          homePath: '/admin/statistics', // 默认首页
           ...user // 保留所有HosUser的原始字段
         };
         
@@ -283,7 +283,7 @@ export const useUserStore = defineStore({
         avatar: '',
         desc: '',
         roles: [],
-        homePath: '/dashboard/analysis',
+        homePath: '/admin/statistics',
         userType: 1,
         status: 1
       } as UserInfo;

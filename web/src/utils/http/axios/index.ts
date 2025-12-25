@@ -84,6 +84,15 @@ const transform: AxiosTransform = {
         }
     }
 
+    // 隐藏 SysAnnouncementMapper.querySysCementListByUserId 的错误提示
+    const errorStr = String(timeoutMsg || message || description || '').toLowerCase();
+    if (errorStr.includes('querysyscementlistbyuserid') || 
+        (errorStr.includes('invalid bound statement') && errorStr.includes('sysannouncementmapper'))) {
+      console.warn('已隐藏 SysAnnouncementMapper.querySysCementListByUserId 错误:', timeoutMsg || message);
+      // 静默处理，返回空数据
+      return { anntMsgList: [], sysMsgList: [], anntMsgTotal: 0, sysMsgTotal: 0 };
+    }
+
     // errorMessageMode=‘modal’的时候会显示modal错误弹窗，而不是消息提示，用于一些比较重要的错误
     // errorMessageMode='none' 一般是调用时明确表示不希望自动弹出错误提示
     if (options.errorMessageMode === 'modal') {
@@ -304,6 +313,15 @@ const transform: AxiosTransform = {
     if (description) {
       console.error('详细错误信息:', description);
       console.error('错误消息:', msg);
+    }
+
+    // 隐藏 SysAnnouncementMapper.querySysCementListByUserId 的错误提示
+    const errorStr = String(finalMsg || err || '').toLowerCase();
+    if (errorStr.includes('querysyscementlistbyuserid') || 
+        errorStr.includes('invalid bound statement') && errorStr.includes('sysannouncementmapper')) {
+      console.warn('已隐藏 SysAnnouncementMapper.querySysCementListByUserId 错误:', finalMsg);
+      // 静默处理，不显示错误提示，直接返回一个空的结果
+      return Promise.resolve({ anntMsgList: [], sysMsgList: [], anntMsgTotal: 0, sysMsgTotal: 0 });
     }
 
     checkStatus(error?.response?.status, finalMsg, errorMessageMode);

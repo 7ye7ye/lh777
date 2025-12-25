@@ -191,10 +191,14 @@
                     v-for="child in department.children"
                     :key="child.deptId"
                     class="secondary-department"
-                    :class="{ selected: selectedDeptId === child.deptId }"
-                    @click="selectDepartment(child)"
+                    :class="{ 
+                      selected: selectedDeptId === child.deptId,
+                      disabled: isSameDepartment(child.deptId)
+                    }"
+                    @click="!isSameDepartment(child.deptId) && selectDepartment(child)"
                   >
                     <text class="department-name">{{ child.deptName }}</text>
+                    <text v-if="isSameDepartment(child.deptId)" class="disabled-tip">（当前科室）</text>
                   </view>
                 </view>
               </view>
@@ -310,6 +314,7 @@ export default {
       referralInfo: null,
       selectedVisitRecord: null,
       currentPatientId: null, // 当前就诊人ID
+      originalDeptId: null, // 当前就诊记录的科室ID
     }
   },
   computed: {
@@ -444,11 +449,24 @@ export default {
     },
     selectDepartment(dept) {
       const id = normalizeDeptId(dept)
+      // 检查是否是同一科室
+      if (this.isSameDepartment(id)) {
+        uni.showToast({
+          title: '不能转诊到同一科室',
+          icon: 'none'
+        })
+        return
+      }
       this.selectedDeptId = id
       this.selectedDepartment = {
         deptId: id,
         deptName: dept.deptName || dept.name || '未知科室',
       }
+    },
+    // 检查是否是同一科室
+    isSameDepartment(deptId) {
+      if (!this.originalDeptId || !deptId) return false
+      return String(this.originalDeptId) === String(deptId)
     },
     confirmDepartmentSelection() {
       if (this.selectedDepartment) {
@@ -808,6 +826,12 @@ export default {
         this.selectedVisitRecord = stored.visitRecord
         this.formData.visitRecordId = stored.visitRecord.id || stored.visitRecord.recordId || ''
         this.fillPatientFromVisitRecord(this.selectedVisitRecord)
+        
+        // 获取当前就诊记录的科室ID
+        const record = stored.visitRecord
+        const originalRecord = record.originalRecord || record
+        this.originalDeptId = originalRecord.deptId || originalRecord.dept_id || originalRecord.departmentId || originalRecord.department_id || null
+        console.log('获取当前科室ID:', this.originalDeptId, 'from record:', originalRecord)
       }
 
       if (stored && stored.type) this.formData.referralType = stored.type
@@ -1003,6 +1027,12 @@ export default {
         // 优先从 originalRecord 中获取 patientId（与就诊详情页逻辑一致）
         const originalRecord = this.selectedVisitRecord.originalRecord || this.selectedVisitRecord
         const passedPatientId = originalRecord.patientId || originalRecord.patient_id || this.selectedVisitRecord.patientId
+        
+        // 获取当前就诊记录的科室ID（用于禁用同一科室）
+        this.originalDeptId = originalRecord.deptId || originalRecord.dept_id || originalRecord.departmentId || originalRecord.department_id || 
+                              this.selectedVisitRecord.deptId || this.selectedVisitRecord.dept_id || 
+                              this.selectedVisitRecord.departmentId || this.selectedVisitRecord.department_id || null
+        console.log('mounted时获取当前科室ID:', this.originalDeptId, 'from record:', originalRecord)
         
         if (passedPatientId) {
           this.currentPatientId = passedPatientId
@@ -1609,6 +1639,27 @@ export default {
 
 .secondary-department.selected .department-name {
   color: #1989fa;
+}
+
+.secondary-department.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #f9fafb;
+  color: #9ca3af;
+}
+
+.secondary-department.disabled .department-name {
+  color: #9ca3af;
+}
+
+.secondary-department.disabled:active {
+  background-color: #f9fafb;
+}
+
+.disabled-tip {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-left: 8px;
 }
 
 .toggle-icon {

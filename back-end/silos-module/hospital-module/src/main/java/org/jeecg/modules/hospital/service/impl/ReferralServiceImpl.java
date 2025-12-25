@@ -78,6 +78,64 @@ public class ReferralServiceImpl implements ReferralService {
             application.setCreateTime(LocalDateTime.now());
             application.setUpdateTime(LocalDateTime.now());
             
+            // 设置关联用户ID
+            try {
+                Object principal = org.apache.shiro.SecurityUtils.getSubject().getPrincipal();
+                if (principal != null) {
+                    // 打印调试信息
+                    System.out.println("Principal type: " + principal.getClass().getName());
+                    // 根据项目实际情况获取用户ID
+                    if (principal instanceof org.jeecg.common.system.vo.HosUser) {
+                        org.jeecg.common.system.vo.HosUser hosUser = (org.jeecg.common.system.vo.HosUser) principal;
+                        application.setUserId(hosUser.getUserId());
+                        System.out.println("Set userId from org.jeecg.common.system.vo.HosUser: " + hosUser.getUserId());
+                    } else if (principal instanceof org.jeecg.modules.hospital.entity.HosUser) {
+                        org.jeecg.modules.hospital.entity.HosUser hosUser = (org.jeecg.modules.hospital.entity.HosUser) principal;
+                        application.setUserId(hosUser.getUserId());
+                        System.out.println("Set userId from org.jeecg.modules.hospital.entity.HosUser: " + hosUser.getUserId());
+                    } else {
+                        // 尝试使用反射获取userId字段
+                        try {
+                            // 尝试获取userId字段
+                            java.lang.reflect.Field userIdField = principal.getClass().getDeclaredField("userId");
+                            userIdField.setAccessible(true);
+                            Object userIdValue = userIdField.get(principal);
+                            if (userIdValue != null) {
+                                if (userIdValue instanceof Long) {
+                                    application.setUserId((Long) userIdValue);
+                                    System.out.println("Set userId from reflection: " + userIdValue);
+                                } else if (userIdValue instanceof Integer) {
+                                    application.setUserId(((Integer) userIdValue).longValue());
+                                    System.out.println("Set userId from reflection (converted from Integer): " + userIdValue);
+                                }
+                            }
+                        } catch (Exception ex) {
+                            System.out.println("Failed to get userId from reflection: " + ex.getMessage());
+                            // 尝试获取id字段作为备用
+                            try {
+                                java.lang.reflect.Field idField = principal.getClass().getDeclaredField("id");
+                                idField.setAccessible(true);
+                                Object idValue = idField.get(principal);
+                                if (idValue != null) {
+                                    if (idValue instanceof Long) {
+                                        application.setUserId((Long) idValue);
+                                        System.out.println("Set userId from id field: " + idValue);
+                                    } else if (idValue instanceof Integer) {
+                                        application.setUserId(((Integer) idValue).longValue());
+                                        System.out.println("Set userId from id field (converted from Integer): " + idValue);
+                                    }
+                                }
+                            } catch (Exception ex2) {
+                                System.out.println("Failed to get userId from id field: " + ex2.getMessage());
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // 记录日志但不影响正常流程
+                e.printStackTrace();
+            }
+            
             // 保存转诊申请
             referralMapper.insert(application);
             
@@ -111,6 +169,64 @@ public class ReferralServiceImpl implements ReferralService {
             application.setCreateTime(LocalDateTime.now());
             application.setUpdateTime(LocalDateTime.now());
             
+            // 设置关联用户ID
+            try {
+                Object principal = org.apache.shiro.SecurityUtils.getSubject().getPrincipal();
+                if (principal != null) {
+                    // 打印调试信息
+                    System.out.println("Principal type: " + principal.getClass().getName());
+                    // 根据项目实际情况获取用户ID
+                    if (principal instanceof org.jeecg.common.system.vo.HosUser) {
+                        org.jeecg.common.system.vo.HosUser hosUser = (org.jeecg.common.system.vo.HosUser) principal;
+                        application.setUserId(hosUser.getUserId());
+                        System.out.println("Set userId from org.jeecg.common.system.vo.HosUser: " + hosUser.getUserId());
+                    } else if (principal instanceof org.jeecg.modules.hospital.entity.HosUser) {
+                        org.jeecg.modules.hospital.entity.HosUser hosUser = (org.jeecg.modules.hospital.entity.HosUser) principal;
+                        application.setUserId(hosUser.getUserId());
+                        System.out.println("Set userId from org.jeecg.modules.hospital.entity.HosUser: " + hosUser.getUserId());
+                    } else {
+                        // 尝试使用反射获取userId字段
+                        try {
+                            // 尝试获取userId字段
+                            java.lang.reflect.Field userIdField = principal.getClass().getDeclaredField("userId");
+                            userIdField.setAccessible(true);
+                            Object userIdValue = userIdField.get(principal);
+                            if (userIdValue != null) {
+                                if (userIdValue instanceof Long) {
+                                    application.setUserId((Long) userIdValue);
+                                    System.out.println("Set userId from reflection: " + userIdValue);
+                                } else if (userIdValue instanceof Integer) {
+                                    application.setUserId(((Integer) userIdValue).longValue());
+                                    System.out.println("Set userId from reflection (converted from Integer): " + userIdValue);
+                                }
+                            }
+                        } catch (Exception ex) {
+                            System.out.println("Failed to get userId from reflection: " + ex.getMessage());
+                            // 尝试获取id字段作为备用
+                            try {
+                                java.lang.reflect.Field idField = principal.getClass().getDeclaredField("id");
+                                idField.setAccessible(true);
+                                Object idValue = idField.get(principal);
+                                if (idValue != null) {
+                                    if (idValue instanceof Long) {
+                                        application.setUserId((Long) idValue);
+                                        System.out.println("Set userId from id field: " + idValue);
+                                    } else if (idValue instanceof Integer) {
+                                        application.setUserId(((Integer) idValue).longValue());
+                                        System.out.println("Set userId from id field (converted from Integer): " + idValue);
+                                    }
+                                }
+                            } catch (Exception ex2) {
+                                System.out.println("Failed to get userId from id field: " + ex2.getMessage());
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // 记录日志但不影响正常流程
+                e.printStackTrace();
+            }
+            
             // 医生端发起的转诊同样进入管理员审核队列
             referralMapper.insert(application);
             
@@ -131,6 +247,64 @@ public class ReferralServiceImpl implements ReferralService {
             
             params.put("startIndex", startIndex);
             params.put("pageSize", pageSize);
+            
+            // 添加用户ID过滤，只查询当前用户的转诊记录
+            try {
+                Object principal = org.apache.shiro.SecurityUtils.getSubject().getPrincipal();
+                if (principal != null) {
+                    // 打印调试信息
+                    System.out.println("Principal type: " + principal.getClass().getName());
+                    // 根据项目实际情况获取用户ID
+                    if (principal instanceof org.jeecg.common.system.vo.HosUser) {
+                        org.jeecg.common.system.vo.HosUser hosUser = (org.jeecg.common.system.vo.HosUser) principal;
+                        params.put("userId", hosUser.getUserId());
+                        System.out.println("Set userId from org.jeecg.common.system.vo.HosUser: " + hosUser.getUserId());
+                    } else if (principal instanceof org.jeecg.modules.hospital.entity.HosUser) {
+                        org.jeecg.modules.hospital.entity.HosUser hosUser = (org.jeecg.modules.hospital.entity.HosUser) principal;
+                        params.put("userId", hosUser.getUserId());
+                        System.out.println("Set userId from org.jeecg.modules.hospital.entity.HosUser: " + hosUser.getUserId());
+                    } else {
+                        // 尝试使用反射获取userId字段
+                        try {
+                            // 尝试获取userId字段
+                            java.lang.reflect.Field userIdField = principal.getClass().getDeclaredField("userId");
+                            userIdField.setAccessible(true);
+                            Object userIdValue = userIdField.get(principal);
+                            if (userIdValue != null) {
+                                if (userIdValue instanceof Long) {
+                                    params.put("userId", (Long) userIdValue);
+                                    System.out.println("Set userId from reflection: " + userIdValue);
+                                } else if (userIdValue instanceof Integer) {
+                                    params.put("userId", ((Integer) userIdValue).longValue());
+                                    System.out.println("Set userId from reflection (converted from Integer): " + userIdValue);
+                                }
+                            }
+                        } catch (Exception ex) {
+                            System.out.println("Failed to get userId from reflection: " + ex.getMessage());
+                            // 尝试获取id字段作为备用
+                            try {
+                                java.lang.reflect.Field idField = principal.getClass().getDeclaredField("id");
+                                idField.setAccessible(true);
+                                Object idValue = idField.get(principal);
+                                if (idValue != null) {
+                                    if (idValue instanceof Long) {
+                                        params.put("userId", (Long) idValue);
+                                        System.out.println("Set userId from id field: " + idValue);
+                                    } else if (idValue instanceof Integer) {
+                                        params.put("userId", ((Integer) idValue).longValue());
+                                        System.out.println("Set userId from id field (converted from Integer): " + idValue);
+                                    }
+                                }
+                            } catch (Exception ex2) {
+                                System.out.println("Failed to get userId from id field: " + ex2.getMessage());
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // 记录日志但不影响正常流程
+                e.printStackTrace();
+            }
             
             // 查询数据
             List<Map<String, Object>> records = referralMapper.selectReferralList(params);
@@ -159,7 +333,69 @@ public class ReferralServiceImpl implements ReferralService {
     @Override
     public Result<Map<String, Object>> getReferralDetail(Long id) {
         try {
-            Map<String, Object> detail = referralMapper.selectReferralDetail(id);
+            // 创建参数Map并添加userId过滤
+            Map<String, Object> params = new java.util.HashMap<>();
+            params.put("id", id);
+            
+            // 添加用户ID过滤，只查询当前用户的转诊记录
+            try {
+                Object principal = org.apache.shiro.SecurityUtils.getSubject().getPrincipal();
+                if (principal != null) {
+                    // 打印调试信息
+                    System.out.println("Principal type: " + principal.getClass().getName());
+                    // 根据项目实际情况获取用户ID
+                    if (principal instanceof org.jeecg.common.system.vo.HosUser) {
+                        org.jeecg.common.system.vo.HosUser hosUser = (org.jeecg.common.system.vo.HosUser) principal;
+                        params.put("userId", hosUser.getUserId());
+                        System.out.println("Set userId from org.jeecg.common.system.vo.HosUser: " + hosUser.getUserId());
+                    } else if (principal instanceof org.jeecg.modules.hospital.entity.HosUser) {
+                        org.jeecg.modules.hospital.entity.HosUser hosUser = (org.jeecg.modules.hospital.entity.HosUser) principal;
+                        params.put("userId", hosUser.getUserId());
+                        System.out.println("Set userId from org.jeecg.modules.hospital.entity.HosUser: " + hosUser.getUserId());
+                    } else {
+                        // 尝试使用反射获取userId字段
+                        try {
+                            // 尝试获取userId字段
+                            java.lang.reflect.Field userIdField = principal.getClass().getDeclaredField("userId");
+                            userIdField.setAccessible(true);
+                            Object userIdValue = userIdField.get(principal);
+                            if (userIdValue != null) {
+                                if (userIdValue instanceof Long) {
+                                    params.put("userId", (Long) userIdValue);
+                                    System.out.println("Set userId from reflection: " + userIdValue);
+                                } else if (userIdValue instanceof Integer) {
+                                    params.put("userId", ((Integer) userIdValue).longValue());
+                                    System.out.println("Set userId from reflection (converted from Integer): " + userIdValue);
+                                }
+                            }
+                        } catch (Exception ex) {
+                            System.out.println("Failed to get userId from reflection: " + ex.getMessage());
+                            // 尝试获取id字段作为备用
+                            try {
+                                java.lang.reflect.Field idField = principal.getClass().getDeclaredField("id");
+                                idField.setAccessible(true);
+                                Object idValue = idField.get(principal);
+                                if (idValue != null) {
+                                    if (idValue instanceof Long) {
+                                        params.put("userId", (Long) idValue);
+                                        System.out.println("Set userId from id field: " + idValue);
+                                    } else if (idValue instanceof Integer) {
+                                        params.put("userId", ((Integer) idValue).longValue());
+                                        System.out.println("Set userId from id field (converted from Integer): " + idValue);
+                                    }
+                                }
+                            } catch (Exception ex2) {
+                                System.out.println("Failed to get userId from id field: " + ex2.getMessage());
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // 记录日志但不影响正常流程
+                e.printStackTrace();
+            }
+            
+            Map<String, Object> detail = referralMapper.selectReferralDetail(params);
             if (detail == null) {
                 return Result.error("转诊记录不存在");
             }

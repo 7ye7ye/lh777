@@ -13,7 +13,7 @@
 			<view class="info-item"><text>挂号费：</text><text class="price">¥{{ fee }}</text></view>
 		</view>
 		
-		<!-- 患者类型（自行选择） -->
+		<!-- 患者类型（根据账号类型自动锁定） -->
 		<view class="section card">
 		  <text class="label">就诊人身份</text>
 		  <view class="patient-type-list">
@@ -21,13 +21,20 @@
 		      v-for="type in patientTypeList" 
 		      :key="type.value"
 		      class="patient-type-item"
-		      :class="{ selected: patientType === type.value }"
-		      @click="selectPatientType(type.value)"
+		      :class="{ 
+		        selected: patientType === type.value,
+		        disabled: isTypeLocked && patientType !== type.value
+		      }"
+		      @click="!isTypeLocked && selectPatientType(type.value)"
 		    >
 		      <text class="type-icon">{{ getTypeIcon(type.value) }}</text>
 		      <text class="patient-text">{{ type.label }}</text>
 		      <text v-if="patientType === type.value" class="check-icon">✓</text>
+		      <text v-if="isTypeLocked && patientType === type.value" class="lock-icon">🔒</text>
 		    </view>
+		  </view>
+		  <view v-if="isTypeLocked" class="type-lock-tip">
+		    <text>身份已根据账号类型自动锁定，不可更改</text>
 		  </view>
 		</view>
 
@@ -66,6 +73,7 @@ const time = ref('')
 const originalFee = 50 // 挂号原价（可按需要调整或从后端获取）
 const fee = ref(0) // 实际支付金额
 const patientType = ref(0) // 患者类型
+const isTypeLocked = ref(false) // 是否锁定身份类型
 const doctorId = ref(null)
 const typeId = ref(null)
 const scheduleId = ref(null)
@@ -145,8 +153,15 @@ const calculateFeeByPatientType = (type) => {
 	}
 }
 
-// 选择患者类型
+// 选择患者类型（仅在未锁定时允许）
 const selectPatientType = (type) => {
+	if (isTypeLocked.value) {
+		uni.showToast({
+			title: '身份类型已锁定，不可更改',
+			icon: 'none'
+		})
+		return
+	}
 	patientType.value = type
 	fee.value = calculateFeeByPatientType(type)
 }
@@ -185,11 +200,27 @@ onMounted(async () => {
 		}
 	}
 	
-	if (patientIdFromRoute) {
-		currentPatient.value = {
-			patientId: patientIdFromRoute
+	// 获取就诊卡信息，用于确定患者类型
+	let patientCardInfo = null
+	try {
+		patientCardInfo = await ensurePatientCard()
+		if (patientCardInfo && patientCardInfo.patientId) {
+			currentPatient.value = patientCardInfo
+		} else if (patientIdFromRoute) {
+			currentPatient.value = {
+				patientId: patientIdFromRoute
+			}
 		}
-	} else {
+	} catch (e) {
+		console.warn('获取就诊卡信息失败:', e)
+		if (patientIdFromRoute) {
+			currentPatient.value = {
+				patientId: patientIdFromRoute
+			}
+		}
+	}
+	
+	if (!currentPatient.value?.patientId) {
 		// 如果还是没有，提示错误
 		uni.showModal({
 			title: '患者信息缺失',
@@ -202,9 +233,20 @@ onMounted(async () => {
 		return
 	}
 	
-	// 默认选择学生类型
-	patientType.value = 1
-	fee.value = calculateFeeByPatientType(1)
+	// 根据就诊卡的patientType自动选择并锁定身份类型
+	const cardPatientType = patientCardInfo?.patientType || patientCardInfo?.patient_type
+	if (cardPatientType && (cardPatientType === 1 || cardPatientType === 2 || cardPatientType === 3)) {
+		// 如果就诊卡有明确的身份类型，自动选择并锁定
+		patientType.value = Number(cardPatientType)
+		isTypeLocked.value = true
+		fee.value = calculateFeeByPatientType(Number(cardPatientType))
+		console.log('根据就诊卡身份类型自动锁定:', cardPatientType)
+	} else {
+		// 如果没有，默认选择学生类型，但不锁定
+		patientType.value = 1
+		isTypeLocked.value = false
+		fee.value = calculateFeeByPatientType(1)
+	}
 
 	// 其他挂号信息
 	const deptParam = options.dept || ''
@@ -817,6 +859,33 @@ function formatLocalDateTime(date) {
 
 	.patient-type-item.selected::before {
 		display: none;
+	}
+	
+	.patient-type-item.disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+		pointer-events: none;
+		background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+		border-color: #d0d0d0;
+	}
+	
+	.type-lock-tip {
+		margin-top: 16rpx;
+		padding: 12rpx 16rpx;
+		background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+		border-radius: 12rpx;
+		border: 1rpx solid #ffc107;
+		font-size: 24rpx;
+		color: #856404;
+		text-align: center;
+	}
+	
+	.lock-icon {
+		position: absolute;
+		top: 6rpx;
+		right: 6rpx;
+		font-size: 20rpx;
+		opacity: 0.8;
 	}
 	
 	.type-icon {

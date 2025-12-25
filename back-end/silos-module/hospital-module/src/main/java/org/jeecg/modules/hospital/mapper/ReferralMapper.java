@@ -32,10 +32,10 @@ public interface ReferralMapper extends BaseMapper<ReferralApplication> {
 
     /**
      * 查询转诊申请详情
-     * @param id 转诊申请ID
+     * @param params 查询参数
      * @return 详情信息
      */
-    Map<String, Object> selectReferralDetail(@Param("id") Long id);
+    Map<String, Object> selectReferralDetail(Map<String, Object> params);
 
     /**
      * 查询患者的转诊记录

@@ -1,12 +1,12 @@
 /**
  * API 配置
  * 统一管理后端 API 地址，方便修改和部署
- * 
+ *
  * 使用方法：
  * 1. 修改下面的 BASE_URL 为你的后端服务器地址
  * 2. 如果是真机调试，使用内网穿透的 HTTPS 地址（如：https://xxxxx.ngrok-free.dev）
  * 3. 如果是生产环境，使用实际的服务器地址（如：https://api.example.com）
- * 
+ *
  * ⚠️ 重要：这是项目中唯一需要修改 API 地址的地方！
  */
 
@@ -15,7 +15,7 @@ declare const uni: any
 
 // ==================== 配置区域 ====================
 // 后端服务器地址
-// 
+//
 // 配置说明：
 // 1. 本地开发：'http://localhost:8095'
 // 2. 真机调试（使用内网穿透）：'https://xxxxx.natapp1.cc' (使用内网穿透工具的公网地址)
@@ -32,20 +32,30 @@ export const API_CONFIG = {
   // 后端服务器基础地址
   // 使用内网穿透时，修改为内网穿透工具提供的 HTTPS 地址
   // ⚠️ 重要：微信小程序真机环境必须使用 HTTPS！
-  // 
+  //
   // 如果 natapp 免费版只提供 HTTP，可以：
   // 1. 使用 cpolar（免费版支持 HTTPS）：https://www.cpolar.com
   // 2. 购买 natapp VIP（支持 HTTPS 和固定域名）
   // 3. 使用 ngrok（免费版支持 HTTPS）：https://ngrok.com
   //
   // 例如：'https://abc123.natapp1.cc' 或 'https://xxxxx.cpolar.cn'
-//   BASE_URL: 'http://10.60.73.201:8095', // 本地 IPv4 地址，模拟器显示图片正常，真机调试无法显示图片
-  // BASE_URL: 'https://470edbfe.r8.cpolar.cn', // 内网穿透生成的HTTPS 地址，真机可用,每次生成的地址不一样需要手动配置
-  BASE_URL: 'http://localhost:8095', //不使用真机调试，仅在电脑上运行用这个
+//   BASE_URL: 'http://localhost:8095', // 本地开发，仅模拟器可用
+//   BASE_URL: 'http://127.0.0.1:8095', // 本地开发，仅模拟器可用
+//   BASE_URL: 'http://10.61.168.113:8095', // 本机内网IP（当前网络：phone.wlan.bjtu），仅模拟器可用，真机无法访问
+//   BASE_URL: 'http://183.242.199.186:8095', // 公网IP，仅当有公网服务器且配置了端口转发时可用
+//   BASE_URL: 'https://470edbfe.r8.cpolar.cn', // 旧的内网穿透地址（已失效）
+//   BASE_URL: 'https://21a451f8.r6.cpolar.cn', // ⚠️ 此地址已失效，请重新获取新的 cpolar 地址
+  BASE_URL: 'http://localhost:8095', // ⚠️ 临时使用本地地址（仅模拟器），真机调试请使用 cpolar
+  // ⚠️ 重要：如果看到 404 错误，说明 cpolar 隧道地址已失效
+  // 请按以下步骤获取新地址：
+  // 1. 打开 cpolar 客户端
+  // 2. 查看 "在线隧道列表" 中的 HTTPS 地址
+  // 3. 将新地址更新到上面的 BASE_URL
+  // 4. 重新编译项目
 
   // API 前缀
   API_PREFIX: '/jeecg-boot',
-  
+
   // 请求超时时间（毫秒）
   TIMEOUT: 8000,
 }
@@ -76,8 +86,8 @@ export function getBaseURL(): string {
     const stored = uni.getStorageSync('BASE_URL')
     if (stored) {
       // 如果存储的值是旧的 IP 地址或 localhost，忽略它，使用配置文件的值
-      if (stored.includes('localhost') || 
-          stored.includes('127.0.0.1') || 
+      if (stored.includes('localhost') ||
+          stored.includes('127.0.0.1') ||
           /^\d+\.\d+\.\d+\.\d+/.test(stored.replace(/^https?:\/\//, '').split(':')[0])) {
         console.warn('⚠️ 检测到旧的 IP 地址配置，使用配置文件中的值:', stored)
         // 继续使用配置文件的值
@@ -87,12 +97,12 @@ export function getBaseURL(): string {
       }
     }
   }
-  
+
   // 2. 使用配置文件中的值（这是主要配置来源）
   if (API_CONFIG.BASE_URL) {
     return API_CONFIG.BASE_URL
   }
-  
+
   // 3. 默认值（不应该到达这里，因为配置文件应该总是有值）
   console.error('❌ API_CONFIG.BASE_URL 未配置，请检查 config/api.ts')
   return 'http://localhost:8095'
