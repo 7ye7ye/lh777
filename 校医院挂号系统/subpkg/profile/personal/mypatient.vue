@@ -63,7 +63,7 @@
     <view v-else class="empty-container">
       <image 
         class="empty-bg-image" 
-        src="/static/images/no_data.png" 
+        :src="getStaticImage('/static/images/no_data.png')" 
         mode="scaleToFill"
       />
       <view class="empty-content">
@@ -92,6 +92,7 @@ import uqrcode from '@/uni_modules/Sansnn-uQRCode/components/uqrcode/uqrcode.vue
 import { patientApi } from '@/api/patient'
 import { useUserStore } from '@/store/user'
 import { uniShowToast, uniNavigateTo, uniShowModal } from '@/utils/uniHelper'
+import { getStaticImage } from '@/utils/imageHelper'
 
 const userStore = useUserStore()
 const loading = ref(false)

@@ -11,7 +11,7 @@
           @confirm="handleSearch"
         />
         <view class="voice-btn">
-          <image class="voice-icon" src="/static/inhos_navi/voice.svg" mode="aspectFit" />
+          <image class="voice-icon" :src="getStaticImage('/static/inhos_navi/voice.svg')" mode="aspectFit" />
         </view>
       </view>
       <view class="search-btn" @tap="handleSearch">搜索</view>
@@ -60,6 +60,7 @@
 <script setup>
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
+import { getStaticImage } from '@/utils/imageHelper'
 
 const HISTORY_KEY = 'NAVIGATION_SEARCH_HISTORY'
 

@@ -4,7 +4,7 @@
     <view class="header-illustration">
       <image 
         class="illustration-bg-image"
-        src="../../../static/images/health-bg.png"
+        :src="getStaticImage('/static/images/health-bg.png')"
         mode="scaleToFill"
       />
       <view class="header-title">— 关爱健康 · 感恩生活 —</view>
@@ -129,6 +129,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { patientApi } from '@/api/patient'
 import { useUserStore } from '@/store/user'
+import { getStaticImage } from '@/utils/imageHelper'
 import { uniShowToast, uniNavigateBack } from '@/utils/uniHelper'
 
 const userStore = useUserStore()

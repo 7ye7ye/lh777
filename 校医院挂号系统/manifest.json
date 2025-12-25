@@ -44,7 +44,8 @@
     "mp-weixin": {
         "appid": "wxf10cb324c59bd0e5",
         "setting": {
-            "urlCheck": false
+            "urlCheck": false,
+            "minified": true
         },
         "usingComponents": true,
         "requiredPrivateInfos": [
@@ -55,6 +56,10 @@
             "scope.userLocation": {
                 "desc": "我们需要您的位置以提供到院导航服务"
             }
+        },
+        "networkTimeout": {
+            "request": 10000,
+            "downloadFile": 10000
         }
     },
     "mp-alipay": {

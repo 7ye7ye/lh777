@@ -228,10 +228,13 @@ const onPatientChange = (e) => {
   }
 }
 
+// 使用统一的配置函数
+import { getBaseURL, getApiPrefix } from '@/config/api'
+
 const buildImageUrl = (relativePath) => {
   if (!relativePath) return ''
-  const baseURL = uni.getStorageSync('BASE_URL') || 'http://localhost:8095'
-  const apiPrefix = uni.getStorageSync('API_PREFIX') || '/jeecg-boot'
+  const baseURL = getBaseURL()
+  const apiPrefix = getApiPrefix()
   const cleanPrefix = apiPrefix.endsWith('/') ? apiPrefix.slice(0, -1) : apiPrefix
   const cleanPath = relativePath.replace(/^\/+/, '')
   return `${baseURL}${cleanPrefix}/sys/common/static/${encodeURI(cleanPath)}`
