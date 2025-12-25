@@ -10,8 +10,8 @@ import org.jeecg.modules.hospital.service.StatisticsService;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -65,7 +65,7 @@ public class StatisticsServiceImpl implements StatisticsService {
                         current.setCompareVisitCount(item.getVisitCount());
                         if (item.getVisitCount() != null && current.getVisitCount() != null && item.getVisitCount() > 0) {
                             BigDecimal growth = BigDecimal.valueOf(current.getVisitCount() - item.getVisitCount())
-                                .divide(BigDecimal.valueOf(item.getVisitCount()), 4, BigDecimal.ROUND_HALF_UP)
+                                .divide(BigDecimal.valueOf(item.getVisitCount()), 4, RoundingMode.HALF_UP)
                                 .multiply(BigDecimal.valueOf(100));
                             current.setGrowthRate(growth);
                         }
@@ -185,7 +185,7 @@ public class StatisticsServiceImpl implements StatisticsService {
                         current.setCompareRegistration(item.getTypeRegistration());
                         if (item.getTypeRegistration() != null && current.getTypeRegistration() != null && item.getTypeRegistration() > 0) {
                             BigDecimal growth = BigDecimal.valueOf(current.getTypeRegistration() - item.getTypeRegistration())
-                                .divide(BigDecimal.valueOf(item.getTypeRegistration()), 4, BigDecimal.ROUND_HALF_UP)
+                                .divide(BigDecimal.valueOf(item.getTypeRegistration()), 4, RoundingMode.HALF_UP)
                                 .multiply(BigDecimal.valueOf(100));
                             current.setGrowthRate(growth);
                         }

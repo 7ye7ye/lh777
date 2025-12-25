@@ -30,7 +30,7 @@
         </view>
         <view class="info-row-full">
           <text class="info-label">挂号编号</text>
-          <text class="info-value">{{ record?.id || '-' }}</text>
+          <text class="info-value">{{ registrationNo }}</text>
         </view>
         <view class="info-row-full">
           <text class="info-label">就诊状态</text>
@@ -50,7 +50,7 @@
         </view>
         <view class="info-row-full">
           <text class="info-label">挂号类型</text>
-          <text class="info-value">{{ record?.registerType || '-' }}</text>
+          <text class="info-value">{{ registerTypeName }}</text>
         </view>
       </view>
     </view>
@@ -109,7 +109,7 @@ import { fetchPatientCard } from '@/utils/patientHelper'
 import { getDepartmentDetail } from '@/api/department'
 import { getDoctorDetail } from '@/api/doctor_massage'
 import { patientApi } from '@/api/patient'
-import { getScheduleDetailById, getRegistrationRecords } from '@/api/registration'
+import { getScheduleDetailById, getRegistrationRecords, getRegistrationTypes } from '@/api/registration'
 import { getPatientReferralList, getPatientVisitRecords } from '@/api/referral'
 
 // 状态定义（与就诊记录列表页面一致）
@@ -175,6 +175,9 @@ const departmentName = ref('-')
 const appointmentTimeSlot = ref('') // 就诊时间段
 const appointmentTime = ref('') // 就诊时间（具体时间点）
 const statusDisplay = ref('') // 解析后的状态显示文本
+const registrationNo = ref('-') // 挂号编号
+const registerTypeName = ref('-') // 挂号类型名称
+const registrationTypeMap = ref({}) // 挂号类型映射表
 
 // 转换日期字符串为iOS兼容格式
 const convertToIOSCompatibleDate = (dateString) => {
@@ -620,6 +623,67 @@ const loadRecordDetails = async () => {
             }
           }
         }
+      }
+    }
+    
+    // 如果没有routeData，但有id参数，根据id查询记录
+    if (!routeData && options.id) {
+      try {
+        console.log('根据id参数查询记录，id:', options.id);
+        const recordId = Number(options.id);
+        if (recordId) {
+          // 先加载患者信息，获取patientId
+          await loadPatientInfo();
+          const pid = patientInfo.value?.patientId || patientInfo.value?.id;
+          if (pid) {
+            // 查询挂号记录
+            const regRes = await getRegistrationRecords(pid);
+            const regList = Array.isArray(regRes?.result) ? regRes.result
+              : Array.isArray(regRes?.data) ? regRes.data
+              : Array.isArray(regRes) ? regRes
+              : [];
+            
+            // 查找匹配的记录
+            const matchedRecord = regList.find((item) => {
+              const ids = [
+                item.id,
+                item.record_id,
+                item.recordId,
+                item.registration_id,
+                item.registrationId,
+                item.registrationRecordId,
+                item.registration_record_id,
+              ].map((v) => Number(v));
+              return ids.includes(recordId);
+            });
+            
+            if (matchedRecord) {
+              console.log('找到匹配的记录:', matchedRecord);
+              routeData = matchedRecord;
+            } else {
+              console.warn('未找到id为', recordId, '的记录');
+              uni.showToast({
+                title: '未找到预约记录',
+                icon: 'none'
+              });
+              return;
+            }
+          } else {
+            console.warn('无法获取patientId，无法查询记录');
+            uni.showToast({
+              title: '无法获取患者信息',
+              icon: 'none'
+            });
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('根据id查询记录失败:', error);
+        uni.showToast({
+          title: '加载记录失败，请稍后重试',
+          icon: 'none'
+        });
+        return;
       }
     }
     

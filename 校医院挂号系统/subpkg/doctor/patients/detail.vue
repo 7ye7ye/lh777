@@ -235,11 +235,15 @@
                     v-for="dept in group.children"
                     :key="dept.deptId"
                     class="dept-item"
-                    :class="{ active: referralData.targetDeptId === String(dept.deptId) }"
-                    @click="selectInternalDepartment(dept)"
+                    :class="{ 
+                      active: referralData.targetDeptId === String(dept.deptId),
+                      disabled: isSameDepartment(dept.deptId)
+                    }"
+                    @click="!isSameDepartment(dept.deptId) && selectInternalDepartment(dept)"
                   >
                     <view class="dept-item-name">{{ dept.deptName }}</view>
                     <view class="dept-item-desc">{{ dept.deptDesc || '暂无介绍' }}</view>
+                    <text v-if="isSameDepartment(dept.deptId)" class="disabled-tip">（当前科室）</text>
                   </view>
                 </view>
               </view>
@@ -384,9 +388,26 @@ const loadDepartmentGroups = async () => {
   }
 }
 
+// 当前就诊记录的科室ID
+const originalDeptId = ref(null)
+
 const selectInternalDepartment = (dept) => {
+  // 检查是否是同一科室
+  if (isSameDepartment(dept.deptId)) {
+    uniShowToast({
+      title: '不能转诊到同一科室',
+      icon: 'none'
+    })
+    return
+  }
   referralData.value.targetDeptId = String(dept.deptId || '')
   referralData.value.targetDepartment = dept.deptName || ''
+}
+
+// 检查是否是同一科室
+const isSameDepartment = (deptId) => {
+  if (!originalDeptId.value || !deptId) return false
+  return String(originalDeptId.value) === String(deptId)
 }
 
 const buildMedicalHistoryText = () => {
@@ -493,6 +514,9 @@ async function loadPatientDetail(id) {
           if (ap.status !== undefined && ap.status !== null) {
             patient.value.status = statusMap(ap.status)
           }
+          // 获取当前就诊记录的科室ID
+          originalDeptId.value = ap.deptId || ap.dept_id || ap.departmentId || ap.department_id || null
+          console.log('医生端获取当前科室ID:', originalDeptId.value, 'from appointment:', ap)
         }
       } catch {}
     }
@@ -1055,6 +1079,22 @@ onMounted(async () => {
     border-color: #ff9800;
     background: #fff7e6;
   }
+  
+  .dept-item.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #f9fafb;
+    border-color: #e5e7eb;
+  }
+  
+  .dept-item.disabled .dept-item-name,
+  .dept-item.disabled .dept-item-desc {
+    color: #9ca3af;
+  }
+  
+  .dept-item.disabled:active {
+    background: #f9fafb;
+  }
 
   .dept-item-name {
     font-size: 26rpx;
@@ -1066,6 +1106,12 @@ onMounted(async () => {
   .dept-item-desc {
     font-size: 22rpx;
     color: #7a8aa0;
+  }
+  
+  .disabled-tip {
+    font-size: 24rpx;
+    color: #9ca3af;
+    margin-top: 8rpx;
   }
 
   .empty-dept {
