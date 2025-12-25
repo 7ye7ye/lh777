@@ -10,6 +10,7 @@ import org.jeecg.modules.hospital.entity.RegistrationType;
 import org.jeecg.modules.hospital.entity.WaitingQueue;
 import org.jeecg.modules.hospital.service.RegistrationService;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.util.HashMap;
 import java.util.List;
@@ -26,6 +27,17 @@ public class RegistrationAppletController {
     @Resource
     private RegistrationService registrationService;
 
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Operation(summary = "预热Redis库存(测试用)")
+    @GetMapping("/warmup")
+    public Result<String> warmup(@RequestParam Long id, @RequestParam Long count) {
+        String key = "doctor_schedule:quota:" + id;
+        stringRedisTemplate.opsForValue().set(key, String.valueOf(count));
+        return Result.OK("Redis key set: " + key + " = " + count);
+    }
+
     @Operation(summary = "获取所有挂号类型")
     @GetMapping("/types")
     public Result<List<RegistrationType>> getRegistrationTypes() {
@@ -38,21 +50,19 @@ public class RegistrationAppletController {
     public Result<?> getSchedules(
             @RequestParam Long doctorId,
             @RequestParam String startDate,
-            @RequestParam(defaultValue = "7") Integer days
-    ) {
+            @RequestParam(defaultValue = "7") Integer days) {
         return Result.OK(registrationService.getDoctorSchedules(doctorId, startDate, days));
     }
 
     @Operation(summary = "创建挂号预约记录")
     @PostMapping("/create")
     public Result<String> createRegistration(@RequestBody RegistrationRecord record,
-                                             @RequestParam Long patientId,
-                                             @RequestParam(defaultValue = "false") boolean joinWaitingQueue) {
+            @RequestParam Long patientId,
+            @RequestParam(defaultValue = "false") boolean joinWaitingQueue) {
         // 调用 Service
         Result<String> res = registrationService.createRegistration(record, patientId, joinWaitingQueue);
         return res;
     }
-
 
     @Operation(summary = "根据患者ID获取挂号记录")
     @GetMapping("/records")
@@ -64,7 +74,7 @@ public class RegistrationAppletController {
     @Operation(summary = "检查患者是否已对该排班挂号（防止重复挂号）")
     @GetMapping("/checkDuplicateBySchedule")
     public Result<Boolean> checkDuplicateBySchedule(@RequestParam Long patientId,
-                                                    @RequestParam Long scheduleId) {
+            @RequestParam Long scheduleId) {
         boolean isDuplicate = registrationService.checkDuplicateBySchedule(patientId, scheduleId);
         return Result.OK(isDuplicate);
     }
@@ -72,7 +82,7 @@ public class RegistrationAppletController {
     @Operation(summary = "检查同一患者在当前排班对应科室当日是否已有挂号记录（单科室单日限约1次）")
     @GetMapping("/checkDeptLimitBySchedule")
     public Result<Boolean> checkDeptLimitBySchedule(@RequestParam Long patientId,
-                                                    @RequestParam Long scheduleId) {
+            @RequestParam Long scheduleId) {
         boolean reachedLimit = registrationService.checkDeptLimitForSchedule(patientId, scheduleId);
         return Result.OK(reachedLimit);
     }
@@ -93,8 +103,7 @@ public class RegistrationAppletController {
     @PostMapping("/cancel")
     public Result<String> cancelRegistration(
             @RequestParam Long recordId,
-            @RequestParam(required = false, defaultValue = "患者主动取消") String cancelReason
-    ) {
+            @RequestParam(required = false, defaultValue = "患者主动取消") String cancelReason) {
         try {
             boolean ok = registrationService.cancelRegistration(recordId, cancelReason);
             if (ok) {
@@ -130,10 +139,17 @@ public class RegistrationAppletController {
 
             String timeSlotText;
             switch (schedule.getTimeSlot()) {
-                case 1: timeSlotText = "上午"; break;
-                case 2: timeSlotText = "下午"; break;
-                case 3: timeSlotText = "晚上"; break;
-                default: timeSlotText = "未知";
+                case 1:
+                    timeSlotText = "上午";
+                    break;
+                case 2:
+                    timeSlotText = "下午";
+                    break;
+                case 3:
+                    timeSlotText = "晚上";
+                    break;
+                default:
+                    timeSlotText = "未知";
             }
 
             Map<String, Object> result = new HashMap<>();
@@ -190,7 +206,5 @@ public class RegistrationAppletController {
             return Result.error("获取患者类型失败：" + e.getMessage());
         }
     }
-
-
 
 }
