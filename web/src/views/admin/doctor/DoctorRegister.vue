@@ -234,6 +234,18 @@ async function handleSubmit() {
       userType: 2,
     });
 
+    // 检查响应状态，确保注册成功
+    // 由于设置了 errorMessageMode: 'none' 和 isTransformResponse: false，需要手动检查响应
+    if (res && typeof res === 'object' && 'code' in res) {
+      const responseCode = (res as any).code;
+      // 成功码：0 或 200 或 20000
+      if (responseCode !== 0 && responseCode !== 200 && responseCode !== 20000) {
+        const errorMsg = (res as any).description || (res as any).message || '医生注册失败';
+        createMessage.error(errorMsg);
+        return;
+      }
+    }
+
     // 注册成功，显示包含密码的提示信息
     createMessage.success(`医生账户注册成功，请将密码通知医生`);
     resetForm();
@@ -250,7 +262,7 @@ async function handleSubmit() {
       errorMessage = error.message;
     }
     
-    // 只显示一次错误提示
+    // 显示错误提示
     createMessage.error(errorMessage);
   } finally {
     submitting.value = false;

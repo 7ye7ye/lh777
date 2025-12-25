@@ -66,9 +66,13 @@ export const getDoctorByUserId = (userId: number) =>
 
 // 注册医生账号函数
 export const registerDoctorAccount = (params: RegisterDoctorParams) =>
-  defHttp.post<{ success: boolean; message: string; data: { userId: number; doctorId: number } }>({
+  defHttp.post<{ code: number; success: boolean; message: string; description?: string; data: { userId: number; doctorId: number } }>({
     url: '/admin/doctor/register',
     data: params,
+  }, {
+    successMessageMode: 'none', // 禁用自动成功通知，避免显示包含密码的红框通知
+    errorMessageMode: 'none', // 禁用自动错误通知，由前端手动处理错误
+    isTransformResponse: false, // 不转换响应，直接返回原始数据，方便检查 code 字段
   });
 
 // 医生资料修改申请相关接口（管理员端）

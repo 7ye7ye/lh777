@@ -40,8 +40,8 @@ export const API_CONFIG = {
   //
   // 例如：'https://abc123.natapp1.cc' 或 'https://xxxxx.cpolar.cn'
 //   BASE_URL: 'http://10.60.73.201:8095', // 本地 IPv4 地址，模拟器显示图片正常，真机调试无法显示图片
-  BASE_URL: 'https://470edbfe.r8.cpolar.cn', // 内网穿透生成的HTTPS 地址，真机可用,每次生成的地址不一样需要手动配置
-//   BASE_URL: 'http://localhost:8095', //不使用真机调试，仅在电脑上运行用这个
+  // BASE_URL: 'https://470edbfe.r8.cpolar.cn', // 内网穿透生成的HTTPS 地址，真机可用,每次生成的地址不一样需要手动配置
+  BASE_URL: 'http://localhost:8095', //不使用真机调试，仅在电脑上运行用这个
 
   // API 前缀
   API_PREFIX: '/jeecg-boot',

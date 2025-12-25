@@ -27,23 +27,10 @@
             <text class="card-number-text">证件号: {{ cardInfo.outpatientNumber || cardInfo.cardNumber || cardInfo.idCard || '-' }}</text>
           </view>
         </view>
-        <view class="visit-card-right">
-          <view class="qrcode-wrapper" v-if="cardInfo.patientId && (cardInfo.outpatientNumber || cardInfo.cardNumber || cardInfo.idCard)">
-            <uqrcode 
-              ref="qrcodeRef"
-              canvas-id="home-qrcode"
-              :value="(cardInfo.outpatientNumber || cardInfo.cardNumber || cardInfo.idCard) || ''" 
-              :size="120"
-              :margin="2"
-              background-color="#FFFFFF"
-              foreground-color="#000000"
-              file-type="png"
-            ></uqrcode>
+        <view class="visit-card-right" v-if="cardInfo.patientId">
+          <view class="card-status">
+            <text class="status-text">已绑定</text>
           </view>
-          <view class="qrcode-placeholder" v-else>
-            <text class="qrcode-icon">📱</text>
-          </view>
-          <view class="enter-tip">出示就诊码</view>
         </view>
       </view>
     </view>
@@ -109,7 +96,6 @@ import { userApi } from '@/api/user'
 import { useUserStore } from '@/store/user'
 import { uniNavigateTo } from '@/utils/uniHelper'
 import { patientApi } from '@/api/patient'
-import uqrcode from '@/uni_modules/Sansnn-uQRCode/components/uqrcode/uqrcode.vue'
 import { getStaticImage } from '@/utils/imageHelper'
 import { preloadImage } from '@/utils/imagePreloader'
 
@@ -661,53 +647,19 @@ onShow(() => {
   padding-left: 20rpx;
   flex-shrink: 0;
 }
-.qrcode-wrapper {
-  width: 140rpx;
-  height: 140rpx;
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 10rpx;
-  box-sizing: border-box;
+.card-status {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.2);
-  position: relative;
-  overflow: hidden;
+  padding: 16rpx 32rpx;
+  background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
+  border-radius: 24rpx;
+  box-shadow: 0 4rpx 12rpx rgba(82, 196, 26, 0.3);
 }
-.qrcode-wrapper :deep(uqrcode),
-.qrcode-wrapper :deep(.uqrcode) {
-  width: 120rpx !important;
-  height: 120rpx !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-.qrcode-wrapper :deep(canvas),
-.qrcode-wrapper :deep(.uqrcode-canvas) {
-  width: 120rpx !important;
-  height: 120rpx !important;
-  display: block !important;
-}
-.qrcode-placeholder {
-  width: 120rpx;
-  height: 120rpx;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 12rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.qrcode-icon {
-  font-size: 60rpx;
-  opacity: 0.7;
-}
-.enter-tip {
-  font-size: 24rpx;
-  margin-top: 14rpx;
-  color: #4a7ba7;
-  opacity: 0.9;
-  text-align: center;
+
+.status-text {
+  font-size: 26rpx;
+  color: #fff;
   font-weight: 500;
 }
 

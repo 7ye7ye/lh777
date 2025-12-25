@@ -206,6 +206,12 @@ public class Patient {
 
     private int isDeleted;
 
+    /**
+     * 是否默认就诊卡（0-否；1-是，默认0）
+     */
+    @TableField("is_default")
+    private Integer isDefault;
+
 
     public Long getPatientId() {
         return patientId;
@@ -477,5 +483,13 @@ public class Patient {
 
     public void setPatientName(String patientName) {
         this.patientName = patientName;
+    }
+
+    public Integer getIsDefault() {
+        return isDefault;
+    }
+
+    public void setIsDefault(Integer isDefault) {
+        this.isDefault = isDefault;
     }
 }

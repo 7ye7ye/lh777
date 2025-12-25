@@ -84,10 +84,10 @@ const onSubmit = async () => {
     const res=await userApi.register({ userAccount: form.value.userAccount, userPassword: form.value.userPassword, checkPassword: form.value.checkPassword, userType:1})
     console.log(res)
     await uniShowToast({ title: '注册成功', icon: 'success', duration: 1500 })
-          // 使用setTimeout确保toast显示完成后再跳转
-          setTimeout(() => {e3c 
-            uniNavigateTo('/subpkg/auth/login')
-          }, 1500)
+    // 使用setTimeout确保toast显示完成后再跳转
+    setTimeout(() => {
+      uniNavigateTo('/subpkg/auth/login')
+    }, 1500)
   } catch (e) {
     await uniShowToast({ title: (e && e.message) || '注册失败', icon: 'none' })
   } finally {

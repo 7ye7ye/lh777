@@ -11,6 +11,8 @@ import org.jeecg.modules.hospital.exception.BusinessException;
 import org.jeecg.modules.hospital.service.DoctorService;
 import org.jeecg.modules.hospital.service.HosUserService;
 import org.jeecg.modules.hospital.service.DepartmentService;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.SecureRandom;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -131,8 +134,25 @@ public class AdminDoctorRegisterController {
                     request.getUserType(), // user_type = 2 (医生)
                     1 // 设置账号状态为1(正常)
             ).getData();
+        } catch (BusinessException e) {
+            // 如果是业务异常，提取精准的错误描述
+            String errorDetail = e.getDescription();
+            if (errorDetail != null && !errorDetail.isEmpty()) {
+                throw new BusinessException(ErrorCode.DATABASE_ERROR, "用户账号注册失败：" + errorDetail);
+            } else {
+                // 如果没有详细描述，使用异常消息
+                throw new BusinessException(ErrorCode.DATABASE_ERROR, "用户账号注册失败：" + e.getMessage());
+            }
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.DATABASE_ERROR, "用户账号注册失败: " + e.getMessage());
+            // 其他类型的异常，提供更详细的错误信息
+            String errorMsg = e.getMessage();
+            if (errorMsg != null && errorMsg.contains("Duplicate entry")) {
+                throw new BusinessException(ErrorCode.DATABASE_ERROR, "用户账号注册失败：该账号已被注册，请使用其他账号");
+            } else if (errorMsg != null && errorMsg.contains("SQL")) {
+                throw new BusinessException(ErrorCode.DATABASE_ERROR, "用户账号注册失败：数据库操作异常，请稍后重试");
+            } else {
+                throw new BusinessException(ErrorCode.DATABASE_ERROR, "用户账号注册失败：" + (errorMsg != null ? errorMsg : "未知错误"));
+            }
         }
 
         try {
@@ -160,10 +180,115 @@ public class AdminDoctorRegisterController {
 
             return result;
 
+        } catch (BusinessException e) {
+            // 如果是业务异常，提取精准的错误描述
+            String errorDetail = e.getDescription();
+            if (errorDetail != null && !errorDetail.isEmpty()) {
+                throw new BusinessException(ErrorCode.DATABASE_ERROR, "医生信息保存失败：" + errorDetail);
+            } else {
+                throw new BusinessException(ErrorCode.DATABASE_ERROR, "医生信息保存失败：" + e.getMessage());
+            }
+        } catch (DuplicateKeyException e) {
+            // 唯一约束违反（如主键、唯一索引重复）
+            String errorMsg = e.getMessage();
+            if (errorMsg != null && errorMsg.contains("user_id")) {
+                throw new BusinessException(ErrorCode.DATABASE_ERROR, "医生信息保存失败：该用户已关联其他医生账号");
+            } else if (errorMsg != null && errorMsg.contains("doctor_id")) {
+                throw new BusinessException(ErrorCode.DATABASE_ERROR, "医生信息保存失败：医生ID已存在");
+            } else {
+                throw new BusinessException(ErrorCode.DATABASE_ERROR, "医生信息保存失败：数据唯一性约束冲突，请检查输入信息");
+            }
+        } catch (DataIntegrityViolationException e) {
+            // 数据完整性约束违反（外键、非空、检查约束等）
+            String errorMsg = e.getMessage();
+            Throwable rootCause = e.getRootCause();
+            String rootCauseMsg = rootCause != null ? rootCause.getMessage() : null;
+            
+            if (rootCauseMsg != null) {
+                if (rootCauseMsg.contains("foreign key constraint") || rootCauseMsg.contains("FOREIGN KEY")) {
+                    if (rootCauseMsg.contains("dept_id") || rootCauseMsg.contains("deptId")) {
+                        throw new BusinessException(ErrorCode.DATABASE_ERROR, "医生信息保存失败：指定的科室不存在或已被删除");
+                    } else if (rootCauseMsg.contains("user_id") || rootCauseMsg.contains("userId")) {
+                        throw new BusinessException(ErrorCode.DATABASE_ERROR, "医生信息保存失败：关联的用户账号不存在");
+                    } else {
+                        throw new BusinessException(ErrorCode.DATABASE_ERROR, "医生信息保存失败：外键约束违反，请检查关联数据");
+                    }
+                } else if (rootCauseMsg.contains("cannot be null") || rootCauseMsg.contains("NOT NULL")) {
+                    // 提取字段名
+                    String fieldName = extractFieldName(rootCauseMsg);
+                    throw new BusinessException(ErrorCode.DATABASE_ERROR, "医生信息保存失败：必填字段" + fieldName + "不能为空");
+                } else if (rootCauseMsg.contains("Duplicate entry")) {
+                    throw new BusinessException(ErrorCode.DATABASE_ERROR, "医生信息保存失败：数据重复，请检查输入信息");
+                }
+            }
+            throw new BusinessException(ErrorCode.DATABASE_ERROR, "医生信息保存失败：数据完整性约束违反，" + (rootCauseMsg != null ? rootCauseMsg : errorMsg));
         } catch (Exception e) {
-            // 如果医生信息保存失败，事务会回滚，包括之前创建的用户账号
-            throw new BusinessException(ErrorCode.DATABASE_ERROR, "医生信息保存失败: " + e.getMessage());
+            // 检查是否是SQLException（可能被包装在其他异常中）
+            Throwable cause = e.getCause();
+            if (cause instanceof SQLException) {
+                SQLException sqlEx = (SQLException) cause;
+                int errorCode = sqlEx.getErrorCode();
+                String errorMsg = sqlEx.getMessage();
+                
+                // MySQL错误码
+                if (errorCode == 1062) { // Duplicate entry
+                    throw new BusinessException(ErrorCode.DATABASE_ERROR, "医生信息保存失败：数据重复，请检查输入信息");
+                } else if (errorCode == 1452) { // Foreign key constraint fails
+                    throw new BusinessException(ErrorCode.DATABASE_ERROR, "医生信息保存失败：外键约束违反，请检查关联数据");
+                } else if (errorCode == 1048) { // Column cannot be null
+                    throw new BusinessException(ErrorCode.DATABASE_ERROR, "医生信息保存失败：必填字段不能为空");
+                } else {
+                    throw new BusinessException(ErrorCode.DATABASE_ERROR, "医生信息保存失败：SQL执行异常（错误码：" + errorCode + "），" + errorMsg);
+                }
+            }
+            // 其他类型的异常，提供更详细的错误信息
+            String errorMsg = e.getMessage();
+            String className = e.getClass().getSimpleName();
+            
+            // 检查是否是数据库相关异常
+            if (errorMsg != null) {
+                if (errorMsg.contains("Duplicate entry") || errorMsg.contains("duplicate key")) {
+                    throw new BusinessException(ErrorCode.DATABASE_ERROR, "医生信息保存失败：数据重复，请检查输入信息");
+                } else if (errorMsg.contains("foreign key") || errorMsg.contains("FOREIGN KEY")) {
+                    throw new BusinessException(ErrorCode.DATABASE_ERROR, "医生信息保存失败：外键约束违反，请检查关联数据");
+                } else if (errorMsg.contains("cannot be null") || errorMsg.contains("NOT NULL")) {
+                    throw new BusinessException(ErrorCode.DATABASE_ERROR, "医生信息保存失败：必填字段不能为空");
+                } else if (errorMsg.contains("SQL") || errorMsg.contains("sql")) {
+                    throw new BusinessException(ErrorCode.DATABASE_ERROR, "医生信息保存失败：数据库操作异常（" + className + "），" + errorMsg);
+                }
+            }
+            
+            throw new BusinessException(ErrorCode.DATABASE_ERROR, "医生信息保存失败：" + className + " - " + (errorMsg != null ? errorMsg : "未知错误"));
         }
+    }
+
+    /**
+     * 从错误消息中提取字段名
+     * @param errorMsg 错误消息
+     * @return 字段名（中文描述）
+     */
+    private String extractFieldName(String errorMsg) {
+        if (errorMsg == null) {
+            return "";
+        }
+        
+        // 尝试提取字段名
+        if (errorMsg.contains("doctor_name") || errorMsg.contains("doctorName")) {
+            return "医生姓名";
+        } else if (errorMsg.contains("dept_id") || errorMsg.contains("deptId")) {
+            return "科室";
+        } else if (errorMsg.contains("user_id") || errorMsg.contains("userId")) {
+            return "用户ID";
+        } else if (errorMsg.contains("title")) {
+            return "职称";
+        } else if (errorMsg.contains("specialty")) {
+            return "擅长领域";
+        } else if (errorMsg.contains("is_active") || errorMsg.contains("isActive")) {
+            return "出诊状态";
+        }
+        
+        // 如果无法识别，返回空字符串
+        return "";
     }
 
     /**
