@@ -4,57 +4,72 @@
 			<text class="title">挂号支付</text>
 		</view>
 
-		<!-- 挂号信息 -->
-		<view class="section card">
-			<text class="label">挂号信息</text>
-			<view class="info-item"><text>科室：</text>{{ dept }}</view>
-			<view class="info-item"><text>医生：</text>{{ doctor }}</view>
-			<view class="info-item"><text>时间：</text>{{ time }}</view>
-			<view class="info-item"><text>挂号费：</text><text class="price">¥{{ fee }}</text></view>
-		</view>
-		
-		<!-- 患者类型（根据账号类型自动锁定） -->
-		<view class="section card">
-		  <text class="label">就诊人身份</text>
-		  <view class="patient-type-list">
-		    <view 
-		      v-for="type in patientTypeList" 
-		      :key="type.value"
-		      class="patient-type-item"
-		      :class="{ 
-		        selected: patientType === type.value,
-		        disabled: isTypeLocked && patientType !== type.value
-		      }"
-		      @click="!isTypeLocked && selectPatientType(type.value)"
-		    >
-		      <text class="type-icon">{{ getTypeIcon(type.value) }}</text>
-		      <text class="patient-text">{{ type.label }}</text>
-		      <text v-if="patientType === type.value" class="check-icon">✓</text>
-		      <text v-if="isTypeLocked && patientType === type.value" class="lock-icon">🔒</text>
-		    </view>
-		  </view>
-		  <view v-if="isTypeLocked" class="type-lock-tip">
-		    <text>身份已根据账号类型自动锁定，不可更改</text>
-		  </view>
-		</view>
-
-
-		<!-- 支付方式 -->
-		<view class="section card">
-			<text class="label">选择支付方式</text>
-			<view v-for="method in paymentMethods" :key="method.value" class="pay-item"
-				:class="{ selected: selectedMethod === method.value }" @click="selectedMethod = method.value">
-				<view class="pay-left">
-					<image v-if="method.icon" :src="method.icon" class="icon"></image>
-					<text>{{ method.name }}</text>
+		<view class="content-area">
+			<!-- 挂号信息 -->
+			<view class="section card">
+				<text class="label">挂号信息</text>
+				<view class="info-item"><text>科室：</text>{{ dept }}</view>
+				<view class="info-item"><text>医生：</text>{{ doctor }}</view>
+				<view class="info-item"><text>时间：</text>{{ time }}</view>
+				<view class="info-item" v-if="registrationType">
+					<text>号别类型：</text>{{ registrationType.typeName || '-' }}
 				</view>
-				<view v-if="selectedMethod === method.value" class="check">✔️</view>
+				<view class="info-item price-row">
+					<view class="price-info">
+						<text class="price-label">挂号定价：</text>
+						<text class="price original">¥{{ originalFee.toFixed(2) }}</text>
+					</view>
+					<view class="price-info">
+						<text class="price-label">实付金额：</text>
+						<text class="price actual">¥{{ fee.toFixed(2) }}</text>
+					</view>
+				</view>
+			</view>
+			
+			<!-- 患者类型（根据账号类型自动锁定） -->
+			<view class="section card">
+				<text class="label">就诊人身份</text>
+				<view class="patient-type-list">
+					<view 
+						v-for="type in patientTypeList" 
+						:key="type.value"
+						class="patient-type-item"
+						:class="{ 
+							selected: patientType === type.value,
+							disabled: isTypeLocked && patientType !== type.value
+						}"
+						@click="!isTypeLocked && selectPatientType(type.value)"
+					>
+						<text class="type-icon">{{ getTypeIcon(type.value) }}</text>
+						<text class="patient-text">{{ type.label }}</text>
+						<text v-if="patientType === type.value" class="check-icon">✓</text>
+						<text v-if="isTypeLocked && patientType === type.value" class="lock-icon">🔒</text>
+					</view>
+				</view>
+				<view v-if="isTypeLocked" class="type-lock-tip">
+					<text>身份已根据账号类型自动锁定，不可更改</text>
+				</view>
+			</view>
+
+			<!-- 支付方式 -->
+			<view class="section card">
+				<text class="label">选择支付方式</text>
+				<view class="pay-methods-row">
+					<view v-for="method in paymentMethods" :key="method.value" class="pay-item-small"
+						:class="{ selected: selectedMethod === method.value }" @click="selectedMethod = method.value">
+						<view class="pay-left-small">
+							<image v-if="method.icon" :src="method.icon" class="icon-small"></image>
+							<text class="pay-text-small">{{ method.name }}</text>
+						</view>
+						<view v-if="selectedMethod === method.value" class="check-small">✓</view>
+					</view>
+				</view>
 			</view>
 		</view>
 
 		<!-- 支付按钮 -->
 		<view class="bottom-btn">
-			<button class="pay-btn" :disabled="!selectedMethod" @click="onPay">
+			<button class="pay-btn" @click="onPay">
 				立即支付
 			</button>
 		</view>
@@ -63,14 +78,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { createRegistration, getRegistrationRecords } from '../../api/registration' // 挂号接口
+import { createRegistration, getRegistrationRecords, getRegistrationTypes } from '../../api/registration' // 挂号接口
 import { ensurePatientCard } from '@/utils/patientHelper'
 
 // ------------------ 挂号信息 ------------------
 const dept = ref('')
 const doctor = ref('')
 const time = ref('')
-const originalFee = 50 // 挂号原价（可按需要调整或从后端获取）
+const originalFee = ref(0) // 挂号原价（从号别类型获取）
 const fee = ref(0) // 实际支付金额
 const patientType = ref(0) // 患者类型
 const isTypeLocked = ref(false) // 是否锁定身份类型
@@ -79,6 +94,7 @@ const typeId = ref(null)
 const scheduleId = ref(null)
 const deptId = ref(0)
 const currentPatient = ref(null)
+const registrationType = ref(null) // 号别类型信息
 
 // 患者类型显示列表
 const patientTypeList = ref([
@@ -140,16 +156,58 @@ const ensurePatientId = async () => {
 	return null
 }
 
+// 加载号别类型信息
+const loadRegistrationType = async () => {
+	if (!typeId.value) {
+		return
+	}
+	
+	try {
+		const res = await getRegistrationTypes()
+		let types = []
+		if (Array.isArray(res)) {
+			types = res
+		} else if (Array.isArray(res?.result)) {
+			types = res.result
+		} else if (Array.isArray(res?.data)) {
+			types = res.data
+		}
+		
+		// 根据typeId找到对应的号别类型
+		const type = types.find(t => 
+			Number(t.typeId || t.type_id) === Number(typeId.value)
+		)
+		
+		if (type) {
+			registrationType.value = type
+			// 获取原价（支持多种字段名）
+			originalFee.value = Number(type.priceOriginal || type.price_original || 0)
+			
+			// 根据当前患者类型计算实际支付金额
+			if (patientType.value > 0) {
+				calculateFeeByPatientType(patientType.value)
+			}
+		}
+	} catch (error) {
+	}
+}
+
 const calculateFeeByPatientType = (type) => {
+	if (!registrationType.value) {
+		return
+	}
+	
+	// 根据患者类型从号别类型中获取对应的价格
 	switch (type) {
 		case 1: // 学生
-			return originalFee * 0.2
+			fee.value = Number(registrationType.value.studentPrice || registrationType.value.student_price || 0)
+			break
 		case 2: // 教师
-			return originalFee * 0.5
 		case 3: // 职工
-			return originalFee * 0.7
+			fee.value = Number(registrationType.value.staffPrice || registrationType.value.staff_price || 0)
+			break
 		default:
-			return originalFee
+			fee.value = originalFee.value
 	}
 }
 
@@ -163,7 +221,7 @@ const selectPatientType = (type) => {
 		return
 	}
 	patientType.value = type
-	fee.value = calculateFeeByPatientType(type)
+	calculateFeeByPatientType(type)
 }
 
 // 获取类型图标
@@ -196,7 +254,6 @@ onMounted(async () => {
 				patientIdFromRoute = Number(patientInfo.patientId)
 			}
 		} catch (e) {
-			console.warn('从 ensurePatientCard 获取患者信息失败:', e)
 		}
 	}
 	
@@ -212,7 +269,6 @@ onMounted(async () => {
 			}
 		}
 	} catch (e) {
-		console.warn('获取就诊卡信息失败:', e)
 		if (patientIdFromRoute) {
 			currentPatient.value = {
 				patientId: patientIdFromRoute
@@ -233,21 +289,6 @@ onMounted(async () => {
 		return
 	}
 	
-	// 根据就诊卡的patientType自动选择并锁定身份类型
-	const cardPatientType = patientCardInfo?.patientType || patientCardInfo?.patient_type
-	if (cardPatientType && (cardPatientType === 1 || cardPatientType === 2 || cardPatientType === 3)) {
-		// 如果就诊卡有明确的身份类型，自动选择并锁定
-		patientType.value = Number(cardPatientType)
-		isTypeLocked.value = true
-		fee.value = calculateFeeByPatientType(Number(cardPatientType))
-		console.log('根据就诊卡身份类型自动锁定:', cardPatientType)
-	} else {
-		// 如果没有，默认选择学生类型，但不锁定
-		patientType.value = 1
-		isTypeLocked.value = false
-		fee.value = calculateFeeByPatientType(1)
-	}
-
 	// 其他挂号信息
 	const deptParam = options.dept || ''
 	const doctorParam = options.doctor || ''
@@ -261,20 +302,23 @@ onMounted(async () => {
 	typeId.value = Number(options.typeId || 0)
 	scheduleId.value = Number(options.scheduleId || 0)
 	deptId.value = Number(options.deptId || 0)
-
-	console.log('支付页接收参数:', {
-		dept: options.dept,
-		deptDecoded: dept.value,
-		doctor: options.doctor,
-		doctorDecoded: doctor.value,
-		time: options.time,
-		timeDecoded: time.value,
-		doctorId: options.doctorId,
-		typeId: options.typeId,
-		scheduleId: options.scheduleId,
-		deptId: options.deptId,
-		allOptions: options
-	})
+	
+	// 先加载号别类型信息
+	await loadRegistrationType()
+	
+	// 根据就诊卡的patientType自动选择并锁定身份类型
+	const cardPatientType = patientCardInfo?.patientType || patientCardInfo?.patient_type
+	if (cardPatientType && (cardPatientType === 1 || cardPatientType === 2 || cardPatientType === 3)) {
+		// 如果就诊卡有明确的身份类型，自动选择并锁定
+		patientType.value = Number(cardPatientType)
+		isTypeLocked.value = true
+		calculateFeeByPatientType(Number(cardPatientType))
+	} else {
+		// 如果没有，默认选择学生类型，但不锁定
+		patientType.value = 1
+		isTypeLocked.value = false
+		calculateFeeByPatientType(1)
+	}
 })
 
 
@@ -294,9 +338,11 @@ const getLocalDateTime = () => {
 // ------------------ 支付 + 写入挂号 ------------------
 const onPay = async () => {
 	if (!selectedMethod.value) {
-		uni.showToast({
-			title: '请选择支付方式',
-			icon: 'none'
+		uni.showModal({
+			title: '提示',
+			content: '请先选择支付方式',
+			showCancel: false,
+			confirmText: '知道了'
 		})
 		return
 	}
@@ -316,7 +362,12 @@ const onPay = async () => {
 
 	// 支付模拟：保留轻量延迟，支付成功提示放到写入成功之后
 	setTimeout(async () => {
+		// 确保金额是数字类型，并保留两位小数
+		const actualPrice = Number(fee.value.toFixed(2))
+		
 		// 构建挂号记录对象
+		// 注意：后端会根据患者类型从号别类型中重新计算actualPrice，所以这里传的值可能被覆盖
+		// 但为了保持一致性，我们仍然传递计算好的值
 		const record = {
 			scheduleId: scheduleId.value,
 			patientId,
@@ -325,8 +376,8 @@ const onPay = async () => {
 			registrationNo: generateRegistrationNo(), // 前端生成或后端生成都可以
 			registerTime: formatLocalDateTime(new Date()), // YYYY-MM-DD HH:mm:ss
 			status: 1, // 已预约
-			priceOriginal: originalFee,
-			actualPrice: fee.value,
+			priceOriginal: originalFee.value, // 使用从号别类型获取的原价
+			actualPrice: actualPrice, // 使用计算后的实际支付金额
 			isAdd: 0 // 正常号
 		}
 
@@ -335,7 +386,6 @@ const onPay = async () => {
 		try {
 			// 正常预约挂号不加入候补队列，第三个参数设为 false
 			const result = await createRegistration(record, patientId, false)
-			console.log('挂号记录写入成功', result)
 			
 			// 尝试从返回结果中获取记录ID
 			// 后端可能返回的格式：{ result: { recordId: xxx } } 或 { data: { recordId: xxx } } 或直接返回 recordId
@@ -379,7 +429,6 @@ const onPay = async () => {
 					recordId = matchedRecord.recordId || matchedRecord.record_id || matchedRecord.id
 				}
 			} catch (e) {
-				console.warn('获取最新挂号记录失败，使用本地构建数据', e)
 			}
 
 			uni.hideLoading()
@@ -389,7 +438,6 @@ const onPay = async () => {
 				duration: 1200
 			})
 		} catch (error) {
-			console.error('挂号写入失败', error)
 			uni.hideLoading()
 
 			const msg = typeof error === 'string'
@@ -432,8 +480,8 @@ const onPay = async () => {
 				registrationNo: source.registrationNo || source.registration_no || record.registrationNo,
 				registerTime: source.registerTime || source.register_time || record.registerTime,
 				status: source.status || record.status,
-				priceOriginal: source.priceOriginal || source.price_original || record.priceOriginal,
-				actualPrice: source.actualPrice || source.actual_price || record.actualPrice,
+				priceOriginal: source.priceOriginal || source.price_original || record.priceOriginal || originalFee.value,
+				actualPrice: source.actualPrice || source.actual_price || record.actualPrice || fee.value,
 				isAdd: source.isAdd || source.is_add || record.isAdd || 0,
 				addRemark: source.addRemark || source.add_remark || record.addRemark || ''
 			}
@@ -492,10 +540,24 @@ function formatLocalDateTime(date) {
 
 <style scoped>
 	.page-bg {
-		background: linear-gradient(180deg, #f5f7fa 0%, #f0f3f6 100%);
-		min-height: 100vh;
-		padding-bottom: 120rpx;
-		position: relative;
+		background: #f8faff;
+		height: 100vh;
+		overflow: hidden;
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.content-area {
+		flex: 1;
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+		padding-bottom: 0;
 	}
 
 	.page-bg::before {
@@ -513,14 +575,15 @@ function formatLocalDateTime(date) {
 	}
 
 	.page-header {
-		height: 120rpx;
+		height: 100rpx;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: linear-gradient(135deg, #3a9cff 0%, #6ec6ff 100%);
-		box-shadow: 0 6rpx 20rpx rgba(58, 156, 255, 0.25);
+		background: #3a9cff;
 		position: relative;
 		overflow: hidden;
+		flex-shrink: 0;
+		padding-top: calc(env(safe-area-inset-top));
 	}
 
 	.page-header::before {
@@ -540,29 +603,28 @@ function formatLocalDateTime(date) {
 	}
 
 	.page-header .title {
-		font-size: 38rpx;
+		font-size: 36rpx;
 		color: #fff;
-		font-weight: 800;
-		text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.15);
-		letter-spacing: 2rpx;
+		font-weight: bold;
+		letter-spacing: 1rpx;
 		position: relative;
 		z-index: 1;
 	}
 
 	.section {
-		margin: 20rpx 24rpx;
+		margin: 12rpx 24rpx;
 		padding: 0;
 		position: relative;
 		z-index: 1;
+		flex-shrink: 0;
 	}
 
 	.card {
-		background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
-		border-radius: 24rpx;
-		box-shadow: 0 8rpx 24rpx rgba(58, 156, 255, 0.12), 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
-		padding: 32rpx;
-		border: 1rpx solid rgba(58, 156, 255, 0.1);
-		transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+		background: #fff;
+		border-radius: 16rpx;
+		box-shadow: 0 4rpx 16rpx rgba(58,156,255,0.08);
+		padding: 24rpx;
+		transition: all 0.3s ease;
 		position: relative;
 		overflow: hidden;
 	}
@@ -589,14 +651,14 @@ function formatLocalDateTime(date) {
 	}
 
 	.label {
-		font-size: 32rpx;
-		font-weight: 700;
-		margin-bottom: 24rpx;
+		font-size: 30rpx;
+		font-weight: bold;
+		margin-bottom: 16rpx;
 		display: block;
-		color: #1f2d3d;
+		color: #333;
 		position: relative;
 		padding-left: 12rpx;
-		letter-spacing: 0.5rpx;
+		letter-spacing: 0.3rpx;
 	}
 
 	.label::before {
@@ -605,20 +667,20 @@ function formatLocalDateTime(date) {
 		left: 0;
 		top: 50%;
 		transform: translateY(-50%);
-		width: 6rpx;
-		height: 28rpx;
-		background: linear-gradient(135deg, #3a9cff 0%, #6ec6ff 100%);
-		border-radius: 3rpx;
+		width: 4rpx;
+		height: 24rpx;
+		background: #3a9cff;
+		border-radius: 2rpx;
 	}
 
 	.info-item {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 20rpx 0;
-		font-size: 28rpx;
+		padding: 12rpx 0;
+		font-size: 26rpx;
 		color: #333;
-		border-bottom: 1rpx solid rgba(240, 243, 246, 0.8);
+		border-bottom: 1rpx solid #f0f0f0;
 		transition: all 0.3s ease;
 		position: relative;
 	}
@@ -660,41 +722,67 @@ function formatLocalDateTime(date) {
 		color: #3a9cff;
 	}
 
-	.price {
-		color: #ff5500;
-		font-weight: 700;
-		font-size: 36rpx;
-		text-shadow: 0 2rpx 4rpx rgba(255, 85, 0, 0.15);
-		position: relative;
-		padding-right: 8rpx;
+	.price-row {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 10rpx;
+		padding: 12rpx 0;
+		margin-top: 8rpx;
 	}
 
-	.price::after {
-		content: '';
-		position: absolute;
-		bottom: -4rpx;
-		left: 0;
-		right: 0;
-		height: 2rpx;
-		background: linear-gradient(90deg, #ff5500 0%, transparent 100%);
-		opacity: 0.3;
-	}
-
-	.pay-item {
-		padding: 24rpx 28rpx;
-		border-radius: 20rpx;
-		background: linear-gradient(135deg, #f8faff 0%, #f0f7ff 100%);
-		margin-bottom: 16rpx;
+	.price-info {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		border: 2rpx solid #e6f7ff;
-		transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-		position: relative;
-		overflow: hidden;
+		width: 100%;
 	}
 
-	.pay-item::before {
+	.price-label {
+		color: #666;
+		font-size: 26rpx;
+		font-weight: 500;
+	}
+
+	.price {
+		font-weight: 700;
+		position: relative;
+	}
+
+	.price.original {
+		color: #999;
+		text-decoration: line-through;
+		font-size: 24rpx;
+	}
+
+	.price.actual {
+		color: #ff5500;
+		font-size: 32rpx;
+	}
+
+	.pay-methods-row {
+		display: flex;
+		gap: 10rpx;
+		justify-content: space-between;
+		margin-top: 12rpx;
+	}
+
+	.pay-item-small {
+		flex: 1;
+		padding: 14rpx 8rpx;
+		border-radius: 12rpx;
+		background: #f8faff;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		border: 2rpx solid #e6f7ff;
+		transition: all 0.3s ease;
+		position: relative;
+		overflow: hidden;
+		min-height: 90rpx;
+	}
+
+	.pay-item-small::before {
 		content: '';
 		position: absolute;
 		top: 0;
@@ -705,76 +793,93 @@ function formatLocalDateTime(date) {
 		transition: left 0.5s ease;
 	}
 
-	.pay-item:active {
-		transform: scale(0.97);
+	.pay-item-small:active {
+		transform: scale(0.95);
 	}
 
-	.pay-item:active::before {
+	.pay-item-small:active::before {
 		left: 100%;
 	}
 
-	.pay-item.selected {
-		background: linear-gradient(135deg, #3a9cff 0%, #6ec6ff 100%);
+	.pay-item-small.selected {
+		background: #3a9cff;
 		color: #fff;
 		border-color: #3a9cff;
-		box-shadow: 0 8rpx 24rpx rgba(58, 156, 255, 0.35);
-		transform: translateY(-2rpx);
+		box-shadow: 0 2rpx 12rpx rgba(58, 156, 255, 0.3);
 	}
 
-	.pay-item.selected::before {
+	.pay-item-small.selected::before {
 		display: none;
 	}
 
-	.pay-left {
+	.pay-left-small {
 		display: flex;
+		flex-direction: column;
 		align-items: center;
-		font-size: 30rpx;
-		font-weight: 500;
-		letter-spacing: 0.5rpx;
+		justify-content: center;
+		gap: 8rpx;
 	}
 
-	.pay-item.selected .pay-left {
+	.pay-item-small.selected .pay-left-small {
 		font-weight: 600;
 		text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.1);
 	}
 
-	.icon {
-		width: 40rpx;
-		height: 40rpx;
-		margin-right: 16rpx;
+	.icon-small {
+		width: 32rpx;
+		height: 32rpx;
 		filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1));
 	}
 
-	.check {
-		font-size: 32rpx;
+	.pay-text-small {
+		font-size: 20rpx;
+		font-weight: 500;
+		letter-spacing: 0.2rpx;
+		text-align: center;
+	}
+
+	.pay-item-small.selected .pay-text-small {
+		font-weight: 600;
+		text-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.1);
+	}
+
+	.check-small {
+		position: absolute;
+		top: 4rpx;
+		right: 4rpx;
+		font-size: 20rpx;
 		font-weight: bold;
-		text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.2);
+		color: #fff;
+		background: rgba(255, 255, 255, 0.3);
+		width: 24rpx;
+		height: 24rpx;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		text-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.2);
 		animation: checkPop 0.3s ease;
 	}
 
 	.bottom-btn {
-		margin: 40rpx 24rpx 0;
-		position: sticky;
-		bottom: 0;
-		background: linear-gradient(180deg, transparent 0%, rgba(245, 247, 250, 0.95) 30%);
-		padding-top: 24rpx;
-		padding-bottom: 20rpx;
+		margin: 16rpx 24rpx;
+		margin-bottom: calc(16rpx + env(safe-area-inset-bottom));
+		position: relative;
 		z-index: 10;
-		backdrop-filter: blur(10rpx);
+		flex-shrink: 0;
 	}
 
 	.pay-btn {
 		width: 100%;
-		padding: 28rpx 0;
+		padding: 24rpx 0;
 		background: linear-gradient(135deg, #3a9cff 0%, #6ec6ff 100%);
 		color: #fff;
-		font-size: 34rpx;
-		font-weight: 800;
+		font-size: 30rpx;
+		font-weight: 700;
 		border-radius: 24rpx;
-		box-shadow: 0 10rpx 32rpx rgba(58, 156, 255, 0.4);
-		transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-		letter-spacing: 2rpx;
-		text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.1);
+		box-shadow: 0 8rpx 24rpx rgba(58, 156, 255, 0.4);
+		transition: all 0.3s ease;
+		letter-spacing: 1rpx;
 		position: relative;
 		overflow: hidden;
 	}
@@ -807,10 +912,10 @@ function formatLocalDateTime(date) {
 	}
 	
 	.patient-type-list {
-	  margin-top: 16rpx;
+	  margin-top: 12rpx;
 	  display: flex;
 	  flex-direction: row;
-	  gap: 12rpx;
+	  gap: 10rpx;
 	  justify-content: space-between;
 	}
 	
@@ -820,14 +925,14 @@ function formatLocalDateTime(date) {
 	  flex-direction: column;
 	  align-items: center;
 	  justify-content: center;
-	  padding: 20rpx 12rpx;
-	  border-radius: 16rpx;
-	  background: linear-gradient(135deg, #f8faff 0%, #f0f7ff 100%);
+	  padding: 16rpx 8rpx;
+	  border-radius: 12rpx;
+	  background: #f8faff;
 	  border: 2rpx solid #e6f7ff;
-	  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	  transition: all 0.3s ease;
 	  position: relative;
 	  overflow: hidden;
-	  min-height: 120rpx;
+	  min-height: 100rpx;
 	}
 
 	.patient-type-item::before {
@@ -850,11 +955,10 @@ function formatLocalDateTime(date) {
 	}
 	
 	.patient-type-item.selected {
-	  background: linear-gradient(135deg, #3a9cff 0%, #6ec6ff 100%);
+	  background: #3a9cff;
 	  color: #fff;
 	  border-color: #3a9cff;
-	  box-shadow: 0 6rpx 20rpx rgba(58, 156, 255, 0.35);
-	  transform: translateY(-2rpx);
+	  box-shadow: 0 2rpx 12rpx rgba(58, 156, 255, 0.3);
 	}
 
 	.patient-type-item.selected::before {
@@ -870,12 +974,12 @@ function formatLocalDateTime(date) {
 	}
 	
 	.type-lock-tip {
-		margin-top: 16rpx;
-		padding: 12rpx 16rpx;
-		background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-		border-radius: 12rpx;
+		margin-top: 12rpx;
+		padding: 10rpx 12rpx;
+		background: #fff3cd;
+		border-radius: 8rpx;
 		border: 1rpx solid #ffc107;
-		font-size: 24rpx;
+		font-size: 22rpx;
 		color: #856404;
 		text-align: center;
 	}

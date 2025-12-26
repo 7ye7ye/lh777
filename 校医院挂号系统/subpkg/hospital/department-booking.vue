@@ -405,7 +405,6 @@ const makeAppointment = async (doctor, schedule) => {
     // })
     
     // 模拟预约成功
-    console.log('预约信息:', { doctor, schedule })
     alert(`预约成功！\n医生：${doctor.name}\n日期：${schedule.date}\n时间：${schedule.timeRange}\n费用：¥${schedule.fee}`)
     
     // 刷新排班信息，更新剩余号数
@@ -424,10 +423,8 @@ const viewDoctorDetail = async (doctor) => {
     uni.navigateTo({
       url: `/subpkg/hospital/doctor-detail?id=${doctor.id}&name=${encodeURIComponent(doctor.name)}&title=${encodeURIComponent(doctor.title || '')}&specialty=${encodeURIComponent(doctor.specialty || '')}`,
       success: () => {
-        console.log('成功跳转到医生详情页面:', doctor.name)
       },
       fail: (err) => {
-        console.error('跳转失败:', err)
         // 如果跳转失败，显示一个提示
         uni.showToast({
           title: '跳转失败，请稍后重试',
@@ -436,7 +433,6 @@ const viewDoctorDetail = async (doctor) => {
       }
     })
   } catch (error) {
-    console.error('跳转到医生详情失败:', error)
   }
 }
 
@@ -453,7 +449,6 @@ const viewDoctorDetail = async (doctor) => {
       
       // 调用API获取医生列表
       const response = await getDoctorsByDeptId(deptId)
-      console.log('医生列表响应:', response)
       
       // 处理不同的响应格式，使其更加健壮
       let data = response
@@ -486,12 +481,9 @@ const viewDoctorDetail = async (doctor) => {
               ...doctor
             };
           })
-        
-        console.log('医生列表加载成功:', doctors.value)
       } else {
         // 没有找到符合格式的医生数据，使用空数组
         doctors.value = []
-        console.log('未找到医生数据或数据格式不符合要求')
       }
       
       // 清除之前的排班信息
@@ -505,16 +497,11 @@ const viewDoctorDetail = async (doctor) => {
             const doctorId = Number(doctor.id.toString().replace('temp_', ''));
             if (!isNaN(doctorId)) {
               await fetchDoctorSchedules(doctorId, selectedDate.value);
-            } else {
-              console.error('无效的医生ID格式:', doctor.id);
             }
-          } else {
-            console.error('医生ID不存在:', doctor);
           }
         }
       }
     } catch (error) {
-      console.error('获取医生列表失败:', error)
       // 清空医生列表，确保不使用模拟数据
       doctors.value = []
       
@@ -614,8 +601,6 @@ const showDuplicateAppointmentModal = (recordId = null) => {
     ? '您已预约过此号，不可重复预约。如需查看已预约的详情，请点击"查看详情"按钮。'
     : '您已预约过此号，不可重复预约。'
   
-  console.log('🔔 显示预约上限弹窗 - recordId:', validRecordId, '原始recordId:', recordId)
-  
   uni.showModal({
     title: '预约已达上限',
     content: content,
@@ -626,14 +611,11 @@ const showDuplicateAppointmentModal = (recordId = null) => {
       if (res.confirm && validRecordId) {
         // 跳转到就诊详情页面
         const targetUrl = `/subpkg/profile/records/hospital-record-detail?id=${validRecordId}`
-        console.log('🔗 跳转到就诊详情页面:', targetUrl)
         uni.navigateTo({
           url: targetUrl,
           success: () => {
-            console.log('✅ 成功跳转到就诊详情页面')
           },
           fail: (err) => {
-            console.error('❌ 跳转到就诊详情页面失败:', err)
             uni.showToast({
               title: '跳转失败，请稍后重试',
               icon: 'none'
@@ -641,7 +623,6 @@ const showDuplicateAppointmentModal = (recordId = null) => {
           }
         })
       } else if (res.confirm && !validRecordId) {
-        console.warn('⚠️ 未找到预约记录ID，无法跳转')
         uni.showToast({
           title: '未找到预约记录',
           icon: 'none'
@@ -694,8 +675,6 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
       })
       const recordId = duplicateRecord?.record_id || duplicateRecord?.recordId || duplicateRecord?.id || duplicateRecord?.registration_id || duplicateRecord?.registrationId || duplicateRecord?.registrationRecordId
       
-      console.log('🔍 时段重复检查 - doctorId:', doctorIdNumForSearch, 'slotKey:', slotKeyForSearch, '找到记录:', duplicateRecord, 'recordId:', recordId)
-      
       showDuplicateAppointmentModal(recordId)
       return
     }
@@ -742,7 +721,6 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
             return
           }
         } catch (error) {
-          console.error('获取就诊人信息失败:', error)
           uni.showModal({
             title: '就诊人信息缺失',
             content: '获取就诊人信息失败，请先创建并绑定就诊卡',
@@ -787,13 +765,10 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
                   })
                 }
               } catch (err) {
-                console.warn('获取所有记录失败:', err)
               }
             }
             
             const recordId = duplicateRecord?.record_id || duplicateRecord?.recordId || duplicateRecord?.id || duplicateRecord?.registration_id || duplicateRecord?.registrationId || duplicateRecord?.registrationRecordId
-            
-            console.log('🔍 候补-重复预约检查 - scheduleId:', scheduleIdForCheck, '找到记录:', duplicateRecord, 'recordId:', recordId)
             
             uni.showModal({
               title: '预约已达上限',
@@ -818,14 +793,12 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
             return
           }
         } catch (error) {
-          console.error('候补-检查重复挂号失败:', error)
           // 即使检查失败，也继续候补流程，但记录错误
         }
       }
 
       // 2️⃣ 检查是否达到当日总次数限制（一天预约三个号）
       const totalCountToday = getPatientTotalCountToday()
-      console.log('📊 候补-当日总预约次数:', totalCountToday, '上限:', DAILY_TOTAL_LIMIT)
       if (totalCountToday >= DAILY_TOTAL_LIMIT) {
         uni.showToast({
           title: '超过挂号限制',
@@ -837,7 +810,6 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
       // 3️⃣ 检查是否达到科室单日限制（同一科室一天预约两次）
       const deptIdForCount = getDeptIdFromContext(doctor, schedule)
       const deptCountToday = deptIdForCount ? getPatientDeptCountToday(deptIdForCount) : 0
-      console.log('📊 候补-当日科室预约次数:', deptCountToday, '上限:', DAILY_DEPT_LIMIT, '科室ID:', deptIdForCount)
       
       if (deptIdForCount && deptCountToday >= DAILY_DEPT_LIMIT) {
         uni.showToast({
@@ -856,7 +828,6 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
           if (res.confirm) {
             // 检查是否有选中排班
             if (!schedule) {
-              console.error("schedule 为空，无法获取排班 ID");
               uni.showToast({
                 title: '候补失败：未找到排班',
                 icon: 'none'
@@ -893,16 +864,12 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
 
               // 写入挂号记录
               const regRes = await createRegistration(record, currentPatientId, true);
-              console.log('createRegistration返回值', regRes);
 
               // 判断接口返回值
               if ((typeof regRes === 'string' && regRes.includes('已加入候补队列')) || regRes?.success) {
                 uni.showToast({
                   title: '已加入候补队列',
                   icon: 'success'
-                });
-                console.log('候补挂号写入成功', {
-                  regRes
                 });
                 // 刷新排班信息
                 await fetchDoctorSchedules(doctor.id, selectedDate.value)
@@ -918,13 +885,9 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
                   title: errorMsg,
                   icon: 'none'
                 });
-                console.warn('候补写入部分失败', {
-                  regRes
-                });
               }
 
             } catch (e) {
-              console.error('加入候补异常', e);
               uni.showToast({
                 title: e?.message || '加入候补失败，请稍后重试',
                 icon: 'none'
@@ -966,7 +929,6 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
         return `${year}-${month}-${day}`
       }
     } catch (e) {
-      console.warn('日期格式化失败:', s, e)
     }
     return s.substring(0, 10) || s
   }
@@ -990,7 +952,6 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
       } else if (Array.isArray(response?.data)) {
         records = response.data
       } else {
-        console.warn('获取挂号记录返回格式异常:', response)
         records = []
       }
       
@@ -998,41 +959,20 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
       const dateStr = normalizeDateOnly(selectedDate.value)
       const VALID_STATUS = [0, 1, 2, 5, 6]
       
-      console.log('📋 开始过滤记录 - 日期:', dateStr, '总记录数:', records.length)
-      
       patientRecords.value = records.filter(r => {
         const recordDate = r.schedule_date || r.scheduleDate || r.register_time || r.registerTime || r.schedule_time || r.scheduleTime
         if (!recordDate) {
-          console.log('⚠️ 记录缺少日期字段:', r)
           return false
         }
         const recordDateStr = normalizeDateOnly(recordDate)
         const status = Number(r.status)
-        const validStatus = isNaN(status) ? true : VALID_STATUS.includes(status)
-        const matches = recordDateStr === dateStr && validStatus
-        
-        if (!matches && recordDateStr === dateStr) {
-          console.log('⚠️ 记录日期匹配但状态无效:', { recordDateStr, status, validStatus, record: r })
-        }
+        const validStatus = isNaN(status) ? false : VALID_STATUS.includes(status)
+        const dateMatches = recordDateStr === dateStr
+        const matches = dateMatches && validStatus
         
         return matches
       })
-      
-      console.log('📋 加载患者记录完成 - 日期:', dateStr, '过滤后记录数:', patientRecords.value.length, '总记录数:', records.length)
-      
-      // 如果过滤后记录数为 0，但总记录数不为 0，输出调试信息
-      if (patientRecords.value.length === 0 && records.length > 0) {
-        console.warn('⚠️ 过滤后记录数为 0，但总记录数不为 0，可能过滤条件过严')
-        // 输出前几条记录的日期和状态，便于调试
-        records.slice(0, 5).forEach((r, index) => {
-          const recordDate = r.schedule_date || r.scheduleDate || r.register_time || r.registerTime || r.schedule_time || r.scheduleTime
-          const recordDateStr = normalizeDateOnly(recordDate)
-          const status = Number(r.status)
-          console.log(`  记录 ${index + 1}: 日期=${recordDateStr}, 状态=${status}, 匹配日期=${recordDateStr === dateStr}`)
-        })
-      }
     } catch (error) {
-      console.error('加载患者挂号记录失败:', error)
       patientRecords.value = []
       // 即使加载失败，也显示错误提示
       uni.showToast({
@@ -1132,7 +1072,6 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
         if (patientInfo && patientInfo.patientId) {
           currentPatientId = Number(patientInfo.patientId)
           patientId.value = currentPatientId
-          console.log('获取到就诊人ID:', currentPatientId)
           // 加载患者记录
           await loadPatientRecords()
         } else {
@@ -1145,12 +1084,11 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
                 url: '/subpkg/profile/personal/create-card'
               })
             }
-          })
-          return
-        }
-      } catch (error) {
-        console.error('获取就诊人信息失败:', error)
-        uni.showModal({
+        })
+        return
+      }
+    } catch (error) {
+      uni.showModal({
           title: '就诊人信息缺失',
           content: '获取就诊人信息失败，请先创建并绑定就诊卡',
           showCancel: false,
@@ -1168,7 +1106,6 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
     try {
       await loadPatientRecords()
     } catch (error) {
-      console.error('加载患者记录失败:', error)
       // 即使加载失败，也继续检查，但记录错误
     }
 
@@ -1183,7 +1120,6 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
           try {
             await loadPatientRecords()
           } catch (error) {
-            console.error('重新加载患者记录失败:', error)
           }
           
           // 查找对应的已预约记录（优先从当天记录中查找）
@@ -1203,13 +1139,10 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
                 })
               }
             } catch (err) {
-              console.warn('获取所有记录失败:', err)
             }
           }
           
           const recordId = duplicateRecord?.record_id || duplicateRecord?.recordId || duplicateRecord?.id || duplicateRecord?.registration_id || duplicateRecord?.registrationId || duplicateRecord?.registrationRecordId
-          
-          console.log('🔍 重复预约检查 - scheduleId:', scheduleIdForCheck, '找到记录:', duplicateRecord, 'recordId:', recordId)
           
           uni.showModal({
             title: '预约已达上限',
@@ -1234,7 +1167,6 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
           return
         }
       } catch (error) {
-        console.error('检查重复挂号失败:', error)
         uni.showToast({
           title: '超过挂号限制',
           icon: 'none'
@@ -1247,16 +1179,24 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
     try {
       await loadPatientRecords()
     } catch (error) {
-      console.error('检查前加载患者记录失败:', error)
+    }
+    
+    // 确保有选中日期
+    if (!selectedDate.value) {
+      uni.showToast({
+        title: '请先选择日期',
+        icon: 'none'
+      })
+      return
     }
     
     const totalCountToday = getPatientTotalCountToday()
-    console.log('📊 当日总预约次数:', totalCountToday, '上限:', DAILY_TOTAL_LIMIT)
     
     if (totalCountToday >= DAILY_TOTAL_LIMIT) {
       uni.showToast({
-        title: '超过挂号限制',
-        icon: 'none'
+        title: `当日已预约${totalCountToday}个号，最多可预约${DAILY_TOTAL_LIMIT}个`,
+        icon: 'none',
+        duration: 3000
       })
       return
     }
@@ -1264,12 +1204,12 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
     // 3️⃣ 检查是否达到科室单日限制（同一科室一天预约两次）
     const deptIdForCount = getDeptIdFromContext(doctor, schedule)
     const deptCountToday = deptIdForCount ? getPatientDeptCountToday(deptIdForCount) : 0
-    console.log('📊 当日科室预约次数:', deptCountToday, '上限:', DAILY_DEPT_LIMIT, '科室ID:', deptIdForCount)
     
     if (deptIdForCount && deptCountToday >= DAILY_DEPT_LIMIT) {
       uni.showToast({
-        title: '超过挂号限制',
-        icon: 'none'
+        title: `该科室当日已预约${deptCountToday}个号，最多可预约${DAILY_DEPT_LIMIT}个`,
+        icon: 'none',
+        duration: 3000
       })
       return
     }
@@ -1286,7 +1226,6 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
           return
         }
       } catch (error) {
-        console.warn('检查科室单日限约失败', error)
       }
     }
 
@@ -1328,13 +1267,10 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
             })
           }
         } catch (err) {
-          console.warn('获取所有记录失败:', err)
         }
       }
       
       const recordId = duplicateRecord?.record_id || duplicateRecord?.recordId || duplicateRecord?.id || duplicateRecord?.registration_id || duplicateRecord?.registrationId || duplicateRecord?.registrationRecordId
-      
-      console.log('🔍 时间段重复检查 - doctorId:', doctorIdNumForRepeat, 'slotKey:', slotKeyCandidate, '找到记录:', duplicateRecord, 'recordId:', recordId)
       
       uni.showModal({
         title: '预约已达上限',
@@ -1394,13 +1330,10 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
             })
           }
         } catch (err) {
-          console.warn('获取所有记录失败:', err)
         }
       }
       
       const recordId = duplicateRecord?.record_id || duplicateRecord?.recordId || duplicateRecord?.id || duplicateRecord?.registration_id || duplicateRecord?.registrationId || duplicateRecord?.registrationRecordId
-      
-      console.log('🔍 按钮级拦截检查 - doctorId:', doctorIdNumForSearch, 'slotKey:', slotKeyForSearch, '找到记录:', duplicateRecord, 'recordId:', recordId)
       
       uni.showModal({
         title: '预约已达上限',
@@ -1427,10 +1360,13 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
 
     // 6️⃣ 检查是否已预约过该医生当天的号
     const doctorIdNum = Number(doctor.doctorId || doctor.id)
-    if (getPatientDoctorCountToday(doctorIdNum) >= DAILY_DOCTOR_LIMIT) {
+    const doctorCountToday = getPatientDoctorCountToday(doctorIdNum)
+    
+    if (doctorCountToday >= DAILY_DOCTOR_LIMIT) {
       uni.showToast({
-        title: '超过挂号限制',
-        icon: 'none'
+        title: `该医生当日已预约${doctorCountToday}个号，最多可预约${DAILY_DOCTOR_LIMIT}个`,
+        icon: 'none',
+        duration: 3000
       })
       return
     }
@@ -1444,19 +1380,35 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
     
     // 构建跳转参数
     const scheduleId = schedule?.scheduleId ?? schedule?.id ?? schedule?.schedule_id ?? 0
-    const typeId = schedule?.typeId ?? schedule?.type_id ?? schedule?.type ?? 1
+    
+    // 优先使用医生的职称ID（titleId）来确定号别类型，而不是排班的typeId
+    // 因为同一个医生的号别类型应该是一致的，不应该因为时间段不同而改变
+    let doctorTitleId = doctor?.titleId ?? doctor?.title_id ?? doctor?.doctorTitleTypeId ?? doctor?.doctor_title_type_id
+    
+    // 如果医生对象中没有titleId，尝试通过API获取医生详情
+    if (!doctorTitleId && (doctor?.doctorId || doctor?.id)) {
+      try {
+        const doctorId = doctor.doctorId || doctor.id
+        const doctorDetail = await getDoctorDetail(doctorId)
+        let doctorData = doctorDetail
+        if (doctorDetail && doctorDetail.data) {
+          doctorData = doctorDetail.data
+        } else if (doctorDetail && doctorDetail.result) {
+          doctorData = doctorDetail.result
+        }
+        doctorTitleId = doctorData?.titleId ?? doctorData?.title_id ?? doctorData?.doctorTitleTypeId ?? doctorData?.doctor_title_type_id
+      } catch (error) {
+        // 如果获取失败，继续使用兜底逻辑
+      }
+    }
+    
+    const scheduleTypeId = schedule?.typeId ?? schedule?.type_id ?? schedule?.type ?? null
+    // 优先使用医生的titleId，如果没有则使用排班的typeId作为兜底
+    const typeId = doctorTitleId != null ? Number(doctorTitleId) : (scheduleTypeId != null ? Number(scheduleTypeId) : 1)
 
     // 获取科室名称，优先使用 selectedDepartment，其次使用 currentDepartment
     const deptName = selectedDepartment.value?.deptName || currentDepartment.value?.deptName || '未知科室'
     const deptIdValue = selectedDepartment.value?.deptId || selectedDepartment.value?.id || selectedDeptId.value || 0
-
-    console.log('跳转支付页 - 科室信息:', {
-      selectedDepartment: selectedDepartment.value,
-      currentDepartment: currentDepartment.value,
-      deptName,
-      deptIdValue,
-      patientId: currentPatientId
-    })
 
     const params = {
       dept: encodeURIComponent(deptName),
@@ -1482,27 +1434,23 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
     // 确保doctorId为有效数字，且必须存在
     const validDoctorId = doctorId ? Number(doctorId) : null;
     
-    try {
-      if (!validDoctorId || isNaN(validDoctorId)) {
-        console.error('无效的医生ID:', doctorId);
-        // 避免在doctorId无效时访问doctorSchedules
-        return;
-      }
-      
-      // 显示加载提示
-      uni.showLoading({
-        title: '加载排班信息中...',
-        mask: true
-      });
-      
-      // 初始化当前医生的排班数据
-      doctorSchedules.value[validDoctorId] = [];
-      
-      console.log('正在获取医生排班，医生ID:', validDoctorId, '日期:', date);
-      
-      // 使用registration API中的getDoctorSchedules方法获取排班信息
-      const response = await getDoctorSchedules(validDoctorId, date, 1);
-      console.log('排班API响应:', response);
+      try {
+        if (!validDoctorId || isNaN(validDoctorId)) {
+          // 避免在doctorId无效时访问doctorSchedules
+          return;
+        }
+        
+        // 显示加载提示
+        uni.showLoading({
+          title: '加载排班信息中...',
+          mask: true
+        });
+        
+        // 初始化当前医生的排班数据
+        doctorSchedules.value[validDoctorId] = [];
+        
+        // 使用registration API中的getDoctorSchedules方法获取排班信息
+        const response = await getDoctorSchedules(validDoctorId, date, 1);
       
       // 提取数组数据
       let schedules = [];
@@ -1582,12 +1530,7 @@ const getSlotLimitStateByKey = (doctor, slotKey) => {
             totalSlots: maxQuota
           };
         });
-      
-      if (!doctorSchedules.value[validDoctorId].length) {
-        console.log('该医生当日暂无排班');
-      }
     } catch (error) {
-      console.error('获取医生排班失败:', error);
       // 清空排班信息，确保不使用模拟数据
       if (validDoctorId) {
         doctorSchedules.value[validDoctorId] = [];
@@ -1677,8 +1620,6 @@ const selectDepartment = async (dept) => {
   // 重置搜索关键词
   searchKeyword.value = ''
   
-  console.log('选中科室:', dept)
-  
   // 确保有选中的日期
   if (!selectedDate.value && dateList.value.length > 0) {
     selectedDate.value = dateList.value[0].date
@@ -1741,7 +1682,6 @@ const loadPatientList = async () => {
       }
     }
   } catch (error) {
-    console.warn('获取就诊人列表失败:', error)
     // 如果获取失败，尝试从ensurePatientCard获取
     try {
       const patientInfo = await ensurePatientCard()
@@ -1751,7 +1691,6 @@ const loadPatientList = async () => {
         await loadPatientRecords()
       }
     } catch (e) {
-      console.warn('从ensurePatientCard获取患者信息失败:', e)
     }
   }
 }
@@ -1855,7 +1794,6 @@ const initDepartmentTree = async () => {
     
     // 调用API获取科室树形结构
     const response = await getDepartmentTree()
-    console.log('科室树形结构响应:', response)
     
     // 处理不同的响应格式，使其更加健壮
     let data = response
@@ -1879,10 +1817,7 @@ const initDepartmentTree = async () => {
       selected: false,
       expanded: false // 默认收起所有科室
     }))
-    
-    console.log('科室树形结构加载成功:', departmentTree.value)
   } catch (error) {
-    console.error('获取科室树形结构失败:', error)
     // 清空科室树形结构，确保不使用模拟数据
     departmentTree.value = []
     
