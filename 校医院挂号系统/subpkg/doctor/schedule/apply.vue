@@ -182,6 +182,30 @@ const slotFromTimeRange = (range) => {
   return undefined
 }
 
+const isSameAsOriginalSchedule = async () => {
+  const originId = Number(form.value.originalScheduleId)
+  const targetDate = String(form.value.targetDate || '')
+  const targetSlot = Number(form.value.targetTimeSlot)
+  if (!Number.isFinite(originId) || originId <= 0) return false
+  if (!targetDate || !Number.isFinite(targetSlot)) return false
+
+  const resp = await doctorApi.getSchedules(doctorId.value, targetDate, 1)
+  const schedules = Array.isArray(resp) ? resp : (resp?.records ?? [])
+  if (!Array.isArray(schedules) || schedules.length === 0) return false
+
+  const origin = schedules.find((s) => {
+    const sid = Number(s?.id ?? s?.scheduleId ?? s?.schedule_id)
+    return Number.isFinite(sid) && sid === originId
+  })
+  if (!origin) return false
+
+  const date = String(origin?.date ?? origin?.scheduleDate ?? origin?.schedule_date ?? '').slice(0, 10)
+  const slot = Number(origin?.timeSlot ?? origin?.time_slot ?? slotFromTimeRange(origin?.timeRange ?? origin?.time_range ?? origin?.timePeriod ?? origin?.time_period))
+  if (!date || !Number.isFinite(slot)) return false
+
+  return date === targetDate && slot === targetSlot
+}
+
 const hasTargetScheduleConflict = async () => {
   const targetDate = String(form.value.targetDate || '')
   const targetSlot = Number(form.value.targetTimeSlot)
@@ -235,6 +259,7 @@ const onSubmit = async () => {
     await uniShowToast({ title: '请完整填写信息', icon: 'none' })
     return
   }
+
   loading.value = true
   try {
     await userStore.initFromStorage()
@@ -248,6 +273,11 @@ const onSubmit = async () => {
     })()
     if (String(form.value.targetDate || '') === today) {
       await uniShowToast({ title: '不允许医生申请当天调班', icon: 'none' })
+      return
+    }
+
+    if (await isSameAsOriginalSchedule()) {
+      await uniShowToast({ title: '与原排班相同', icon: 'none' })
       return
     }
 
