@@ -34,14 +34,14 @@
       </view>
 
       <!-- 密码输入框 -->
-      <view class="input-group" :class="{ 'input-focus': passwordFocus }">
+      <view class="input-group" :class="{ 'input-focus': passwordFocus, 'input-error': passwordTooShort && form.userPassword }">
         <view class="input-icon">🔒</view>
         <view class="input-wrapper">
           <view class="input-label">密码</view>
           <input
             class="input"
             v-model.trim="form.userPassword"
-            placeholder="请输入密码（至少6位）"
+            placeholder="请输入密码（至少8位）"
             :password="!showPassword"
             type="text"
             confirm-type="next"
@@ -52,6 +52,12 @@
         <view class="password-toggle" @click="togglePassword">
           <text class="toggle-icon">{{ showPassword ? '👁️' : '👁️‍🗨️' }}</text>
         </view>
+      </view>
+
+      <!-- 密码长度提示 -->
+      <view v-if="passwordTooShort && form.userPassword" class="error-tip">
+        <text class="error-icon">⚠️</text>
+        <text class="error-text">密码长度至少8位</text>
       </view>
 
       <!-- 确认密码输入框 -->
@@ -129,15 +135,21 @@ const confirmPasswordFocus = ref(false)
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 
+// 密码长度检查
+const passwordTooShort = computed(() => {
+  return form.value.userPassword && form.value.userPassword.length < 8
+})
+
 // 密码不匹配检查
 const passwordMismatch = computed(() => {
   return form.value.checkPassword && form.value.userPassword !== form.value.checkPassword
 })
 
 const disabled = computed(() => {
-  return !form.value.userAccount || 
-         !form.value.userPassword || 
-         !form.value.checkPassword || 
+  return !form.value.userAccount ||
+         !form.value.userPassword ||
+         !form.value.checkPassword ||
+         passwordTooShort.value ||
          passwordMismatch.value ||
          loading.value
 })
@@ -154,53 +166,53 @@ const toggleConfirmPassword = () => {
 
 const onSubmit = async () => {
   if (disabled.value) return
-  
+
   // 验证密码长度
-  if (form.value.userPassword.length < 6) {
-    await uniShowToast({ 
-      title: '密码长度至少6位', 
+  if (form.value.userPassword.length < 8) {
+    await uniShowToast({
+      title: '密码长度至少8位',
       icon: 'none',
       duration: 2000
     })
     return
   }
-  
+
   // 验证密码是否一致
   if (form.value.userPassword !== form.value.checkPassword) {
-    await uniShowToast({ 
-      title: '两次输入的密码不一致', 
+    await uniShowToast({
+      title: '两次输入的密码不一致',
       icon: 'none',
       duration: 2000
     })
     return
   }
-  
+
   loading.value = true
   try {
     // 后端期望字段：{ userAccount, userPassword, checkPassword, userType }
     // userType为1映射为患者用户
-    const res = await userApi.register({ 
-      userAccount: form.value.userAccount, 
-      userPassword: form.value.userPassword, 
-      checkPassword: form.value.checkPassword, 
+    const res = await userApi.register({
+      userAccount: form.value.userAccount,
+      userPassword: form.value.userPassword,
+      checkPassword: form.value.checkPassword,
       userType: 1
     })
     console.log('注册成功:', res)
-    
-    await uniShowToast({ 
-      title: '注册成功', 
-      icon: 'success', 
-      duration: 1500 
+
+    await uniShowToast({
+      title: '注册成功',
+      icon: 'success',
+      duration: 1500
     })
-    
+
     // 使用setTimeout确保toast显示完成后再跳转
     setTimeout(() => {
       uniNavigateTo({ url: '/subpkg/auth/login' })
     }, 1500)
   } catch (e) {
     console.error('注册失败:', e)
-    await uniShowToast({ 
-      title: (e && e.message) || '注册失败，请重试', 
+    await uniShowToast({
+      title: (e && e.message) || '注册失败，请重试',
       icon: 'none',
       duration: 2000
     })

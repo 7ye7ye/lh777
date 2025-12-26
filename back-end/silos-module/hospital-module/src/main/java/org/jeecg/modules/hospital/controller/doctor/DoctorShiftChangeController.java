@@ -59,6 +59,17 @@ public class DoctorShiftChangeController {
             return Result.error("不允许医生申请当天调班");
         }
         Integer targetTimeSlot = req.getTargetTimeSlot();
+
+        // 限制：目的排班日期和时段不允许与原排班完全相同
+        if (targetDate != null
+                && targetTimeSlot != null
+                && origin.getScheduleDate() != null
+                && origin.getTimeSlot() != null
+                && targetDate.isEqual(origin.getScheduleDate())
+                && targetTimeSlot.equals(origin.getTimeSlot())) {
+            return Result.error("与原排班相同");
+        }
+
         if (targetDate != null && targetTimeSlot != null) {
             DoctorSchedule conflict = scheduleService.lambdaQuery()
                     .eq(DoctorSchedule::getDoctorId, req.getDoctorId())

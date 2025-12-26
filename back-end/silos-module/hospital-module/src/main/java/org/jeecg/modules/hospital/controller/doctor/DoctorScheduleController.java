@@ -103,12 +103,27 @@ public class DoctorScheduleController {
             return Result.error("原排班记录不存在！");
         }
 
-        // 更新逻辑
-        if (req.getNewDate() != null && !req.getNewDate().isEmpty()) {
-            origin.setScheduleDate(LocalDate.parse(req.getNewDate(), DateTimeFormatter.ISO_DATE));
+        LocalDate newDate = (req.getNewDate() != null && !req.getNewDate().isEmpty())
+                ? LocalDate.parse(req.getNewDate(), DateTimeFormatter.ISO_DATE)
+                : null;
+        Integer newSlot = (req.getNewTimeRange() != null) ? mapTimeRangeToSlot(req.getNewTimeRange()) : null;
+
+        // 限制：目的排班日期和时段不允许与原排班完全相同
+        if (newDate != null
+                && newSlot != null
+                && origin.getScheduleDate() != null
+                && origin.getTimeSlot() != null
+                && newDate.isEqual(origin.getScheduleDate())
+                && newSlot.equals(origin.getTimeSlot())) {
+            return Result.error("与原排班相同");
         }
-        if (req.getNewTimeRange() != null) {
-            origin.setTimeSlot(mapTimeRangeToSlot(req.getNewTimeRange()));
+
+        // 更新逻辑
+        if (newDate != null) {
+            origin.setScheduleDate(newDate);
+        }
+        if (newSlot != null) {
+            origin.setTimeSlot(newSlot);
         }
 
         // 可扩展独立申请记录表，此处暂直接修改原记录
