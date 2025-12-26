@@ -185,6 +185,16 @@ public class Patient {
 
     private String IdentityPhoto;
 
+    public String getHandheldIdentityPhoto() {
+        return handheldIdentityPhoto;
+    }
+
+    public void setHandheldIdentityPhoto(String handheldIdentityPhoto) {
+        this.handheldIdentityPhoto = handheldIdentityPhoto;
+    }
+
+    private String handheldIdentityPhoto;
+
 
     public int getIsDeleted() {
         return isDeleted;

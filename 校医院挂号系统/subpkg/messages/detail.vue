@@ -56,7 +56,7 @@
 				</view>
 				<view class="card-footer" v-if="shouldShowReceipt(messageDetail)" @click="goToReceipt(messageDetail.appointmentId)">
 					<text>查看详情</text>
-					<image class="arrow-icon" src="/static/icon_arrow_right.png" mode="aspectFit"></image>
+					<image class="arrow-icon" :src="getStaticImage('/static/icon_arrow_right.png')" mode="aspectFit"></image>
 				</view>
 			</view>
 		</view>
@@ -64,6 +64,9 @@
 </template>
 
 <script>
+	import { getStaticImage } from '@/utils/imageHelper'
+	import { getBaseURL, getApiPrefix } from '@/config/api'
+	
 	export default {
 		data() {
 			return {
@@ -81,6 +84,7 @@
 			}
 		},
 		methods: {
+			getStaticImage,
 			// 根据消息类型返回卡片样式类
 			getCardClass(messageType) {
 				switch(messageType) {
@@ -183,7 +187,10 @@
 
 			fetchMessageDetail() {
 				// 【重要】调用新的单条消息接口
-				const apiUrl = `http://localhost:8095/jeecg-boot/api/messages/${this.messageId}`;
+				// 使用统一配置构建 API URL
+				const baseURL = getBaseURL()
+				const apiPrefix = getApiPrefix()
+				const apiUrl = `${baseURL}${apiPrefix}/api/messages/${this.messageId}`
 				
 				console.log('📤 请求消息详情, messageId =', this.messageId);
 				console.log('📤 请求URL:', apiUrl);

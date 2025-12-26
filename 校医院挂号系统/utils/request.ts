@@ -1,28 +1,21 @@
 // src/utils/request.ts
 // @ts-nocheck
 
+// 导入统一配置
+import { getBaseURL, getApiPrefix } from '@/config/api'
+
 // 配置基础地址：支持运行时覆盖
 const detectBaseURL = (): string => {
-  // 1) 运行时存储覆盖（在微信开发者工具控制台可设置：uni.setStorageSync('BASE_URL', 'http://ip:port')）
-  const stored = typeof uni !== 'undefined' ? uni.getStorageSync('BASE_URL') : '';
-  if (stored) return stored;
-
-  // 2) 全局变量覆盖（在页面注入 window.__API_BASE_URL / globalThis.__API_BASE_URL）
-  const g: any = (typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : {}));
-  if (g && g.__API_BASE_URL) return g.__API_BASE_URL as string;
-
-  // 3) 默认值（本地开发）
-  return 'http://localhost:8095';
+  // 使用统一配置
+  const url = getBaseURL();
+  console.log('🌐 当前 API Base URL:', url);
+  return url;
 };
 
+// 在模块加载时立即获取配置（确保使用最新值）
 const baseURL = detectBaseURL();
-const API_PREFIX = (() => {
-  try {
-    return typeof uni !== 'undefined' ? (uni.getStorageSync('API_PREFIX') || '/jeecg-boot') : '/jeecg-boot';
-  } catch (_) {
-    return '/jeecg-boot';
-  }
-})();
+const API_PREFIX = getApiPrefix();
+console.log('🌐 当前 API Prefix:', API_PREFIX);
 
 // 请求拦截器：添加 token、统一配置等
 const requestInterceptor = (options) => {
@@ -116,15 +109,38 @@ const responseInterceptor = (response) => {
   
   // 2. 处理 HTTP 错误（如 404、500）- 只有在响应体中没有错误信息时才使用默认错误信息
   if (statusCode < 200 || statusCode >= 300) {
-    const httpMsg =
-      statusCode === 502
-        ? '网关错误(502)：后端服务不可达或路由未配置'
-        : statusCode === 404
-        ? '接口不存在(404)'
-        : statusCode >= 500
-        ? '服务器错误'
-        : `请求失败: ${statusCode}`;
-    uni.showToast({ title: httpMsg, icon: 'none' });
+    // 检测是否是 cpolar 404 错误（cpolar 隧道地址失效）
+    const isCpolar404 = statusCode === 404 && 
+      typeof data === 'string' && 
+      (data.includes('cpolar.com') || data.includes('The page you were looking for domain doesn\'t exist'));
+    
+    const httpMsg = isCpolar404
+      ? 'cpolar 隧道地址已失效，请重新获取新地址并更新 config/api.ts'
+      : statusCode === 502
+      ? '网关错误(502)：后端服务不可达或路由未配置'
+      : statusCode === 404
+      ? '接口不存在(404)'
+      : statusCode >= 500
+      ? '服务器错误'
+      : `请求失败: ${statusCode}`;
+    
+    // 对于 cpolar 404 错误，显示更详细的提示
+    if (isCpolar404) {
+      console.error('❌ cpolar 隧道地址失效！');
+      console.error('💡 解决步骤：');
+      console.error('   1. 打开 cpolar 客户端');
+      console.error('   2. 查看 "在线隧道列表" 中的 HTTPS 地址');
+      console.error('   3. 更新 config/api.ts 中的 BASE_URL');
+      console.error('   4. 重新编译项目');
+      uni.showModal({
+        title: 'cpolar 隧道地址失效',
+        content: '请重新获取新的 cpolar 地址并更新 config/api.ts 中的 BASE_URL',
+        showCancel: false,
+        confirmText: '知道了'
+      });
+    } else {
+      uni.showToast({ title: httpMsg, icon: 'none' });
+    }
     return Promise.reject(new Error(httpMsg));
   }
 

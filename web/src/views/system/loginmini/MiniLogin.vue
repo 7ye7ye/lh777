@@ -157,8 +157,7 @@
   import { useUserStore } from '/@/store/modules/user';
   import { useMessage } from '/@/hooks/web/useMessage';
   import { useI18n } from '/@/hooks/web/useI18n';
-  import { SmsEnum } from '/@/views/sys/login/useLogin';
-  import ThirdModal from '/@/views/sys/login/ThirdModal.vue';
+    import ThirdModal from '/@/views/sys/login/ThirdModal.vue';
   import MiniForgotpad from './MiniForgotpad.vue';
   import MiniRegister from './MiniRegister.vue';
   import MiniCodelogin from './MiniCodelogin.vue';

@@ -19,7 +19,7 @@
 					<view class="address-value">
 						<text class="value">{{ receiptDetail.hospitalAddress }}</text>
 						<view class="location-btn" @tap="handleOpenMap">
-							<image class="location-icon" src="/static/navigation.svg" mode="aspectFit" />
+							<image class="location-icon" :src="getStaticImage('/static/navigation.svg')" mode="aspectFit" />
 						</view>
 					</view>
 				</view>
@@ -63,8 +63,11 @@
 <script>
 	// 引入 uQRCode 插件，用于在前端生成二维码
 	import uQRCode from '@/uni_modules/Sansnn-uQRCode/js_sdk/uqrcode/uqrcode.js'
+	import { getStaticImage } from '@/utils/imageHelper'
+	import { getBaseURL, getApiPrefix } from '@/config/api'
 
 	export default {
+
 		data() {
 			return {
 				appointmentId: null,
@@ -99,8 +102,12 @@
 			}
 		},
 		methods: {
+			getStaticImage,
 			fetchReceiptDetail() {
-				const apiUrl = `http://localhost:8095/jeecg-boot/api/appointment/detail`;
+				// 使用统一配置构建 API URL
+				const baseURL = getBaseURL()
+				const apiPrefix = getApiPrefix()
+				const apiUrl = `${baseURL}${apiPrefix}/api/appointment/detail`
 				
 				uni.request({
 					url: `${apiUrl}?id=${this.appointmentId}`,

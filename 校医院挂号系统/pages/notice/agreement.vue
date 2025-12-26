@@ -25,25 +25,19 @@
           <!-- 挂号须知 -->
           <view class="section">
             <view class="section-title">【挂号须知】</view>
-            <view class="paragraph">1. 我院实行全预约挂号制度，请提前通过本系统预约就诊时间。</view>
-            <view class="paragraph">2. 可预约时间范围为：自今日起七天之内。</view>
-            <view class="paragraph">3. 挂号前请确保已创建并绑定电子就诊卡，否则无法完成挂号操作。</view>
-            <view class="paragraph">4. 挂号费用根据患者类型（学生/职工）自动计算，支持微信支付。</view>
-            <view class="paragraph">5. 挂号成功以系统消息中心显示挂号成功消息为准，请及时查看。</view>
-          </view>
-          
-          <!-- 候补队列说明 -->
-          <view class="section">
-            <view class="section-title">【候补队列】</view>
-            <view class="paragraph">当所选时段号源已满时，您可以选择加入候补队列。如有其他患者退号，系统将按候补顺序自动为您补位，并通过消息中心通知您。</view>
+            <view class="paragraph">1. 本系统实行全预约挂号，请提前在线选择科室、医生与具体时段。</view>
+            <view class="paragraph">2. 可预约的日期范围通常为近7天，实际可选日期以界面展示为准。</view>
+            <view class="paragraph">3. 挂号前请先创建并绑定电子就诊卡，否则无法完成挂号支付。</view>
+            <view class="paragraph">4. 支付时需选择就诊人，并可在支付页选择就诊身份（学生/教师/职工），费用按所选身份计算。</view>
+            <view class="paragraph">5. 支付成功后系统会跳转到对应的挂号记录页，可随时在“我的-挂号记录”查看状态。</view>
           </view>
           
           <!-- 退号说明 -->
           <view class="section">
             <view class="section-title">【退号说明】</view>
-            <view class="paragraph">1. 已预约的挂号记录可以在就诊前通过系统申请退号。</view>
-            <view class="paragraph">2. 退号成功后，挂号费用将原路退回，号源将自动释放给候补队列中的患者。</view>
-            <view class="paragraph">3. 已就诊或已过期的挂号记录无法退号。</view>
+            <view class="paragraph">1. 如需取消，请在就诊前于挂号记录中发起退号申请，实际可退规则以医院处理为准。</view>
+            <view class="paragraph">2. 退号成功后费用按支付渠道原路退回；已就诊或已过期的记录通常不可退。</view>
+            <view class="paragraph">3. 退号处理有一定时间，请关注退款到账情况，若异常可联系收费窗口。</view>
           </view>
           
           <!-- 就诊须知 -->
@@ -58,8 +52,8 @@
           <!-- 温馨提示 -->
           <view class="section">
             <view class="section-title">【温馨提示】</view>
-            <view class="paragraph">1. 挂号成功后，如未收到成功消息但已付款，系统将在30分钟内自动处理退款。</view>
-            <view class="paragraph">2. 如遇系统异常或长时间未收到退款，请联系医院客服或前往收费窗口咨询。</view>
+            <view class="paragraph">1. 支付成功即生成挂号记录，如未自动跳转，可在“我的-挂号记录”查看。</view>
+            <view class="paragraph">2. 如遇支付异常或退款问题，请联系医院客服或前往收费窗口咨询处理。</view>
             <view class="paragraph">3. 请妥善保管您的就诊卡信息，避免泄露给他人。</view>
             <view class="paragraph">4. 感谢您的理解与配合，祝您就诊顺利！</view>
           </view>

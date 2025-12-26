@@ -89,30 +89,36 @@
     </view>
 
     <!-- 修改密码弹窗 -->
-    <view v-if="passwordDialog.visible" class="dialog-mask" @click.self="closePasswordDialog">
-      <view class="dialog-box">
-        <text class="dialog-title">修改密码</text>
+    <view v-if="passwordDialog.visible" class="dialog-mask" @tap="closePasswordDialog">
+      <view class="dialog-box" @tap.stop>
+        <view class="dialog-header">
+          <text class="dialog-title">修改密码</text>
+        </view>
         <input
           class="dialog-input"
           v-model="passwordDialog.oldPassword"
-          password
+          type="password"
           placeholder="请输入原密码"
+          @tap.stop
         />
         <input
           class="dialog-input"
           v-model="passwordDialog.newPassword"
-          password
-          placeholder="请输入新密码（不少于6位）"
+          type="password"
+          placeholder="请输入新密码（8-20位，含字母、数字和特殊字符）"
+          @tap.stop
         />
         <input
           class="dialog-input"
           v-model="passwordDialog.confirmPassword"
-          password
+          type="password"
           placeholder="请再次输入新密码"
+          @tap.stop
+          @keyup.enter="submitPasswordChange"
         />
         <view class="dialog-actions">
-          <button class="dialog-btn cancel" @click="closePasswordDialog">取消</button>
-          <button class="dialog-btn save" @click="submitPasswordChange">确定</button>
+          <button class="dialog-btn cancel" @tap.stop="closePasswordDialog">取消</button>
+          <button class="dialog-btn save" @tap.stop="submitPasswordChange">确定</button>
         </view>
       </view>
     </view>
@@ -128,8 +134,10 @@ import { ref, computed, onMounted } from 'vue'
 import { uniNavigateTo, uniShowToast } from '@/utils/uniHelper'
 import { useUserStore } from '@/store/user'
 import { doctorApi } from '@/api/doctor'
+import { userApi } from '@/api/user'
 import { getDepartmentDetail } from '@/api/department'
 import DoctorTabBar from '@/components/DoctorTabBar.vue'
+import { getStaticImage } from '@/utils/imageHelper'
 
 const doctorInfo = ref({
   id: null,
@@ -144,10 +152,13 @@ const doctorInfo = ref({
 })
 
 // 头像完整 URL：优先用服务器相对路径拼接，其次用默认本地占位图
+// 使用统一的配置函数
+import { getBaseURL, getApiPrefix } from '@/config/api'
+
 const buildImageUrl = (relativePath) => {
-  if (!relativePath) return '/static/doctor.svg'
-  const baseURL = uni.getStorageSync('BASE_URL') || 'http://localhost:8095'
-  const apiPrefix = uni.getStorageSync('API_PREFIX') || '/jeecg-boot'
+  if (!relativePath) return getStaticImage('/static/doctor.svg')
+  const baseURL = getBaseURL()
+  const apiPrefix = getApiPrefix()
   const cleanPrefix = apiPrefix.endsWith('/') ? apiPrefix.slice(0, -1) : apiPrefix
   const cleanPath = relativePath.replace(/^\/+/, '')
   return `${baseURL}${cleanPrefix}/sys/common/static/${encodeURI(cleanPath)}`
@@ -238,39 +249,165 @@ function goToSettings() {
   // 项目中存在 /pages/profile/profile.vue
   uniNavigateTo({ url: '/pages/profile/profile' })
 }
-function changePassword() {
-  passwordDialog.value.visible = true
-  passwordDialog.value.oldPassword = ''
-  passwordDialog.value.newPassword = ''
-  passwordDialog.value.confirmPassword = ''
+
+// 修改密码相关函数
+const changePassword = () => {
+  // 重置表单并显示弹窗
+  passwordDialog.value = {
+    visible: true,
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  }
 }
 
-function closePasswordDialog() {
-  passwordDialog.value.visible = false
+const closePasswordDialog = () => {
+  // 使用 nextTick 确保状态更新
+  passwordDialog.value = {
+    visible: false,
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  }
 }
 
-async function submitPasswordChange() {
+// 点击遮罩层时关闭弹窗
+const handleMaskClick = () => {
+  closePasswordDialog()
+}
+
+const submitPasswordChange = async () => {
   const { oldPassword, newPassword, confirmPassword } = passwordDialog.value
-  if (!oldPassword) {
-    uniShowToast('请输入原密码')
-    return
+  
+  // 基础验证
+  if (!oldPassword || !oldPassword.trim()) {
+    uniShowToast({ title: '请输入原密码', icon: 'none' })
+    return false
   }
-  if (!newPassword || newPassword.length < 6) {
-    uniShowToast('新密码不少于6位')
-    return
+  
+  if (!newPassword || !newPassword.trim()) {
+    uniShowToast({ title: '请输入新密码', icon: 'none' })
+    return false
   }
+  
+  // 密码长度验证
+  if (newPassword.length < 8 || newPassword.length > 20) {
+    uniShowToast({ title: '新密码长度应为8-20位', icon: 'none' })
+    return false
+  }
+  
+  // 密码复杂度验证
+  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[~!@#$%^&*()_+=\-{}\[\]:;"'<>,.?/]).{8,20}$/
+  if (!passwordRegex.test(newPassword)) {
+    uniShowToast({ 
+      title: '密码必须包含字母、数字和特殊字符', 
+      icon: 'none', 
+      duration: 2500 
+    })
+    return false
+  }
+  
+  // 确认密码验证
+  if (!confirmPassword) {
+    uniShowToast({ title: '请确认新密码', icon: 'none' })
+    return false
+  }
+  
   if (newPassword !== confirmPassword) {
-    uniShowToast('两次输入的新密码不一致')
-    return
+    uniShowToast({ title: '两次输入的新密码不一致', icon: 'none' })
+    return false
+  }
+  
+  // 新旧密码不能相同
+  if (oldPassword === newPassword) {
+    uniShowToast({ title: '新密码不能与原密码相同', icon: 'none' })
+    return false
   }
 
-  try {
-    // TODO: 调用后端修改密码接口，如 userApi.changePassword({ oldPassword, newPassword })
-    uniShowToast('已提交修改密码请求')
-    closePasswordDialog()
-  } catch (e) {
-    console.error('修改密码失败:', e)
-    uniShowToast('修改失败，请稍后重试')
+  // 显示加载提示
+  uni.showLoading({ title: '提交中...' })
+  
+// In the submitPasswordChange function, I'll add the missing catch block
+    try {
+      // 显示加载中
+      uni.showLoading({ title: '正在修改密码...', mask: true })
+      // ... existing code ...
+    } catch (error) {
+      console.error('修改密码出错:', error)
+      uni.hideLoading()
+      uni.showToast({
+        title: '修改密码失败，请重试',
+        icon: 'none'
+      })
+    }
+    
+    try {
+      // 调用后端修改密码接口
+      const response = await userApi.changePassword({
+        oldPassword: oldPassword.trim(),
+        newPassword: newPassword.trim(),
+        confirmPassword: confirmPassword.trim()
+      })
+      
+      // 关闭加载中
+      uni.hideLoading()
+      
+      // 清空表单
+      passwordDialog.value = {
+        visible: false,
+        oldPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      }
+      
+      // 显示成功提示
+      uni.showToast({
+        title: '密码修改成功',
+        icon: 'success',
+        duration: 1500
+      })
+      
+      // 延迟显示重新登录提示
+      setTimeout(() => {
+        uni.showModal({
+          title: '提示',
+          content: '密码修改成功，请重新登录',
+          showCancel: false,
+          success: () => {
+            // 清除用户信息
+            userStore.logout()
+            // 跳转到登录页
+            uni.reLaunch({ url: '/subpkg/auth/login' })
+          }
+        })
+      }, 1500)
+    
+  } catch (error) {
+    // 关闭加载中
+    uni.hideLoading()
+    
+    console.error('修改密码失败:', error)
+    
+    // 根据错误类型显示不同的提示
+    let errorMsg = '修改密码失败，请稍后重试'
+    
+    // 处理不同格式的错误响应
+    if (error?.response?.data?.message) {
+      errorMsg = error.response.data.message
+    } else if (error?.data?.message) {
+      errorMsg = error.data.message
+    } else if (error?.message) {
+      errorMsg = error.message
+    } else if (error?.errMsg) {
+      errorMsg = error.errMsg
+    }
+    
+    // 显示错误提示
+    uni.showToast({
+      title: errorMsg,
+      icon: 'none',
+      duration: 2500
+    })
   }
 }
 
@@ -355,7 +492,7 @@ async function saveEdit() {
 // 点击头像预览大图
 function onChangeAvatar() {
   // 如果有头像，则预览大图
-  if (avatarUrl.value && avatarUrl.value !== '/static/doctor.svg') {
+  if (avatarUrl.value && avatarUrl.value !== getStaticImage('/static/doctor.svg')) {
     uni.previewImage({
       urls: [avatarUrl.value],
       current: 0
@@ -605,55 +742,84 @@ function logout() {
 /* 编辑弹窗 */
 .dialog-mask {
   position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
   justify-content: center;
-  z-index: 999;
+  align-items: center;
+  z-index: 1000;
 }
+
 .dialog-box {
   width: 80%;
+  max-width: 500px;
   background: #fff;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  box-shadow: 0 12rpx 20rpx rgba(42, 123, 255, 0.16);
+  border-radius: 12px;
+  padding: 24px;
+  position: relative;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
 .dialog-title {
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #1a1a1a;
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
 }
+
+.dialog-close {
+  font-size: 28px;
+  color: #999;
+  padding: 0 10px;
+  cursor: pointer;
+  line-height: 1;
+}
+
 .dialog-input {
-  margin-top: 16rpx;
   width: 100%;
-  height: 72rpx;
-  border-radius: 12rpx;
-  background: #f8fafc;
-  padding: 0 16rpx;
+  height: 44px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 0 12px;
+  margin-bottom: 16px;
+  font-size: 14px;
   box-sizing: border-box;
-  font-size: 26rpx;
-  color: #2f3b52;
 }
+
 .dialog-actions {
-  margin-top: 16rpx;
   display: flex;
   justify-content: flex-end;
-  gap: 12rpx;
+  margin-top: 20px;
 }
+
 .dialog-btn {
+  margin-left: 12px;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
   border: none;
-  border-radius: 12rpx;
-  padding: 16rpx 24rpx;
-  font-size: 26rpx;
-  font-weight: 700;
+  outline: none;
 }
+
 .dialog-btn.cancel {
-  background: #e9f2ff;
-  color: #2a7bff;
+  background-color: #f5f5f5;
+  color: #666;
+  border: 1px solid #e0e0e0;
 }
+
 .dialog-btn.save {
-  background: linear-gradient(90deg, #2a7bff, #6aa9ff);
+  background-color: #1890ff;
   color: #fff;
+  border: 1px solid #1890ff;
 }
 </style>

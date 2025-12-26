@@ -198,7 +198,7 @@
 
       <!-- 空状态 -->
       <view v-if="!loading && filteredRecords.length === 0" class="empty-container">
-        <image src="/static/empty_message.png" mode="widthFix" class="empty-img" />
+        <image :src="getStaticImage('/static/empty_message.png')" mode="widthFix" class="empty-img" />
         <text class="empty-text">暂无转诊记录</text>
         <button class="create-btn" @click="createNewReferral">发起转诊申请</button>
       </view>
@@ -213,9 +213,10 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { getPatientReferralList, cancelPatientReferral, autoRegisterInternalReferral } from '@/api/referral'
-import { getRegistrationRecords } from '@/api/registration'
+import { getRegistrationRecords, getDepartmentIdBySchedule } from '@/api/registration'
 import { patientApi } from '@/api/patient'
 import { useUserStore } from '@/store/user'
+import { getStaticImage } from '@/utils/imageHelper'
 
 // 筛选选项
 const filterTabs = [
@@ -369,56 +370,78 @@ const isRecordInDateRange = (record) => {
   return true
 }
 
+// 获取当前账户下所有绑定的就诊人ID列表
+const fetchCurrentAccountPatientIds = async () => {
+  try {
+    const list = await fetchPatientList()
+    return list.map(item => Number(item.patientId))
+  } catch (error) {
+    console.warn('获取就诊人ID列表失败:', error)
+    return []
+  }
+}
+
+// 当前账户下所有绑定的就诊人ID列表
+const currentAccountPatientIds = ref([])
+
+// 初始化时获取当前账户的就诊人ID列表
+onMounted(async () => {
+  // 先获取当前账户绑定的就诊人ID列表
+  currentAccountPatientIds.value = await fetchCurrentAccountPatientIds()
+  // 然后初始化就诊人信息
+  await initPatientInfo()
+  // 最后加载转诊记录
+  loadReferralRecords()
+})
+
+// 刷新时也重新获取就诊人ID列表
+const onRefresh = async () => {
+  currentPage.value = 1
+  referralRecords.value = []
+  hasMore.value = true
+  // 清空缓存，确保获取最新数据
+  registrationToPatientMapCache.value.clear()
+  currentAccountPatientIds.value = await fetchCurrentAccountPatientIds()
+  loadReferralRecords()
+}
+
 const filteredRecords = computed(() => {
   let records = referralRecords.value || []
   
-  // 按状态筛选 - 如果选择的是"全部"（空字符串），不筛选
-  if (filterStatus.value && filterStatus.value !== '') {
-    records = records.filter(record => {
-      const recordStatus = (record.status || '').toUpperCase()
-      const filterStatusUpper = (filterStatus.value || '').toUpperCase()
-      return recordStatus === filterStatusUpper
-    })
-  }
+  // 筛选逻辑：
+  // 1. 如果选择了特定就诊人，只显示该就诊人的记录
+  // 2. 如果没有选择特定就诊人，显示当前账户下绑定的所有就诊人的记录
+  // 3. 后端已经通过 user_id 筛选了当前用户的转诊记录，所以这里只需要按 patient_id 筛选
   
-  // 按就诊人筛选 - 使用患者ID筛选（更可靠）
-  // 只有当选择了就诊人时才筛选，如果没有选择就诊人（selectedPatientId为null），显示所有记录
-  if (selectedPatientId.value !== null && selectedPatientId.value !== undefined) {
-    const currentPatientName = (currentPatientInfo.value.name || '').trim()
-    const selectedPatientIdNum = Number(selectedPatientId.value)
-    
+  if (selectedPatientId.value) {
+    // 选择了特定就诊人，只显示该就诊人的记录
     records = records.filter(record => {
       const recordPatientId = record.patientId || record.patient_id || null
-      const recordPatientName = (record.patientName || '').trim()
-      const registrationRecordId = record.registrationRecordId || record.registration_record_id || null
-      
-      // 优先使用 patientId 匹配
       if (recordPatientId !== null && recordPatientId !== undefined) {
         const recordPatientIdNum = Number(recordPatientId)
-        if (!isNaN(recordPatientIdNum) && recordPatientIdNum === selectedPatientIdNum) {
-          return true
-        }
+        const selectedPatientIdNum = Number(selectedPatientId.value)
+        return !isNaN(recordPatientIdNum) && recordPatientIdNum === selectedPatientIdNum
       }
-      
-      // 如果 patientId 不匹配或不存在，使用姓名匹配作为备选（兼容旧数据）
-      if (currentPatientName && recordPatientName) {
-        const nameMatch = recordPatientName === currentPatientName
-        if (nameMatch) {
-          return true
-        }
-      }
-      
-      // 如果 patientId 为 null 但有 registrationRecordId，说明后端没有返回 patientId
-      // 这种情况下，转诊记录是通过挂号记录关联的，应该属于当前登录用户
-      // 为了不丢失数据，显示所有有 registrationRecordId 但 patientId 为 null 的记录
-      // 因为转诊记录是通过挂号记录关联的，而挂号记录应该属于当前用户
-      if (recordPatientId === null && registrationRecordId) {
-        return true
-      }
-      
-      // 如果既没有 patientId 也没有姓名匹配，或者都不匹配，则不显示
+      // 如果没有patientId，不显示该记录
       return false
     })
+  } else {
+    // 没有选择特定就诊人，显示当前账户下绑定的所有就诊人的记录
+    if (currentAccountPatientIds.value.length > 0) {
+      records = records.filter(record => {
+        const recordPatientId = record.patientId || record.patient_id || null
+        if (recordPatientId !== null && recordPatientId !== undefined) {
+          const recordPatientIdNum = Number(recordPatientId)
+          return !isNaN(recordPatientIdNum) && currentAccountPatientIds.value.includes(recordPatientIdNum)
+        }
+        // 如果没有patientId，不显示该记录，避免显示其他用户的记录
+        return false
+      })
+    } else {
+      // 如果还没有加载就诊人列表，暂时不显示任何记录，避免显示其他用户的记录
+      // 等待就诊人列表加载完成后再显示
+      records = []
+    }
   }
   
   // 按日期范围筛选
@@ -558,27 +581,49 @@ const viewAutoRegisterStatus = async (record) => {
       }
       
       // 获取该患者的所有挂号记录
-      uni.showLoading({ title: '加载中...' })
-      const records = await getRegistrationRecords(patientId)
-      const recordsList = Array.isArray(records) ? records : []
-      
-      // 查找匹配的挂号记录：
-      // 1. scheduleId 等于 assignedScheduleId
-      // 2. isAdd === 1（加号标记）
-      // 3. addRemark 包含"转诊"或"院内转诊"
-      const assignedScheduleId = record.assignedScheduleId || record.assigned_schedule_id
-      const matchedRecord = recordsList.find(r => {
-        const scheduleIdMatch = (r.scheduleId || r.schedule_id) === assignedScheduleId
-        const isAddMatch = (r.isAdd || r.is_add) === 1
-        const addRemark = (r.addRemark || r.add_remark || '').toString()
-        const remarkMatch = addRemark.includes('转诊') || addRemark.includes('院内转诊')
-        return scheduleIdMatch && isAddMatch && remarkMatch
-      })
-      
-      uni.hideLoading()
-      
-      if (matchedRecord) {
+      try {
+        uni.showLoading({ title: '加载中...' })
+        const records = await getRegistrationRecords(patientId)
+        const recordsList = Array.isArray(records) ? records : []
+        
+        // 查找匹配的挂号记录：
+        // 1. scheduleId 等于 assignedScheduleId
+        // 2. isAdd === 1（加号标记）
+        // 3. addRemark 包含"转诊"或"院内转诊"
+        const assignedScheduleId = record.assignedScheduleId || record.assigned_schedule_id
+        const matchedRecord = recordsList.find(r => {
+          const scheduleIdMatch = (r.scheduleId || r.schedule_id) === assignedScheduleId
+          const isAddMatch = (r.isAdd || r.is_add) === 1
+          const addRemark = (r.addRemark || r.add_remark || '').toString()
+          const remarkMatch = addRemark.includes('转诊') || addRemark.includes('院内转诊')
+          return scheduleIdMatch && isAddMatch && remarkMatch
+        })
+        
+        uni.hideLoading()
+        
+        if (matchedRecord) {
+        // 获取科室ID，优先从挂号记录中获取，如果没有则通过scheduleId查询
+        let departmentId = matchedRecord.departmentId || matchedRecord.deptId || matchedRecord.dept_id || null
+        let departmentName = matchedRecord.departmentName || matchedRecord.deptName || matchedRecord.department || ''
+        
+        // 如果没有科室ID，尝试通过scheduleId获取
+        if (!departmentId && (matchedRecord.scheduleId || matchedRecord.schedule_id)) {
+          try {
+            const scheduleId = matchedRecord.scheduleId || matchedRecord.schedule_id
+            const deptIdRes = await getDepartmentIdBySchedule(Number(scheduleId))
+            // 处理不同的响应格式
+            if (typeof deptIdRes === 'number') {
+              departmentId = deptIdRes
+            } else if (deptIdRes) {
+              departmentId = deptIdRes.deptId || deptIdRes.departmentId || deptIdRes.id || deptIdRes.result || deptIdRes.data || null
+            }
+          } catch (error) {
+            console.warn('通过scheduleId获取科室ID失败:', error)
+          }
+        }
+        
         // 构建挂号记录对象，用于跳转到详情页
+        // 注意：这个挂号记录是通过转诊自动生成的，已经关联了转诊记录
         const recordData = {
           id: matchedRecord.recordId || matchedRecord.record_id || matchedRecord.id,
           recordId: matchedRecord.recordId || matchedRecord.record_id || matchedRecord.id,
@@ -586,13 +631,30 @@ const viewAutoRegisterStatus = async (record) => {
           scheduleId: matchedRecord.scheduleId || matchedRecord.schedule_id,
           doctorId: matchedRecord.doctorId || matchedRecord.doctor_id,
           typeId: matchedRecord.typeId || matchedRecord.type_id,
+          departmentId: departmentId,
+          departmentName: departmentName,
           registrationNo: matchedRecord.registrationNo || matchedRecord.registration_no,
           registerTime: matchedRecord.registerTime || matchedRecord.register_time,
           status: matchedRecord.status,
           priceOriginal: matchedRecord.priceOriginal || matchedRecord.price_original,
           actualPrice: matchedRecord.actualPrice || matchedRecord.actual_price,
           isAdd: matchedRecord.isAdd || matchedRecord.is_add,
-          addRemark: matchedRecord.addRemark || matchedRecord.add_remark
+          addRemark: matchedRecord.addRemark || matchedRecord.add_remark,
+          // 转诊相关字段：这个记录是通过转诊自动生成的，已经关联了转诊记录
+          hasReferral: true, // 已有转诊记录
+          canRefer: false, // 不能再申请转诊（因为已经通过转诊生成了这个记录）
+          referralId: record.id || record.referralId, // 关联的转诊记录ID
+          referralStatus: record.status || 'APPROVED', // 转诊状态
+          // 添加 originalRecord 以便详情页可以获取完整信息
+          originalRecord: {
+            ...matchedRecord,
+            departmentId: departmentId,
+            departmentName: departmentName,
+            hasReferral: true,
+            canRefer: false,
+            referralId: record.id || record.referralId,
+            referralStatus: record.status || 'APPROVED'
+          }
         }
         
         // 跳转到挂号记录详情页面
@@ -625,29 +687,413 @@ const viewAutoRegisterStatus = async (record) => {
           confirmText: '知道了'
         })
       }
+      } catch (error) {
+        uni.hideLoading()
+        console.error('查询挂号记录失败:', error)
+        uni.showToast({
+          title: '查询挂号记录失败',
+          icon: 'none'
+        })
+      }
     } catch (error) {
-      uni.hideLoading()
-      console.error('查询挂号记录失败:', error)
+      console.error('处理自动挂号状态失败:', error)
       uni.showToast({
-        title: '查询挂号记录失败',
+        title: '操作失败，请重试',
         icon: 'none'
       })
     }
   } else if (status === 2) {
-    // 挂号失败
-    let content = '自动挂号状态：挂号失败\n'
+    // 挂号失败，但可能已加入候补队列
     if (record.quotaAction === 'WAITLIST' && record.waitNumber) {
-      content += `已加入候补队列，候补号：${record.waitNumber}`
+      // 已加入候补队列，尝试查找候补挂号记录并跳转
+      try {
+        // 获取患者ID
+        let patientId = record.patientId || record.patient_id
+        if (!patientId && selectedPatientId.value) {
+          patientId = selectedPatientId.value
+        }
+        
+        if (!patientId) {
+          uni.showModal({
+            title: '自动挂号状态',
+            content: `已加入候补队列，候补号：${record.waitNumber}\n无法获取患者信息，请先选择就诊人`,
+            showCancel: false,
+            confirmText: '知道了'
+          })
+          return
+        }
+        
+        // 获取该患者的所有挂号记录
+        try {
+          uni.showLoading({ title: '查找候补记录...' })
+          const records = await getRegistrationRecords(patientId)
+          const recordsList = Array.isArray(records) ? records : []
+          
+          console.log('查找候补记录，转诊记录信息:', {
+          assignedScheduleId: record.assignedScheduleId || record.assigned_schedule_id,
+          waitNumber: record.waitNumber || record.wait_number,
+          quotaAction: record.quotaAction,
+          targetDeptId: record.targetDeptId || record.target_dept_id || record.targetDepartmentId,
+          targetDepartment: record.targetDepartment || record.targetDeptName || '',
+          assignedDate: record.assignedDate || record.assigned_date,
+          patientId: patientId,
+          totalRecords: recordsList.length,
+          waitingRecordsCount: recordsList.filter(r => (r.status === 0 || r.status === '0')).length,
+          referralRecordsWithMark: recordsList.filter(r => {
+            const isAddMatch = (r.isAdd || r.is_add) === 1
+            const addRemark = (r.addRemark || r.add_remark || '').toString()
+            return isAddMatch && (addRemark.includes('转诊') || addRemark.includes('院内转诊'))
+          }).length
+        })
+        
+        // 查找候补挂号记录
+        // 注意：转诊自动挂号加入候补队列时，可能没有 assignedScheduleId（因为还没有找到可用排班）
+        const assignedScheduleId = record.assignedScheduleId || record.assigned_schedule_id
+        const waitNumber = record.waitNumber || record.wait_number || null
+        const targetDeptId = record.targetDeptId || record.target_dept_id || record.targetDepartmentId || null
+        const assignedDate = record.assignedDate || record.assigned_date || null
+        
+        let matchedRecord = null
+        
+        // 策略1：如果有 assignedScheduleId，优先通过 scheduleId 匹配
+        if (assignedScheduleId) {
+          // 先尝试严格匹配（包含转诊标记）
+          matchedRecord = recordsList.find(r => {
+            const scheduleIdMatch = (r.scheduleId || r.schedule_id) === assignedScheduleId
+            const statusMatch = (r.status === 0 || r.status === '0') // 候补状态
+            const isAddMatch = (r.isAdd || r.is_add) === 1
+            const addRemark = (r.addRemark || r.add_remark || '').toString()
+            const remarkMatch = addRemark.includes('转诊') || addRemark.includes('院内转诊')
+            return scheduleIdMatch && statusMatch && isAddMatch && remarkMatch
+          })
+          
+          // 如果严格匹配找不到，放宽条件：只匹配 scheduleId 和 status=0
+          if (!matchedRecord) {
+            matchedRecord = recordsList.find(r => {
+              const scheduleIdMatch = (r.scheduleId || r.schedule_id) === assignedScheduleId
+              const statusMatch = (r.status === 0 || r.status === '0') // 候补状态
+              return scheduleIdMatch && statusMatch
+            })
+          }
+        }
+        
+        // 策略2：如果没有 assignedScheduleId，通过目标科室、日期和候补状态匹配
+        const targetDepartment = record.targetDepartment || record.targetDeptName || ''
+        if (!matchedRecord) {
+          // 先尝试严格匹配：有转诊标记 + 科室ID匹配
+          let candidateRecords = recordsList.filter(r => {
+            const statusMatch = (r.status === 0 || r.status === '0') // 候补状态
+            if (!statusMatch) return false
+            
+            const isAddMatch = (r.isAdd || r.is_add) === 1 // 转诊自动生成的应该是加号
+            const addRemark = (r.addRemark || r.add_remark || '').toString()
+            const remarkMatch = addRemark.includes('转诊') || addRemark.includes('院内转诊')
+            
+            // 必须有转诊标记
+            if (!isAddMatch || !remarkMatch) {
+              return false
+            }
+            
+            // 如果有 targetDeptId，必须匹配科室ID
+            if (targetDeptId) {
+              const recordDeptId = r.departmentId || r.deptId || r.dept_id
+              if (recordDeptId !== targetDeptId && Number(recordDeptId) !== Number(targetDeptId)) {
+                return false
+              }
+            }
+            
+            return true
+          })
+          
+          // 如果严格匹配找不到，放宽条件：只匹配科室ID和候补状态（不要求转诊标记）
+          if (candidateRecords.length === 0 && targetDeptId) {
+            candidateRecords = recordsList.filter(r => {
+              const statusMatch = (r.status === 0 || r.status === '0') // 候补状态
+              if (!statusMatch) return false
+              
+              const recordDeptId = r.departmentId || r.deptId || r.dept_id
+              const deptIdMatch = recordDeptId === targetDeptId || Number(recordDeptId) === Number(targetDeptId)
+              
+              return deptIdMatch
+            })
+          }
+          
+          // 如果有 assignedDate，进一步筛选日期
+          if (candidateRecords.length > 0 && assignedDate) {
+            const assignedDateStr = String(assignedDate).substring(0, 10)
+            candidateRecords = candidateRecords.filter(r => {
+              const recordDate = r.schedule_date || r.scheduleDate || r.register_time || r.registerTime
+              if (recordDate) {
+                const recordDateStr = String(recordDate).substring(0, 10)
+                return recordDateStr === assignedDateStr
+              }
+              return true // 如果没有日期信息，保留
+            })
+          }
+          
+          // 如果有多个候补记录，选择最近的一个（按 registerTime 排序）
+          if (candidateRecords.length > 0) {
+            candidateRecords.sort((a, b) => {
+              const timeA = new Date(a.registerTime || a.register_time || 0).getTime()
+              const timeB = new Date(b.registerTime || b.register_time || 0).getTime()
+              return timeB - timeA // 降序，最新的在前
+            })
+            matchedRecord = candidateRecords[0]
+          }
+        }
+        
+        // 策略3：通过候补排名匹配（如果有 waitNumber）
+        if (!matchedRecord && waitNumber) {
+          matchedRecord = recordsList.find(r => {
+            const statusMatch = (r.status === 0 || r.status === '0') // 候补状态
+            const waitingRank = r.waiting_rank || r.waitingRank
+            const rankMatch = waitingRank === waitNumber || waitingRank === Number(waitNumber)
+            return statusMatch && rankMatch
+          })
+        }
+        
+        // 策略4：查找所有候补记录，选择最近的（作为兜底）
+        if (!matchedRecord) {
+          const allWaitingRecords = recordsList.filter(r => {
+            return (r.status === 0 || r.status === '0') // 候补状态
+          })
+          
+          if (allWaitingRecords.length > 0) {
+            // 优先选择有转诊标记的
+            const referralWaitingRecords = allWaitingRecords.filter(r => {
+              const isAddMatch = (r.isAdd || r.is_add) === 1
+              const addRemark = (r.addRemark || r.add_remark || '').toString()
+              return isAddMatch && (addRemark.includes('转诊') || addRemark.includes('院内转诊'))
+            })
+            
+            if (referralWaitingRecords.length > 0) {
+              referralWaitingRecords.sort((a, b) => {
+                const timeA = new Date(a.registerTime || a.register_time || 0).getTime()
+                const timeB = new Date(b.registerTime || b.register_time || 0).getTime()
+                return timeB - timeA
+              })
+              matchedRecord = referralWaitingRecords[0]
+            } else {
+              // 如果没有转诊标记的，选择最近的候补记录
+              allWaitingRecords.sort((a, b) => {
+                const timeA = new Date(a.registerTime || a.register_time || 0).getTime()
+                const timeB = new Date(b.registerTime || b.register_time || 0).getTime()
+                return timeB - timeA
+              })
+              matchedRecord = allWaitingRecords[0]
+            }
+          }
+        }
+        
+        uni.hideLoading()
+        
+        if (matchedRecord) {
+          // 获取科室ID
+          let departmentId = matchedRecord.departmentId || matchedRecord.deptId || matchedRecord.dept_id || null
+          let departmentName = matchedRecord.departmentName || matchedRecord.deptName || matchedRecord.department || ''
+          
+          // 如果没有科室ID，尝试通过scheduleId获取
+          if (!departmentId && (matchedRecord.scheduleId || matchedRecord.schedule_id)) {
+            try {
+              const scheduleId = matchedRecord.scheduleId || matchedRecord.schedule_id
+              const deptIdRes = await getDepartmentIdBySchedule(Number(scheduleId))
+              if (typeof deptIdRes === 'number') {
+                departmentId = deptIdRes
+              } else if (deptIdRes) {
+                departmentId = deptIdRes.deptId || deptIdRes.departmentId || deptIdRes.id || deptIdRes.result || deptIdRes.data || null
+              }
+            } catch (error) {
+              console.warn('通过scheduleId获取科室ID失败:', error)
+            }
+          }
+          
+          // 获取候补排名（从 waiting_rank 或 waitNumber）
+          const waitingRank = matchedRecord.waiting_rank || matchedRecord.waitingRank || record.waitNumber || null
+          
+          // 构建候补挂号记录对象，用于跳转到详情页
+          const recordData = {
+            id: matchedRecord.recordId || matchedRecord.record_id || matchedRecord.id,
+            recordId: matchedRecord.recordId || matchedRecord.record_id || matchedRecord.id,
+            patientId: matchedRecord.patientId || matchedRecord.patient_id || patientId,
+            scheduleId: matchedRecord.scheduleId || matchedRecord.schedule_id,
+            doctorId: matchedRecord.doctorId || matchedRecord.doctor_id,
+            typeId: matchedRecord.typeId || matchedRecord.type_id,
+            departmentId: departmentId,
+            departmentName: departmentName,
+            registrationNo: matchedRecord.registrationNo || matchedRecord.registration_no,
+            registerTime: matchedRecord.registerTime || matchedRecord.register_time,
+            status: 0, // 候补状态
+            priceOriginal: matchedRecord.priceOriginal || matchedRecord.price_original,
+            actualPrice: matchedRecord.actualPrice || matchedRecord.actual_price,
+            isAdd: matchedRecord.isAdd || matchedRecord.is_add,
+            addRemark: matchedRecord.addRemark || matchedRecord.add_remark,
+            waitingRank: waitingRank, // 候补排名
+            // 转诊相关字段：这个记录是通过转诊自动生成的，已经关联了转诊记录
+            hasReferral: true,
+            canRefer: false,
+            referralId: record.id || record.referralId,
+            referralStatus: record.status || 'APPROVED',
+            // 添加 originalRecord 以便详情页可以获取完整信息
+            originalRecord: {
+              ...matchedRecord,
+              departmentId: departmentId,
+              departmentName: departmentName,
+              waitingRank: waitingRank,
+              hasReferral: true,
+              canRefer: false,
+              referralId: record.id || record.referralId,
+              referralStatus: record.status || 'APPROVED'
+            }
+          }
+          
+          // 跳转到候补挂号记录详情页面
+          uni.navigateTo({
+            url: `/subpkg/profile/records/hospital-record-detail?record=${encodeURIComponent(JSON.stringify(recordData))}`,
+            fail: (err) => {
+              console.error('跳转候补挂号记录详情失败:', err)
+              uni.showToast({
+                title: '跳转失败，请重试',
+                icon: 'none'
+              })
+            }
+          })
+        } else {
+          // 如果找不到候补记录，显示状态信息和调试信息
+          const waitingRecords = recordsList.filter(r => (r.status === 0 || r.status === '0'))
+          const targetDeptId = record.targetDeptId || record.target_dept_id || record.targetDepartmentId
+          const targetDepartment = record.targetDepartment || record.targetDeptName || ''
+          
+          // 详细分析候补记录
+          const waitingInTargetDept = waitingRecords.filter(r => {
+            const recordDeptId = r.departmentId || r.deptId || r.dept_id
+            return targetDeptId && (recordDeptId === targetDeptId || Number(recordDeptId) === Number(targetDeptId))
+          })
+          
+          const waitingWithReferralMark = waitingRecords.filter(r => {
+            const isAddMatch = (r.isAdd || r.is_add) === 1
+            const addRemark = (r.addRemark || r.add_remark || '').toString()
+            return isAddMatch && (addRemark.includes('转诊') || addRemark.includes('院内转诊'))
+          })
+          
+          console.warn('未找到候补挂号记录，详细调试信息:', {
+            referralInfo: {
+              assignedScheduleId: record.assignedScheduleId || record.assigned_schedule_id,
+              waitNumber: record.waitNumber || record.wait_number,
+              targetDeptId: targetDeptId,
+              targetDepartment: targetDepartment,
+              assignedDate: record.assignedDate || record.assigned_date,
+              quotaAction: record.quotaAction,
+              patientId: patientId
+            },
+            recordsSummary: {
+              totalRecords: recordsList.length,
+              waitingRecordsCount: waitingRecords.length,
+              waitingInTargetDeptCount: waitingInTargetDept.length,
+              waitingWithReferralMarkCount: waitingWithReferralMark.length
+            },
+            allWaitingRecords: waitingRecords.map(r => ({
+              recordId: r.recordId || r.record_id || r.id,
+              scheduleId: r.scheduleId || r.schedule_id,
+              status: r.status,
+              isAdd: r.isAdd || r.is_add,
+              addRemark: r.addRemark || r.add_remark,
+              waitingRank: r.waiting_rank || r.waitingRank,
+              departmentId: r.departmentId || r.deptId || r.dept_id,
+              departmentName: r.departmentName || r.deptName || r.department,
+              registerTime: r.registerTime || r.register_time,
+              scheduleDate: r.schedule_date || r.scheduleDate
+            })),
+            targetDeptWaitingRecords: waitingInTargetDept.map(r => ({
+              recordId: r.recordId || r.record_id || r.id,
+              scheduleId: r.scheduleId || r.schedule_id,
+              status: r.status,
+              isAdd: r.isAdd || r.is_add,
+              addRemark: r.addRemark || r.add_remark,
+              waitingRank: r.waiting_rank || r.waitingRank,
+              departmentId: r.departmentId || r.deptId || r.dept_id,
+              registerTime: r.registerTime || r.register_time
+            }))
+          })
+          
+          let content = `自动挂号状态：已加入候补队列\n候补号：${record.waitNumber}\n`
+          if (record.targetDepartment) {
+            content += `目标科室：${record.targetDepartment}\n`
+          }
+          if (record.assignedDate) {
+            content += `预约日期：${record.assignedDate}\n`
+          }
+          if (record.assignedTimeSlot) {
+            const timeSlotMap = { 1: '上午', 2: '下午', 3: '晚上' }
+            content += `预约时段：${timeSlotMap[record.assignedTimeSlot] || record.assignedTimeSlot}\n`
+          }
+          
+          // 根据实际情况给出不同的提示
+          if (waitingRecords.length === 0) {
+            // 候补记录尚未生成，可能是候补失败
+            uni.hideLoading()
+            uni.showModal({
+              title: '无排班，候补失败',
+              content: '自动挂号状态：已加入候补队列\n候补号：' + (record.waitNumber || '未知') + '\n\n当前无可用排班，候补失败。\n\n请稍后重试或联系医院。',
+              showCancel: false,
+              confirmText: '知道了'
+            })
+            return
+          } else {
+            content += '\n\n提示：未找到匹配的候补挂号记录，但存在其他候补记录。'
+            content += '\n\n请前往"挂号记录"页面查看所有候补记录。'
+          }
+          
+          uni.showModal({
+            title: '自动挂号状态',
+            content: content,
+            showCancel: true,
+            cancelText: '知道了',
+            confirmText: '查看挂号记录',
+            success: (res) => {
+              if (res.confirm) {
+                // 跳转到挂号记录页面
+                uni.navigateTo({
+                  url: '/subpkg/profile/records/register-record',
+                  fail: () => {
+                    console.warn('跳转挂号记录页面失败')
+                    uni.showToast({
+                      title: '跳转失败，请手动进入挂号记录页面',
+                      icon: 'none'
+                    })
+                  }
+                })
+              }
+            }
+          })
+        }
+        } catch (error) {
+          uni.hideLoading()
+          console.error('查询候补挂号记录失败:', error)
+          uni.showModal({
+            title: '无排班，候补失败',
+            content: `已加入候补队列，候补号：${record.waitNumber || '未知'}\n\n查询候补记录失败，无法获取候补信息。\n\n当前无可用排班，候补失败。\n\n请稍后重试或联系医院。`,
+            showCancel: false,
+            confirmText: '知道了'
+          })
+        }
+      } catch (error) {
+        console.error('处理候补队列状态失败:', error)
+        uni.showModal({
+          title: '无排班，候补失败',
+          content: '处理候补队列状态失败，无法获取候补信息。\n\n当前无可用排班，候补失败。\n\n请稍后重试或联系医院。',
+          showCancel: false,
+          confirmText: '知道了'
+        })
+      }
     } else {
-      content += '当前无可用排班，请稍后重试或联系医院'
+      // 挂号失败且未加入候补队列
+      uni.showModal({
+        title: '自动挂号状态',
+        content: '自动挂号状态：挂号失败\n当前无可用排班，请稍后重试或联系医院',
+        showCancel: false,
+        confirmText: '知道了'
+      })
     }
-    
-    uni.showModal({
-      title: '自动挂号状态',
-      content: content,
-      showCancel: false,
-      confirmText: '知道了'
-    })
   } else {
     uni.showModal({
       title: '自动挂号状态',
@@ -878,6 +1324,79 @@ const initPatientInfo = async () => {
   }
 }
 
+// 挂号记录ID到patientId的映射缓存
+const registrationToPatientMapCache = ref(new Map())
+
+// 通过挂号记录ID批量获取patientId映射
+const buildRegistrationToPatientMap = async (registrationRecordIds) => {
+  const map = new Map()
+  if (!registrationRecordIds || registrationRecordIds.length === 0) {
+    return map
+  }
+  
+  // 检查缓存中是否已有这些映射
+  const missingIds = registrationRecordIds.filter(id => !registrationToPatientMapCache.value.has(Number(id)))
+  
+  // 如果所有ID都在缓存中，直接返回缓存
+  if (missingIds.length === 0) {
+    registrationRecordIds.forEach(id => {
+      const patientId = registrationToPatientMapCache.value.get(Number(id))
+      if (patientId) {
+        map.set(Number(id), patientId)
+      }
+    })
+    return map
+  }
+  
+  try {
+    // 获取当前账户绑定的所有就诊人ID
+    const patientIds = currentAccountPatientIds.value.length > 0 
+      ? currentAccountPatientIds.value 
+      : await fetchCurrentAccountPatientIds()
+    
+    if (patientIds.length === 0) {
+      return map
+    }
+    
+    // 为每个就诊人查询挂号记录，建立映射
+    const allRecords = []
+    for (const patientId of patientIds) {
+      try {
+        const records = await getRegistrationRecords(patientId)
+        const recordsList = Array.isArray(records) ? records : (Array.isArray(records?.data) ? records.data : [])
+        allRecords.push(...recordsList)
+      } catch (error) {
+        console.warn(`获取就诊人 ${patientId} 的挂号记录失败:`, error)
+      }
+    }
+    
+    // 建立 registrationRecordId -> patientId 映射并更新缓存
+    allRecords.forEach(record => {
+      const recordId = record.recordId || record.record_id || record.id
+      const patientId = record.patientId || record.patient_id
+      if (recordId && patientId) {
+        const recordIdNum = Number(recordId)
+        const patientIdNum = Number(patientId)
+        map.set(recordIdNum, patientIdNum)
+        // 更新缓存
+        registrationToPatientMapCache.value.set(recordIdNum, patientIdNum)
+      }
+    })
+    
+    // 从缓存中获取已存在的映射
+    registrationRecordIds.forEach(id => {
+      const cachedPatientId = registrationToPatientMapCache.value.get(Number(id))
+      if (cachedPatientId && !map.has(Number(id))) {
+        map.set(Number(id), cachedPatientId)
+      }
+    })
+  } catch (error) {
+    console.error('构建挂号记录到就诊人映射失败:', error)
+  }
+  
+  return map
+}
+
 // 加载转诊记录数据
 const loadReferralRecords = async () => {
   if (loading.value || (!hasMore.value && currentPage.value !== 1)) return
@@ -890,8 +1409,10 @@ const loadReferralRecords = async () => {
       status: filterStatus.value || undefined
     }
     
-    // 不在这里添加patientId筛选，让后端返回所有记录，然后在前端筛选
-    // 这样可以确保即使没有选择就诊人，也能看到所有记录
+    // 注意：后端 ReferralListQuery 中没有 patientId 字段
+    // 后端已经通过 user_id 筛选了当前用户的转诊记录
+    // 前端会通过 filteredRecords 根据 patient_id 进一步筛选
+    // 所以这里不需要传递 patientId 参数
 
     const res = await getPatientReferralList(params)
     // 支持多种数据格式 - 优先检查result字段
@@ -911,6 +1432,15 @@ const loadReferralRecords = async () => {
     } else {
       console.warn('未找到有效的记录数组，响应结构:', res)
     }
+    
+    // 收集所有需要查询的 registrationRecordId
+    const registrationRecordIds = rawRecords
+      .map(r => r.registrationRecordId || r.registration_record_id)
+      .filter(id => id != null)
+    
+    // 批量获取 patientId 映射
+    const registrationToPatientMap = await buildRegistrationToPatientMap(registrationRecordIds)
+    
     const normalizedRecords = rawRecords.map(record => {
       const status = (record.status || '').toUpperCase()
       const applyTime = record.applyTime || record.createTime || ''
@@ -918,9 +1448,17 @@ const loadReferralRecords = async () => {
       const cancelTime = record.cancelTime || ''
       
       // 从registrationRecordId关联中获取patientId
-      // 后端通过 LEFT JOIN registration_record 返回了 rr.patient_id
-      // 优先使用后端返回的 patient_id（来自关联的挂号记录）
-      const patientId = record.patient_id || record.patientId || null
+      // 优先使用后端返回的 patient_id（如果后端有返回）
+      // 否则通过 registrationRecordId 从映射中获取
+      let patientId = record.patient_id || record.patientId || null
+      
+      // 如果后端没有返回 patient_id，通过 registrationRecordId 从映射中获取
+      if (!patientId) {
+        const registrationRecordId = record.registrationRecordId || record.registration_record_id
+        if (registrationRecordId) {
+          patientId = registrationToPatientMap.get(Number(registrationRecordId)) || null
+        }
+      }
       
       return {
         id: record.id || record.referralId || '',
@@ -928,6 +1466,7 @@ const loadReferralRecords = async () => {
         patientName: record.patientName || '',
         targetHospital: record.targetHospitalName || record.targetHospital || '校医院',
         targetDepartment: record.targetDeptName || record.targetDepartment || '',
+        targetDeptId: record.targetDeptId || record.target_dept_id || record.targetDepartmentId || null,
         targetType: record.targetType || record.target_type || 'INTERNAL', // 转诊类型：INTERNAL/EXTERNAL
         symptoms: record.symptoms || record.reason || '',
         applyTime,
@@ -999,14 +1538,6 @@ const cancelReferral = (record) => {
   })
 }
 
-// 刷新数据
-const onRefresh = () => {
-  currentPage.value = 1
-  referralRecords.value = []
-  hasMore.value = true
-  loadReferralRecords()
-}
-
 const refreshRecords = () => {
   if (loading.value) return
   onRefresh()
@@ -1019,12 +1550,6 @@ const onLoadMore = () => {
     loadReferralRecords()
   }
 }
-
-// 页面加载时初始化数据
-onMounted(async () => {
-  await initPatientInfo()
-  loadReferralRecords()
-})
 </script>
 
 <style scoped>

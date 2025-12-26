@@ -19,12 +19,12 @@
         </Checkbox>
       </FormItem>
 
-      <Button type="primary" class="enter-x" size="large" block @click="handleRegister" :loading="loading">
+      <!-- <Button type="primary" class="enter-x" size="large" block @click="handleRegister" :loading="loading">
         {{ t('sys.login.registerButton') }}
-      </Button>
-      <Button size="large" block class="mt-4 enter-x" @click="handleBackLogin">
+      </Button> -->
+      <!-- <Button size="large" block class="mt-4 enter-x" @click="handleBackLogin">
         {{ t('sys.login.backSignIn') }}
-      </Button>
+      </Button> -->
     </Form>
   </template>
 </template>
@@ -33,26 +33,24 @@
   import LoginFormTitle from './LoginFormTitle.vue';
   import { Form, Input, Button, Checkbox } from 'ant-design-vue';
   import { StrengthMeter } from '/@/components/StrengthMeter';
-  import { CountdownInput } from '/@/components/CountDown';
   import { useI18n } from '/@/hooks/web/useI18n';
   import { useMessage } from '/@/hooks/web/useMessage';
-  import { useLoginState, useFormRules, useFormValid, LoginStateEnum, SmsEnum } from './useLogin';
-  import { register, getCaptcha } from '/@/api/sys/user';
+  import { useLoginState, useFormRules, useFormValid, LoginStateEnum } from './useLogin';
+  import { register } from '/@/api/sys/user';
   const FormItem = Form.Item;
   const InputPassword = Input.Password;
   const { t } = useI18n();
   const { handleBackLogin, getLoginState } = useLoginState();
-  const { notification, createErrorModal } = useMessage();
+  const { notification } = useMessage();
   const formRef = ref();
   const loading = ref(false);
   const formData = reactive({
     account: '',
     password: '',
     confirmPassword: '',
-    mobile: '',
-    sms: '',
     policy: false,
   });
+
   const { getFormRules } = useFormRules(formData);
   const { validForm } = useFormValid(formRef);
   const getShow = computed(() => unref(getLoginState) === LoginStateEnum.REGISTER);
@@ -70,13 +68,13 @@
           userAccount: data.account,
           userPassword: data.password,
           checkPassword: data.confirmPassword,
-          userType:3        
+          userType: 3,
         })
       );
-      console.log("lala:",resultInfo);
-      if (resultInfo.data.code===20000) {
+      console.log("lala:", resultInfo);
+      if (resultInfo.data.code === 20000) {
         // 注册成功时优先取后端返回的 description，无则用默认文案
-        const successDesc =resultInfo?.data?.description || resultInfo?.data?.message || t('sys.api.registerMsg');
+        const successDesc = resultInfo?.data?.description || resultInfo?.data?.message || t('sys.api.registerMsg');
         notification.success({
           message: t('sys.login.registerSuccessTitle'),
           description: successDesc,
@@ -92,20 +90,41 @@
           duration: 3,
         });
       }
-    } catch (error) {
-      // 捕获请求异常时，优先取后端返回的 description
-      const errorDesc = error?.response?.data?.description || error?.message || t('sys.api.networkExceptionMsg');
+    } catch (error: any) {
+      console.error('注册错误详情:', error);
+      
+      // 尝试从不同位置获取后端返回的错误信息
+      let errorMessage = t('sys.api.networkExceptionMsg');
+      let errorDescription = '';
+      
+      // 1. 从axios响应中获取错误信息
+      if (error?.response?.data) {
+        const responseData = error.response.data;
+        errorMessage = responseData.message || responseData.error || errorMessage;
+        errorDescription = responseData.description || '';
+      }
+      
+      // 2. 从error对象中获取信息
+      if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      // 3. 如果有description字段，优先显示description
+      const finalMessage = errorDescription || errorMessage;
+      
+      // 在控制台打印完整错误信息，便于调试
+      console.error('错误消息:', errorMessage);
+      if (errorDescription) {
+        console.error('详细错误信息:', errorDescription);
+      }
+      
       notification.error({
         message: t('sys.api.errorTip'),
-        description: errorDesc,
-        duration: 3,
+        description: finalMessage,
+        duration: 4,
       });
     } finally {
       loading.value = false;
     }
-  }
-  //发送验证码的函数
-  function sendCodeApi() {
-    return getCaptcha({ mobile: formData.mobile, smsmode: SmsEnum.REGISTER });
   }
 </script>

@@ -2,7 +2,7 @@
   <!-- 内联提示模式：未登录时才显示 -->
   <view v-if="mode === 'inline' && !isLoggedIn" class="login-inline">
     <view class="login-left">
-      <image class="login-icon" src="/static/profile.svg" mode="aspectFit" />
+      <image class="login-icon" :src="getStaticImage('/static/profile.svg')" mode="aspectFit" />
       <view class="login-text-wrap">
         <text class="login-title">未登录</text>
         <text class="login-msg">{{ message }}</text>
@@ -17,6 +17,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useUserStore } from '@/store/user'
+import { getStaticImage } from '@/utils/imageHelper'
 
 const props = defineProps({
   mode: { type: String, default: 'inline' }, // inline | modal

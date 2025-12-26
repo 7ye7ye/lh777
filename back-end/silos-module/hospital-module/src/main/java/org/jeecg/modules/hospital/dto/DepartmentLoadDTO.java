@@ -18,6 +18,16 @@ public class DepartmentLoadDTO {
      * 科室名称
      */
     private String deptName;
+
+    /**
+     * 父科室ID（用于区分一级科室）
+     */
+    private Long parentDeptId;
+
+    /**
+     * 父科室名称（用于展示一级科室名称）
+     */
+    private String parentDeptName;
     
     /**
      * 医生ID

@@ -56,8 +56,29 @@ public class PatientReferralController {
     @Operation(summary = "获取转诊详情")
     @GetMapping("/{id}")
     public Result<Map<String, Object>> detail(@PathVariable Long id) {
+        // 创建参数Map并添加userId过滤
+        Map<String, Object> params = new java.util.HashMap<>();
+        params.put("id", id);
+        
+        // 添加用户ID过滤，只查询当前用户的转诊记录
+        try {
+            Object principal = org.apache.shiro.SecurityUtils.getSubject().getPrincipal();
+            if (principal != null) {
+                if (principal instanceof org.jeecg.common.system.vo.HosUser) {
+                    org.jeecg.common.system.vo.HosUser hosUser = (org.jeecg.common.system.vo.HosUser) principal;
+                    params.put("userId", hosUser.getUserId());
+                } else if (principal instanceof org.jeecg.modules.hospital.entity.HosUser) {
+                    org.jeecg.modules.hospital.entity.HosUser hosUser = (org.jeecg.modules.hospital.entity.HosUser) principal;
+                    params.put("userId", hosUser.getUserId());
+                }
+            }
+        } catch (Exception e) {
+            // 记录日志但不影响正常流程
+            e.printStackTrace();
+        }
+        
         // 使用包含JOIN的查询，获取关联字段
-        Map<String, Object> detail = referralMapper.selectReferralDetail(id);
+        Map<String, Object> detail = referralMapper.selectReferralDetail(params);
         if (detail == null) {
             return Result.error("转诊记录不存在");
         }

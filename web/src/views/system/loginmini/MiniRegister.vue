@@ -88,8 +88,7 @@
 <script lang="ts" setup name="mini-register">
   import { ref, reactive, unref, toRaw } from 'vue';
   import { getCaptcha, register } from '/@/api/sys/user';
-  import { SmsEnum } from '/@/views/sys/login/useLogin';
-  import { useMessage } from '/@/hooks/web/useMessage';
+    import { useMessage } from '/@/hooks/web/useMessage';
   import logoImg from '/@/assets/loginmini/icon/jeecg_logo.png';
   import jeecgAdTextImg from '/@/assets/loginmini/icon/jeecg_ad_text.png';
   import eyeKImg from '/@/assets/loginmini/icon/icon-eye-k.png';

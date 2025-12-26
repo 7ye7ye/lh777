@@ -7,7 +7,7 @@
       </view>
     </view>
     <view class="banner">
-      <image src="/static/hospitalpicture.png" mode="aspectFill" style="width: 100%; height: 100%; border-radius: 12rpx;" />
+      <image :src="bannerImage || getStaticImage('/static/hospitalpicture.png')" mode="aspectFill" style="width: 100%; height: 100%; border-radius: 12rpx;" />
     </view>
     <view class="visit-card card" @click="onVisitCardClick">
       <view class="visit-card-content">
@@ -53,14 +53,14 @@
       <view class="quick-grid">
         <view class="quick-item-large quick-item-blue" @click="goToDiseaseGuide">
           <view class="quick-item-content">
-            <image class="quick-icon-large" src="/static/disease-booking.svg" mode="aspectFit"></image>
+            <image class="quick-icon-large" :src="diseaseBookingIcon || getStaticImage('/static/disease-booking.svg')" mode="aspectFit"></image>
             <text class="quick-text-large">按疾病挂号</text>
             <text class="quick-desc">根据症状快速匹配科室</text>
           </view>
         </view>
         <view class="quick-item-large quick-item-green" @click="goToDepartmentBooking">
           <view class="quick-item-content">
-            <image class="quick-icon-large" src="/static/department-booking.svg" mode="aspectFit"></image>
+            <image class="quick-icon-large" :src="departmentBookingIcon || getStaticImage('/static/department-booking.svg')" mode="aspectFit"></image>
             <text class="quick-text-large">按科室挂号</text>
             <text class="quick-desc">选择科室预约就诊</text>
           </view>
@@ -110,6 +110,8 @@ import { useUserStore } from '@/store/user'
 import { uniNavigateTo } from '@/utils/uniHelper'
 import { patientApi } from '@/api/patient'
 import uqrcode from '@/uni_modules/Sansnn-uQRCode/components/uqrcode/uqrcode.vue'
+import { getStaticImage } from '@/utils/imageHelper'
+import { preloadImage } from '@/utils/imagePreloader'
 
 const tabs = ['门诊', '体检', '其他']
 const activeIndex = ref(0)
@@ -117,6 +119,11 @@ const loginPromptRef = ref(null)
 const userStore = useUserStore()
 const cardInfo = ref({})
 const qrcodeRef = ref(null)
+
+// 预下载的图片路径
+const bannerImage = ref('')
+const diseaseBookingIcon = ref('')
+const departmentBookingIcon = ref('')
 
 // 监听cardInfo变化，用于调试
 watch(() => cardInfo.value, (newVal) => {
@@ -129,23 +136,23 @@ watch(() => cardInfo.value, (newVal) => {
 
 const itemsMap = {
   门诊: [
-    { icon: 'patient', image: '/static/patient.svg', text: '我的就诊人', action: 'goToMyPatient' },
-    { icon: 'register', image: '/static/register.svg', text: '挂号记录', action: 'goToRegisterRecord' },
-    { icon: 'hospital', image: '/static/hospital.svg', text: '就诊记录', action: 'goToHospitalRecord' },
-    { icon: 'referral', image: '/static/referral-record.svg', text: '转诊记录', action: 'goToTransferHistory' },
+    { icon: 'patient', image: getStaticImage('/static/patient.svg'), text: '我的就诊人', action: 'goToMyPatient' },
+    { icon: 'register', image: getStaticImage('/static/register.svg'), text: '挂号记录', action: 'goToRegisterRecord' },
+    { icon: 'hospital', image: getStaticImage('/static/hospital.svg'), text: '就诊记录', action: 'goToHospitalRecord' },
+    { icon: 'referral', image: getStaticImage('/static/referral-record.svg'), text: '转诊记录', action: 'goToTransferHistory' },
   ],
   体检: [
-    { icon: 'personal-exam', image: '/static/presonal-exam.svg', text: '个检预约' },
-    { icon: 'group-exam', image: '/static/group-exam.svg', text: '团检预约' },
-    { icon: 'exam-report', image: '/static/exam-report.svg', text: '体检报告' },
-    { icon: 'exam-order', image: '/static/exam-order.svg', text: '体检订单' },
-    { icon: 'exam-center', image: '/static/exam-center.svg', text: '体检中心' },
+    { icon: 'personal-exam', image: getStaticImage('/static/presonal-exam.svg'), text: '个检预约' },
+    { icon: 'group-exam', image: getStaticImage('/static/group-exam.svg'), text: '团检预约' },
+    { icon: 'exam-report', image: getStaticImage('/static/exam-report.svg'), text: '体检报告' },
+    { icon: 'exam-order', image: getStaticImage('/static/exam-order.svg'), text: '体检订单' },
+    { icon: 'exam-center', image: getStaticImage('/static/exam-center.svg'), text: '体检中心' },
   ],
   其他: [
-    { icon: 'department', image: '/static/department-introduce.svg', text: '科室介绍', action: 'goDepartments' },
-    { icon: 'doctor', image: '/static/doctor-introduce.svg', text: '专家介绍', action: 'goDoctors' },
-    { icon: 'navigation', image: '/static/inhospital_navigation.svg', text: '院内导航', action: 'goNavigation' },
-    { icon: 'help', image: '/static/help.svg', text: '帮助反馈', action: 'goToHelp' },
+    { icon: 'department', image: getStaticImage('/static/department-introduce.svg'), text: '科室介绍', action: 'goDepartments' },
+    { icon: 'doctor', image: getStaticImage('/static/doctor-introduce.svg'), text: '专家介绍', action: 'goDoctors' },
+    { icon: 'navigation', image: getStaticImage('/static/inhospital_navigation.svg'), text: '院内导航', action: 'goNavigation' },
+    { icon: 'help', image: getStaticImage('/static/help.svg'), text: '帮助反馈', action: 'goToHelp' },
   ],
 }
 
@@ -205,32 +212,16 @@ const onItemClick = (item) => {
 }
 
 // 跳转到按疾病挂号
-const goToDiseaseGuide = () => {
-  uni.navigateTo({
-    url: '/subpkg/hospital/disease-guide',
-    fail: (err) => {
-      console.error('跳转失败:', err)
-      uni.showToast({
-        title: '页面未找到',
-        icon: 'none'
-      })
-    }
-  })
-}
+const goToDiseaseGuide = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.HOME.DISEASE_BOOKING,
+  '/subpkg/hospital/disease-guide'
+)
 
 // 跳转到按科室挂号
-const goToDepartmentBooking = () => {
-  uni.navigateTo({
-    url: '/subpkg/hospital/department-booking',
-    fail: (err) => {
-      console.error('跳转失败:', err)
-      uni.showToast({
-        title: '页面未找到',
-        icon: 'none'
-      })
-    }
-  })
-}
+const goToDepartmentBooking = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.HOME.DEPARTMENT_BOOKING,
+  '/subpkg/hospital/department-booking'
+)
 
 // 使用统一的权限控制创建导航函数
 const goToMyCard = createAuthHandler(
@@ -269,9 +260,10 @@ const goToCheckRecord = createAuthHandler(
   '/subpkg/profile/records/check-record'
 )
 
-const goToTransferHistory = () => {
-  uniNavigateTo({ url: '/subpkg/hospital/referral-records' })
-}
+const goToTransferHistory = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.HOME.REFERRAL_RECORDS,
+  '/subpkg/hospital/referral-records'
+)
 
 const goToHelp = createAuthHandler(
   AUTH_REQUIRED_FEATURES.PROFILE.SETTINGS,
@@ -279,13 +271,15 @@ const goToHelp = createAuthHandler(
 )
 
 // 医院信息相关功能
-const goDepartments = () => {
-  uni.navigateTo({ url: '/subpkg/hospital/departments' })
-}
+const goDepartments = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.HOME.DEPARTMENT_INTRODUCTION,
+  '/subpkg/hospital/departments'
+)
 
-const goDoctors = () => {
-  uni.navigateTo({ url: '/subpkg/hospital/doctors' })
-}
+const goDoctors = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.HOME.DOCTOR_INTRODUCTION,
+  '/subpkg/hospital/doctors'
+)
 
 const goNavigation = () => {
   uni.navigateTo({ url: '/subpkg/hospital/navigation' })
@@ -431,10 +425,44 @@ const onVisitCardClick = createAuthHandler(
   { requireCard: true }
 )
 
+// 预加载主要图片
+const preloadImagePaths = async () => {
+  try {
+    console.log('🚀 开始预下载主要图片...')
+    // 预下载主要图片（并行下载）
+    const [banner, diseaseIcon, departmentIcon] = await Promise.all([
+      preloadImage('/static/hospitalpicture.png'),
+      preloadImage('/static/disease-booking.svg'),
+      preloadImage('/static/department-booking.svg')
+    ])
+    
+    console.log('📦 预下载结果:', {
+      banner: banner,
+      diseaseIcon: diseaseIcon,
+      departmentIcon: departmentIcon
+    })
+    
+    bannerImage.value = banner
+    diseaseBookingIcon.value = diseaseIcon
+    departmentBookingIcon.value = departmentIcon
+    
+    console.log('✅ 主要图片预下载完成，已更新响应式变量')
+    console.log('🔍 当前图片路径:', {
+      bannerImage: bannerImage.value,
+      diseaseBookingIcon: diseaseBookingIcon.value,
+      departmentBookingIcon: departmentBookingIcon.value
+    })
+  } catch (error) {
+    console.error('❌ 图片预下载失败:', error)
+  }
+}
+
 // 初始化用户信息
 onMounted(() => {
   // 确保用户信息已从存储中恢复
   userStore.initFromStorage()
+  // 预加载图片（使用 uni.downloadFile 绕过 ngrok 警告页面）
+  preloadImagePaths()
   // 延迟加载，确保用户信息已初始化
   setTimeout(() => {
     loadCardInfo()

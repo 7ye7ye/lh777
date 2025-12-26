@@ -61,8 +61,12 @@
       <view class="info-content">
         <view class="info-row">
           <view class="info-item">
-            <text class="info-label">挂号费用</text>
-            <text class="info-value fee">¥{{ paymentInfo?.fee || '' }}</text>
+            <text class="info-label">挂号定价</text>
+            <text class="info-value fee">¥{{ paymentInfo?.fee ?? '-' }}</text>
+          </view>
+          <view class="info-item">
+            <text class="info-label">实付金额</text>
+            <text class="info-value fee real">¥{{ paymentInfo?.actualPaid ?? paymentInfo?.paidAmount ?? paymentInfo?.fee ?? '-' }}</text>
           </view>
           <view class="info-item">
             <text class="info-label">支付状态</text>
@@ -90,7 +94,9 @@
     <!-- 操作按钮区域 -->
     <view class="action-section">
       <button v-if="canRefer && !hasReferral" class="action-btn referral-btn" @click="goToReferral">申请转诊</button>
+      <button v-else-if="referralStatus === 'PENDING'" class="action-btn referral-btn" @click="goToReferralStatus">申请中，可查看进度</button>
       <button v-else-if="hasReferral" class="action-btn referral-btn" @click="goToReferralStatus">查看转诊情况</button>
+      <text v-else-if="statusDisplay === '已取消'" class="action-btn cannot-refer-btn">无效记录，无法转诊</text>
       <text v-else-if="statusDisplay === '待就诊'" class="action-btn cannot-refer-btn">未就诊，不能转诊</text>
       <text v-else class="action-btn cannot-refer-btn">超过5天，无法转诊</text>
     </view>
@@ -103,8 +109,8 @@ import { fetchPatientCard } from '@/utils/patientHelper'
 import { getDepartmentDetail } from '@/api/department'
 import { getDoctorDetail } from '@/api/doctor_massage'
 import { patientApi } from '@/api/patient'
-import { getScheduleDetailById } from '@/api/registration'
-import { getPatientReferralList } from '@/api/referral'
+import { getScheduleDetailById, getRegistrationRecords } from '@/api/registration'
+import { getPatientReferralList, getPatientVisitRecords } from '@/api/referral'
 
 // 状态定义（与就诊记录列表页面一致）
 const STATUS_DEFINITIONS = {
@@ -163,6 +169,7 @@ const paymentInfo = ref({})
 const diagnosisInfo = ref({})
 const canRefer = ref(false)
 const hasReferral = ref(false)
+const referralStatus = ref(null) // 转诊状态（PENDING、APPROVED等）
 const doctorName = ref('')
 const departmentName = ref('-')
 const appointmentTimeSlot = ref('') // 就诊时间段
@@ -417,8 +424,15 @@ const resolveStatusInfo = (rawStatusValue, visitTimeStr, registerTimeStr, schedu
 }
 
 // 检查是否可以转诊（统一判断逻辑，与就诊记录页面一致）
-const checkCanRefer = (rawStatusValue, visitTimeStr, registerTimeStr, scheduleDateStr = null, timeSlot = null) => {
+const checkCanRefer = (rawStatusValue, visitTimeStr, registerTimeStr, scheduleDateStr = null, timeSlot = null, cancelTime = null, cancelReason = null) => {
   const now = new Date()
+  
+  // 优先检查是否取消（取消状态不能转诊）
+  const hasCancelTime = cancelTime && String(cancelTime).trim() !== ''
+  const hasCancelReason = cancelReason && String(cancelReason).trim() !== ''
+  if (hasCancelTime && hasCancelReason) {
+    return false // 取消的记录不能转诊
+  }
   
   // 优先使用排班时间判断（与状态判断逻辑一致）
   if (scheduleDateStr && timeSlot) {
@@ -448,6 +462,118 @@ const checkCanRefer = (rawStatusValue, visitTimeStr, registerTimeStr, scheduleDa
   
   // 默认不能转诊
   return false
+}
+
+const getNumberSafe = (val) => {
+  if (val === null || val === undefined || val === '') return null
+  const num = Number(val)
+  return isNaN(num) ? null : num
+}
+
+const pickAmount = (item) => {
+  if (!item) return { listPrice: null, paidAmount: null }
+  const candidatesList = [
+    item.priceOriginal,
+    item.price,
+    item.fee,
+    item.cost,
+    item.registerFee,
+    item.totalFee,
+  ]
+  const candidatesPaid = [
+    item.actualPayAmount,
+    item.actualPayment,
+    item.payAmount,
+    item.paymentAmount,
+    item.paidAmount,
+    item.actualPrice,
+    item.pricePaid,
+    item.paidFee,
+    item.realFee,
+    item.realPayment,
+  ]
+  const listPrice = candidatesList.map(getNumberSafe).find((v) => v !== null) ?? null
+  const paidAmount = candidatesPaid.map(getNumberSafe).find((v) => v !== null) ?? null
+  return { listPrice, paidAmount }
+}
+
+const fetchBackendPayment = async (recordId) => {
+  const pid = patientInfo.value?.patientId
+  if (!pid || !recordId) return
+
+  const mergePayment = (match) => {
+    if (!match) return
+    const { listPrice, paidAmount } = pickAmount(match)
+    const resolvedPaid =
+      paidAmount ??
+      paymentInfo.value.actualPaid ??
+      paymentInfo.value.paidAmount ??
+      ((paymentInfo.value.status || match.paymentStatus || match.status || '').includes('支付') ? (listPrice ?? paymentInfo.value.fee ?? null) : null)
+
+    paymentInfo.value = {
+      ...paymentInfo.value,
+      fee: listPrice ?? paymentInfo.value.fee,
+      actualPaid: resolvedPaid,
+      paidAmount: resolvedPaid,
+      status: paymentInfo.value.status || match.paymentStatus || match.status || '',
+      paymentTime: paymentInfo.value.paymentTime || match.paymentTime || match.payTime || match.visitTime || '',
+      method: paymentInfo.value.method || match.paymentMethod || match.payMethod || ''
+    }
+  }
+
+  const matchById = (list) => {
+    if (!Array.isArray(list)) return null
+    return list.find((item) => {
+      const ids = [
+        item.id,
+        item.registrationId,
+        item.registration_id,
+        item.recordId,
+        item.registrationRecordId,
+        item.registration_record_id,
+      ].map((v) => Number(v))
+      return ids.includes(Number(recordId))
+    })
+  }
+
+  // 优先走 /applet/registration/records
+  try {
+    const regRes = await getRegistrationRecords(pid)
+    const regList = Array.isArray(regRes?.result) ? regRes.result
+      : Array.isArray(regRes?.data) ? regRes.data
+      : Array.isArray(regRes) ? regRes
+      : []
+    const regMatch = matchById(regList)
+    if (regMatch) {
+      mergePayment(regMatch)
+      return
+    }
+  } catch (err) {
+    console.warn('获取挂号记录支付信息失败:', err)
+  }
+
+  // 兼容旧接口 /patient/registration/history，若不存在则忽略
+  try {
+    const res = await getPatientVisitRecords({
+      patientId: pid,
+      pageNo: 1,
+      pageSize: 200
+    })
+    const list = Array.isArray(res?.records) ? res.records
+      : Array.isArray(res?.result?.records) ? res.result.records
+      : Array.isArray(res?.data?.records) ? res.data.records
+      : Array.isArray(res) ? res
+      : []
+
+    const match = matchById(list)
+    mergePayment(match)
+  } catch (error) {
+    if (String(error?.message || '').includes('No static resource')) {
+      console.info('后台不支持 patient/registration/history，已跳过')
+      return
+    }
+    console.warn('获取后台支付信息失败:', error)
+  }
 }
 
 // 加载就诊相关信息
@@ -600,7 +726,9 @@ const loadRecordDetails = async () => {
                   routeData.visitTime,
                   routeData.registerTime,
                   finalScheduleDateStr,
-                  finalTimeSlot
+                  finalTimeSlot,
+                  cancelTime,
+                  cancelReason
                 )
               }
             }
@@ -623,7 +751,7 @@ const loadRecordDetails = async () => {
             statusDisplay.value = statusInfo.label || '待就诊'
             
             if (routeData.canRefer === undefined || routeData.canRefer === null) {
-              canRefer.value = checkCanRefer(routeData.status, routeData.visitTime, routeData.registerTime, scheduleDateStr, timeSlot)
+              canRefer.value = checkCanRefer(routeData.status, routeData.visitTime, routeData.registerTime, scheduleDateStr, timeSlot, cancelTime, cancelReason)
             }
           }
         }
@@ -660,12 +788,26 @@ const loadRecordDetails = async () => {
         if (canRefer.value === undefined || canRefer.value === null) {
           const finalScheduleDateStr = scheduleDateStr || routeData.scheduleDateStr || routeData.originalRecord?.scheduleDate
           const finalTimeSlot = timeSlot || routeData.timeSlotValue || routeData.originalRecord?.timeSlot
-          canRefer.value = checkCanRefer(routeData.status, routeData.visitTime, routeData.registerTime, finalScheduleDateStr, finalTimeSlot)
+          canRefer.value = checkCanRefer(routeData.status, routeData.visitTime, routeData.registerTime, finalScheduleDateStr, finalTimeSlot, cancelTime, cancelReason)
         }
       }
       
-      // 检查是否已申请过转诊
-      await checkReferralStatus()
+      // 优先使用传递过来的转诊状态
+      if (routeData.hasReferral !== undefined && routeData.hasReferral !== null) {
+        hasReferral.value = routeData.hasReferral
+      }
+      if (routeData.referralStatus) {
+        referralStatus.value = (routeData.referralStatus || '').toUpperCase()
+      }
+      if (routeData.referralId) {
+        record.value.referralId = routeData.referralId
+      }
+      
+      // 如果已经传递了转诊状态，就不需要再查询了
+      // 否则检查是否已申请过转诊
+      if (!hasReferral.value) {
+        await checkReferralStatus()
+      }
       
       // 初始化科室和医生信息
       let doctorId = null;
@@ -762,6 +904,9 @@ const loadRecordDetails = async () => {
         paymentTime: routeData.paymentTime || routeData.visitTime || '',
         method: routeData.paymentMethod || routeData.paymentInfo?.method || ''
       };
+      if (routeData.id) {
+        await fetchBackendPayment(routeData.id)
+      }
       
       // 使用真实诊断信息，从路由数据中获取
       diagnosisInfo.value = {
@@ -1286,10 +1431,13 @@ const checkReferralStatus = async () => {
     if (referral) {
       hasReferral.value = true
       canRefer.value = false // 已申请过转诊，不能再次申请
-      // 保存关联的转诊记录ID，供"查看转诊情况"使用
+      // 保存关联的转诊记录ID和状态，供"查看转诊情况"使用
       record.value.referralId = referral.id || referral.referralId || null
-      // 如果有转诊记录，强制将状态设置为已完成
-      statusDisplay.value = '已完成'
+      referralStatus.value = (referral.status || '').toUpperCase()
+      // 如果有转诊记录，根据状态处理状态显示
+      if (referralStatus.value !== 'PENDING') {
+        statusDisplay.value = '已完成'
+      }
     }
   } catch (error) {
     console.warn('检查转诊状态失败:', error)
@@ -1514,9 +1662,13 @@ onMounted(async () => {
   color: #ff4d4f;
   font-weight: bold;
 }
+.fee.real {
+  color: #fa8c16;
+}
 
 .status-paid {
   color: #52c41a;
+  white-space: nowrap;
 }
 
 .diagnosis-item {

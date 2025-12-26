@@ -256,7 +256,7 @@ const admin: AppRouteModule = {
       name: 'AdminPatientIdentityApproval',
       component: () => import('/@/views/admin/patient/PatientIdentityApproval.vue'),
       meta: {
-        title: 'routes.admin.PatientldentityApproval',
+        title: '患者身份认证',
         ignoreAuth: true,
       },
     },

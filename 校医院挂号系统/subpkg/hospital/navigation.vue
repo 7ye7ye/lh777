@@ -109,7 +109,7 @@
           <text v-else>{{ searchText }}</text>
         </view>
         <view class="panel-search-action">
-          <image class="voice-icon" src="/static/inhos_navi/voice.svg" mode="aspectFit" />
+          <image class="voice-icon" :src="getStaticImage('/static/inhos_navi/voice.svg')" mode="aspectFit" />
         </view>
       </view>
 
@@ -149,6 +149,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
+import { getStaticImage } from '@/utils/imageHelper'
 
 // 楼层数据
 const floors = [
@@ -181,7 +182,7 @@ const isPinching = ref(false)
 
 // 当前平面图路径
 const currentPlanImage = computed(() => {
-  return `/static/${currentFloor.value}F_plan.png`
+  return getStaticImage(`/static/${currentFloor.value}F_plan.png`)
 })
 
 // 是否可以向上滚动
@@ -390,12 +391,12 @@ onShow(() => {
   refreshSearchText()
 })
 const quickActions = [
-  { label: '服务台', icon: '/static/inhos_navi/服务台.svg' },
-  { label: '收费处', icon: '/static/inhos_navi/收费处.svg' },
-  { label: '挂号', icon: '/static/inhos_navi/挂号.svg' },
-  { label: '取药', icon: '/static/inhos_navi/取药.svg' },
-  { label: '电梯', icon: '/static/inhos_navi/电梯.svg' },
-  { label: '卫生间', icon: '/static/inhos_navi/卫生间.svg' }
+  { label: '服务台', icon: getStaticImage('/static/inhos_navi/服务台.svg') },
+  { label: '收费处', icon: getStaticImage('/static/inhos_navi/收费处.svg') },
+  { label: '挂号', icon: getStaticImage('/static/inhos_navi/挂号.svg') },
+  { label: '取药', icon: getStaticImage('/static/inhos_navi/取药.svg') },
+  { label: '电梯', icon: getStaticImage('/static/inhos_navi/电梯.svg') },
+  { label: '卫生间', icon: getStaticImage('/static/inhos_navi/卫生间.svg') }
 ]
 
 const hotDepartments = [
