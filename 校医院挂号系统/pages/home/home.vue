@@ -99,8 +99,6 @@ import { patientApi } from '@/api/patient'
 import uqrcode from '@/uni_modules/Sansnn-uQRCode/components/uqrcode/uqrcode.vue'
 import { getStaticImage } from '@/utils/imageHelper'
 import { preloadImage } from '@/utils/imagePreloader'
-import { getStaticImage } from '@/utils/imageHelper'
-import { preloadImage } from '@/utils/imagePreloader'
 
 const tabs = ['门诊', '体检', '其他']
 const activeIndex = ref(0)
