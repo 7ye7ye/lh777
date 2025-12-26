@@ -39,12 +39,12 @@ export const API_CONFIG = {
   // 3. 使用 ngrok（免费版支持 HTTPS）：https://ngrok.com
   //
   // 例如：'https://abc123.natapp1.cc' 或 'https://xxxxx.cpolar.cn'
-//   BASE_URL: 'http://localhost:8095', // 本地开发，仅模拟器可用
-//   BASE_URL: 'http://127.0.0.1:8095', // 本地开发，仅模拟器可用
-//   BASE_URL: 'http://10.61.168.113:8095', // 本机内网IP（当前网络：phone.wlan.bjtu），仅模拟器可用，真机无法访问
-//   BASE_URL: 'http://183.242.199.186:8095', // 公网IP，仅当有公网服务器且配置了端口转发时可用
-//   BASE_URL: 'https://470edbfe.r8.cpolar.cn', // 旧的内网穿透地址（已失效）
-//   BASE_URL: 'https://21a451f8.r6.cpolar.cn', // ⚠️ 此地址已失效，请重新获取新的 cpolar 地址
+  //   BASE_URL: 'http://localhost:8095', // 本地开发，仅模拟器可用
+  //   BASE_URL: 'http://127.0.0.1:8095', // 本地开发，仅模拟器可用
+  //   BASE_URL: 'http://10.61.168.113:8095', // 本机内网IP（当前网络：phone.wlan.bjtu），仅模拟器可用，真机无法访问
+  //   BASE_URL: 'http://183.242.199.186:8095', // 公网IP，仅当有公网服务器且配置了端口转发时可用
+  //   BASE_URL: 'https://470edbfe.r8.cpolar.cn', // 旧的内网穿透地址（已失效）
+  //   BASE_URL: 'https://21a451f8.r6.cpolar.cn', // ⚠️ 此地址已失效，请重新获取新的 cpolar 地址
   BASE_URL: 'http://localhost:8095', // ⚠️ 临时使用本地地址（仅模拟器），真机调试请使用 cpolar
   // ⚠️ 重要：如果看到 404 错误，说明 cpolar 隧道地址已失效
   // 请按以下步骤获取新地址：
@@ -87,11 +87,8 @@ export function getBaseURL(): string {
     if (stored) {
       // 如果存储的值是旧的 IP 地址或 localhost，忽略它，使用配置文件的值
       if (stored.includes('localhost') ||
-          stored.includes('127.0.0.1') ||
-          /^\d+\.\d+\.\d+\.\d+/.test(stored.replace(/^https?:\/\//, '').split(':')[0])) {
-        console.warn('⚠️ 检测到旧的 IP 地址配置，使用配置文件中的值:', stored)
-        // 继续使用配置文件的值
-      } else {
+        stored.includes('127.0.0.1') ||
+        /^\d+\.\d+\.\d+\.\d+/.test(stored.replace(/^https?:\/\//, '').split(':')[0])) { } else {
         // 存储的值看起来是有效的域名，使用它
         return stored
       }

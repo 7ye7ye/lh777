@@ -67,9 +67,7 @@
 	import { getBaseURL, getApiPrefix } from '@/config/api'
 
 	export default {
-		methods: {
-			getStaticImage
-		},
+
 		data() {
 			return {
 				appointmentId: null,
@@ -104,6 +102,7 @@
 			}
 		},
 		methods: {
+			getStaticImage,
 			fetchReceiptDetail() {
 				// 使用统一配置构建 API URL
 				const baseURL = getBaseURL()

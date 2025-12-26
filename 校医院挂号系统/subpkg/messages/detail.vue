@@ -68,9 +68,6 @@
 	import { getBaseURL, getApiPrefix } from '@/config/api'
 	
 	export default {
-		methods: {
-			getStaticImage
-		},
 		data() {
 			return {
 				messageId: null, // 从上个页面传来的消息ID
@@ -87,6 +84,7 @@
 			}
 		},
 		methods: {
+			getStaticImage,
 			// 根据消息类型返回卡片样式类
 			getCardClass(messageType) {
 				switch(messageType) {

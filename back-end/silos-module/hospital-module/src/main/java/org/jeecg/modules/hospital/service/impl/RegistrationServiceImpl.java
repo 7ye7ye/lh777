@@ -23,6 +23,7 @@ import org.jeecg.modules.hospital.vo.RegistrationVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -68,6 +69,10 @@ public class RegistrationServiceImpl implements RegistrationService {
     @Resource
     private DoctorScheduleMapper doctorScheduleMapper;
 
+    // 【Redis优化新增】引入 RedisTemplate
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
+
     @Autowired
     private WaitingQueueService waitingQueueService;
 
@@ -84,6 +89,10 @@ public class RegistrationServiceImpl implements RegistrationService {
     @Override
     @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public Result<String> createRegistration(RegistrationRecord record, Long patientId, boolean joinWaitingQueue) {
+        // Redis Key 定义 (用于高并发预扣减)
+        String redisKey = null;
+        boolean redisDecremented = false;
+
         try {
             // ------------------------------
             // 1. 基础校验
@@ -98,6 +107,26 @@ public class RegistrationServiceImpl implements RegistrationService {
                 return Result.error("未获取到患者ID");
             }
 
+            // 【Redis优化核心逻辑】
+            // 只有当用户不是为了加入候补时，才进行 Redis 库存预检查
+            // 如果是候补，不需要扣减 Redis 缓存，直接走后续逻辑
+            if (!joinWaitingQueue) {
+                redisKey = "doctor_schedule:quota:" + record.getScheduleId();
+                // 预扣减
+                Long stock = stringRedisTemplate.opsForValue().decrement(redisKey);
+                if (stock != null && stock < 0) {
+                    // 扣减后小于0，说明库存不足
+                    // 立即回补
+                    stringRedisTemplate.opsForValue().increment(redisKey);
+
+                    // 询问用户是否加入候补
+                    // 注意：这里提前返回，避免了后面查数据库，起到了“Redis挡板”的作用
+                    return Result.error("号源已满，是否加入候补？");
+                }
+                // 标记已扣减，用于后续如果发生异常回滚
+                redisDecremented = true;
+            }
+
             // ------------------------------
             // 2. 校验 patientId 是否属于当前用户
             // ------------------------------
@@ -107,16 +136,12 @@ public class RegistrationServiceImpl implements RegistrationService {
             if (currentUserId != null) {
                 Patient patient = patientMapper.selectById(patientId);
                 if (patient == null) {
-                    return Result.error("患者信息不存在");
+                    throw new RuntimeException("患者信息不存在"); // 使用 Exception 触发回滚
                 }
 
-                // 如果当前登录用户和患者绑定的userId不一致，可能有问题
-                // 这里保留 main 分支的校验逻辑（更安全），但也兼容 HEAD 分支的查找逻辑
+                // 如果当前登录用户和患者绑定的userId不一致
                 if (!patient.getUserId().equals(Long.valueOf(currentUserId))) {
-                    // 再次确认是否当前用户下确实有这个患者（防止ID变更等极端情况，或者多患者绑定）
-                    // 但按照 main 分支的 strict 逻辑，不匹配就报错
-                    // 我们这里暂时采用 Main 分支的严格校验
-                    return Result.error("非法患者信息，请重新选择就诊人");
+                    throw new RuntimeException("非法患者信息，请重新选择就诊人");
                 }
             }
 
@@ -129,7 +154,7 @@ public class RegistrationServiceImpl implements RegistrationService {
             // ------------------------------
             DoctorSchedule schedule = registrationMapper.selectScheduleById(record.getScheduleId());
             if (schedule == null) {
-                return Result.error("未找到对应排班信息");
+                throw new RuntimeException("未找到对应排班信息");
             }
             record.setDoctorId(schedule.getDoctorId());
 
@@ -146,7 +171,7 @@ public class RegistrationServiceImpl implements RegistrationService {
                     LocalDateTime slotStart = LocalDateTime.of(schedule.getScheduleDate(), baseTime);
                     // 当前时间晚于「开始时间前2小时」则视为已截止预约
                     if (LocalDateTime.now().isAfter(slotStart.minusHours(2))) {
-                        return Result.error("该时段预约已截止，请选择其他时间段");
+                        throw new RuntimeException("该时段预约已截止，请选择其他时间段");
                     }
                 }
             }
@@ -155,7 +180,7 @@ public class RegistrationServiceImpl implements RegistrationService {
             // 4. 防止同一患者重复预约同一排班（关键）
             // ------------------------------
             if (checkDuplicateBySchedule(actualPatientId, schedule.getScheduleId())) {
-                return Result.error("您已预约过该时段，请勿重复挂号");
+                throw new RuntimeException("您已预约过该时段，请勿重复挂号");
             }
 
             // ------------------------------
@@ -163,23 +188,34 @@ public class RegistrationServiceImpl implements RegistrationService {
             // ------------------------------
             RegistrationType type = registrationMapper.selectTypeById(record.getTypeId());
             if (type == null) {
-                return Result.error("未找到对应挂号类型");
+                throw new RuntimeException("未找到对应挂号类型");
             }
 
             // ☆☆☆━━━━━━━━━━━━━━━━━━━━━━━━━━
             // 核心并发控制：尝试原子更新库存
             // 尝试 +1，数据库会保证只有 quota < max 时才成功，且返回 1
             // ☆☆☆━━━━━━━━━━━━━━━━━━━━━━━━━━
-            int affectedRows = registrationMapper.incrementUsedQuota(schedule.getScheduleId());
+            // 【注意】如果是 joinWaitingQueue，则不需要扣减数据库库存
+            int affectedRows = 0;
+            if (!joinWaitingQueue) {
+                affectedRows = registrationMapper.incrementUsedQuota(schedule.getScheduleId());
+            }
 
-            // 如果更新行数为 0，说明库存已满（或被瞬间抢完）
-            if (affectedRows == 0) {
-                // 号源已满，处理候补逻辑
-                if (!joinWaitingQueue) {
-                    return Result.error("该号源已满，是否加入候补？");
-                }
+            // 如果更新行数为 0 且不是候补，说明数据库层面也没号了
+            if (!joinWaitingQueue && affectedRows == 0) {
+                // 理论上 Redis 应该已经拦截了，但如果 Redis 数据不一致漏进来了，数据库这里是最后一道防线
+                // 此时应该让用户去候补
+                // 但前面 Redis 扣减成功了，所以这里要回滚 Redis（虽然后面 catch 会处理，但为了逻辑清晰）
+                throw new RuntimeException("号源已满(DB check failed)，是否加入候补？");
+            }
 
-                log.info("号源已满(并发争抢)，用户选择加入候补，写入候补挂号记录…");
+            // 如果是主动加入候补，或者上面逻辑跳转过来的（这里实际不会跳过来，因为上面 throw 了）
+            // 但为了保留原逻辑的 structure
+            if (joinWaitingQueue) {
+                // ------------------------------
+                // 处理候补逻辑 (原样保留)
+                // ------------------------------
+                log.info("用户选择加入候补，写入候补挂号记录…");
 
                 // 写入“候补挂号记录”
                 record.setRegisterTime(LocalDateTime.now());
@@ -196,8 +232,6 @@ public class RegistrationServiceImpl implements RegistrationService {
                 registrationMapper.insertRegistration(record);
 
                 if (record.getRecordId() == null) {
-                    // 这里理论上很少发生，因为 insert 这里没竞争（除了主键冲突，但主键是自增），如果 insert 失败会抛错回滚
-                    log.error("候补挂号创建失败：recordId 为空！");
                     throw new RuntimeException("候补挂号记录创建失败");
                 }
 
@@ -208,7 +242,6 @@ public class RegistrationServiceImpl implements RegistrationService {
                 if (waitRes.isSuccess()) {
                     return Result.OK("当前号源已满，但您已成功加入候补队列", waitRes.getResult());
                 } else {
-                    // 候补加入失败，回滚
                     throw new RuntimeException("加入候补队列失败：" + waitRes.getMessage());
                 }
             }
@@ -230,7 +263,7 @@ public class RegistrationServiceImpl implements RegistrationService {
                         switch (patient.getPatientType()) {
                             case 1 -> type.getStudentPrice();
                             case 2, 3 -> type.getStaffPrice();
-                            default -> type.getPriceOriginal();
+                            default -> type.getPriceOriginal(); // 恢复了原价/折扣逻辑
                         });
 
                 if (record.getRegistrationNo() == null) {
@@ -251,27 +284,32 @@ public class RegistrationServiceImpl implements RegistrationService {
                     }
                 }
 
+                // 【Redis优化】一切顺利，不需要回滚 Redis
                 return Result.OK("挂号成功");
 
             } catch (Exception e) {
-                // 如果后续步骤失败（比如写记录报错），事务会回滚，刚才扣掉的库存也会自动加回来
+                // 如果后续步骤失败（比如写记录报错），事务会回滚
                 log.error("Create registration record failed", e);
-                throw e;
+                throw e; // 抛出异常触发事务回滚
             }
 
         } catch (Exception e) {
             log.error("createRegistration error", e);
-            // 手动捕捉异常后如果只返回 Result.error，事务可能不会回滚（取决于 transaction 配置），
-            // 但这里加上 rollbackFor 以及在 catch 里并没有再次 throw，
-            // 实际上 Spring Transaction 默认只在抛出 RuntimeException 时回滚。
-            // 为了安全起见，这里应该要把异常抛出去让切面感知，或者手动 setRollbackOnly。
-            // 但通常 Controller 层需要 Result，所以最优雅的做法是：
-            // 让外层 Controller 捕获，或者在这里显式回滚。
-            // 鉴于架构，这里抛出 RuntimeException 是最稳妥的回滚触发方式。
-            // 不过为了不让前端崩掉，我们可以返回 Result.error，但在返回前要确保回滚。
-            TransactionAspectSupport.currentTransactionStatus()
-                    .setRollbackOnly();
-            return Result.error("挂号失败：" + e.getMessage());
+            // 手动回滚事务
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+
+            // 【Redis优化】发生任何异常（数据库回滚了），Redis 也要回滚（补库存）
+            if (redisKey != null && redisDecremented) {
+                stringRedisTemplate.opsForValue().increment(redisKey);
+                log.info("Rollback Redis Quota for key: {}", redisKey);
+            }
+
+            // 构造友好的错误提示
+            String msg = e.getMessage();
+            if (msg == null)
+                msg = "挂号失败，请稍后重试";
+            // 如果是特定的业务异常（如号源已满），可以特殊处理，这里直接返回错误
+            return Result.error(msg);
         }
     }
 
@@ -532,45 +570,6 @@ public class RegistrationServiceImpl implements RegistrationService {
             log.info("message saved={}, userId={}, appointmentId={}", saved, userId, detail.getRecordId());
         } catch (Exception e) {
             log.error("createSuccessMessage error, recordId={}", detail.getRecordId(), e);
-        }
-    }
-
-    private void createWaitingSuccessMessage(RegistrationDetailDTO detail, WaitingQueue queue, String overrideUserId) {
-        try {
-            Message message = new Message();
-            String userId = resolveUserIdForMessages(detail, overrideUserId);
-            if (StringUtils.isBlank(userId)) {
-                log.warn("createWaitingSuccessMessage skip due to empty userId, recordId={}",
-                        detail != null ? detail.getRecordId() : null);
-                return;
-            }
-            message.setUserId(userId);
-            message.setAppointmentId(String.valueOf(detail.getRecordId()));
-            message.setMessageType(MESSAGE_TYPE_WAITING_SUCCESS);
-            message.setTitle("候补挂号成功提醒");
-            message.setCreatedTime(LocalDateTime.now());
-            message.setIsRead(false);
-
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("patient_card_no", detail.getPatientCardNo());
-            payload.put("patient_name", detail.getPatientName());
-            payload.put("doctor_name", detail.getDoctorName());
-            payload.put("department_name", detail.getDepartmentName());
-            payload.put("appointment_time", buildAppointmentTime(detail.getScheduleDate(), detail.getTimeSlot()));
-            payload.put("waiting_rank", queue != null ? queue.getQueueRank() : null);
-            payload.put("waiting_join_time",
-                    queue != null && queue.getQueueTime() != null ? DATE_TIME_FORMATTER.format(queue.getQueueTime())
-                            : null);
-            payload.put("promote_time", DATE_TIME_FORMATTER.format(LocalDateTime.now()));
-            payload.put("hospital_remark", "候补已转为正式号，请按时就诊");
-
-            message.setContent(objectMapper.writeValueAsString(payload));
-
-            boolean saved = messageService.save(message);
-            log.info("waiting message saved={}, userId={}, appointmentId={}", saved, userId, detail.getRecordId());
-        } catch (Exception e) {
-            log.error("createWaitingSuccessMessage error, recordId={}", detail != null ? detail.getRecordId() : null,
-                    e);
         }
     }
 
