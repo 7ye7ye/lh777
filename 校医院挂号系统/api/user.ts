@@ -112,4 +112,8 @@ export const userApi = {
 
   // 账户解绑
   unbindAccount: (data?: { reason: string }) => u.post('/unbind', data),
+
+  // 修改密码
+  changePassword: (data: { oldPassword: string; newPassword: string; confirmPassword: string }) => 
+    u.post('/changePassword', data),
 };

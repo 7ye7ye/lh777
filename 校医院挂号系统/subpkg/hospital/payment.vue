@@ -13,7 +13,7 @@
 			<view class="info-item"><text>挂号费：</text><text class="price">¥{{ fee }}</text></view>
 		</view>
 		
-		<!-- 患者类型（自行选择） -->
+		<!-- 患者类型（根据账号类型自动锁定） -->
 		<view class="section card">
 		  <text class="label">就诊人身份</text>
 		  <view class="patient-type-list">
@@ -21,13 +21,20 @@
 		      v-for="type in patientTypeList" 
 		      :key="type.value"
 		      class="patient-type-item"
-		      :class="{ selected: patientType === type.value }"
-		      @click="selectPatientType(type.value)"
+		      :class="{ 
+		        selected: patientType === type.value,
+		        disabled: isTypeLocked && patientType !== type.value
+		      }"
+		      @click="!isTypeLocked && selectPatientType(type.value)"
 		    >
 		      <text class="type-icon">{{ getTypeIcon(type.value) }}</text>
 		      <text class="patient-text">{{ type.label }}</text>
 		      <text v-if="patientType === type.value" class="check-icon">✓</text>
+		      <text v-if="isTypeLocked && patientType === type.value" class="lock-icon">🔒</text>
 		    </view>
+		  </view>
+		  <view v-if="isTypeLocked" class="type-lock-tip">
+		    <text>身份已根据账号类型自动锁定，不可更改</text>
 		  </view>
 		</view>
 
@@ -56,7 +63,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { createRegistration } from '../../api/registration' // 挂号接口
+import { createRegistration, getRegistrationRecords } from '../../api/registration' // 挂号接口
 import { ensurePatientCard } from '@/utils/patientHelper'
 
 // ------------------ 挂号信息 ------------------
@@ -66,6 +73,7 @@ const time = ref('')
 const originalFee = 50 // 挂号原价（可按需要调整或从后端获取）
 const fee = ref(0) // 实际支付金额
 const patientType = ref(0) // 患者类型
+const isTypeLocked = ref(false) // 是否锁定身份类型
 const doctorId = ref(null)
 const typeId = ref(null)
 const scheduleId = ref(null)
@@ -145,8 +153,15 @@ const calculateFeeByPatientType = (type) => {
 	}
 }
 
-// 选择患者类型
+// 选择患者类型（仅在未锁定时允许）
 const selectPatientType = (type) => {
+	if (isTypeLocked.value) {
+		uni.showToast({
+			title: '身份类型已锁定，不可更改',
+			icon: 'none'
+		})
+		return
+	}
 	patientType.value = type
 	fee.value = calculateFeeByPatientType(type)
 }
@@ -185,11 +200,27 @@ onMounted(async () => {
 		}
 	}
 	
-	if (patientIdFromRoute) {
-		currentPatient.value = {
-			patientId: patientIdFromRoute
+	// 获取就诊卡信息，用于确定患者类型
+	let patientCardInfo = null
+	try {
+		patientCardInfo = await ensurePatientCard()
+		if (patientCardInfo && patientCardInfo.patientId) {
+			currentPatient.value = patientCardInfo
+		} else if (patientIdFromRoute) {
+			currentPatient.value = {
+				patientId: patientIdFromRoute
+			}
 		}
-	} else {
+	} catch (e) {
+		console.warn('获取就诊卡信息失败:', e)
+		if (patientIdFromRoute) {
+			currentPatient.value = {
+				patientId: patientIdFromRoute
+			}
+		}
+	}
+	
+	if (!currentPatient.value?.patientId) {
 		// 如果还是没有，提示错误
 		uni.showModal({
 			title: '患者信息缺失',
@@ -202,9 +233,20 @@ onMounted(async () => {
 		return
 	}
 	
-	// 默认选择学生类型
-	patientType.value = 1
-	fee.value = calculateFeeByPatientType(1)
+	// 根据就诊卡的patientType自动选择并锁定身份类型
+	const cardPatientType = patientCardInfo?.patientType || patientCardInfo?.patient_type
+	if (cardPatientType && (cardPatientType === 1 || cardPatientType === 2 || cardPatientType === 3)) {
+		// 如果就诊卡有明确的身份类型，自动选择并锁定
+		patientType.value = Number(cardPatientType)
+		isTypeLocked.value = true
+		fee.value = calculateFeeByPatientType(Number(cardPatientType))
+		console.log('根据就诊卡身份类型自动锁定:', cardPatientType)
+	} else {
+		// 如果没有，默认选择学生类型，但不锁定
+		patientType.value = 1
+		isTypeLocked.value = false
+		fee.value = calculateFeeByPatientType(1)
+	}
 
 	// 其他挂号信息
 	const deptParam = options.dept || ''
@@ -272,14 +314,8 @@ const onPay = async () => {
 		title: '正在支付...'
 	})
 
+	// 支付模拟：保留轻量延迟，支付成功提示放到写入成功之后
 	setTimeout(async () => {
-		uni.hideLoading()
-		uni.showToast({
-			title: '支付成功！',
-			icon: 'success',
-			duration: 1500
-		})
-
 		// 构建挂号记录对象
 		const record = {
 			scheduleId: scheduleId.value,
@@ -295,6 +331,7 @@ const onPay = async () => {
 		}
 
 		let recordId = null
+		let matchedRecord = null
 		try {
 			// 正常预约挂号不加入候补队列，第三个参数设为 false
 			const result = await createRegistration(record, patientId, false)
@@ -311,8 +348,49 @@ const onPay = async () => {
 					recordId = result
 				}
 			}
+
+			// 成功写入后再查一次记录，拿到完整详情；若 result 未返回 recordId，则从列表兜底
+			try {
+				const records = await getRegistrationRecords(patientId)
+				const list = Array.isArray(records) ? records : (Array.isArray(records?.data) ? records.data : [])
+				// 按 registerTime 降序，匹配 scheduleId + doctorId，若未找到则取最新一条
+				const scheduleIdNum = Number(record.scheduleId)
+				const doctorIdNum = Number(record.doctorId)
+				const filtered = list
+					.filter(r => {
+						const sid = Number(r.scheduleId || r.schedule_id)
+						const did = Number(r.doctorId || r.doctor_id)
+						return (!isNaN(scheduleIdNum) ? sid === scheduleIdNum : true) &&
+							   (!isNaN(doctorIdNum) ? did === doctorIdNum : true)
+					})
+					.sort((a, b) => {
+						const ta = new Date(a.registerTime || a.register_time || 0).getTime()
+						const tb = new Date(b.registerTime || b.register_time || 0).getTime()
+						return tb - ta
+					})
+				matchedRecord = filtered[0] || list.sort((a, b) => {
+					const ta = new Date(a.registerTime || a.register_time || 0).getTime()
+					const tb = new Date(b.registerTime || b.register_time || 0).getTime()
+					return tb - ta
+				})[0] || null
+
+				// 如果 recordId 仍为空，尝试使用列表中的 id 兜底
+				if (!recordId && matchedRecord) {
+					recordId = matchedRecord.recordId || matchedRecord.record_id || matchedRecord.id
+				}
+			} catch (e) {
+				console.warn('获取最新挂号记录失败，使用本地构建数据', e)
+			}
+
+			uni.hideLoading()
+			uni.showToast({
+				title: '支付成功！',
+				icon: 'success',
+				duration: 1200
+			})
 		} catch (error) {
 			console.error('挂号写入失败', error)
+			uni.hideLoading()
 
 			const msg = typeof error === 'string'
 				? error
@@ -320,26 +398,20 @@ const onPay = async () => {
 
 			if (msg.includes('您已预约过该时段，请勿重复挂号')) {
 				uni.showModal({
-					title: '重复预约提示',
-					content: '系统检测到该就诊人已在此时段成功预约过号源，本次不会重复创建挂号记录，请在"挂号记录"中查看原有预约。',
-					showCancel: false,
-					success: () => {
-						// 跳转到挂号记录页面
-						uni.navigateTo({
-							url: '/subpkg/profile/records/register-record'
-						})
-					}
+					title: '重复预约',
+					content: '该就诊人已预约过此时段，本次未生成新挂号记录。',
+					showCancel: false
 				})
 			} else if (msg.includes('该时段预约已截止')) {
 				uni.showModal({
 					title: '预约已截止',
-					content: '该时段预约已截止，已模拟完成支付但未生成新的挂号记录，请选择其他时间段重新预约。',
+					content: '该时段预约已截止，本次未生成挂号记录，请选择其他时间段重新预约。',
 					showCancel: false
 				})
 			} else {
 				uni.showModal({
 					title: '挂号失败',
-					content: '支付已成功，但挂号信息写入失败，请稍后重试或联系医院工作人员处理。',
+					content: '支付已完成，但挂号记录写入失败，请稍后重试或联系医院工作人员处理。',
 					showCancel: false
 				})
 			}
@@ -348,19 +420,56 @@ const onPay = async () => {
 
 		// 跳转到挂号记录页面
 		setTimeout(() => {
-			// 如果有记录ID，可以传递参数以便页面定位到该记录
-			if (recordId) {
-				uni.navigateTo({
-					url: `/subpkg/profile/records/register-record?recordId=${recordId}`
+			// 构建记录详情数据，参考转诊自动挂号跳转
+			const source = matchedRecord || {}
+			const recordData = {
+				id: source.recordId || source.record_id || source.id || recordId || record.recordId,
+				recordId: source.recordId || source.record_id || source.id || recordId || record.recordId,
+				patientId: source.patientId || source.patient_id || patientId,
+				scheduleId: source.scheduleId || source.schedule_id || record.scheduleId,
+				doctorId: source.doctorId || source.doctor_id || record.doctorId,
+				typeId: source.typeId || source.type_id || record.typeId,
+				registrationNo: source.registrationNo || source.registration_no || record.registrationNo,
+				registerTime: source.registerTime || source.register_time || record.registerTime,
+				status: source.status || record.status,
+				priceOriginal: source.priceOriginal || source.price_original || record.priceOriginal,
+				actualPrice: source.actualPrice || source.actual_price || record.actualPrice,
+				isAdd: source.isAdd || source.is_add || record.isAdd || 0,
+				addRemark: source.addRemark || source.add_remark || record.addRemark || ''
+			}
+
+			if (!recordData.recordId && recordId) {
+				recordData.recordId = recordId
+				recordData.id = recordId
+			}
+
+			// 补充挂号信息便于详情展示
+			recordData.deptName = dept.value
+			recordData.doctorName = doctor.value
+			recordData.registerTime = recordData.registerTime || record.registerTime
+			recordData.register_time = recordData.register_time || record.registerTime
+			recordData.appointmentTime = time.value
+
+			if (recordData.recordId && recordData.patientId) {
+				const query = encodeURIComponent(JSON.stringify(recordData))
+				// 使用 redirectTo，移除支付页出栈，返回时不再出现支付页/重复跳转
+				uni.redirectTo({
+					url: `/subpkg/profile/records/hospital-record-detail?record=${query}`,
+					fail: () => {
+						// 兜底回到挂号记录列表
+						uni.redirectTo({
+							url: '/subpkg/profile/records/register-record'
+						})
+					}
 				})
 			} else {
-				// 没有记录ID时，直接跳转到挂号记录列表页
-				uni.navigateTo({
+				// 没有关键字段时，回到挂号记录列表
+				uni.redirectTo({
 					url: '/subpkg/profile/records/register-record'
 				})
 			}
-		}, 1500)
-	}, 2000)
+		}, 800)
+	}, 1200)
 }
 
 
@@ -750,6 +859,33 @@ function formatLocalDateTime(date) {
 
 	.patient-type-item.selected::before {
 		display: none;
+	}
+	
+	.patient-type-item.disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+		pointer-events: none;
+		background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+		border-color: #d0d0d0;
+	}
+	
+	.type-lock-tip {
+		margin-top: 16rpx;
+		padding: 12rpx 16rpx;
+		background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+		border-radius: 12rpx;
+		border: 1rpx solid #ffc107;
+		font-size: 24rpx;
+		color: #856404;
+		text-align: center;
+	}
+	
+	.lock-icon {
+		position: absolute;
+		top: 6rpx;
+		right: 6rpx;
+		font-size: 20rpx;
+		opacity: 0.8;
 	}
 	
 	.type-icon {

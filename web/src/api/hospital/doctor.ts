@@ -36,11 +36,13 @@ export interface RegisterDoctorParams {
   userPassword: string; // 与后端API保持一致
   deptId: number;
   title: string;
+  titleId?: number;      // 职称ID
   specialty: string;
-  isActive?: boolean; // 修改为boolean类型以匹配DoctorRegister.vue中的使用方式
+  isActive?: boolean;   // 修改为boolean类型以匹配DoctorRegister.vue中的使用方式
   email?: string;
   doctorDesc?: string;
   avatar?: string;
+  userType?: number;    // 用户类型：2 表示医生
 }
 
 // 医生相关API接口
@@ -53,6 +55,9 @@ export const updateDoctorProfile = (doctor: Partial<Doctor>) =>
 export const getMyDoctorProfile = () =>
   defHttp.get<Doctor>({ url: `${Api.DoctorDetail}/my-profile` });
 
+export const applyDoctorProfileUpdate = (data: Recordable) =>
+  defHttp.post({ url: `${Api.DoctorDetail}/profile-update-request`, data });
+
 export const getDoctorByAccount = (account: string) =>
   defHttp.get<Doctor | null>({ url: `${Api.DoctorDetail}/by-account/${account}` });
 
@@ -61,9 +66,13 @@ export const getDoctorByUserId = (userId: number) =>
 
 // 注册医生账号函数
 export const registerDoctorAccount = (params: RegisterDoctorParams) =>
-  defHttp.post<{ success: boolean; message: string; data: { userId: number; doctorId: number } }>({
+  defHttp.post<{ code: number; success: boolean; message: string; description?: string; data: { userId: number; doctorId: number } }>({
     url: '/admin/doctor/register',
     data: params,
+  }, {
+    successMessageMode: 'none', // 禁用自动成功通知，避免显示包含密码的红框通知
+    errorMessageMode: 'none', // 禁用自动错误通知，由前端手动处理错误
+    isTransformResponse: false, // 不转换响应，直接返回原始数据，方便检查 code 字段
   });
 
 // 医生资料修改申请相关接口（管理员端）
@@ -144,31 +153,31 @@ export const getDoctorList = (params?: {
   pageSize?: number;
 }) => {
   console.log('[getDoctorList] 原始参数:', JSON.stringify(params));
-  
+
   // 强制转换：无论传递的是doctorName还是keyword，都统一转换为keyword
   const apiParams: any = { ...params };
-  
+
   // 如果传递了doctorName，转换为keyword（后端API使用keyword参数）
   if (apiParams.doctorName) {
     console.log('[getDoctorList] 检测到doctorName参数，转换为keyword:', apiParams.doctorName);
     apiParams.keyword = apiParams.doctorName;
     delete apiParams.doctorName;
   }
-  
+
   // 确保keyword参数存在（如果既没有doctorName也没有keyword，保持原样）
   if (!apiParams.keyword && params?.keyword) {
     apiParams.keyword = params.keyword;
   }
-  
+
   // 将pageNum转换为pageNo（后端API使用pageNo）
   if (apiParams.pageNum !== undefined) {
     apiParams.pageNo = apiParams.pageNum;
     delete apiParams.pageNum;
   }
-  
+
   console.log('[getDoctorList] 转换后的参数:', JSON.stringify(apiParams));
   console.log('[getDoctorList] 最终发送的参数键:', Object.keys(apiParams));
-  
+
   return defHttp.get<any>({
     url: Api.DoctorList,
     params: apiParams

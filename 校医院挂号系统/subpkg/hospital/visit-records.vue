@@ -65,7 +65,7 @@
       
       <!-- 空状态 -->
       <view v-if="filteredRecords.length === 0 && !loading" class="empty-state">
-        <image src="/static/empty_message.png" mode="widthFix" class="empty-img"></image>
+        <image :src="getStaticImage('/static/empty_message.png')" mode="widthFix" class="empty-img"></image>
         <text class="empty-text">暂无已就诊的记录</text>
       </view>
       
@@ -81,6 +81,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { getPatientVisitRecords } from '../../api/referral'
 import { useUserStore } from '../../store/user'
+import { getStaticImage } from '@/utils/imageHelper'
 
 // 筛选选项
 const filterOptions = ['全部', '近一个月', '近三个月', '近半年']

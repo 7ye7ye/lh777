@@ -7,7 +7,7 @@
       </view>
     </view>
     <view class="banner">
-      <image src="/static/hospitalpicture.png" mode="aspectFill" style="width: 100%; height: 100%; border-radius: 12rpx;" />
+      <image :src="bannerImage || getStaticImage('/static/hospitalpicture.png')" mode="aspectFill" style="width: 100%; height: 100%; border-radius: 12rpx;" />
     </view>
     <view class="visit-card card" @click="onVisitCardClick">
       <view class="visit-card-content">
@@ -27,40 +27,27 @@
             <text class="card-number-text">证件号: {{ cardInfo.outpatientNumber || cardInfo.cardNumber || cardInfo.idCard || '-' }}</text>
           </view>
         </view>
-        <view class="visit-card-right">
-          <view class="qrcode-wrapper" v-if="cardInfo.patientId && (cardInfo.outpatientNumber || cardInfo.cardNumber || cardInfo.idCard)">
-            <uqrcode 
-              ref="qrcodeRef"
-              canvas-id="home-qrcode"
-              :value="(cardInfo.outpatientNumber || cardInfo.cardNumber || cardInfo.idCard) || ''" 
-              :size="120"
-              :margin="2"
-              background-color="#FFFFFF"
-              foreground-color="#000000"
-              file-type="png"
-            ></uqrcode>
+        <view class="visit-card-right" v-if="cardInfo.patientId">
+          <view class="card-status">
+            <text class="status-text">已绑定</text>
           </view>
-          <view class="qrcode-placeholder" v-else>
-            <text class="qrcode-icon">📱</text>
-          </view>
-          <view class="enter-tip">出示就诊码</view>
         </view>
       </view>
     </view>
-    
+
     <!-- 快速功能 -->
     <view class="quick card">
       <view class="quick-grid">
         <view class="quick-item-large quick-item-blue" @click="goToDiseaseGuide">
           <view class="quick-item-content">
-            <image class="quick-icon-large" src="/static/disease-booking.svg" mode="aspectFit"></image>
+            <image class="quick-icon-large" :src="diseaseBookingIcon || getStaticImage('/static/disease-booking.svg')" mode="aspectFit"></image>
             <text class="quick-text-large">按疾病挂号</text>
             <text class="quick-desc">根据症状快速匹配科室</text>
           </view>
         </view>
         <view class="quick-item-large quick-item-green" @click="goToDepartmentBooking">
           <view class="quick-item-content">
-            <image class="quick-icon-large" src="/static/department-booking.svg" mode="aspectFit"></image>
+            <image class="quick-icon-large" :src="departmentBookingIcon || getStaticImage('/static/department-booking.svg')" mode="aspectFit"></image>
             <text class="quick-text-large">按科室挂号</text>
             <text class="quick-desc">选择科室预约就诊</text>
           </view>
@@ -70,20 +57,20 @@
 
     <!-- 功能标签页 -->
     <view class="home-tabs card">
-      <view 
-        v-for="(tab, idx) in tabs" 
-        :key="tab" 
-        class="tab" 
+      <view
+        v-for="(tab, idx) in tabs"
+        :key="tab"
+        class="tab"
         :class="{ active: idx === activeIndex }"
         @click="activeIndex = idx"
       >{{ tab }}</view>
     </view>
     <view class="home-section card" style="margin-top: 0;">
       <view class="home-grid">
-        <view 
-          v-for="item in currentItems" 
-          :key="item.text" 
-          class="home-item" 
+        <view
+          v-for="item in currentItems"
+          :key="item.text"
+          class="home-item"
           @click="onItemClick(item)"
         >
           <view class="icon">
@@ -110,6 +97,10 @@ import { useUserStore } from '@/store/user'
 import { uniNavigateTo } from '@/utils/uniHelper'
 import { patientApi } from '@/api/patient'
 import uqrcode from '@/uni_modules/Sansnn-uQRCode/components/uqrcode/uqrcode.vue'
+import { getStaticImage } from '@/utils/imageHelper'
+import { preloadImage } from '@/utils/imagePreloader'
+import { getStaticImage } from '@/utils/imageHelper'
+import { preloadImage } from '@/utils/imagePreloader'
 
 const tabs = ['门诊', '体检', '其他']
 const activeIndex = ref(0)
@@ -117,6 +108,11 @@ const loginPromptRef = ref(null)
 const userStore = useUserStore()
 const cardInfo = ref({})
 const qrcodeRef = ref(null)
+
+// 预下载的图片路径
+const bannerImage = ref('')
+const diseaseBookingIcon = ref('')
+const departmentBookingIcon = ref('')
 
 // 监听cardInfo变化，用于调试
 watch(() => cardInfo.value, (newVal) => {
@@ -129,23 +125,23 @@ watch(() => cardInfo.value, (newVal) => {
 
 const itemsMap = {
   门诊: [
-    { icon: 'patient', image: '/static/patient.svg', text: '我的就诊人', action: 'goToMyPatient' },
-    { icon: 'register', image: '/static/register.svg', text: '挂号记录', action: 'goToRegisterRecord' },
-    { icon: 'hospital', image: '/static/hospital.svg', text: '就诊记录', action: 'goToHospitalRecord' },
-    { icon: 'referral', image: '/static/referral-record.svg', text: '转诊记录', action: 'goToTransferHistory' },
+    { icon: 'patient', image: getStaticImage('/static/patient.svg'), text: '我的就诊人', action: 'goToMyPatient' },
+    { icon: 'register', image: getStaticImage('/static/register.svg'), text: '挂号记录', action: 'goToRegisterRecord' },
+    { icon: 'hospital', image: getStaticImage('/static/hospital.svg'), text: '就诊记录', action: 'goToHospitalRecord' },
+    { icon: 'referral', image: getStaticImage('/static/referral-record.svg'), text: '转诊记录', action: 'goToTransferHistory' },
   ],
   体检: [
-    { icon: 'personal-exam', image: '/static/presonal-exam.svg', text: '个检预约' },
-    { icon: 'group-exam', image: '/static/group-exam.svg', text: '团检预约' },
-    { icon: 'exam-report', image: '/static/exam-report.svg', text: '体检报告' },
-    { icon: 'exam-order', image: '/static/exam-order.svg', text: '体检订单' },
-    { icon: 'exam-center', image: '/static/exam-center.svg', text: '体检中心' },
+    { icon: 'personal-exam', image: getStaticImage('/static/presonal-exam.svg'), text: '个检预约' },
+    { icon: 'group-exam', image: getStaticImage('/static/group-exam.svg'), text: '团检预约' },
+    { icon: 'exam-report', image: getStaticImage('/static/exam-report.svg'), text: '体检报告' },
+    { icon: 'exam-order', image: getStaticImage('/static/exam-order.svg'), text: '体检订单' },
+    { icon: 'exam-center', image: getStaticImage('/static/exam-center.svg'), text: '体检中心' },
   ],
   其他: [
-    { icon: 'department', image: '/static/department-introduce.svg', text: '科室介绍', action: 'goDepartments' },
-    { icon: 'doctor', image: '/static/doctor-introduce.svg', text: '专家介绍', action: 'goDoctors' },
-    { icon: 'navigation', image: '/static/inhospital_navigation.svg', text: '院内导航', action: 'goNavigation' },
-    { icon: 'help', image: '/static/help.svg', text: '帮助反馈', action: 'goToHelp' },
+    { icon: 'department', image: getStaticImage('/static/department-introduce.svg'), text: '科室介绍', action: 'goDepartments' },
+    { icon: 'doctor', image: getStaticImage('/static/doctor-introduce.svg'), text: '专家介绍', action: 'goDoctors' },
+    { icon: 'navigation', image: getStaticImage('/static/inhospital_navigation.svg'), text: '院内导航', action: 'goNavigation' },
+    { icon: 'help', image: getStaticImage('/static/help.svg'), text: '帮助反馈', action: 'goToHelp' },
   ],
 }
 
@@ -168,14 +164,14 @@ const onItemClick = (item) => {
       'goNavigation': goNavigation,
       'goToHelp': goToHelp,
     }
-    
+
     const actionFunc = actionMap[item.action]
     if (actionFunc) {
       actionFunc()
       return
     }
   }
-  
+
   // 体检功能跳转映射
   const examRoutes = {
     '个检预约': '/subpkg/physical-exam/individual-booking',
@@ -184,7 +180,7 @@ const onItemClick = (item) => {
     '体检订单': '/subpkg/physical-exam/exam-orders',
     '体检中心': '/subpkg/physical-exam/exam-center'
   }
-  
+
   const route = examRoutes[item.text]
   if (route) {
     uni.navigateTo({
@@ -205,32 +201,16 @@ const onItemClick = (item) => {
 }
 
 // 跳转到按疾病挂号
-const goToDiseaseGuide = () => {
-  uni.navigateTo({
-    url: '/subpkg/hospital/disease-guide',
-    fail: (err) => {
-      console.error('跳转失败:', err)
-      uni.showToast({
-        title: '页面未找到',
-        icon: 'none'
-      })
-    }
-  })
-}
+const goToDiseaseGuide = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.HOME.DISEASE_BOOKING,
+  '/subpkg/hospital/disease-guide'
+)
 
 // 跳转到按科室挂号
-const goToDepartmentBooking = () => {
-  uni.navigateTo({
-    url: '/subpkg/hospital/department-booking',
-    fail: (err) => {
-      console.error('跳转失败:', err)
-      uni.showToast({
-        title: '页面未找到',
-        icon: 'none'
-      })
-    }
-  })
-}
+const goToDepartmentBooking = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.HOME.DEPARTMENT_BOOKING,
+  '/subpkg/hospital/department-booking'
+)
 
 // 使用统一的权限控制创建导航函数
 const goToMyCard = createAuthHandler(
@@ -269,9 +249,10 @@ const goToCheckRecord = createAuthHandler(
   '/subpkg/profile/records/check-record'
 )
 
-const goToTransferHistory = () => {
-  uniNavigateTo({ url: '/subpkg/hospital/referral-records' })
-}
+const goToTransferHistory = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.HOME.REFERRAL_RECORDS,
+  '/subpkg/hospital/referral-records'
+)
 
 const goToHelp = createAuthHandler(
   AUTH_REQUIRED_FEATURES.PROFILE.SETTINGS,
@@ -279,13 +260,15 @@ const goToHelp = createAuthHandler(
 )
 
 // 医院信息相关功能
-const goDepartments = () => {
-  uni.navigateTo({ url: '/subpkg/hospital/departments' })
-}
+const goDepartments = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.HOME.DEPARTMENT_INTRODUCTION,
+  '/subpkg/hospital/departments'
+)
 
-const goDoctors = () => {
-  uni.navigateTo({ url: '/subpkg/hospital/doctors' })
-}
+const goDoctors = createAuthHandler(
+  AUTH_REQUIRED_FEATURES.HOME.DOCTOR_INTRODUCTION,
+  '/subpkg/hospital/doctors'
+)
 
 const goNavigation = () => {
   uni.navigateTo({ url: '/subpkg/hospital/navigation' })
@@ -302,11 +285,11 @@ const loadCardInfo = async () => {
       cardInfo.value = {}
       return
     }
-    
+
     console.log('开始获取就诊卡信息，userId:', userId)
     const res = await patientApi.getCard({ userId })
     console.log('主页获取到的就诊卡API响应:', res)
-    
+
     // 响应拦截器可能已经处理了响应，直接使用res
     // 但如果响应拦截器返回的是{code, data}结构，需要提取data
     let cardData = null
@@ -320,56 +303,56 @@ const loadCardInfo = async () => {
       // 如果返回的是 {data: {...}} 格式
       cardData = res.data
     }
-    
+
     if (cardData && cardData.patientId) {
       // 先保留所有原始数据
       const mappedData = { ...cardData }
-      
+
       // 然后统一字段映射，确保覆盖所有可能的字段名（包括下划线和驼峰命名）
       // 基础标识（优先使用驼峰命名）
       mappedData.patientId = cardData.patientId || cardData.patient_id || mappedData.patientId || null
-      
+
       // 姓名（多种可能的字段名，优先使用驼峰命名）
       mappedData.patientName = cardData.patientName || cardData.patient_name || cardData.name || mappedData.patientName || ''
-      
+
       // 性别
       mappedData.gender = cardData.gender || mappedData.gender || ''
-      
+
       // 出生日期（多种可能的字段名）
       mappedData.birthDate = cardData.birthDate || cardData.birth_date || cardData.birthday || cardData.birthDay || mappedData.birthDate || ''
-      
+
       // 年龄
       mappedData.age = cardData.age || mappedData.age || null
-      
+
       // 门诊号（多种可能的字段名）
       mappedData.outpatientNumber = cardData.outpatientNumber || cardData.outpatient_number || cardData.outpatientNo || cardData.outpatient_no || mappedData.outpatientNumber || ''
-      
+
       // 卡号
       mappedData.cardNumber = cardData.cardNumber || cardData.card_number || cardData.cardNo || cardData.card_no || mappedData.cardNumber || ''
-      
+
       // 身份证号
       mappedData.idCard = cardData.idCard || cardData.id_card || cardData.idCardNumber || cardData.id_card_number || mappedData.idCard || ''
-      
+
       // 如果门诊号为空，尝试使用身份证号作为显示
       if (!mappedData.outpatientNumber && !mappedData.cardNumber && mappedData.idCard) {
         mappedData.outpatientNumber = mappedData.idCard
       }
-      
+
       // 确保 patientName 有值（如果所有字段都为空，使用默认值）
       if (!mappedData.patientName || mappedData.patientName === '') {
         mappedData.patientName = '未知'
       }
-      
+
       // 直接赋值，确保响应式更新（Vue 3 的 ref 需要直接赋值整个对象）
       cardInfo.value = { ...mappedData }
-      
+
       console.log('就诊卡信息已设置:', JSON.parse(JSON.stringify(cardInfo.value)))
       console.log('cardInfo.patientId:', cardInfo.value.patientId)
       console.log('患者姓名:', cardInfo.value.patientName)
       console.log('性别:', cardData.gender, '格式化后:', formatGender(cardData.gender))
       console.log('年龄:', cardInfo.value.age, '出生日期:', cardInfo.value.birthDate)
       console.log('门诊号:', cardInfo.value.outpatientNumber || cardInfo.value.cardNumber || cardInfo.value.idCard)
-      
+
       // 强制触发响应式更新
       await nextTick()
       console.log('DOM更新后，cardInfo.value:', JSON.parse(JSON.stringify(cardInfo.value)))
@@ -431,10 +414,44 @@ const onVisitCardClick = createAuthHandler(
   { requireCard: true }
 )
 
+// 预加载主要图片
+const preloadImagePaths = async () => {
+  try {
+    console.log('🚀 开始预下载主要图片...')
+    // 预下载主要图片（并行下载）
+    const [banner, diseaseIcon, departmentIcon] = await Promise.all([
+      preloadImage('/static/hospitalpicture.png'),
+      preloadImage('/static/disease-booking.svg'),
+      preloadImage('/static/department-booking.svg')
+    ])
+
+    console.log('📦 预下载结果:', {
+      banner: banner,
+      diseaseIcon: diseaseIcon,
+      departmentIcon: departmentIcon
+    })
+
+    bannerImage.value = banner
+    diseaseBookingIcon.value = diseaseIcon
+    departmentBookingIcon.value = departmentIcon
+
+    console.log('✅ 主要图片预下载完成，已更新响应式变量')
+    console.log('🔍 当前图片路径:', {
+      bannerImage: bannerImage.value,
+      diseaseBookingIcon: diseaseBookingIcon.value,
+      departmentBookingIcon: departmentBookingIcon.value
+    })
+  } catch (error) {
+    console.error('❌ 图片预下载失败:', error)
+  }
+}
+
 // 初始化用户信息
 onMounted(() => {
   // 确保用户信息已从存储中恢复
   userStore.initFromStorage()
+  // 预加载图片（使用 uni.downloadFile 绕过 ngrok 警告页面）
+  preloadImagePaths()
   // 延迟加载，确保用户信息已初始化
   setTimeout(() => {
     loadCardInfo()
@@ -633,65 +650,31 @@ onShow(() => {
   padding-left: 20rpx;
   flex-shrink: 0;
 }
-.qrcode-wrapper {
-  width: 140rpx;
-  height: 140rpx;
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 10rpx;
-  box-sizing: border-box;
+.card-status {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.2);
-  position: relative;
-  overflow: hidden;
+  padding: 16rpx 32rpx;
+  background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
+  border-radius: 24rpx;
+  box-shadow: 0 4rpx 12rpx rgba(82, 196, 26, 0.3);
 }
-.qrcode-wrapper :deep(uqrcode),
-.qrcode-wrapper :deep(.uqrcode) {
-  width: 120rpx !important;
-  height: 120rpx !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-.qrcode-wrapper :deep(canvas),
-.qrcode-wrapper :deep(.uqrcode-canvas) {
-  width: 120rpx !important;
-  height: 120rpx !important;
-  display: block !important;
-}
-.qrcode-placeholder {
-  width: 120rpx;
-  height: 120rpx;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 12rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.qrcode-icon {
-  font-size: 60rpx;
-  opacity: 0.7;
-}
-.enter-tip {
-  font-size: 24rpx;
-  margin-top: 14rpx;
-  color: #4a7ba7;
-  opacity: 0.9;
-  text-align: center;
+
+.status-text {
+  font-size: 26rpx;
+  color: #fff;
   font-weight: 500;
 }
 
-.quick .quick-grid { 
-  display: flex; 
+.quick .quick-grid {
+  display: flex;
   gap: 20rpx;
   padding: 0 24rpx;
 }
-.quick-item-large { 
-  flex: 1; 
-  display: flex; 
-  flex-direction: column; 
+.quick-item-large {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   border-radius: 20rpx;
   padding: 32rpx 24rpx;
@@ -736,9 +719,9 @@ onShow(() => {
   align-items: center;
   z-index: 1;
 }
-.quick-icon-large { 
-  width: 80rpx; 
-  height: 80rpx; 
+.quick-icon-large {
+  width: 80rpx;
+  height: 80rpx;
   margin-bottom: 16rpx;
   filter: drop-shadow(0 4rpx 8rpx rgba(0,0,0,0.1));
 }

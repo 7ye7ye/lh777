@@ -56,11 +56,10 @@
         <a-textarea v-model:value="profile.doctorDesc" rows="4" />
       </a-form-item>
 
-
-
       <div style="margin-top: 12px;">
         <a-button type="primary" @click="handleSubmit">保存</a-button>
       </div>
+      
     </a-form>
   </PageWrapper>
 </template>
@@ -69,7 +68,7 @@
 import { defineComponent, onMounted, ref, computed } from 'vue';
 import { PageWrapper } from '/@/components/Page';
 import { message, Tag } from 'ant-design-vue';
-import { getDoctorProfile, updateDoctorProfile, type Doctor, getMyDoctorProfile, getDoctorByAccount, getDoctorByUserId } from '/@/api/hospital/doctor';
+import { getDoctorProfile, applyDoctorProfileUpdate, type Doctor, getMyDoctorProfile, getDoctorByAccount, getDoctorByUserId } from '/@/api/hospital/doctor';
 import { useRoute } from 'vue-router';
 import { useUserStoreWithOut } from '/@/store/modules/user';
 
@@ -97,12 +96,12 @@ export default defineComponent({
       get() {
         return profile.value.isActive === 1;
       },
-      set(val: boolean) {
-        profile.value.isActive = val ? 1 : 0;
+      set() {
+        // 出诊状态修改可能需要另外的接口，这里暂时不处理或提示
+        // profile.value.isActive = val ? 1 : 0;
+        message.info('出诊状态修改请使用专门的排班管理功能');
       },
     });
-
-
 
     // 判断返回的医生数据是否属于当前登录用户
     function isProfileMatchesCurrentUser(p: Partial<Doctor> | null | undefined): boolean {
@@ -129,7 +128,7 @@ export default defineComponent({
       // 兜底一：路由上携带的doctorId（仍为真实数据源）
       const doctorId = Number(route.query.doctorId || 0);
       if (doctorId) {
-        const data = await getDoctorProfile({ doctorId });
+        const data = await getDoctorProfile(doctorId);
         if (data && data.doctorId && isProfileMatchesCurrentUser(data)) {
           profile.value = data;
           return;
@@ -182,24 +181,24 @@ export default defineComponent({
     }
 
     async function handleSubmit() {
+      // 只提交允许修改的字段
       const payload = {
-        doctorId: profile.value.doctorId,
-        doctorName: profile.value.doctorName,
-        deptId: profile.value.deptId,
-        title: profile.value.title,
+        id: profile.value.doctorId,
+        avatar: profile.value.avatar,
         specialty: profile.value.specialty,
         doctorDesc: profile.value.doctorDesc,
-        avatar: profile.value.avatar,
-        isActive: profile.value.isActive,
-        userAccount: profile.value.userAccount,
-        email: profile.value.email,
       };
-      const ok = await updateDoctorProfile(payload);
-      if (ok) {
-        message.success('保存成功');
-        fetchProfile();
-      } else {
-        message.error('保存失败');
+
+      try {
+        const ok = await applyDoctorProfileUpdate(payload);
+        if (ok) {
+          message.success('修改申请已提交，请等待管理员审核');
+          // fetchProfile(); // 不需要立即刷新，因为审核通过前数据不会变
+        } else {
+          message.error('提交失败');
+        }
+      } catch (error: any) {
+        message.error('提交失败: ' + (error.message || '未知错误'));
       }
     }
 

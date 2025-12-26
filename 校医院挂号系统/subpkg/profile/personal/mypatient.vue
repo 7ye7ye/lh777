@@ -38,23 +38,28 @@
           
           <!-- 基本信息 -->
           <view class="info-content">
-            <text class="patient-name">{{ patient.patientName }}</text>
+            <view class="name-row">
+              <text class="patient-name">{{ patient.patientName }}</text>
+              <text v-if="patient.isDefault === 1" class="default-badge">默认</text>
+            </view>
             <text class="patient-id">{{ maskIdNumber(patient.idCard) }}</text>
           </view>
         </view>
         
-        <!-- 二维码 -->
-        <view class="qrcode-wrapper">
-          <uqrcode 
-            :ref="'qrcode' + patient.patientId"
-            :canvas-id="'patient-qr-' + patient.patientId"
-            :value="patient.outpatientNumber || patient.patientId.toString()" 
-            :size="120"
-            :margin="5"
-            background-color="#FFFFFF"
-            foreground-color="#3a9cff"
-            file-type="png"
-          ></uqrcode>
+        <!-- 操作按钮 -->
+        <view class="action-buttons" @click.stop>
+          <view 
+            v-if="patient.isDefault !== 1" 
+            class="set-default-btn" 
+            @click="setAsDefault(patient)"
+          >
+            <text class="btn-icon">⭐</text>
+            <text class="btn-text">设为默认</text>
+          </view>
+          <view v-else class="default-indicator">
+            <text class="indicator-icon">✓</text>
+            <text class="indicator-text">默认就诊卡</text>
+          </view>
         </view>
       </view>
     </view>
@@ -63,7 +68,7 @@
     <view v-else class="empty-container">
       <image 
         class="empty-bg-image" 
-        src="/static/images/no_data.png" 
+        :src="getStaticImage('/static/images/no_data.png')" 
         mode="scaleToFill"
       />
       <view class="empty-content">
@@ -88,15 +93,15 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import uqrcode from '@/uni_modules/Sansnn-uQRCode/components/uqrcode/uqrcode.vue'
 import { patientApi } from '@/api/patient'
 import { useUserStore } from '@/store/user'
 import { uniShowToast, uniNavigateTo, uniShowModal } from '@/utils/uniHelper'
+import { getStaticImage } from '@/utils/imageHelper'
 
 const userStore = useUserStore()
 const loading = ref(false)
 const patientList = ref([])
-const maxPatients = 9 // 最多9位就诊人
+const maxPatients = 5 // 最多5位就诊人
 
 // 获取就诊人列表
 const getPatientList = async () => {
@@ -110,18 +115,27 @@ const getPatientList = async () => {
       return
     }
     
-    const data = await patientApi.getPatientList({ userId })
-    console.log('就诊人列表:', data)
+    const res = await patientApi.getPatientList({ userId })
+    console.log('获取就诊人列表响应:', res)
     
-    // 假设后端返回的是一个数组
-    if (Array.isArray(data)) {
-      patientList.value = data
-    } else if (data && Array.isArray(data.list)) {
-      patientList.value = data.list
+    // 处理不同格式的响应
+    let listData = []
+    if (Array.isArray(res)) {
+      listData = res
+    } else if (res && Array.isArray(res.list)) {
+      listData = res.list
+    } else if (res && res.data && Array.isArray(res.data)) {
+      listData = res.data
     } else {
-      patientList.value = []
-      console.log('暂无就诊人数据')
+      console.log('未识别的响应格式:', res)
+      listData = []
     }
+    
+    console.log('处理后的就诊人列表:', listData)
+    
+    // 确保数组是全新的引用，以触发响应式更新
+    patientList.value = JSON.parse(JSON.stringify(listData))
+    console.log('更新后的patientList:', patientList.value)
   } catch (error) {
     console.error('获取就诊人列表失败:', error)
     patientList.value = []
@@ -155,6 +169,55 @@ const viewPatientDetail = (patient) => {
   uniNavigateTo({ 
     url: `/subpkg/profile/personal/mycard?patientId=${patient.patientId}` 
   })
+}
+
+// 设置为默认就诊卡
+const setAsDefault = async (patient) => {
+  // 如果已经是默认，直接返回
+  if (patient.isDefault === 1) return
+  
+  try {
+    const userId = userStore.userInfo?.userId
+    if (!userId) {
+      uniShowToast({ title: '未获取到用户ID', icon: 'none' })
+      return
+    }
+
+    // 显示加载中
+    uni.showLoading({ title: '设置中...', mask: true })
+    
+    // 调用设置默认接口
+    await patientApi.setDefaultPatient({ userId, patientId: patient.patientId })
+    
+    // 强制刷新列表 - 先清空再获取新数据
+    patientList.value = []
+    await new Promise(resolve => setTimeout(resolve, 50)) // 确保UI有机会更新
+    
+    // 获取更新后的列表
+    await getPatientList()
+    
+    // 显示成功提示
+    uni.hideLoading()
+    
+    // 使用setTimeout确保UI更新完成再显示提示
+    setTimeout(() => {
+      uniShowToast({ 
+        title: `已设置${patient.patientName}为默认就诊人`,
+        icon: 'success',
+        duration: 2000
+      })
+    }, 300)
+    
+  } catch (error) {
+    console.error('设置默认就诊卡失败:', error)
+    uni.hideLoading()
+    const errorMsg = error?.response?.data?.description || error?.message || '设置失败，请稍后重试'
+    uniShowToast({ 
+      title: errorMsg, 
+      icon: 'none',
+      duration: 2000
+    })
+  }
 }
 
 // 跳转到添加就诊人页面
@@ -261,12 +324,20 @@ onShow(() => {
   padding: 32rpx 24rpx;
   margin-bottom: 16rpx;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.patient-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
 }
 
 .patient-info {
   display: flex;
   align-items: center;
   flex: 1;
+  min-width: 0;
 }
 
 .avatar-container {
@@ -299,12 +370,35 @@ onShow(() => {
   display: flex;
   flex-direction: column;
   gap: 12rpx;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.name-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
 }
 
 .patient-name {
   font-size: 32rpx;
   font-weight: 600;
   color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300rpx;
+}
+
+.default-badge {
+  background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
+  color: #fff;
+  font-size: 20rpx;
+  padding: 6rpx 14rpx;
+  border-radius: 12rpx;
+  font-weight: 500;
+  box-shadow: 0 2rpx 6rpx rgba(82, 196, 26, 0.3);
 }
 
 .patient-id {
@@ -312,11 +406,63 @@ onShow(() => {
   color: #999;
 }
 
-.qrcode-wrapper {
+.action-buttons {
   flex-shrink: 0;
+  margin-left: 24rpx;
+}
+
+.set-default-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 8rpx;
+  background: linear-gradient(135deg, #3a9cff 0%, #2980e6 100%);
+  color: #fff;
+  font-size: 26rpx;
+  padding: 16rpx 28rpx;
+  border-radius: 24rpx;
+  white-space: nowrap;
+  box-shadow: 0 4rpx 12rpx rgba(58, 156, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.set-default-btn:active {
+  background: linear-gradient(135deg, #2980e6 0%, #1e6bb8 100%);
+  transform: scale(0.95);
+  box-shadow: 0 2rpx 8rpx rgba(58, 156, 255, 0.4);
+}
+
+.btn-icon {
+  font-size: 28rpx;
+  line-height: 1;
+}
+
+.btn-text {
+  font-weight: 500;
+  letter-spacing: 0.5rpx;
+}
+
+.default-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
+  color: #fff;
+  font-size: 24rpx;
+  padding: 16rpx 28rpx;
+  border-radius: 24rpx;
+  white-space: nowrap;
+  box-shadow: 0 4rpx 12rpx rgba(82, 196, 26, 0.3);
+}
+
+.indicator-icon {
+  font-size: 28rpx;
+  line-height: 1;
+  font-weight: bold;
+}
+
+.indicator-text {
+  font-weight: 500;
+  letter-spacing: 0.5rpx;
 }
 
 /* 底部统计和添加按钮 */

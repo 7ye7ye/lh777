@@ -3,20 +3,11 @@
     <!-- 顶部标题 -->
     <view class="page-header">
       <text class="header-title">预约挂号</text>
-      <!-- 就诊人选择器 - 小巧设计 -->
-      <view class="patient-selector-small">
-        <picker 
-          mode="selector" 
-          :range="patientList" 
-          range-key="patientName"
-          :value="selectedPatientIndex"
-          @change="onPatientChange"
-        >
-          <view class="picker-small">
-            <text class="picker-icon">👤</text>
-            <text class="picker-name">{{ currentPatient?.patientName || '选择就诊人' }}</text>
-          </view>
-        </picker>
+      <view class="header-right">
+        <button class="refresh-btn small" @click="refreshBookingData">
+          <text class="refresh-icon">⟳</text>
+          <text class="refresh-text">刷新</text>
+        </button>
       </view>
     </view>
 
@@ -35,6 +26,40 @@
           <text v-if="date.isToday" class="date-tag">今天</text>
         </view>
       </scroll-view>
+    </view>
+
+    <!-- 日期下方就诊人选择区域，靠右与科室树并行 -->
+    <view class="patient-inline-row">
+      <view class="patient-inline-right">
+        <view class="patient-selector-small inline">
+          <picker 
+            mode="selector" 
+            :range="patientList" 
+            range-key="patientName"
+            :value="selectedPatientIndex"
+            @change="onPatientChange"
+          >
+            <view class="picker-small">
+              <view class="picker-left">
+                <view class="picker-avatar">
+                  {{ getPatientInitial(currentPatient?.patientName) }}
+                </view>
+                <view class="picker-text">
+                  <text 
+                    class="picker-name" 
+                    :class="{ 'placeholder': !currentPatient?.patientName }"
+                  >
+                    {{ currentPatient?.patientName || '选择就诊人' }}
+                  </text>
+                </view>
+              </view>
+              <view class="picker-right">
+                <text class="picker-arrow">⌄</text>
+              </view>
+            </view>
+          </picker>
+        </view>
+      </view>
     </view>
 
     <!-- 主内容区域 - 双栏布局 -->
@@ -77,10 +102,14 @@
                     v-for="(child, childIndex) in department.children" 
                     :key="child.deptId || child.id"
                     class="secondary-department"
-                    :class="{ 'active': child.selected }"
-                    @click="selectDepartment(child)"
+                    :class="{
+                      'active': child.selected
+                    }"
+                    @click="onDeptClick(child)"
                   >
-                    <text class="department-name">{{ child.deptName }}</text>
+                    <text class="department-name">
+                      {{ child.deptName }}
+                    </text>
                   </view>
                 </view>
               </view>
@@ -97,7 +126,7 @@
                   v-for="(dept, index) in searchResults" 
                   :key="index"
                   class="search-result-item"
-                  @click="selectDepartment(dept)"
+                  @click="onDeptClick(dept)"
                 >
                   <text class="result-name">{{ dept.deptName }}</text>
                   <text class="result-desc">{{ dept.deptDesc }}</text>
@@ -133,12 +162,20 @@
             </view>
             <view v-else>
               <!-- 医生排班列表 -->
-              <view v-for="doctor in doctors" :key="doctor.id" class="doctor-item">
+              <view v-for="doctor in doctors" :key="doctor.id" class="doctor-item" :class="{ 'doctor-locked': getDoctorLimitState(doctor).locked }">
                 <!-- 医生基本信息 - 可点击跳转到详情 -->
                 <view class="doctor-info" @click="viewDoctorDetail(doctor)">
                   <view class="doctor-avatar">{{ getDoctorInitial(doctor.name || doctor.doctorName || '未知医生') }}</view>
                   <view class="doctor-details">
-                    <view class="doctor-name">{{ doctor.name || doctor.doctorName || '未知医生' }}</view>
+                    <view class="doctor-name">
+                      {{ doctor.name || doctor.doctorName || '未知医生' }}
+                      <text 
+                        v-if="getDoctorLimitState(doctor).locked" 
+                        class="doctor-limit-text"
+                      >
+                        {{ getDoctorLimitState(doctor).label }}
+                      </text>
+                    </view>
                     <view class="doctor-title-row">
                       <text class="doctor-title">{{ doctor.title || '医师' }}</text>
                       <text v-if="getDoctorTypeName(doctor)" class="doctor-type-name">
@@ -167,18 +204,21 @@
                       :key="slot.key"
                       class="time-slot-item" 
                       :class="{ 
-                        'clickable': getSlotByTimeRange(doctor.id, slot.key)?.availableSlots > 0 && !getSlotByTimeRange(doctor.id, slot.key)?.expired && !hasBookedSameDoctorToday(doctor.id || doctor.doctorId),
+                        'clickable': (getSlotByTimeRange(doctor.id, slot.key)?.availableSlots > 0 && !getSlotByTimeRange(doctor.id, slot.key)?.expired && !getSlotLimitStateByKey(doctor, slot.key).disabled) || (getSlotByTimeRange(doctor.id, slot.key) && !getSlotByTimeRange(doctor.id, slot.key)?.expired && getSlotByTimeRange(doctor.id, slot.key)?.availableSlots === 0 && !getSlotLimitStateByKey(doctor, slot.key).disabled),
                         'expired': getSlotByTimeRange(doctor.id, slot.key)?.expired,
                         'no-slot': !getSlotByTimeRange(doctor.id, slot.key),
                         'full': getSlotByTimeRange(doctor.id, slot.key) && !getSlotByTimeRange(doctor.id, slot.key)?.expired && getSlotByTimeRange(doctor.id, slot.key)?.availableSlots === 0,
-                        'disabled': hasBookedSameDoctorToday(doctor.id || doctor.doctorId)
+                        'disabled': getSlotLimitStateByKey(doctor, slot.key).disabled
                       }"
-                      @click="navigateToPayment(doctor, getSlotByTimeRange(doctor.id, slot.key), slot.timeText)"
+                      @click="onSlotClick(doctor, slot)"
                     >
                       <view class="slot-info">
                         <text class="slot-label">{{ slot.label }}</text>
-                        <text v-if="hasBookedSameDoctorToday(doctor.id || doctor.doctorId)" class="slot-reason">
-                          已预约过该医生当天的号
+                        <text 
+                          v-if="getSlotLimitStateByKey(doctor, slot.key).disabled && getSlotLimitStateByKey(doctor, slot.key).reason" 
+                          class="slot-reason"
+                        >
+                          {{ getSlotLimitStateByKey(doctor, slot.key).reason }}
                         </text>
                       </view>
                       <!-- 状态显示 -->
@@ -188,8 +228,8 @@
                       <text v-else-if="getSlotByTimeRange(doctor.id, slot.key)?.expired" class="slot-status expired">
                         已过预约时间
                       </text>
-                      <text v-else-if="hasBookedSameDoctorToday(doctor.id || doctor.doctorId)" class="slot-status disabled">
-                        已预约
+                      <text v-else-if="getSlotLimitStateByKey(doctor, slot.key).disabled" class="slot-status disabled">
+                        {{ getSlotLimitStateByKey(doctor, slot.key).reason || '已禁用' }}
                       </text>
                       <text v-else-if="getSlotByTimeRange(doctor.id, slot.key)?.availableSlots === 0" class="slot-status full">
                         已满
@@ -213,10 +253,11 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { getDepartmentTree } from '@/api/department'
 import { getDoctorsByDeptId, getDoctorDetail } from '@/api/doctor'
 import { scheduleApi } from '@/api/schedule'
-import { getDoctorSchedules, getRegistrationTypes, getRegistrationRecords, checkDeptLimitBySchedule } from '@/api/registration'
+import { getDoctorSchedules, getRegistrationTypes, getRegistrationRecords, checkDuplicateBySchedule, checkDeptLimitBySchedule, createRegistration } from '@/api/registration'
 import { ensurePatientCard } from '@/utils/patientHelper'
 import { patientApi } from '@/api/patient'
 import { useUserStore } from '@/store/user'
@@ -226,6 +267,21 @@ const getDoctorInitial = (name) => {
   if (!name || name.length === 0) return '医';
   // 获取姓或名的第一个字符
   return name.charAt(0);
+}
+
+// 生成就诊人头像初始化字母
+const getPatientInitial = (name) => {
+  if (!name || name.length === 0) return '选';
+  return name.charAt(0);
+}
+
+// 将时间文本映射为 slotKey（上午/下午/晚上）
+const slotKeyFromTimeText = (timeText) => {
+  if (!timeText) return ''
+  if (timeText.includes('上午') || timeText.includes('08:')) return '上午'
+  if (timeText.includes('下午') || timeText.includes('14:')) return '下午'
+  if (timeText.includes('晚上') || timeText.includes('18:')) return '晚上'
+  return ''
 }
 
 const searchKeyword = ref('')
@@ -243,6 +299,9 @@ const dateList = ref([])
 const registrationTypeNameMap = ref({})
 const patientId = ref(null)
 const patientRecords = ref([]) // 患者当天的挂号记录
+const DAILY_TOTAL_LIMIT = 3
+const DAILY_DOCTOR_LIMIT = 1
+const DAILY_DEPT_LIMIT = 2
 const loadingRecords = ref(false)
 const patientList = ref([]) // 就诊人列表
 const currentPatient = ref(null) // 当前选择的就诊人
@@ -266,6 +325,9 @@ const loadRegistrationTypeNameMap = async () => {
   }
 }
 
+// 工具：两位数补零
+const pad = (n) => n.toString().padStart(2, '0')
+
 // 初始化日期列表（未来7天）
 const initDateList = () => {
   const dates = []
@@ -280,7 +342,7 @@ const initDateList = () => {
     const weekDay = weekDays[date.getDay()]
     
     dates.push({
-      date: date.toISOString().split('T')[0],
+      date: `${date.getFullYear()}-${pad(month)}-${pad(day)}`,
       day: `${month}.${day}`,
       week: weekDay,
       isToday: i === 0
@@ -473,7 +535,442 @@ const viewDoctorDetail = async (doctor) => {
     return schedules.find(slot => slot.timeRange === timeRange);
   };
 
+  const extractRecordDoctorId = (record) => {
+    return Number(
+      record?.doctor_id ??
+      record?.doctorId ??
+      record?.doctor_id ??
+      record?.doctor?.id ??
+      record?.doctor?.doctorId
+    )
+  }
+
+  const extractRecordDeptId = (record) => {
+    return Number(
+      record?.dept_id ??
+      record?.deptId ??
+      record?.departmentId ??
+      record?.department_id ??
+      record?.department?.id ??
+      record?.dept?.deptId
+    )
+  }
+
+  const getDoctorIdFromDoctor = (doctor) => {
+    return Number(doctor?.doctorId ?? doctor?.id ?? doctor?.doctor_id)
+  }
+
+  const getDeptIdFromContext = (doctor, schedule) => {
+    return Number(
+      selectedDepartment.value?.deptId ??
+      selectedDepartment.value?.id ??
+      selectedDeptId.value ??
+      doctor?.deptId ??
+      doctor?.departmentId ??
+      doctor?.dept_id ??
+      schedule?.deptId ??
+      schedule?.departmentId ??
+      schedule?.dept_id
+    )
+  }
+
+  const getPatientTotalCountToday = () => patientRecords.value.length
+
+  const getPatientDoctorCountToday = (doctorId) => {
+    if (!doctorId) return 0
+    return patientRecords.value.filter(r => extractRecordDoctorId(r) === Number(doctorId)).length
+  }
+
+  const getPatientDeptCountToday = (deptId) => {
+    if (!deptId) return 0
+    return patientRecords.value.filter(r => extractRecordDeptId(r) === Number(deptId)).length
+  }
+
+// 获取科室锁定状态（暂不展示上限提示）
+const getDeptLimitState = () => ({
+  locked: false,
+  type: '',
+  label: '',
+  toast: '',
+  modalTitle: '',
+  modalContent: ''
+})
+
+// 获取医生锁定状态（暂不展示上限提示）
+const getDoctorLimitState = () => ({
+  locked: false,
+  type: '',
+  label: '',
+  toast: '',
+  modalTitle: '',
+  modalContent: ''
+})
+
+const showDuplicateAppointmentModal = (recordId = null) => {
+  // 确保 recordId 是有效的数字或字符串
+  const validRecordId = recordId && (Number(recordId) || String(recordId).trim()) ? recordId : null
+  
+  const content = validRecordId 
+    ? '您已预约过此号，不可重复预约。如需查看已预约的详情，请点击"查看详情"按钮。'
+    : '您已预约过此号，不可重复预约。'
+  
+  console.log('🔔 显示预约上限弹窗 - recordId:', validRecordId, '原始recordId:', recordId)
+  
+  uni.showModal({
+    title: '预约已达上限',
+    content: content,
+    showCancel: true,
+    cancelText: '确定',
+    confirmText: validRecordId ? '查看详情' : undefined,
+    success: (res) => {
+      if (res.confirm && validRecordId) {
+        // 跳转到就诊详情页面
+        const targetUrl = `/subpkg/profile/records/hospital-record-detail?id=${validRecordId}`
+        console.log('🔗 跳转到就诊详情页面:', targetUrl)
+        uni.navigateTo({
+          url: targetUrl,
+          success: () => {
+            console.log('✅ 成功跳转到就诊详情页面')
+          },
+          fail: (err) => {
+            console.error('❌ 跳转到就诊详情页面失败:', err)
+            uni.showToast({
+              title: '跳转失败，请稍后重试',
+              icon: 'none'
+            })
+          }
+        })
+      } else if (res.confirm && !validRecordId) {
+        console.warn('⚠️ 未找到预约记录ID，无法跳转')
+        uni.showToast({
+          title: '未找到预约记录',
+          icon: 'none'
+        })
+      }
+    }
+  })
+}
+
+// 获取当前时段是否受限及原因（仅保留重复时段校验）
+const getSlotLimitState = (doctor, schedule, slotKeyOverride) => {
+  const doctorId = getDoctorIdFromDoctor(doctor)
+  const slotKey = slotKeyOverride || schedule?.timeRangeKey || schedule?.slotKey
+  if (slotKey && doctorId && hasBookedSameSlot(doctorId, selectedDate.value, slotKey)) {
+    return { disabled: true, reason: '已预约该时段', type: 'slot' }
+  }
+  return { disabled: false, reason: '', type: '' }
+}
+
+const getSlotLimitStateByKey = (doctor, slotKey) => {
+  const schedule = getSlotByTimeRange(doctor.id, slotKey)
+  return getSlotLimitState(doctor, schedule, slotKey)
+}
+
+  // 点击科室时不再做锁定拦截，直接切换科室查看
+  const onDeptClick = (dept) => {
+    selectDepartment(dept)
+  }
+
+  // 点击号源时的统一处理（包含锁定判断）
+  const onSlotClick = async (doctor, slot) => {
+    // 点击前先刷新当日记录，确保限制判断使用最新数据
+    await loadPatientRecords()
+    const schedule = getSlotByTimeRange(doctor.id, slot.key)
+    const limitState = getSlotLimitStateByKey(doctor, slot.key)
+
+    // 规则锁定优先处理（仅保留重复时段提醒）
+    if (limitState.disabled) {
+      // 查找对应的已预约记录
+      const slotKeyForSearch = slot.key
+      const doctorIdNumForSearch = Number(doctor.doctorId || doctor.id)
+      const duplicateRecord = patientRecords.value.find(r => {
+        const recordDoctorId = Number(r.doctor_id || r.doctorId)
+        const recordDateRaw = r.schedule_date || r.scheduleDate || r.register_time || r.registerTime || r.schedule_time || r.scheduleTime || ''
+        const recordDateStr = normalizeDateOnly(recordDateRaw)
+        const recordSlotKey = slotKeyFromTimeText(r.time_range || r.timeRange || r.time_slot || r.timeSlot || '')
+        return recordDoctorId === doctorIdNumForSearch && 
+               recordDateStr === normalizeDateOnly(selectedDate.value) &&
+               recordSlotKey === slotKeyForSearch
+      })
+      const recordId = duplicateRecord?.record_id || duplicateRecord?.recordId || duplicateRecord?.id || duplicateRecord?.registration_id || duplicateRecord?.registrationId || duplicateRecord?.registrationRecordId
+      
+      console.log('🔍 时段重复检查 - doctorId:', doctorIdNumForSearch, 'slotKey:', slotKeyForSearch, '找到记录:', duplicateRecord, 'recordId:', recordId)
+      
+      showDuplicateAppointmentModal(recordId)
+      return
+    }
+
+    // 已过预约时间，不可选
+    if (schedule && schedule.expired) {
+      uni.showToast({
+        title: '该时段预约已截止',
+        icon: 'none'
+      })
+      return
+    }
+
+    // 无排班不可选
+    if (!schedule) {
+      uni.showToast({
+        title: '该时段暂无排班',
+        icon: 'none'
+      })
+      return
+    }
+
+    // 有排班但已满 → 可以候补
+    if (schedule.availableSlots === 0) {
+      // 获取就诊人ID
+      let currentPatientId = patientId.value
+      if (!currentPatientId) {
+        try {
+          const patientInfo = await ensurePatientCard()
+          if (patientInfo && patientInfo.patientId) {
+            currentPatientId = Number(patientInfo.patientId)
+            patientId.value = currentPatientId
+          } else {
+            uni.showModal({
+              title: '就诊人信息缺失',
+              content: '未找到就诊人信息，请先创建并绑定就诊卡',
+              showCancel: false,
+              success: () => {
+                uni.navigateTo({
+                  url: '/subpkg/profile/personal/create-card'
+                })
+              }
+            })
+            return
+          }
+        } catch (error) {
+          console.error('获取就诊人信息失败:', error)
+          uni.showModal({
+            title: '就诊人信息缺失',
+            content: '获取就诊人信息失败，请先创建并绑定就诊卡',
+            showCancel: false,
+            success: () => {
+              uni.navigateTo({
+                url: '/subpkg/profile/personal/create-card'
+              })
+            }
+          })
+          return
+        }
+      }
+
+      // 确保挂号记录最新（防止跨页面后数据滞后）
+      await loadPatientRecords()
+
+      const scheduleIdForCheck = Number(schedule?.scheduleId ?? schedule?.id ?? schedule?.schedule_id)
+
+      // 1️⃣ 优先检查：是否已预约过该号（同一排班）- 重复预约显示详细提示
+      if (scheduleIdForCheck) {
+        try {
+          const duplicate = await checkDuplicateBySchedule(currentPatientId, scheduleIdForCheck)
+          if (duplicate) {
+            // 重新加载记录以确保数据最新
+            await loadPatientRecords()
+            
+            // 查找对应的已预约记录（优先从当天记录中查找）
+            let duplicateRecord = patientRecords.value.find(r => {
+              const recordScheduleId = Number(r.schedule_id || r.scheduleId || r.schedule_id)
+              return recordScheduleId === scheduleIdForCheck
+            })
+            
+            // 如果当天记录中找不到，尝试从所有记录中查找（不限制日期）
+            if (!duplicateRecord && currentPatientId) {
+              try {
+                const allRecords = await getRegistrationRecords(currentPatientId)
+                if (Array.isArray(allRecords)) {
+                  duplicateRecord = allRecords.find(r => {
+                    const recordScheduleId = Number(r.schedule_id || r.scheduleId || r.schedule_id)
+                    return recordScheduleId === scheduleIdForCheck
+                  })
+                }
+              } catch (err) {
+                console.warn('获取所有记录失败:', err)
+              }
+            }
+            
+            const recordId = duplicateRecord?.record_id || duplicateRecord?.recordId || duplicateRecord?.id || duplicateRecord?.registration_id || duplicateRecord?.registrationId || duplicateRecord?.registrationRecordId
+            
+            console.log('🔍 候补-重复预约检查 - scheduleId:', scheduleIdForCheck, '找到记录:', duplicateRecord, 'recordId:', recordId)
+            
+            uni.showModal({
+              title: '预约已达上限',
+              content: '您已预约过此号，不可重复预约。如需查看已预约的详情，请点击"查看详情"按钮。',
+              showCancel: true,
+              cancelText: '确定',
+              confirmText: recordId ? '查看详情' : undefined,
+              success: (res) => {
+                if (res.confirm && recordId) {
+                  // 跳转到就诊详情页面
+                  uni.navigateTo({
+                    url: `/subpkg/profile/records/hospital-record-detail?id=${recordId}`
+                  })
+                } else if (res.confirm && !recordId) {
+                  uni.showToast({
+                    title: '未找到预约记录',
+                    icon: 'none'
+                  })
+                }
+              }
+            })
+            return
+          }
+        } catch (error) {
+          console.error('候补-检查重复挂号失败:', error)
+          // 即使检查失败，也继续候补流程，但记录错误
+        }
+      }
+
+      // 2️⃣ 检查是否达到当日总次数限制（一天预约三个号）
+      const totalCountToday = getPatientTotalCountToday()
+      console.log('📊 候补-当日总预约次数:', totalCountToday, '上限:', DAILY_TOTAL_LIMIT)
+      if (totalCountToday >= DAILY_TOTAL_LIMIT) {
+        uni.showToast({
+          title: '超过挂号限制',
+          icon: 'none'
+        })
+        return
+      }
+
+      // 3️⃣ 检查是否达到科室单日限制（同一科室一天预约两次）
+      const deptIdForCount = getDeptIdFromContext(doctor, schedule)
+      const deptCountToday = deptIdForCount ? getPatientDeptCountToday(deptIdForCount) : 0
+      console.log('📊 候补-当日科室预约次数:', deptCountToday, '上限:', DAILY_DEPT_LIMIT, '科室ID:', deptIdForCount)
+      
+      if (deptIdForCount && deptCountToday >= DAILY_DEPT_LIMIT) {
+        uni.showToast({
+          title: '超过挂号限制',
+          icon: 'none'
+        })
+        return
+      }
+
+      uni.showModal({
+        title: '号源已满',
+        content: '该时段已无可用号源，您可以选择加入候补队列',
+        cancelText: '取消',
+        confirmText: '加入候补',
+        async success(res) {
+          if (res.confirm) {
+            // 检查是否有选中排班
+            if (!schedule) {
+              console.error("schedule 为空，无法获取排班 ID");
+              uni.showToast({
+                title: '候补失败：未找到排班',
+                icon: 'none'
+              });
+              return;
+            }
+
+            try {
+              const scheduleId = schedule.scheduleId ?? schedule.id ?? schedule.schedule_id
+              if (!scheduleId) {
+                uni.showToast({
+                  title: '候补失败：未找到排班ID',
+                  icon: 'none'
+                });
+                return;
+              }
+
+              const fee = 20; // 候补费用
+              const typeId = schedule.typeId ?? schedule.type_id ?? 1
+
+              // 构建挂号记录对象
+              const record = {
+                scheduleId,
+                patientId: currentPatientId,
+                doctorId: doctor.doctorId ?? doctor.id,
+                typeId: typeId,
+                registrationNo: generateRegistrationNo(doctor), // 前端生成或后端生成都可以
+                registerTime: formatLocalDateTime(new Date()), // YYYY-MM-DD HH:mm:ss
+                status: 0, // 候补
+                priceOriginal: fee,
+                actualPrice: fee,
+                isAdd: 0 // 正常号
+              };
+
+              // 写入挂号记录
+              const regRes = await createRegistration(record, currentPatientId, true);
+              console.log('createRegistration返回值', regRes);
+
+              // 判断接口返回值
+              if ((typeof regRes === 'string' && regRes.includes('已加入候补队列')) || regRes?.success) {
+                uni.showToast({
+                  title: '已加入候补队列',
+                  icon: 'success'
+                });
+                console.log('候补挂号写入成功', {
+                  regRes
+                });
+                // 刷新排班信息
+                await fetchDoctorSchedules(doctor.id, selectedDate.value)
+                // 刷新患者记录
+                await loadPatientRecords()
+              } else {
+                // 优先显示具体错误原因
+                let errorMsg = '加入候补失败';
+                if (typeof regRes === 'string') errorMsg = regRes;
+                else if (regRes?.message) errorMsg = `挂号记录失败：${regRes.message}`;
+
+                uni.showToast({
+                  title: errorMsg,
+                  icon: 'none'
+                });
+                console.warn('候补写入部分失败', {
+                  regRes
+                });
+              }
+
+            } catch (e) {
+              console.error('加入候补异常', e);
+              uni.showToast({
+                title: e?.message || '加入候补失败，请稍后重试',
+                icon: 'none'
+              });
+            }
+          }
+        }
+      });
+
+      return
+    }
+
+    navigateToPayment(doctor, schedule, slot.timeText)
+  }
+
   // 加载患者当天的挂号记录
+  const normalizeDateOnly = (val) => {
+    if (!val) return ''
+    const s = String(val).trim()
+    // 如果已经是 yyyy-MM-dd 格式，直接返回
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      return s
+    }
+    // 取前 10 位 yyyy-MM-dd
+    if (s.length >= 10) {
+      const datePart = s.substring(0, 10)
+      // 验证格式是否正确
+      if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+        return datePart
+      }
+    }
+    // 尝试解析日期
+    try {
+      const date = new Date(s.replace(' ', 'T'))
+      if (!isNaN(date.getTime())) {
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      }
+    } catch (e) {
+      console.warn('日期格式化失败:', s, e)
+    }
+    return s.substring(0, 10) || s
+  }
+
   const loadPatientRecords = async () => {
     if (!patientId.value || !selectedDate.value) {
       patientRecords.value = []
@@ -482,23 +979,67 @@ const viewDoctorDetail = async (doctor) => {
 
     try {
       loadingRecords.value = true
-      const records = await getRegistrationRecords(patientId.value)
+      const response = await getRegistrationRecords(patientId.value)
       
-      // 过滤出当天的记录（状态不为3，即未取消）
-      const dateStr = selectedDate.value.substring(0, 10)
-      patientRecords.value = Array.isArray(records) 
-        ? records.filter(r => {
-            const recordDate = r.schedule_date || r.scheduleDate || r.register_time
-            if (!recordDate) return false
-            const recordDateStr = typeof recordDate === 'string' 
-              ? recordDate.substring(0, 10) 
-              : recordDate
-            return recordDateStr === dateStr && r.status !== 3
-          })
-        : []
+      // 处理不同的响应格式
+      let records = []
+      if (Array.isArray(response)) {
+        records = response
+      } else if (Array.isArray(response?.result)) {
+        records = response.result
+      } else if (Array.isArray(response?.data)) {
+        records = response.data
+      } else {
+        console.warn('获取挂号记录返回格式异常:', response)
+        records = []
+      }
+      
+      // 过滤出当天的记录（状态保持与后端一致：0/1/2/5/6 视为有效，过滤3/4取消类）
+      const dateStr = normalizeDateOnly(selectedDate.value)
+      const VALID_STATUS = [0, 1, 2, 5, 6]
+      
+      console.log('📋 开始过滤记录 - 日期:', dateStr, '总记录数:', records.length)
+      
+      patientRecords.value = records.filter(r => {
+        const recordDate = r.schedule_date || r.scheduleDate || r.register_time || r.registerTime || r.schedule_time || r.scheduleTime
+        if (!recordDate) {
+          console.log('⚠️ 记录缺少日期字段:', r)
+          return false
+        }
+        const recordDateStr = normalizeDateOnly(recordDate)
+        const status = Number(r.status)
+        const validStatus = isNaN(status) ? true : VALID_STATUS.includes(status)
+        const matches = recordDateStr === dateStr && validStatus
+        
+        if (!matches && recordDateStr === dateStr) {
+          console.log('⚠️ 记录日期匹配但状态无效:', { recordDateStr, status, validStatus, record: r })
+        }
+        
+        return matches
+      })
+      
+      console.log('📋 加载患者记录完成 - 日期:', dateStr, '过滤后记录数:', patientRecords.value.length, '总记录数:', records.length)
+      
+      // 如果过滤后记录数为 0，但总记录数不为 0，输出调试信息
+      if (patientRecords.value.length === 0 && records.length > 0) {
+        console.warn('⚠️ 过滤后记录数为 0，但总记录数不为 0，可能过滤条件过严')
+        // 输出前几条记录的日期和状态，便于调试
+        records.slice(0, 5).forEach((r, index) => {
+          const recordDate = r.schedule_date || r.scheduleDate || r.register_time || r.registerTime || r.schedule_time || r.scheduleTime
+          const recordDateStr = normalizeDateOnly(recordDate)
+          const status = Number(r.status)
+          console.log(`  记录 ${index + 1}: 日期=${recordDateStr}, 状态=${status}, 匹配日期=${recordDateStr === dateStr}`)
+        })
+      }
     } catch (error) {
       console.error('加载患者挂号记录失败:', error)
       patientRecords.value = []
+      // 即使加载失败，也显示错误提示
+      uni.showToast({
+        title: '加载预约记录失败',
+        icon: 'none',
+        duration: 2000
+      })
     } finally {
       loadingRecords.value = false
     }
@@ -515,48 +1056,26 @@ const viewDoctorDetail = async (doctor) => {
     })
   }
 
-  // 检查是否已预约过该科室当天的号
-  const hasBookedSameDeptToday = async (scheduleId) => {
-    if (!patientId.value || !scheduleId) return false
-    
-    try {
-      const hasBooked = await checkDeptLimitBySchedule(patientId.value, scheduleId)
-      return hasBooked === true || hasBooked === 1
-    } catch (error) {
-      console.error('检查科室预约限制失败:', error)
-      return false
-    }
-  }
-
-  // 获取时段禁用状态和理由
-  const getSlotDisabledInfo = async (doctor, schedule) => {
-    if (!schedule || !doctor) {
-      return { disabled: false, reason: '' }
-    }
-
-    const doctorIdNum = Number(doctor.doctorId || doctor.id)
-    
-    // 检查是否已预约过该医生当天的号
-    if (hasBookedSameDoctorToday(doctorIdNum)) {
-      return { 
-        disabled: true, 
-        reason: '已预约过该医生当天的号' 
-      }
-    }
-
-    // 检查是否已预约过该科室当天的号
-    const scheduleId = schedule.scheduleId || schedule.id || schedule.schedule_id
-    if (scheduleId) {
-      const hasBookedDept = await hasBookedSameDeptToday(scheduleId)
-      if (hasBookedDept) {
-        return { 
-          disabled: false, // 不禁用，但需要确认
-          reason: '已预约过该科室当天的号，继续预约需要确认' 
-        }
-      }
-    }
-
-    return { disabled: false, reason: '' }
+  // 是否已预约相同医生同一天同时间段
+  const hasBookedSameSlot = (doctorId, dateStr, slotKey) => {
+    if (!patientRecords.value.length) return false
+    const targetDoctorId = Number(doctorId)
+    const dateOnly = normalizeDateOnly(dateStr)
+    return patientRecords.value.some(r => {
+      const recordDoctorId = Number(r.doctor_id || r.doctorId)
+      const recordDateRaw = r.schedule_date || r.scheduleDate || r.register_time || r.registerTime || r.schedule_time || r.scheduleTime || ''
+      const recordDate = normalizeDateOnly(recordDateRaw)
+      const timeText = (r.timeRange || r.time_range || r.schedule_time_range || r.scheduleTimeRange || r.register_time || r.registerTime || r.schedule_time || r.scheduleTime || '').toString()
+      const matchSlot =
+        slotKey === '上午'
+          ? timeText.includes('08:') || timeText.includes('上午')
+          : slotKey === '下午'
+          ? timeText.includes('14:') || timeText.includes('下午')
+          : slotKey === '晚上'
+          ? timeText.includes('18:') || timeText.includes('晚上')
+          : false
+      return recordDoctorId === targetDoctorId && recordDate === dateOnly && matchSlot
+    })
   }
 
   // 获取医生的号别类型名称（从排班数据中提取）
@@ -605,17 +1124,6 @@ const viewDoctorDetail = async (doctor) => {
       return
     }
 
-    // 检查是否已预约过该医生当天的号
-    const doctorIdNum = Number(doctor.doctorId || doctor.id)
-    if (hasBookedSameDoctorToday(doctorIdNum)) {
-      uni.showToast({
-        title: '已预约过该医生当天的号，不能重复预约',
-        icon: 'none',
-        duration: 2000
-      })
-      return
-    }
-    
     // 获取就诊人ID
     let currentPatientId = patientId.value
     if (!currentPatientId) {
@@ -656,24 +1164,275 @@ const viewDoctorDetail = async (doctor) => {
       }
     }
 
-    // 检查是否已预约过该科室当天的号，如果是第二个科室预约，需要确认
-    const scheduleId = schedule?.scheduleId ?? schedule?.id ?? schedule?.schedule_id ?? 0
-    if (scheduleId) {
-      const hasBookedDept = await hasBookedSameDeptToday(scheduleId)
-      if (hasBookedDept) {
-        uni.showModal({
-          title: '重复科室预约提醒',
-          content: '该就诊人当天已在本科室预约过一次，如继续预约可能导致重复就诊，确定要继续吗？',
-          confirmText: '继续预约',
-          cancelText: '取消',
-          success: async (res) => {
-            if (res.confirm) {
-              await proceedToPayment(doctor, schedule, timeText, currentPatientId)
+    // 确保挂号记录最新（防止跨页面后数据滞后）
+    try {
+      await loadPatientRecords()
+    } catch (error) {
+      console.error('加载患者记录失败:', error)
+      // 即使加载失败，也继续检查，但记录错误
+    }
+
+    const scheduleIdForCheck = Number(schedule?.scheduleId ?? schedule?.id ?? schedule?.schedule_id)
+    
+    // 1️⃣ 检查是否已预约过该号（同一排班）- 重复预约显示详细提示
+    if (scheduleIdForCheck) {
+      try {
+        const duplicate = await checkDuplicateBySchedule(currentPatientId, scheduleIdForCheck)
+        if (duplicate) {
+          // 重新加载记录以确保数据最新
+          try {
+            await loadPatientRecords()
+          } catch (error) {
+            console.error('重新加载患者记录失败:', error)
+          }
+          
+          // 查找对应的已预约记录（优先从当天记录中查找）
+          let duplicateRecord = patientRecords.value.find(r => {
+            const recordScheduleId = Number(r.schedule_id || r.scheduleId || r.schedule_id)
+            return recordScheduleId === scheduleIdForCheck
+          })
+          
+          // 如果当天记录中找不到，尝试从所有记录中查找（不限制日期）
+          if (!duplicateRecord && currentPatientId) {
+            try {
+              const allRecords = await getRegistrationRecords(currentPatientId)
+              if (Array.isArray(allRecords)) {
+                duplicateRecord = allRecords.find(r => {
+                  const recordScheduleId = Number(r.schedule_id || r.scheduleId || r.schedule_id)
+                  return recordScheduleId === scheduleIdForCheck
+                })
+              }
+            } catch (err) {
+              console.warn('获取所有记录失败:', err)
             }
           }
+          
+          const recordId = duplicateRecord?.record_id || duplicateRecord?.recordId || duplicateRecord?.id || duplicateRecord?.registration_id || duplicateRecord?.registrationId || duplicateRecord?.registrationRecordId
+          
+          console.log('🔍 重复预约检查 - scheduleId:', scheduleIdForCheck, '找到记录:', duplicateRecord, 'recordId:', recordId)
+          
+          uni.showModal({
+            title: '预约已达上限',
+            content: '您已预约过此号，不可重复预约。如需查看已预约的详情，请点击"查看详情"按钮。',
+            showCancel: true,
+            cancelText: '确定',
+            confirmText: recordId ? '查看详情' : undefined,
+            success: (res) => {
+              if (res.confirm && recordId) {
+                // 跳转到就诊详情页面
+                uni.navigateTo({
+                  url: `/subpkg/profile/records/hospital-record-detail?id=${recordId}`
+                })
+              } else if (res.confirm && !recordId) {
+                uni.showToast({
+                  title: '未找到预约记录',
+                  icon: 'none'
+                })
+              }
+            }
+          })
+          return
+        }
+      } catch (error) {
+        console.error('检查重复挂号失败:', error)
+        uni.showToast({
+          title: '超过挂号限制',
+          icon: 'none'
         })
         return
       }
+    }
+
+    // 2️⃣ 检查是否达到当日总次数限制（一天预约三个号）
+    try {
+      await loadPatientRecords()
+    } catch (error) {
+      console.error('检查前加载患者记录失败:', error)
+    }
+    
+    const totalCountToday = getPatientTotalCountToday()
+    console.log('📊 当日总预约次数:', totalCountToday, '上限:', DAILY_TOTAL_LIMIT)
+    
+    if (totalCountToday >= DAILY_TOTAL_LIMIT) {
+      uni.showToast({
+        title: '超过挂号限制',
+        icon: 'none'
+      })
+      return
+    }
+
+    // 3️⃣ 检查是否达到科室单日限制（同一科室一天预约两次）
+    const deptIdForCount = getDeptIdFromContext(doctor, schedule)
+    const deptCountToday = deptIdForCount ? getPatientDeptCountToday(deptIdForCount) : 0
+    console.log('📊 当日科室预约次数:', deptCountToday, '上限:', DAILY_DEPT_LIMIT, '科室ID:', deptIdForCount)
+    
+    if (deptIdForCount && deptCountToday >= DAILY_DEPT_LIMIT) {
+      uni.showToast({
+        title: '超过挂号限制',
+        icon: 'none'
+      })
+      return
+    }
+    
+    // 4️⃣ 后端校验科室限制（更准确）
+    if (deptIdForCount && scheduleIdForCheck) {
+      try {
+        const reachedDeptLimit = await checkDeptLimitBySchedule(currentPatientId, scheduleIdForCheck)
+        if (reachedDeptLimit) {
+          uni.showToast({
+            title: '超过挂号限制',
+            icon: 'none'
+          })
+          return
+        }
+      } catch (error) {
+        console.warn('检查科室单日限约失败', error)
+      }
+    }
+
+    // 4️⃣ 强化重复预约校验（同患者/同医生/同日/同时间段不可重复）- 重复预约显示详细提示
+    const slotKeyCandidate =
+      schedule?.timeRangeKey ||
+      schedule?.slotKey ||
+      slotKeyFromTimeText(timeText) ||
+      schedule?.timeRange
+    const doctorIdNumForRepeat = Number(doctor.doctorId || doctor.id)
+    if (slotKeyCandidate && doctorIdNumForRepeat && hasBookedSameSlot(doctorIdNumForRepeat, selectedDate.value, slotKeyCandidate)) {
+      // 重新加载记录以确保数据最新
+      await loadPatientRecords()
+      
+      // 查找对应的已预约记录（优先从当天记录中查找）
+      let duplicateRecord = patientRecords.value.find(r => {
+        const recordDoctorId = Number(r.doctor_id || r.doctorId)
+        const recordDateRaw = r.schedule_date || r.scheduleDate || r.register_time || r.registerTime || r.schedule_time || r.scheduleTime || ''
+        const recordDateStr = normalizeDateOnly(recordDateRaw)
+        const recordSlotKey = slotKeyFromTimeText(r.time_range || r.timeRange || r.time_slot || r.timeSlot || '')
+        return recordDoctorId === doctorIdNumForRepeat && 
+               recordDateStr === normalizeDateOnly(selectedDate.value) &&
+               recordSlotKey === slotKeyCandidate
+      })
+      
+      // 如果当天记录中找不到，尝试从所有记录中查找（不限制日期）
+      if (!duplicateRecord && currentPatientId) {
+        try {
+          const allRecords = await getRegistrationRecords(currentPatientId)
+          if (Array.isArray(allRecords)) {
+            duplicateRecord = allRecords.find(r => {
+              const recordDoctorId = Number(r.doctor_id || r.doctorId)
+              const recordDateRaw = r.schedule_date || r.scheduleDate || r.register_time || r.registerTime || r.schedule_time || r.scheduleTime || ''
+              const recordDateStr = normalizeDateOnly(recordDateRaw)
+              const recordSlotKey = slotKeyFromTimeText(r.time_range || r.timeRange || r.time_slot || r.timeSlot || '')
+              return recordDoctorId === doctorIdNumForRepeat && 
+                     recordDateStr === normalizeDateOnly(selectedDate.value) &&
+                     recordSlotKey === slotKeyCandidate
+            })
+          }
+        } catch (err) {
+          console.warn('获取所有记录失败:', err)
+        }
+      }
+      
+      const recordId = duplicateRecord?.record_id || duplicateRecord?.recordId || duplicateRecord?.id || duplicateRecord?.registration_id || duplicateRecord?.registrationId || duplicateRecord?.registrationRecordId
+      
+      console.log('🔍 时间段重复检查 - doctorId:', doctorIdNumForRepeat, 'slotKey:', slotKeyCandidate, '找到记录:', duplicateRecord, 'recordId:', recordId)
+      
+      uni.showModal({
+        title: '预约已达上限',
+        content: '您已预约过此号，不可重复预约。如需查看已预约的详情，请点击"查看详情"按钮。',
+        showCancel: true,
+        cancelText: '确定',
+        confirmText: recordId ? '查看详情' : undefined,
+        success: (res) => {
+          if (res.confirm && recordId) {
+            // 跳转到就诊详情页面
+            uni.navigateTo({
+              url: `/subpkg/profile/records/hospital-record-detail?id=${recordId}`
+            })
+          } else if (res.confirm && !recordId) {
+            uni.showToast({
+              title: '未找到预约记录',
+              icon: 'none'
+            })
+          }
+        }
+      })
+      return
+    }
+
+    // 5️⃣ 二次校验：按钮级拦截 - 重复预约显示详细提示
+    const latestLimit = getSlotLimitStateByKey(doctor, slotKeyFromTimeText(timeText))
+    if (latestLimit.disabled) {
+      // 重新加载记录以确保数据最新
+      await loadPatientRecords()
+      
+      // 查找对应的已预约记录（优先从当天记录中查找）
+      const slotKeyForSearch = slotKeyFromTimeText(timeText)
+      const doctorIdNumForSearch = Number(doctor.doctorId || doctor.id)
+      let duplicateRecord = patientRecords.value.find(r => {
+        const recordDoctorId = Number(r.doctor_id || r.doctorId)
+        const recordDateRaw = r.schedule_date || r.scheduleDate || r.register_time || r.registerTime || r.schedule_time || r.scheduleTime || ''
+        const recordDateStr = normalizeDateOnly(recordDateRaw)
+        const recordSlotKey = slotKeyFromTimeText(r.time_range || r.timeRange || r.time_slot || r.timeSlot || '')
+        return recordDoctorId === doctorIdNumForSearch && 
+               recordDateStr === normalizeDateOnly(selectedDate.value) &&
+               recordSlotKey === slotKeyForSearch
+      })
+      
+      // 如果当天记录中找不到，尝试从所有记录中查找（不限制日期）
+      if (!duplicateRecord && currentPatientId) {
+        try {
+          const allRecords = await getRegistrationRecords(currentPatientId)
+          if (Array.isArray(allRecords)) {
+            duplicateRecord = allRecords.find(r => {
+              const recordDoctorId = Number(r.doctor_id || r.doctorId)
+              const recordDateRaw = r.schedule_date || r.scheduleDate || r.register_time || r.registerTime || r.schedule_time || r.scheduleTime || ''
+              const recordDateStr = normalizeDateOnly(recordDateRaw)
+              const recordSlotKey = slotKeyFromTimeText(r.time_range || r.timeRange || r.time_slot || r.timeSlot || '')
+              return recordDoctorId === doctorIdNumForSearch && 
+                     recordDateStr === normalizeDateOnly(selectedDate.value) &&
+                     recordSlotKey === slotKeyForSearch
+            })
+          }
+        } catch (err) {
+          console.warn('获取所有记录失败:', err)
+        }
+      }
+      
+      const recordId = duplicateRecord?.record_id || duplicateRecord?.recordId || duplicateRecord?.id || duplicateRecord?.registration_id || duplicateRecord?.registrationId || duplicateRecord?.registrationRecordId
+      
+      console.log('🔍 按钮级拦截检查 - doctorId:', doctorIdNumForSearch, 'slotKey:', slotKeyForSearch, '找到记录:', duplicateRecord, 'recordId:', recordId)
+      
+      uni.showModal({
+        title: '预约已达上限',
+        content: '您已预约过此号，不可重复预约。如需查看已预约的详情，请点击"查看详情"按钮。',
+        showCancel: true,
+        cancelText: '确定',
+        confirmText: recordId ? '查看详情' : undefined,
+        success: (res) => {
+          if (res.confirm && recordId) {
+            // 跳转到就诊详情页面
+            uni.navigateTo({
+              url: `/subpkg/profile/records/hospital-record-detail?id=${recordId}`
+            })
+          } else if (res.confirm && !recordId) {
+            uni.showToast({
+              title: '未找到预约记录',
+              icon: 'none'
+            })
+          }
+        }
+      })
+      return
+    }
+
+    // 6️⃣ 检查是否已预约过该医生当天的号
+    const doctorIdNum = Number(doctor.doctorId || doctor.id)
+    if (getPatientDoctorCountToday(doctorIdNum) >= DAILY_DOCTOR_LIMIT) {
+      uni.showToast({
+        title: '超过挂号限制',
+        icon: 'none'
+      })
+      return
     }
 
     // 正常情况：直接跳转支付页
@@ -1020,12 +1779,53 @@ const initPatientInfo = async () => {
   await loadPatientList()
 }
 
+// 刷新预约数据（参考转诊/就诊记录刷新按钮风格与体验）
+const refreshBookingData = async () => {
+  try {
+    uni.showLoading({ title: '刷新中...', mask: true })
+    await Promise.all([initPatientInfo(), loadPatientRecords()])
+    await initDepartmentTree()
+
+    // 如果此前选中过科室，刷新后尝试保持选中并加载医生/排班
+    if (selectedDeptId.value) {
+      const target = findDepartment(departmentTree.value, selectedDeptId.value)
+      if (target) {
+        await selectDepartment(target)
+        if (selectedDate.value && doctors.value.length > 0) {
+          for (const doctor of doctors.value) {
+            await fetchDoctorSchedules(doctor.id, selectedDate.value)
+          }
+        }
+      }
+    }
+  } catch (error) {
+    uni.showToast({
+      title: error?.message || '刷新失败，请稍后重试',
+      icon: 'none'
+    })
+  } finally {
+    uni.hideLoading()
+  }
+}
+
 // 在组件挂载后设置默认状态
 onMounted(async () => {
   initDateList()
   initDepartmentTree()
   loadRegistrationTypeNameMap()
   await initPatientInfo()
+})
+
+// 页面重新展示时，刷新当日记录与排班可用性，避免已有预约未锁定
+onShow(async () => {
+  if (patientId.value && selectedDate.value) {
+    await loadPatientRecords()
+  }
+  if (selectedDepartment.value && doctors.value.length > 0 && selectedDate.value) {
+    for (const doctor of doctors.value) {
+      await fetchDoctorSchedules(doctor.id, selectedDate.value)
+    }
+  }
 })
 
 // 递归查找科室
@@ -1120,6 +1920,23 @@ const callConsult = () => {
   })
 }
 
+// 工具函数：生成挂号单号（前端简单示例）
+function generateRegistrationNo(doctor) {
+  const date = new Date()
+  const y = date.getFullYear()
+  const m = (date.getMonth() + 1).toString().padStart(2, '0')
+  const d = date.getDate().toString().padStart(2, '0')
+  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0')
+  const doctorId = doctor?.doctorId ?? doctor?.id ?? 0
+  return `${y}${m}${d}${doctorId}${random}`
+}
+
+// 工具函数：格式化时间 YYYY-MM-DD HH:mm:ss
+function formatLocalDateTime(date) {
+  const pad = (n) => n.toString().padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
 </script>
 
 <style scoped>
@@ -1163,26 +1980,88 @@ const callConsult = () => {
   text-align: center;
 }
 
-/* 小的就诊人选择器 */
-.patient-selector-small {
+.header-right {
   position: absolute;
   right: 20rpx;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.refresh-btn.small {
+  padding: 8rpx 24rpx;
+  height: 52rpx;
+  line-height: 36rpx;
+  background-color: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  border: 1rpx solid rgba(255, 255, 255, 0.4);
+  border-radius: 26rpx;
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 26rpx;
+  box-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.08);
+  margin: 0;
+  transition: all 0.3s ease;
+}
+
+.refresh-btn.small:active {
+  background-color: rgba(255, 255, 255, 0.35);
+}
+
+.refresh-btn.small:disabled {
+  opacity: 0.5;
+}
+
+.refresh-btn .refresh-icon {
+  display: inline-block;
+  transition: transform 0.3s ease;
+  font-size: 32rpx;
+}
+
+.refresh-btn:active .refresh-icon {
+  animation: rotate 0.5s linear;
+}
+
+.refresh-text {
+  font-size: 26rpx;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 小的就诊人选择器 */
+.patient-selector-small {
   z-index: 101;
+}
+
+.patient-selector-small.inline {
+  justify-self: flex-start;
+  width: 100%;
 }
 
 .picker-small {
   display: flex;
   align-items: center;
-  padding: 10rpx 18rpx;
-  background: rgba(255, 255, 255, 0.25);
-  border-radius: 24rpx;
-  backdrop-filter: blur(12rpx);
-  border: 1.5rpx solid rgba(255, 255, 255, 0.4);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  max-width: 180rpx;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+  gap: 10rpx;
+  padding: 12rpx 20rpx;
+  background: linear-gradient(135deg, #ffffff 0%, #f3f6fb 100%);
+  border-radius: 22rpx;
+  backdrop-filter: blur(14rpx);
+  border: 1rpx solid rgba(0, 0, 0, 0.04);
+  transition: all 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  min-height: 76rpx;
+  box-shadow: 0 4rpx 10rpx rgba(0, 0, 0, 0.05), inset 0 1rpx 0 rgba(255, 255, 255, 0.20);
   position: relative;
   overflow: hidden;
 }
@@ -1191,39 +2070,88 @@ const callConsult = () => {
   content: '';
   position: absolute;
   top: 0;
-  left: -100%;
-  width: 100%;
+  left: -120%;
+  width: 120%;
   height: 100%;
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
-  transition: left 0.5s ease;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.45) 50%, transparent 100%);
+  transition: left 0.6s ease;
 }
 
 .picker-small:active {
-  background: rgba(255, 255, 255, 0.35);
-  transform: scale(0.96);
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.26));
+  transform: scale(0.985);
+  box-shadow: 0 6rpx 14rpx rgba(0, 0, 0, 0.18);
 }
 
 .picker-small:active::before {
   left: 100%;
 }
 
-.picker-icon {
+.picker-left {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  flex: 1;
+  min-width: 0;
+}
+
+.picker-avatar {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 26rpx;
+  background: linear-gradient(135deg, #4a90e2 0%, #6ec6ff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
   font-size: 22rpx;
-  margin-right: 8rpx;
-  filter: drop-shadow(0 1rpx 2rpx rgba(0, 0, 0, 0.1));
+  font-weight: 700;
+  box-shadow: 0 3rpx 6rpx rgba(74, 144, 226, 0.18);
+}
+
+.picker-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  flex: 1;
+}
+
+.picker-label {
+  font-size: 15rpx;
+  color: rgba(255, 255, 255, 0.78);
+  letter-spacing: 0.6rpx;
+  margin-bottom: 2rpx;
 }
 
 .picker-name {
-  font-size: 22rpx;
-  color: #ffffff;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 120rpx;
-  text-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.1);
+  font-size: 24rpx;
+  color: #222222;
+  font-weight: 700;
+  white-space: normal; /* 允许换行显示完整姓名 */
+  overflow: visible;
+  text-overflow: unset;
+  max-width: none;
+  text-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.08);
   letter-spacing: 0.5rpx;
+  line-height: 1.35;
+}
+
+.picker-name.placeholder {
+  color: rgba(0, 0, 0, 0.45);
+  font-weight: 600;
+}
+
+.picker-right {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.picker-arrow {
+  font-size: 18rpx;
+  color: #222222;
+  padding-left: 4rpx;
 }
 
 /* 日期选择器容器 - 移至顶部 */
@@ -1306,21 +2234,51 @@ const callConsult = () => {
   border-radius: 8rpx;
 }
 
+.patient-inline-row {
+  display: flex;
+  align-items: center;
+  padding: 12rpx 18rpx;
+  background: linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
+  position: sticky;
+  top: 146rpx; /* 靠近日期区域，随滚动吸顶但不遮挡内容 */
+  margin-left: 220rpx; /* 预留左侧科室树宽度 */
+  margin-right: 16rpx;
+  width: calc(100% - 220rpx - 32rpx);
+  z-index: 95;
+  box-shadow: 0 3rpx 10rpx rgba(0, 0, 0, 0.05);
+  border-radius: 18rpx;
+  border: 1rpx solid rgba(0, 0, 0, 0.04);
+}
+
+.patient-inline-right {
+  flex: 1;
+  display: flex;
+  justify-content: flex-start;
+  padding-left: 0;
+}
+
 /* 主内容区域 - 双栏布局 */
 .main-content {
   flex: 1;
   display: flex;
-  height: calc(100vh - 300rpx);
+  height: calc(100vh - 400rpx);
+  padding-left: 220rpx; /* 预留左侧固定科室树宽度，避免遮挡 */
 }
 
 /* 左侧科室列表 */
 .left-panel {
   width: 220rpx;
   background: linear-gradient(180deg, #ffffff 0%, #f8fafb 100%);
-  height: calc(100vh - 240rpx);
+  /* 完全固定在视窗，独立滚动，不随右侧滚动 */
+  position: fixed;
+  top: 248rpx; /* 下移以完全避开日期与就诊人条，防止遮挡顶部科室 */
+  left: 0;
+  bottom: 0;
+  height: auto;
   overflow-y: auto;
   border-right: 1rpx solid #e0e6ed;
   box-shadow: 2rpx 0 8rpx rgba(0, 0, 0, 0.02);
+  z-index: 90;
 }
 
 /* 移除标签页显示 */
@@ -1351,6 +2309,8 @@ const callConsult = () => {
   transition: all 0.3s ease;
   user-select: none;
   -webkit-user-select: none;
+  position: relative;
+  overflow: hidden;
 }
 
 .primary-department:hover {
@@ -1368,6 +2328,21 @@ const callConsult = () => {
 .primary-department:active {
   transform: scale(0.98);
   transition: transform 0.1s ease;
+  background: linear-gradient(135deg, rgba(74, 144, 226, 0.12) 0%, rgba(110, 198, 255, 0.12) 100%);
+  box-shadow: 0 6rpx 14rpx rgba(74, 144, 226, 0.2);
+}
+
+.primary-department::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(74, 144, 226, 0.18) 0%, transparent 55%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.primary-department:active::after {
+  opacity: 1;
 }
 
 /* 箭头图标 */
@@ -1758,8 +2733,8 @@ const callConsult = () => {
 
 /* 已满的时段项 */
 .time-slot-item.full {
-  opacity: 0.7;
-  cursor: not-allowed;
+  opacity: 0.8;
+  cursor: pointer;
 }
 
 .time-slot-item.full .slot-label {

@@ -19,12 +19,11 @@
 			"path": "pages/messages/messages",
 			"style": {
 				"navigationBarTitleText": "消息中心",
-		    "navigationBarTextStyle": "white",
+				"navigationBarTextStyle": "white",
 				"enablePullDownRefresh": true,
 				"navigationBarBackgroundColor": "#479fff"
 			}
 		},
-		
 		{
 			"path": "pages/hospital/hospital",
 			"style": {
@@ -177,12 +176,14 @@
 						"navigationBarTitleText": "就诊记录"
 					}
 				},
-				{"path": "records/hospital-record-detail",
+				{
+					"path": "records/hospital-record-detail",
 					"style": {
 						"navigationBarTitleText": "就诊详情"
 					}
 				},
-				{"path": "records/consult-record",
+				{
+					"path": "records/consult-record",
 					"style": {
 						"navigationBarTitleText": "咨询记录"
 					}
@@ -272,10 +273,10 @@
 					}
 				},
 				{
-				  "path": "personal/identity-verify",
-				  "style": {
-					"navigationBarTitleText": "身份认证"
-				  }
+					"path": "personal/identity-verify",
+					"style": {
+						"navigationBarTitleText": "身份认证"
+					}
 				}
 			]
 		},
@@ -325,24 +326,21 @@
 					}
 				},
 				{
-					"path" : "appointment",
-					"style" : 
-					{
-						"navigationBarTitleText" : "预约挂号"
+					"path": "appointment",
+					"style": {
+						"navigationBarTitleText": "预约挂号"
 					}
 				},
 				{
-					"path" : "payment",
-					"style" : 
-					{
-						"navigationBarTitleText" : ""
+					"path": "payment",
+					"style": {
+						"navigationBarTitleText": ""
 					}
 				},
 				{
-					"path" : "navigation",
-					"style" : 
-					{
-						"navigationBarTitleText" : "智能导航",
+					"path": "navigation",
+					"style": {
+						"navigationBarTitleText": "智能导航",
 						"navigationBarBackgroundColor": "#479fff",
 						"navigationBarTextStyle": "white"
 					}
@@ -405,20 +403,18 @@
 			"root": "subpkg/messages",
 			"pages": [
 				{
-					"path" : "detail",
-					"style" : 
-					{
-						"navigationBarTitleText" : "消息详情",
+					"path": "detail",
+					"style": {
+						"navigationBarTitleText": "消息详情",
 						"navigationBarTextStyle": "white",
 						"enablePullDownRefresh": true,
 						"navigationBarBackgroundColor": "#479fff"
 					}
 				},
 				{
-					"path" : "receipt",
-					"style" : 
-					{
-						"navigationBarTitleText" : "挂号回执单",
+					"path": "receipt",
+					"style": {
+						"navigationBarTitleText": "挂号回执单",
 						"navigationBarTextStyle": "white",
 						"enablePullDownRefresh": true,
 						"navigationBarBackgroundColor": "#479fff"
@@ -494,29 +490,29 @@
 		"backgroundColor": "#ffffff",
 		"list": [
 			{
-			"pagePath": "pages/home/home",
-			"text": "首页",
-			"iconPath": "/static/home.png",
-			"selectedIconPath": "/static/home.png"
-		},
+				"pagePath": "pages/home/home",
+				"text": "首页",
+				"iconPath": "/static/home.png",
+				"selectedIconPath": "/static/home.png"
+			},
 			{
-			"pagePath": "pages/messages/messages",
-			"text": "消息中心",
-			"iconPath": "/static/message.png",
-			"selectedIconPath": "/static/message-active.png"
-		},
+				"pagePath": "pages/messages/messages",
+				"text": "消息中心",
+				"iconPath": "/static/message.png",
+				"selectedIconPath": "/static/message-active.png"
+			},
 			{
-			"pagePath": "pages/hospital/hospital",
-			"text": "医院信息",
-			"iconPath": "/static/navigation-message.png",
-			"selectedIconPath": "/static/navigation-message.png"
-		},
+				"pagePath": "pages/hospital/hospital",
+				"text": "医院信息",
+				"iconPath": "/static/navigation-message.png",
+				"selectedIconPath": "/static/navigation-message.png"
+			},
 			{
-			"pagePath": "pages/profile/profile",
-			"text": "个人中心",
-			"iconPath": "/static/profile.png",
-			"selectedIconPath": "/static/profile.png"
-		}
+				"pagePath": "pages/profile/profile",
+				"text": "个人中心",
+				"iconPath": "/static/profile.png",
+				"selectedIconPath": "/static/profile.png"
+			}
 		]
 	},
 	"globalStyle": {

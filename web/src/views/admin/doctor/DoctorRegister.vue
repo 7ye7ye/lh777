@@ -14,12 +14,12 @@
             <a-row :gutter="16">
               <a-col :span="12">
                 <a-form-item label="登录账号" name="userAccount" required>
-                  <a-input v-model:value="formState.userAccount" placeholder="请输入登录账号（手机号/工号等）" />
+                  <a-input v-model:value="formState.userAccount" placeholder="4-20位，支持字母、数字、下划线" />
                 </a-form-item>
               </a-col>
               <a-col :span="12">
                 <a-form-item label="医生姓名" name="doctorName" required>
-                  <a-input v-model:value="formState.doctorName" placeholder="请输入医生姓名" />
+                  <a-input v-model:value="formState.doctorName" placeholder="2-10位，仅支持中文和英文字母" />
                 </a-form-item>
               </a-col>
             </a-row>
@@ -38,7 +38,7 @@
               </a-col>
               <a-col :span="12">
                 <a-form-item label="职称" name="title" required>
-                  <a-select v-model:value="formState.title" :options="titleOptions" placeholder="请选择职称" />
+                  <a-select v-model:value="formState.title" :options="titleOptions" placeholder="2-10位" />
                 </a-form-item>
               </a-col>
             </a-row>
@@ -64,7 +64,7 @@
               <a-textarea
                 v-model:value="formState.specialty"
                 :rows="3"
-                placeholder="请输入医生擅长的疾病或手术领域"
+                placeholder="5-200位，请输入医生擅长的疾病或手术领域"
               />
             </a-form-item>
 
@@ -72,7 +72,7 @@
               <a-textarea
                 v-model:value="formState.doctorDesc"
                 :rows="3"
-                placeholder="可选，简要介绍医生背景与成就"
+                placeholder="10-500位（可选），简要介绍医生背景与成就"
               />
             </a-form-item>
           </a-form>
@@ -97,14 +97,6 @@
           <a-alert type="warning" show-icon class="mt-3">
             <template #message>请提醒医生首次登录后修改密码。</template>
           </a-alert>
-        </a-card>
-
-        <a-card title="注册说明" class="doctor-register__side-card">
-          <ul class="side-list">
-            <li>hos_user 表：创建医生登录账号，user_type 固定为 <strong>2</strong>。</li>
-            <li>doctor 表：同步写入科室、职称、姓名、擅长领域等信息。</li>
-            <li>支持为医生配置默认状态、简介、邮箱等，可在后续页面进一步维护。</li>
-          </ul>
         </a-card>
       </a-col>
     </a-row>
@@ -150,14 +142,14 @@ const formState = reactive<DoctorFormState>({
 const password = ref(generatePassword());
 const deptOptions = ref<{ label: string; value: number }[]>([]);
 const titleOptions = [
-  { label: '主任医师', value: '主任医师' },
-  { label: '副主任医师', value: '副主任医师' },
-  { label: '主治医师', value: '主治医师' },
-  { label: '住院医师', value: '住院医师' },
-  { label: '主任护师', value: '主任护师' },
-  { label: '副主任护师', value: '副主任护师' },
-  { label: '主管护师', value: '主管护师' },
-  { label: '报销专员', value: '报销专员' },
+  { label: '主任医师', value: '主任医师', id: 1 },
+  { label: '副主任医师', value: '副主任医师', id: 2 },
+  { label: '主治医师', value: '主治医师', id: 3 },
+  { label: '住院医师', value: '住院医师', id: 4 },
+  { label: '主任护师', value: '主任护师', id: 5 },
+  { label: '副主任护师', value: '副主任护师', id: 6 },
+  { label: '主管护师', value: '主管护师', id: 7 },
+  { label: '报销专员', value: '报销专员', id: 8 },
 ];
 
 const rules: Record<string, Rule[]> = {
@@ -219,34 +211,59 @@ async function handleSubmit() {
       createMessage.warning('请选择科室');
       return;
     }
+    
+    const selectedTitle = titleOptions.find(t => t.value === formState.title);
+    if (!selectedTitle) {
+      createMessage.error('请选择有效的职称');
+      return;
+    }
+
     submitting.value = true;
+    
     const res = await registerDoctorAccount({
       userAccount: formState.userAccount.trim(),
       userPassword: password.value,
       doctorName: formState.doctorName.trim(),
       deptId: formState.deptId,
       title: formState.title,
+      titleId: selectedTitle.id,
       specialty: formState.specialty,
       doctorDesc: formState.doctorDesc,
       email: formState.email,
-      isActive: formState.isActive ? 1 : 0,
+      isActive: formState.isActive,
+      userType: 2,
     });
 
-    const respCode = res?.code;
-    if (typeof respCode !== 'undefined' && respCode !== 0 && respCode !== 200 && respCode !== 20000) {
-      const msg = res?.message || '医生注册失败';
-      const desc = res?.description ? `：${res.description}` : '';
-      createMessage.error(`${msg}${desc}`);
-      return;
+    // 检查响应状态，确保注册成功
+    // 由于设置了 errorMessageMode: 'none' 和 isTransformResponse: false，需要手动检查响应
+    if (res && typeof res === 'object' && 'code' in res) {
+      const responseCode = (res as any).code;
+      // 成功码：0 或 200 或 20000
+      if (responseCode !== 0 && responseCode !== 200 && responseCode !== 20000) {
+        const errorMsg = (res as any).description || (res as any).message || '医生注册失败';
+        createMessage.error(errorMsg);
+        return;
+      }
     }
 
-    createMessage.success('医生账户注册成功');
+    // 注册成功，显示包含密码的提示信息
+    createMessage.success(`医生账户注册成功，请将密码通知医生`);
     resetForm();
   } catch (error: any) {
-    const errData = error?.response?.data || {};
-    const msg = errData.message || error?.message || '医生注册失败';
-    const desc = errData.description ? `：${errData.description}` : '';
-    createMessage.error(`${msg}${desc}`);
+    // 统一处理错误信息
+    let errorMessage = '医生注册失败';
+    
+    // 如果是业务异常，使用后端返回的错误信息
+    if (error?.response?.data) {
+      const responseData = error.response.data;
+      errorMessage = responseData.description || responseData.message || errorMessage;
+    } else if (error?.message) {
+      // 其他错误信息
+      errorMessage = error.message;
+    }
+    
+    // 显示错误提示
+    createMessage.error(errorMessage);
   } finally {
     submitting.value = false;
   }

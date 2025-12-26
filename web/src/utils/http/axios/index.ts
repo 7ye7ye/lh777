@@ -20,7 +20,6 @@ import { joinTimestamp, formatRequestDate } from './helper';
 import { useUserStoreWithOut } from '/@/store/modules/user';
 import { cloneDeep } from "lodash-es";
 const globSetting = useGlobSetting();
-const urlPrefix = globSetting.urlPrefix;
 const { createMessage, createErrorModal } = useMessage();
 
 /**
@@ -50,7 +49,7 @@ const transform: AxiosTransform = {
       // throw new Error(t('sys.api.apiRequestFailed'));
     }
     //  这里 code，result，message为 后台统一的字段，需要在 types.ts内修改为项目自己的接口返回格式
-    const { code, result, message, success } = data as any;
+    const { code, result, message, success, description } = data as any;
     // 这里逻辑可以根据项目进行修改
     const hasSuccess = data && Reflect.has(data, 'code') && (code === ResultEnum.SUCCESS || code === 200);
     if (hasSuccess) {
@@ -73,8 +72,25 @@ const transform: AxiosTransform = {
         break;
       default:
         if (message) {
-          timeoutMsg = message;
+          // 如果有description字段，优先使用description作为详细错误信息
+          if (description) {
+            timeoutMsg = description;
+            // 在控制台打印详细错误信息
+            console.error('详细错误信息:', description);
+            console.error('错误消息:', message);
+          } else {
+            timeoutMsg = message;
+          }
         }
+    }
+
+    // 隐藏 SysAnnouncementMapper.querySysCementListByUserId 的错误提示
+    const errorStr = String(timeoutMsg || message || description || '').toLowerCase();
+    if (errorStr.includes('querysyscementlistbyuserid') || 
+        (errorStr.includes('invalid bound statement') && errorStr.includes('sysannouncementmapper'))) {
+      console.warn('已隐藏 SysAnnouncementMapper.querySysCementListByUserId 错误:', timeoutMsg || message);
+      // 静默处理，返回空数据
+      return { anntMsgList: [], sysMsgList: [], anntMsgTotal: 0, sysMsgTotal: 0 };
     }
 
     // errorMessageMode=‘modal’的时候会显示modal错误弹窗，而不是消息提示，用于一些比较重要的错误
@@ -255,6 +271,7 @@ const transform: AxiosTransform = {
     //scott 20211022 token失效提示信息
     //const msg: string = response?.data?.error?.message ?? '';
     const msg: string = response?.data?.message ?? '';
+    const description: string = response?.data?.description ?? '';
     const err: string = error?.toString?.() ?? '';
     let errMessage = '';
 
@@ -291,7 +308,23 @@ const transform: AxiosTransform = {
       throw new Error(String(error));
     }
 
-    checkStatus(error?.response?.status, msg, errorMessageMode);
+    // 优先使用后端返回的 description 作为详细错误信息，其次使用 message
+    let finalMsg = description || msg;
+    if (description) {
+      console.error('详细错误信息:', description);
+      console.error('错误消息:', msg);
+    }
+
+    // 隐藏 SysAnnouncementMapper.querySysCementListByUserId 的错误提示
+    const errorStr = String(finalMsg || err || '').toLowerCase();
+    if (errorStr.includes('querysyscementlistbyuserid') || 
+        errorStr.includes('invalid bound statement') && errorStr.includes('sysannouncementmapper')) {
+      console.warn('已隐藏 SysAnnouncementMapper.querySysCementListByUserId 错误:', finalMsg);
+      // 静默处理，不显示错误提示，直接返回一个空的结果
+      return Promise.resolve({ anntMsgList: [], sysMsgList: [], anntMsgTotal: 0, sysMsgTotal: 0 });
+    }
+
+    checkStatus(error?.response?.status, finalMsg, errorMessageMode);
     return Promise.reject(error);
   },
 };

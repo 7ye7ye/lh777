@@ -109,16 +109,6 @@
         <input class="form-input" v-model="formData.phone" placeholder="请输入电话号码" />
       </view>
       
-      <view class="form-item">
-        <text class="form-label">短信验证码</text>
-        <view class="verification-group">
-          <input class="form-input verification-input" v-model="formData.verificationCode" placeholder="请填写验证码" />
-          <button class="verification-btn" @click="getVerificationCode" :disabled="countdown > 0">
-            {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
-          </button>
-        </view>
-      </view>
-      
       <view class="form-item archive-row" @click="goToHealthProfile">
         <view class="health-archive">
           <view class="archive-icon">📋</view>
@@ -143,7 +133,6 @@ import { uniShowToast } from '@/utils/uniHelper'
 
 const userStore = useUserStore()
 const loading = ref(false)
-const countdown = ref(0)
 const patientId = ref(null)
 
 // 表单数据
@@ -157,8 +146,7 @@ const formData = reactive({
   nationality: '中国',
   region: '北京市北京市海淀区',
   address: '北京交通大学',
-  phone: '',
-  verificationCode: ''
+  phone: ''
 })
 
 // 选择器选项
@@ -212,26 +200,6 @@ const goToHealthProfile = () => {
   })
 }
 
-// 获取验证码
-const getVerificationCode = () => {
-  if (!formData.phone) {
-    uniShowToast({ title: '请先输入手机号', icon: 'none' })
-    return
-  }
-  
-  // 模拟发送验证码
-  uniShowToast({ title: '验证码已发送', icon: 'success' })
-  
-  // 开始倒计时
-  countdown.value = 60
-  const timer = setInterval(() => {
-    countdown.value--
-    if (countdown.value <= 0) {
-      clearInterval(timer)
-    }
-  }, 1000)
-}
-
 // 提交表单
 const submitForm = async () => {
   // 验证表单
@@ -249,12 +217,6 @@ const submitForm = async () => {
     uniShowToast({ title: '请输入正确的手机号', icon: 'none' })
     return
   }
-
-  //暂未接通短信验证码接口，暂时注释
-  // if (!formData.verificationCode) {
-  //   uniShowToast({ title: '请输入验证码', icon: 'none' })
-  //   return
-  // }
   
   // 开始加载
   loading.value = true
@@ -476,30 +438,6 @@ onMounted(() => {
   color: #9aa7c0;
   font-size: 28rpx;
   margin-left: 12rpx;
-}
-
-.verification-group {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-}
-.verification-input {
-  flex: 1;
-}
-.verification-btn {
-  padding: 16rpx 24rpx;
-  background: linear-gradient(135deg, #3a9cff 0%, #6ec6ff 100%);
-  color: #fff;
-  border: none;
-  border-radius: 12rpx;
-  font-size: 24rpx;
-  white-space: nowrap;
-  box-shadow: 0 4rpx 12rpx rgba(58, 156, 255, 0.25);
-}
-.verification-btn:disabled {
-  background: #c8d7f2;
-  box-shadow: none;
 }
 
 .archive-row {

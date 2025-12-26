@@ -134,7 +134,7 @@
           {{ submitting ? '处理中...' : '自动挂号' }}
         </button>
 
-        <button class="secondary-btn" @click="createNewReferral">创建新申请</button>
+
       </view>
     </scroll-view>
     <canvas canvas-id="certificateCanvas" class="hidden-canvas"></canvas>
@@ -145,6 +145,7 @@
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getPatientReferralDetail, cancelPatientReferral, autoRegisterInternalReferral } from '../../api/referral'
+import { getStaticImage } from '@/utils/imageHelper'
 
 // 转诊详情数据
 const referralDetail = ref({
@@ -205,13 +206,13 @@ const getStatusClass = (status) => {
 const getStatusIcon = (status) => {
   switch (status) {
     case '待审核':
-      return '/static/info_message.png'
+      return getStaticImage('/static/info_message.png')
     case '已审核':
-      return '/static/check.svg'
+      return getStaticImage('/static/check.svg')
     case '已拒绝':
-      return '/static/complain.svg'
+      return getStaticImage('/static/complain.svg')
     default:
-      return '/static/info_message.png'
+      return getStaticImage('/static/info_message.png')
   }
 }
 
@@ -285,12 +286,7 @@ const goToHospital = () => {
   })
 }
 
-// 创建新的转诊申请
-const createNewReferral = () => {
-  uni.navigateTo({
-    url: '/subpkg/hospital/referral-application'
-  })
-}
+
 
 // 院内转诊自动挂号
 const autoRegister = async () => {
@@ -425,7 +421,7 @@ const downloadExternalReferralCertificate = async () => {
         img.crossOrigin = 'anonymous'
         img.onload = () => { ctx.save(); ctx.globalAlpha = 0.96; ctx.drawImage(img, stampX - stampR, stampY - stampR, stampR * 2, stampR * 2); ctx.restore(); resolve(null) }
         img.onerror = () => { drawFallbackStamp(ctx, stampX, stampY, stampR); resolve(null) }
-        img.src = '/static/bjtu_logo.png'
+        img.src = getStaticImage('/static/bjtu_logo.png')
       })
       const dataUrl = canvas.toDataURL('image/png')
       try {
@@ -484,7 +480,7 @@ const downloadExternalReferralCertificate = async () => {
       const stampY = h - 300
       const stampR = 120
       uni.getImageInfo({
-        src: '/static/bjtu_logo.png',
+        src: getStaticImage('/static/bjtu_logo.png'),
         success: (info) => {
           ctx.drawImage(info.path, stampX - stampR, stampY - stampR, stampR * 2, stampR * 2)
           ctx.draw(false, () => {

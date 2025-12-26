@@ -33,7 +33,7 @@
   import LoginFormTitle from './LoginFormTitle.vue';
   import { useI18n } from '/@/hooks/web/useI18n';
   import { useMessage } from '/@/hooks/web/useMessage';
-  import { useLoginState, useFormRules, useFormValid, LoginStateEnum, SmsEnum } from './useLogin';
+  import { useLoginState, useFormRules, useFormValid, LoginStateEnum } from './useLogin';
   import { useUserStore } from '/@/store/modules/user';
   import { getCaptcha } from '/@/api/sys/user';
   const FormItem = Form.Item;

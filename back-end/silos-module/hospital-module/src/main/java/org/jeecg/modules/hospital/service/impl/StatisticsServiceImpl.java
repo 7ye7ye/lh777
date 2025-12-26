@@ -10,8 +10,8 @@ import org.jeecg.modules.hospital.service.StatisticsService;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -65,7 +65,7 @@ public class StatisticsServiceImpl implements StatisticsService {
                         current.setCompareVisitCount(item.getVisitCount());
                         if (item.getVisitCount() != null && current.getVisitCount() != null && item.getVisitCount() > 0) {
                             BigDecimal growth = BigDecimal.valueOf(current.getVisitCount() - item.getVisitCount())
-                                .divide(BigDecimal.valueOf(item.getVisitCount()), 4, BigDecimal.ROUND_HALF_UP)
+                                .divide(BigDecimal.valueOf(item.getVisitCount()), 4, RoundingMode.HALF_UP)
                                 .multiply(BigDecimal.valueOf(100));
                             current.setGrowthRate(growth);
                         }
@@ -129,16 +129,12 @@ public class StatisticsServiceImpl implements StatisticsService {
             
             List<CancelRateDTO> result = new ArrayList<>();
             
-            // 根据不同的筛选条件调用不同的查询方法
-            if (deptId != null) {
-                result = statisticsMapper.getCancelRateByDepartment(startDate, endDate, deptId);
-            } else if (doctorId != null) {
-                result = statisticsMapper.getCancelRateByDoctor(startDate, endDate, doctorId);
-            } else if (typeId != null) {
-                result = statisticsMapper.getCancelRateByType(startDate, endDate, typeId);
+            // 根据不同的筛选条件调用明细查询，优先返回包含医生、号别的完整数据
+            if (doctorId != null || typeId != null || deptId != null) {
+                result = statisticsMapper.getCancelRateDetail(startDate, endDate, deptId, doctorId, typeId);
             } else {
-                // 如果没有指定筛选条件，可以返回所有或者按科室统计
-                result = statisticsMapper.getCancelRateByDepartment(startDate, endDate, null);
+                // 默认返回全量明细，确保医生与号别字段可展示
+                result = statisticsMapper.getCancelRateDetail(startDate, endDate, null, null, null);
             }
             
             return result != null ? result : new ArrayList<>();
@@ -158,6 +154,8 @@ public class StatisticsServiceImpl implements StatisticsService {
             LocalDate startDate = query.getStartDate();
             LocalDate endDate = query.getEndDate();
             Long typeId = query.getTypeId();
+            Long deptId = query.getDeptId();
+            Long doctorId = query.getDoctorId();
             String periodType = query.getPeriodType();
             
             if (startDate == null || endDate == null) {
@@ -166,7 +164,7 @@ public class StatisticsServiceImpl implements StatisticsService {
             }
             
             List<RegistrationStatisticsDTO> result = statisticsMapper.getRegistrationStatistics(
-                startDate, endDate, typeId, periodType
+                startDate, endDate, typeId, periodType, deptId, doctorId
             );
             
             // 如果需要历史对比
@@ -187,7 +185,7 @@ public class StatisticsServiceImpl implements StatisticsService {
                         current.setCompareRegistration(item.getTypeRegistration());
                         if (item.getTypeRegistration() != null && current.getTypeRegistration() != null && item.getTypeRegistration() > 0) {
                             BigDecimal growth = BigDecimal.valueOf(current.getTypeRegistration() - item.getTypeRegistration())
-                                .divide(BigDecimal.valueOf(item.getTypeRegistration()), 4, BigDecimal.ROUND_HALF_UP)
+                                .divide(BigDecimal.valueOf(item.getTypeRegistration()), 4, RoundingMode.HALF_UP)
                                 .multiply(BigDecimal.valueOf(100));
                             current.setGrowthRate(growth);
                         }

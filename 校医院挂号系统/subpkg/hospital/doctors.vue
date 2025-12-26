@@ -19,11 +19,9 @@
         class="doctor-item"
         @click="navigateToDetail(doctor)"
       >
-        <image 
-          :src="doctor.avatar || '/static/doctor.svg'" 
-          mode="aspectFill" 
-          class="avatar"
-        ></image>
+        <view class="doctor-avatar">
+          {{ getDoctorInitial(doctor.doctorName || doctor.name || '医') }}
+        </view>
         <view class="doctor-info">
           <view class="name-title">
             <text class="name">{{ doctor.doctorName }}</text>
@@ -41,7 +39,7 @@
       </view>
       
       <view class="empty" v-if="doctorList.length === 0">
-        <image src="/static/empty_message.png" mode="widthFix" class="empty-img"></image>
+        <image :src="getStaticImage('/static/empty_message.png')" mode="widthFix" class="empty-img"></image>
         <text>暂无医生信息</text>
       </view>
     </view>
@@ -54,6 +52,13 @@
 import { ref, onMounted } from 'vue'
 import { getAllDoctors, searchDoctors } from '../../api/doctor_massage'
 import { getDoctorSchedules } from '../../api/registration'
+import { getStaticImage } from '@/utils/imageHelper'
+
+// 生成医生头像初始化字母
+const getDoctorInitial = (name) => {
+  if (!name || name.length === 0) return '医'
+  return name.charAt(0)
+}
 
 const keyword = ref('')
 const doctorList = ref([])
@@ -232,12 +237,18 @@ onMounted(() => {
   background-color: #f5f5f5;
 }
 
-.avatar {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 60rpx;
+.doctor-avatar {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 44rpx;
   margin-right: 20rpx;
-  background: #e0e0e0;
+  background: linear-gradient(135deg, #4a90e2 0%, #6ec6ff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38rpx;
+  color: #ffffff;
+  box-shadow: 0 4rpx 12rpx rgba(74, 144, 226, 0.3);
 }
 
 .doctor-info {

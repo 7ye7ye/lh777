@@ -4,6 +4,11 @@
     <view class="smart-plan-btn" @tap="goSmartPlan">
       <text>智能规划</text>
     </view>
+    
+    <!-- 到院导航按钮 -->
+    <view class="hospital-nav-btn" @tap="goHospitalNav">
+      <text>到院导航</text>
+    </view>
 
     <!-- 中间平面图区域 -->
     <view class="map-container with-panel">
@@ -104,7 +109,7 @@
           <text v-else>{{ searchText }}</text>
         </view>
         <view class="panel-search-action">
-          <image class="voice-icon" src="/static/inhos_navi/voice.svg" mode="aspectFit" />
+          <image class="voice-icon" :src="getStaticImage('/static/inhos_navi/voice.svg')" mode="aspectFit" />
         </view>
       </view>
 
@@ -144,6 +149,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
+import { getStaticImage } from '@/utils/imageHelper'
 
 // 楼层数据
 const floors = [
@@ -176,7 +182,7 @@ const isPinching = ref(false)
 
 // 当前平面图路径
 const currentPlanImage = computed(() => {
-  return `/static/${currentFloor.value}F_plan.png`
+  return getStaticImage(`/static/${currentFloor.value}F_plan.png`)
 })
 
 // 是否可以向上滚动
@@ -385,12 +391,12 @@ onShow(() => {
   refreshSearchText()
 })
 const quickActions = [
-  { label: '服务台', icon: '/static/inhos_navi/服务台.svg' },
-  { label: '收费处', icon: '/static/inhos_navi/收费处.svg' },
-  { label: '挂号', icon: '/static/inhos_navi/挂号.svg' },
-  { label: '取药', icon: '/static/inhos_navi/取药.svg' },
-  { label: '电梯', icon: '/static/inhos_navi/电梯.svg' },
-  { label: '卫生间', icon: '/static/inhos_navi/卫生间.svg' }
+  { label: '服务台', icon: getStaticImage('/static/inhos_navi/服务台.svg') },
+  { label: '收费处', icon: getStaticImage('/static/inhos_navi/收费处.svg') },
+  { label: '挂号', icon: getStaticImage('/static/inhos_navi/挂号.svg') },
+  { label: '取药', icon: getStaticImage('/static/inhos_navi/取药.svg') },
+  { label: '电梯', icon: getStaticImage('/static/inhos_navi/电梯.svg') },
+  { label: '卫生间', icon: getStaticImage('/static/inhos_navi/卫生间.svg') }
 ]
 
 const hotDepartments = [
@@ -413,11 +419,37 @@ const handleHotDepartment = (deptName) => {
   navigateWithKeyword(deptName)
 }
 
-// 跳转智能规划页面
 const goSmartPlan = () => {
   uni.navigateTo({
     url: '/subpkg/hospital/navigation-plan'
   })
+}
+
+// 到院导航
+const goHospitalNav = () => {
+    // 北京交通大学社区卫生服务中心坐标 (GCJ-02)
+    const latitude = 39.95155
+    const longitude = 116.34215
+    const name = '北京交通大学社区卫生服务中心'
+    const address = '北京市海淀区上园村3号北京交通大学内'
+
+    uni.openLocation({
+      latitude,
+      longitude,
+      name,
+      address,
+      scale: 18,
+      success: function () {
+        console.log('打开地图成功');
+      },
+      fail: function (err) {
+        console.error('打开地图失败', err);
+        uni.showToast({
+            title: '打开地图失败，请检查权限',
+            icon: 'none'
+        })
+      }
+    });
 }
 </script>
 
@@ -743,7 +775,7 @@ const goSmartPlan = () => {
 .smart-plan-btn {
   position: fixed;
   top: 30rpx;
-  left: 20rpx;
+  left: 180rpx; /* 向右移动，为到院导航腾出位置 */
   z-index: 210;
   padding: 12rpx 24rpx;
   background: #ffffff;
@@ -752,6 +784,24 @@ const goSmartPlan = () => {
   border-radius: 24rpx;
   box-shadow: 0 6rpx 18rpx rgba(0, 0, 0, 0.12);
   border: 2rpx solid #e6f3ff;
+}
+
+.hospital-nav-btn {
+  position: fixed;
+  top: 30rpx; /* 与智能规划对齐 */
+  left: 20rpx; /* 放在最左边 */
+  z-index: 210;
+  padding: 12rpx 24rpx;
+  background: #479fff;
+  color: #ffffff;
+  font-size: 26rpx;
+  border-radius: 24rpx;
+  box-shadow: 0 6rpx 18rpx rgba(0, 0, 0, 0.12);
+  border: 2rpx solid #479fff;
+}
+
+.hospital-nav-btn:active {
+  opacity: 0.85;
 }
 
 .smart-plan-btn:active {

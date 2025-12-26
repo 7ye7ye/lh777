@@ -21,8 +21,8 @@
 					</view>
 					<view class="card-content">
 						<view class="card-title-line">
-							<text class="card-title" :class="getMessageTitleClass(message.messageType)">
-								{{ getMessageCategory(message.messageType) }}
+							<text class="card-title" :class="getMessageTitleClass(message)">
+								{{ getMessageCategory(message.messageType, message) }}
 							</text>
 							<text class="card-time">{{ formatTime(message.createdTime) }}</text>
 						</view>
@@ -32,7 +32,7 @@
 			</view>
 
 			<view v-else class="empty-container">
-				<image class="empty-icon" src="/static/empty_message.png" mode="aspectFit"></image>
+				<image class="empty-icon" :src="getStaticImage('/static/empty_message.png')" mode="aspectFit"></image>
 				<text class="empty-text">暂无任何消息</text>
 			</view>
 		</view>
@@ -42,6 +42,8 @@
 <script>
 	import LoginPrompt from '@/components/LoginPrompt.vue'
 	import { useUserStore } from '@/store/user'
+	import { getStaticImage } from '@/utils/imageHelper'
+	import { getBaseURL, getApiPrefix } from '@/config/api'
 
 	export default {
 		components: {
@@ -116,26 +118,32 @@
 
 			// 根据消息类型返回对应的图标
 			getMessageIcon(messageType) {
+				const iconPath = '/static/info_message.png';
 				switch(messageType) {
 					case 'APPOINTMENT_SUCCESS':
-						return '/static/info_message.png';
+						return getStaticImage(iconPath);
 					case 'APPOINTMENT_CANCEL':
-						return '/static/info_message.png';
+						return getStaticImage(iconPath);
 					case 'APPOINTMENT_REMINDER':
-						return '/static/info_message.png'; // 可以替换为专门的提醒图标
+						return getStaticImage(iconPath); // 可以替换为专门的提醒图标
 					case 'APPOINTMENT_ONE_HOUR':
-						return '/static/info_message.png';
+						return getStaticImage(iconPath);
 					case 'APPOINTMENT_WAITING_SUCCESS':
-						return '/static/info_message.png';
+						return getStaticImage(iconPath);
 					case 'APPOINTMENT_WAITING_JOIN':
-						return '/static/info_message.png';
+						return getStaticImage(iconPath);
 					default:
-						return '/static/info_message.png';
+						return getStaticImage(iconPath);
 				}
 			},
 
 			// 根据消息类型返回分类标签
-			getMessageCategory(messageType) {
+			getMessageCategory(messageType, message) {
+				// 优先检查是否为排班调整
+				if (message && this.isScheduleChange(message)) {
+					return '号源状态变化通知';
+				}
+
 				switch(messageType) {
 					case 'APPOINTMENT_SUCCESS':
 						return '预约挂号';
@@ -199,6 +207,41 @@
 				}
 			},
 
+			// 新增：专门判断是否为排班调整消息
+			isScheduleChange(message) {
+				if (message.messageType !== 'APPOINTMENT_CANCEL') return false;
+				try {
+					const content = typeof message.content === 'string' ? JSON.parse(message.content) : message.content;
+					return content && (content.cancel_reason === '医生排班调整' || content.cancel_reason === '医生临时停诊');
+				} catch (e) {
+					return false;
+				}
+			},
+
+			// 修改后的 getMessageTitleClass
+			getMessageTitleClass(message) {
+				// 先单独处理排班调整
+				if (this.isScheduleChange(message)) {
+					return 'title-schedule-change';
+				}
+
+				const messageType = message.messageType;
+				switch (messageType) {
+					case 'APPOINTMENT_REMINDER':
+						return 'title-reminder';
+					case 'APPOINTMENT_ONE_HOUR':
+						return 'title-onehour';
+					case 'APPOINTMENT_WAITING_SUCCESS':
+						return 'title-waiting';
+					case 'APPOINTMENT_WAITING_JOIN':
+						return 'title-waiting';
+					case 'APPOINTMENT_CANCEL':
+						return 'title-cancel';
+					default:
+						return '';
+				}
+			},
+
 			// 从后端接口获取消息列表
 			fetchMessageList() {
 				if (this.loading) return;
@@ -214,8 +257,10 @@
 					return;
 				}
 
-				// 这里的IP地址和端口需要换成后端项目运行的实际地址
-				const apiUrl = 'http://localhost:8095/jeecg-boot/api/messages/list';
+				// 使用统一配置构建 API URL
+				const baseURL = getBaseURL()
+				const apiPrefix = getApiPrefix()
+				const apiUrl = `${baseURL}${apiPrefix}/api/messages/list`
 				const requestUrl = `${apiUrl}?userId=${userId}`;
 				console.log('📤 请求URL:', requestUrl);
 
@@ -334,6 +379,12 @@
 	/* 取消消息标题样式 */
 	.card-title.title-cancel {
 		color: #999;
+	}
+
+	/* 排班调整标题样式 - 褐色 */
+	.card-title.title-schedule-change {
+		color: #8B4513; /* SaddleBrown */
+		font-weight: bold;
 	}
 
 	.card-time {
