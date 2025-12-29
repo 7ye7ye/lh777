@@ -87,7 +87,7 @@ import { ref, reactive, onMounted, onActivated } from 'vue';
 import { PageWrapper } from '/@/components/Page';
 import { useMessage } from '/@/hooks/web/useMessage';
 import { getDoctorProfileUpdateRequests, approveDoctorProfileUpdate, rejectDoctorProfileUpdate } from '/@/api/hospital/doctor';
-
+import { useGlobSetting } from '/@/hooks/setting';
 
 const { createMessage } = useMessage();
 
@@ -98,14 +98,19 @@ const buildImageUrl = (relativePath: string) => {
     return relativePath;
   }
 
-  const baseURL = import.meta.env.VITE_GLOB_API_URL || '';
-  // 如果 baseURL 中已经包含 jeecg-boot，则不再重复拼接
-  const hasJeecgBoot = baseURL.includes('jeecg-boot');
-  const apiPrefix = hasJeecgBoot ? '' : '/jeecg-boot';
-  const cleanPrefix = apiPrefix.endsWith('/') ? apiPrefix.slice(0, -1) : apiPrefix;
-  const cleanPath = relativePath.replace(/^\/+/, '');
-
-  return `${baseURL}${cleanPrefix}/sys/common/static/${encodeURI(cleanPath)}`;
+  // 使用统一的 domainUrl 配置（与 compUtils.ts 保持一致）
+  const globSetting = useGlobSetting();
+  const baseURL = globSetting.domainUrl || '';
+  
+  if (!baseURL) {
+    console.warn('⚠️ domainUrl 未配置，图片URL可能无法正确显示');
+    return relativePath;
+  }
+  
+  const cleanBaseUrl = baseURL.replace(/\/$/, ''); // 移除末尾的斜杠
+  const cleanPath = relativePath.replace(/^\/+/, ''); // 移除开头的斜杠
+  
+  return `${cleanBaseUrl}/sys/common/static/${encodeURI(cleanPath)}`;
 };
 
 const loading = ref(false);

@@ -24,7 +24,8 @@ public class ReferralAdminController {
 
     @GetMapping("/page")
     public Result<Page<ReferralApplication>> page(ReferralListQuery query) {
-        return Result.OK(referralService.queryPage(query));
+        // 管理员端查询应查看所有转诊记录，因此调用不带用户ID过滤的方法
+        return Result.OK(referralService.adminQueryPage(query));
     }
 
     @GetMapping("/{id}")

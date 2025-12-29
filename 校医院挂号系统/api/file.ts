@@ -44,30 +44,43 @@ export async function getStaticImageUrl(filename: string): Promise<string> {
  */
 export function buildStaticImageUrl(filename: string): string {
   if (!filename) return ''
+  
   // 移除开头的 /static/ 前缀（如果有）
   const cleanFilename = filename.replace(/^\/static\//, '').replace(/^static\//, '')
   const baseURL = getBaseURL()
   const apiPrefix = getApiPrefix()
-  const cleanPrefix = apiPrefix.endsWith('/') ? apiPrefix.slice(0, -1) : apiPrefix
-  const relativePath = `static-resources/${cleanFilename}`
-  const fullUrl = `${baseURL}${cleanPrefix}/sys/common/static/${relativePath}`
   
-  // 开发环境输出URL用于调试（包括模拟器和真机）
+  // 清理 baseURL 和 apiPrefix，确保没有多余的斜杠
+  const cleanBaseURL = baseURL.replace(/\/$/, '') // 移除末尾斜杠
+  const cleanPrefix = apiPrefix.startsWith('/') ? apiPrefix : `/${apiPrefix}`
+  const cleanPrefix2 = cleanPrefix.replace(/\/$/, '') // 移除末尾斜杠
+  
+  // 构建相对路径：static-resources/文件名
+  const relativePath = `static-resources/${cleanFilename}`
+  
+  // 构建完整URL：baseURL + apiPrefix + /sys/common/static/ + static-resources/文件名
+  const fullUrl = `${cleanBaseURL}${cleanPrefix2}/sys/common/static/${relativePath}`
+  
+  // 开发环境输出URL用于调试
   if (process.env.NODE_ENV === 'development') {
     console.log('🖼️ 构建图片URL:', {
-      filename,
-      cleanFilename,
-      baseURL,
-      apiPrefix,
-      fullUrl
+      原始文件名: filename,
+      清理后文件名: cleanFilename,
+      基础URL: baseURL,
+      API前缀: apiPrefix,
+      完整URL: fullUrl
     })
-    // 提取域名用于检查 downloadFile合法域名
-    try {
-      const urlObj = new URL(fullUrl)
-      console.log('📋 图片域名:', urlObj.origin)
-      console.log('⚠️ 请确保此域名已配置在微信公众平台的 downloadFile合法域名 中！')
-    } catch (e) {
-      console.warn('无法解析URL:', fullUrl)
+    
+    // 提取域名用于检查（使用正则，避免 uni-app 兼容性问题）
+    const urlMatch = fullUrl.match(/^(https?:\/\/[^\/]+)/)
+    if (urlMatch) {
+      const origin = urlMatch[1]
+      console.log('📋 图片域名:', origin)
+      
+      // 检查是否是 HTTP（仅提示，不影响功能）
+      if (origin.startsWith('http://')) {
+        console.log('💡 提示：模拟器可以使用 HTTP，但请确保在微信开发者工具中开启了"不校验合法域名"选项')
+      }
     }
   }
   

@@ -45,12 +45,18 @@ export const API_CONFIG = {
   //   BASE_URL: 'http://183.242.199.186:8095', // 公网IP，仅当有公网服务器且配置了端口转发时可用
   //   BASE_URL: 'https://470edbfe.r8.cpolar.cn', // 旧的内网穿透地址（已失效）
   //   BASE_URL: 'https://21a451f8.r6.cpolar.cn', // ⚠️ 此地址已失效，请重新获取新的 cpolar 地址
-  BASE_URL: 'http://localhost:8095', // ⚠️ 临时使用本地地址（仅模拟器），真机调试请使用 cpolar
-  // ⚠️ 重要：如果看到 404 错误，说明 cpolar 隧道地址已失效
-  // 请按以下步骤获取新地址：
+  BASE_URL: 'http://localhost:8095', // ⚠️ 本地开发地址（仅模拟器可用）
+  // 
+  // ⚠️ 重要提示：
+  // 1. 微信小程序真机环境必须使用 HTTPS！
+  // 2. 本地开发（模拟器）可以使用 HTTP，但需要在微信开发者工具中：
+  //    设置 -> 项目设置 -> 本地设置 -> 勾选"不校验合法域名、web-view（业务域名）、TLS 版本以及 HTTPS 证书"
+  // 3. 真机调试必须使用内网穿透工具（如 cpolar）获取 HTTPS 地址
+  // 
+  // 使用 cpolar 获取 HTTPS 地址的步骤：
   // 1. 打开 cpolar 客户端
   // 2. 查看 "在线隧道列表" 中的 HTTPS 地址
-  // 3. 将新地址更新到上面的 BASE_URL
+  // 3. 将新地址更新到上面的 BASE_URL（例如：'https://xxxxx.cpolar.cn'）
   // 4. 重新编译项目
 
   // API 前缀

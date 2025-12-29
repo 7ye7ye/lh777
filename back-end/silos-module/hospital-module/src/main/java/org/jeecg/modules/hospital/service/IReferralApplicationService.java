@@ -15,6 +15,11 @@ public interface IReferralApplicationService extends IService<ReferralApplicatio
 
     Page<ReferralApplication> queryPage(ReferralListQuery query);
 
+    /**
+     * 管理员端查询转诊列表（不按当前登录用户过滤）
+     */
+    Page<ReferralApplication> adminQueryPage(ReferralListQuery query);
+
     ReferralApplication getDetail(Long id);
 
     ReferralApplication review(ReferralReviewRequest request);

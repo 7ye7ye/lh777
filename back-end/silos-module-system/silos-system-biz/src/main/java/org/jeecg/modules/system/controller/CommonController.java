@@ -365,8 +365,8 @@ public class CommonController {
             // 移除 static-resources/ 前缀，获取实际文件路径
             String relativePath = imgPath.replace("static-resources/", "");
             
-            // 构建完整文件路径
-            String staticResourcesPath = "D:/yeyeye/课程/大三/专业实训Ⅲ/项目代码/lh777/back-end/upload/static-resources/";
+            // 使用配置的 uploadpath，而不是硬编码路径
+            String staticResourcesPath = uploadpath + File.separator + "static-resources" + File.separator;
             String filePath = staticResourcesPath + relativePath;
             File file = new File(filePath);
             

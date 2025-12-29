@@ -49,9 +49,9 @@ export function createApp() {
     console.warn('⚠️ API_CONFIG 未定义，使用默认配置')
     // 如果配置文件加载失败，使用默认值
     if (!uni.getStorageSync('BASE_URL')) {
-      // 使用配置文件中的默认值（从 config/api.ts 中可以看到是 https://470edbfe.r8.cpolar.cn）
-      // 注意：如果 cpolar 地址变化，需要更新 config/api.ts 中的 BASE_URL
-      uni.setStorageSync('BASE_URL', 'https://470edbfe.r8.cpolar.cn')
+      // 使用本地开发地址（仅模拟器可用）
+      // 注意：如果需要真机调试，请使用内网穿透工具（如 cpolar），并更新 config/api.ts 中的 BASE_URL
+      uni.setStorageSync('BASE_URL', 'http://localhost:8095')
       console.warn('⚠️ 使用默认 BASE_URL，请检查 config/api.ts 是否正确导入')
     }
     if (!uni.getStorageSync('API_PREFIX')) {

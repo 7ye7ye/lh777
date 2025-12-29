@@ -22,18 +22,39 @@ const baseApiUrl = globSetting.domainUrl;
 export const getFileAccessHttpUrl = (fileUrl, prefix = 'http') => {
   let result = fileUrl;
   try {
-    if (fileUrl && fileUrl.length > 0 && !fileUrl.startsWith(prefix)) {
-      //判断是否是数组格式
-      let isArray = fileUrl.indexOf('[') != -1;
-      if (!isArray) {
-        let prefix = `${baseApiUrl}/sys/common/static/`;
-        // 判断是否已包含前缀
-        if (!fileUrl.startsWith(prefix)) {
-          result = `${prefix}${fileUrl}`;
-        }
+    if (!fileUrl || fileUrl.length === 0) {
+      return result;
+    }
+    
+    // 如果已经是完整的URL（http://或https://开头），直接返回
+    if (/^https?:\/\//.test(fileUrl)) {
+      return fileUrl;
+    }
+    
+    // 判断是否是数组格式
+    let isArray = fileUrl.indexOf('[') != -1;
+    if (!isArray) {
+      // 确保 baseApiUrl 存在
+      if (!baseApiUrl) {
+        console.warn('⚠️ domainUrl 未配置，图片URL可能无法正确显示');
+        return fileUrl;
+      }
+      
+      // 构建完整路径
+      const cleanBaseUrl = baseApiUrl.replace(/\/$/, ''); // 移除末尾的斜杠
+      const cleanFileUrl = fileUrl.replace(/^\/+/, ''); // 移除开头的斜杠
+      const fullUrl = `${cleanBaseUrl}/sys/common/static/${cleanFileUrl}`;
+      
+      // 判断是否已包含前缀（避免重复拼接）
+      if (!fileUrl.startsWith(fullUrl) && !fileUrl.startsWith(`${cleanBaseUrl}/sys/common/static/`)) {
+        result = fullUrl;
+      } else {
+        result = fileUrl;
       }
     }
-  } catch (err) {}
+  } catch (err) {
+    console.error('构建图片URL失败:', err);
+  }
   return result;
 };
 

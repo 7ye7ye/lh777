@@ -191,21 +191,9 @@ public class ReferralApplicationServiceImpl extends ServiceImpl<ReferralApplicat
     @Override
     public Page<ReferralApplication> queryPage(ReferralListQuery query) {
         Page<ReferralApplication> page = new Page<>(query.getPageNo(), query.getPageSize());
-        LambdaQueryWrapper<ReferralApplication> wrapper = new LambdaQueryWrapper<>();
-        if (StringUtils.hasText(query.getStatus()) && !"全部".equals(query.getStatus())) {
-            wrapper.eq(ReferralApplication::getStatus, query.getStatus());
-        }
-        if (StringUtils.hasText(query.getPhone())) {
-            wrapper.eq(ReferralApplication::getPhone, query.getPhone());
-        }
-        if (StringUtils.hasText(query.getPatientName())) {
-            wrapper.like(ReferralApplication::getPatientName, query.getPatientName());
-        }
-        if (query.getDeptId() != null) {
-            wrapper.eq(ReferralApplication::getTargetDeptId, query.getDeptId());
-        }
-        
-        // 添加用户ID过滤，只查询当前用户的转诊记录
+        LambdaQueryWrapper<ReferralApplication> wrapper = buildCommonQueryWrapper(query);
+
+        // 添加用户ID过滤，只查询当前用户的转诊记录（患者端使用）
         try {
             Object principal = SecurityUtils.getSubject().getPrincipal();
             if (principal != null) {
@@ -221,9 +209,40 @@ public class ReferralApplicationServiceImpl extends ServiceImpl<ReferralApplicat
             // 记录日志但不影响正常流程
             e.printStackTrace();
         }
-        
+
         wrapper.orderByDesc(ReferralApplication::getApplyTime);
         return page(page, wrapper);
+    }
+
+    /**
+     * 管理员端查询：不按当前登录用户过滤，查看所有转诊记录
+     */
+    @Override
+    public Page<ReferralApplication> adminQueryPage(ReferralListQuery query) {
+        Page<ReferralApplication> page = new Page<>(query.getPageNo(), query.getPageSize());
+        LambdaQueryWrapper<ReferralApplication> wrapper = buildCommonQueryWrapper(query);
+        wrapper.orderByDesc(ReferralApplication::getApplyTime);
+        return page(page, wrapper);
+    }
+
+    /**
+     * 构建通用查询条件（状态、手机号、姓名、科室等）
+     */
+    private LambdaQueryWrapper<ReferralApplication> buildCommonQueryWrapper(ReferralListQuery query) {
+        LambdaQueryWrapper<ReferralApplication> wrapper = new LambdaQueryWrapper<>();
+        if (StringUtils.hasText(query.getStatus()) && !"全部".equals(query.getStatus())) {
+            wrapper.eq(ReferralApplication::getStatus, query.getStatus());
+        }
+        if (StringUtils.hasText(query.getPhone())) {
+            wrapper.eq(ReferralApplication::getPhone, query.getPhone());
+        }
+        if (StringUtils.hasText(query.getPatientName())) {
+            wrapper.like(ReferralApplication::getPatientName, query.getPatientName());
+        }
+        if (query.getDeptId() != null) {
+            wrapper.eq(ReferralApplication::getTargetDeptId, query.getDeptId());
+        }
+        return wrapper;
     }
 
     @Override
